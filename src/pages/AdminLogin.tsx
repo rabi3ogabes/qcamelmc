@@ -86,7 +86,22 @@ const AdminLogin = () => {
           </Button>
         </form>
 
-        <div className="mt-6 text-center">
+        <div className="mt-6 p-4 bg-muted/50 rounded-lg border border-border">
+          <p className="text-sm text-muted-foreground mb-2 text-center">Demo Credentials</p>
+          <Button
+            variant="outline"
+            className="w-full text-sm"
+            onClick={() => {
+              setEmail("admin@example.com");
+              setPassword("admin123");
+              toast.info("Credentials filled");
+            }}
+          >
+            Click to use: admin@example.com / admin123
+          </Button>
+        </div>
+
+        <div className="mt-4 text-center">
           <Button variant="ghost" onClick={() => navigate("/")}>
             ← Back to Home
           </Button>
