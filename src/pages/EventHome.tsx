@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Calendar, MapPin, Ticket } from "lucide-react";
+import { Calendar, MapPin, Ticket, Lock } from "lucide-react";
 import { format } from "date-fns";
 import heroImage from "@/assets/qatar-event-hero.jpg";
 
@@ -60,6 +60,16 @@ const EventHome = () => {
 
   return (
     <div className="min-h-screen bg-background">
+      {/* Admin Login Button */}
+      <div className="absolute top-4 right-4 z-10">
+        <Link to="/admin/login">
+          <Button variant="outline" size="sm">
+            <Lock className="w-4 h-4 mr-2" />
+            Admin Login
+          </Button>
+        </Link>
+      </div>
+
       {/* Hero Section */}
       <div className="relative h-[70vh] overflow-hidden">
         <div 
