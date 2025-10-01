@@ -42,26 +42,10 @@ const EventHome = () => {
     }
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-pulse text-lg">Loading...</div>
-      </div>
-    );
-  }
-
-  if (!event) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <p className="text-lg">No active events available</p>
-      </div>
-    );
-  }
-
   return (
     <div className="min-h-screen bg-background">
-      {/* Admin Login Button */}
-      <div className="absolute top-4 right-4 z-10">
+      {/* Admin Login Button - Always visible */}
+      <div className="fixed top-4 right-4 z-50">
         <Link to="/admin/login">
           <Button variant="outline" size="sm">
             <Lock className="w-4 h-4 mr-2" />
@@ -70,6 +54,16 @@ const EventHome = () => {
         </Link>
       </div>
 
+      {loading ? (
+        <div className="flex items-center justify-center" style={{ minHeight: 'calc(100vh - 80px)' }}>
+          <div className="animate-pulse text-lg">Loading...</div>
+        </div>
+      ) : !event ? (
+        <div className="flex items-center justify-center" style={{ minHeight: 'calc(100vh - 80px)' }}>
+          <p className="text-lg">No active events available</p>
+        </div>
+      ) : (
+        <>
       {/* Hero Section */}
       <div className="relative h-[70vh] overflow-hidden">
         <div 
@@ -149,6 +143,8 @@ const EventHome = () => {
           </Button>
         </div>
       </div>
+      </>
+      )}
     </div>
   );
 };
