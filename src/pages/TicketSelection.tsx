@@ -6,7 +6,7 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { Crown, Users, Car, ArrowRight } from "lucide-react";
+import { Crown, Users, Car, ArrowRight, Plus, Minus } from "lucide-react";
 
 interface Ticket {
   id: string;
@@ -50,12 +50,30 @@ const TicketSelection = () => {
     }
   };
 
+  const MAX_TICKETS_PER_TYPE = 5;
+
   const handleQuantityChange = (ticketId: string, value: string) => {
     const quantity = parseInt(value) || 0;
     setSelections(prev => ({
       ...prev,
-      [ticketId]: Math.max(0, quantity)
+      [ticketId]: Math.max(0, Math.min(MAX_TICKETS_PER_TYPE, quantity))
     }));
+  };
+
+  const incrementQuantity = (ticketId: string, maxAvailable: number) => {
+    setSelections(prev => {
+      const current = prev[ticketId] || 0;
+      const newValue = Math.min(current + 1, MAX_TICKETS_PER_TYPE, maxAvailable);
+      return { ...prev, [ticketId]: newValue };
+    });
+  };
+
+  const decrementQuantity = (ticketId: string) => {
+    setSelections(prev => {
+      const current = prev[ticketId] || 0;
+      const newValue = Math.max(0, current - 1);
+      return { ...prev, [ticketId]: newValue };
+    });
   };
 
   const getTicketIcon = (type: string) => {
@@ -166,19 +184,31 @@ const TicketSelection = () => {
                     {ticket.price.toFixed(2)} QAR
                   </div>
                   <div className="flex items-center gap-2">
-                    <Label htmlFor={`qty-${ticket.id}`} className="sr-only">
-                      Quantity
-                    </Label>
-                    <Input
-                      id={`qty-${ticket.id}`}
-                      type="number"
-                      min="0"
-                      max={ticket.available_quantity - ticket.sold_quantity}
-                      value={selections[ticket.id] || 0}
-                      onChange={(e) => handleQuantityChange(ticket.id, e.target.value)}
-                      className="w-20 text-center"
-                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon"
+                      className="h-9 w-9 shrink-0"
+                      onClick={() => decrementQuantity(ticket.id)}
+                      disabled={(selections[ticket.id] || 0) === 0}
+                    >
+                      <Minus className="h-4 w-4" />
+                    </Button>
+                    <div className="w-12 text-center font-semibold text-lg">
+                      {selections[ticket.id] || 0}
+                    </div>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon"
+                      className="h-9 w-9 shrink-0"
+                      onClick={() => incrementQuantity(ticket.id, Math.min(ticket.available_quantity - ticket.sold_quantity, MAX_TICKETS_PER_TYPE))}
+                      disabled={(selections[ticket.id] || 0) >= Math.min(ticket.available_quantity - ticket.sold_quantity, MAX_TICKETS_PER_TYPE)}
+                    >
+                      <Plus className="h-4 w-4" />
+                    </Button>
                   </div>
+                  <p className="text-xs text-muted-foreground">Max: 5 per type</p>
                 </div>
               </div>
             </Card>
