@@ -2,10 +2,14 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { toast } from "sonner";
-import { LogOut, CheckCircle } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { LogOut, ShoppingCart, Calendar, Ticket, Settings } from "lucide-react";
+import { useTranslation } from "react-i18next";
+import { OrdersTab } from "@/components/admin/OrdersTab";
+import { EventsTab } from "@/components/admin/EventsTab";
+import { TicketsTab } from "@/components/admin/TicketsTab";
+import { SettingsTab } from "@/components/admin/SettingsTab";
+import "../i18n/config";
 
 interface Order {
   id: string;
@@ -15,12 +19,15 @@ interface Order {
   ticket_type: string;
   quantity: number;
   total_amount: number;
+  created_at: string;
   customers: { name: string; email: string; phone: string };
 }
 
 const AdminDashboard = () => {
+  const { t } = useTranslation();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState("orders");
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -45,24 +52,9 @@ const AdminDashboard = () => {
       if (error) throw error;
       setOrders(data || []);
     } catch (error) {
-      toast.error("Failed to load orders");
+      console.error("Failed to load orders:", error);
     } finally {
       setLoading(false);
-    }
-  };
-
-  const confirmPayment = async (orderId: string) => {
-    try {
-      const { error } = await supabase
-        .from("orders")
-        .update({ payment_status: "confirmed" })
-        .eq("id", orderId);
-
-      if (error) throw error;
-      toast.success("Payment confirmed!");
-      fetchOrders();
-    } catch (error) {
-      toast.error("Failed to confirm payment");
     }
   };
 
@@ -72,54 +64,57 @@ const AdminDashboard = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background py-8 px-4">
+    <div className="min-h-screen bg-background py-8 px-4 font-lusail" dir="rtl">
       <div className="max-w-7xl mx-auto">
+        {/* Header */}
         <div className="flex justify-between items-center mb-8">
-          <h1 className="text-4xl font-bold">Admin Dashboard</h1>
+          <h1 className="text-4xl font-bold">{t("adminDashboard")}</h1>
           <Button variant="outline" onClick={handleLogout}>
-            <LogOut className="w-4 h-4 mr-2" />
-            Logout
+            <LogOut className="w-4 h-4 ml-2" />
+            {t("logout")}
           </Button>
         </div>
 
+        {/* Main Content */}
         {loading ? (
-          <div className="text-center py-12">Loading orders...</div>
+          <div className="text-center py-12">{t("loading")}</div>
         ) : (
-          <div className="space-y-4">
-            {orders.map((order) => (
-              <Card key={order.id} className="p-6">
-                <div className="grid md:grid-cols-5 gap-4 items-center">
-                  <div>
-                    <p className="text-sm text-muted-foreground">Reference</p>
-                    <p className="font-mono font-semibold">{order.booking_reference}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">Customer</p>
-                    <p className="font-semibold">{order.customers.name}</p>
-                    <p className="text-sm text-muted-foreground">{order.customers.email}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">Ticket</p>
-                    <p className="font-semibold capitalize">{order.ticket_type} x{order.quantity}</p>
-                    <p className="text-sm">{order.total_amount.toFixed(2)} QAR</p>
-                  </div>
-                  <div>
-                    <Badge variant={order.payment_status === "confirmed" ? "default" : "secondary"}>
-                      {order.payment_status}
-                    </Badge>
-                  </div>
-                  <div>
-                    {order.payment_status === "pending" && (
-                      <Button size="sm" onClick={() => confirmPayment(order.id)}>
-                        <CheckCircle className="w-4 h-4 mr-2" />
-                        Confirm Payment
-                      </Button>
-                    )}
-                  </div>
-                </div>
-              </Card>
-            ))}
-          </div>
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+            <TabsList className="grid w-full grid-cols-4 mb-8">
+              <TabsTrigger value="orders" className="flex items-center gap-2">
+                <ShoppingCart className="w-4 h-4" />
+                {t("orders")}
+              </TabsTrigger>
+              <TabsTrigger value="events" className="flex items-center gap-2">
+                <Calendar className="w-4 h-4" />
+                {t("events")}
+              </TabsTrigger>
+              <TabsTrigger value="tickets" className="flex items-center gap-2">
+                <Ticket className="w-4 h-4" />
+                {t("tickets")}
+              </TabsTrigger>
+              <TabsTrigger value="settings" className="flex items-center gap-2">
+                <Settings className="w-4 h-4" />
+                {t("settings")}
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="orders">
+              <OrdersTab orders={orders} onRefresh={fetchOrders} />
+            </TabsContent>
+
+            <TabsContent value="events">
+              <EventsTab />
+            </TabsContent>
+
+            <TabsContent value="tickets">
+              <TicketsTab />
+            </TabsContent>
+
+            <TabsContent value="settings">
+              <SettingsTab />
+            </TabsContent>
+          </Tabs>
         )}
       </div>
     </div>
