@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -24,6 +25,7 @@ interface TicketSelection {
 }
 
 const TicketSelection = () => {
+  const { t } = useTranslation();
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [selections, setSelections] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
@@ -78,7 +80,7 @@ const TicketSelection = () => {
       if (ticketType === "vip" || ticketType === "normal") {
         const currentAdmissionCount = getAdmissionTicketCount();
         if (currentAdmissionCount >= MAX_ADMISSION_TICKETS) {
-          toast.error("Maximum 5 tickets allowed for VIP and General Admission combined");
+          toast.error(t('maxTicketsError'));
           return prev;
         }
       }
@@ -112,11 +114,11 @@ const TicketSelection = () => {
   const getTicketTitle = (type: string) => {
     switch (type) {
       case "vip":
-        return "VIP Access";
+        return t('vipAccessTitle');
       case "normal":
-        return "General Admission";
+        return t('generalAdmissionTitle');
       case "parking":
-        return "Parking Pass";
+        return t('parkingPassTitle');
       default:
         return type;
     }
@@ -125,11 +127,11 @@ const TicketSelection = () => {
   const getTicketDescription = (type: string) => {
     switch (type) {
       case "vip":
-        return "Premium seating, exclusive access, complimentary refreshments";
+        return t('vipAccessDesc');
       case "normal":
-        return "General admission to all event areas and activities";
+        return t('generalAdmissionDesc');
       case "parking":
-        return "Reserved parking space near the venue entrance";
+        return t('parkingPassDesc');
       default:
         return "";
     }
@@ -153,7 +155,7 @@ const TicketSelection = () => {
       }));
 
     if (selectedTickets.length === 0) {
-      toast.error("Please select at least one ticket");
+      toast.error(t('selectAtLeastOne'));
       return;
     }
 
@@ -163,18 +165,18 @@ const TicketSelection = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-pulse text-lg">Loading tickets...</div>
+      <div className="min-h-screen flex items-center justify-center font-lusail">
+        <div className="animate-pulse text-lg">{t('loadingTickets')}</div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background py-6 sm:py-12 px-4">
+    <div className="min-h-screen bg-background py-6 sm:py-12 px-4 font-lusail">
       <div className="max-w-4xl mx-auto">
         <div className="text-center mb-8 sm:mb-12">
-          <h1 className="text-3xl sm:text-4xl font-bold mb-3 sm:mb-4">Select Your Tickets</h1>
-          <p className="text-sm sm:text-base text-muted-foreground">Choose the quantity for each ticket type</p>
+          <h1 className="text-3xl sm:text-4xl font-bold mb-3 sm:mb-4">{t('selectTicketsTitle')}</h1>
+          <p className="text-sm sm:text-base text-muted-foreground">{t('chooseQuantity')}</p>
         </div>
 
         <div className="space-y-4 sm:space-y-6 mb-6 sm:mb-8">
@@ -194,14 +196,14 @@ const TicketSelection = () => {
                       {getTicketDescription(ticket.type)}
                     </p>
                     <p className="text-xs sm:text-sm text-muted-foreground">
-                      Available: {ticket.available_quantity - ticket.sold_quantity}
+                      {t('availableTickets')}: {ticket.available_quantity - ticket.sold_quantity}
                     </p>
                   </div>
                 </div>
 
                 <div className="flex sm:flex-col items-center sm:items-end justify-between sm:justify-start gap-3 sm:space-y-3 sm:text-right">
                   <div className="text-xl sm:text-2xl font-bold text-primary">
-                    {ticket.price.toFixed(2)} QAR
+                    {ticket.price.toFixed(2)} {t('qar')}
                   </div>
                   <div className="flex items-center gap-2">
                     <Button
@@ -232,7 +234,7 @@ const TicketSelection = () => {
                     </Button>
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    {ticket.type === "parking" ? "Max: 5" : "Max: 5 total for VIP + General"}
+                    {ticket.type === "parking" ? t('maxParkingLabel') : t('maxAdmissionLabel')}
                   </p>
                 </div>
               </div>
@@ -242,9 +244,9 @@ const TicketSelection = () => {
 
         <Card className="p-4 sm:p-6 bg-primary/5 border-primary/20">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 mb-4">
-            <span className="text-base sm:text-lg font-semibold">Total Amount:</span>
+            <span className="text-base sm:text-lg font-semibold">{t('totalAmount')}:</span>
             <span className="text-2xl sm:text-3xl font-bold text-primary">
-              {calculateTotal().toFixed(2)} QAR
+              {calculateTotal().toFixed(2)} {t('qar')}
             </span>
           </div>
           <Button 
@@ -253,14 +255,14 @@ const TicketSelection = () => {
             onClick={handleContinue}
             disabled={calculateTotal() === 0}
           >
-            Continue to Checkout
-            <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5 ml-2" />
+            {t('continueToCheckout')}
+            <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
           </Button>
         </Card>
 
         <div className="text-center mt-4 sm:mt-6">
           <Button variant="ghost" onClick={() => navigate("/")}>
-            ← Back to Event Details
+            {t('backToEvent')}
           </Button>
         </div>
       </div>

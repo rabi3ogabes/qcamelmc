@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -24,6 +25,7 @@ interface TicketHolder {
 }
 
 const Checkout = () => {
+  const { t } = useTranslation();
   const [selections, setSelections] = useState<TicketSelection[]>([]);
   const [paymentMethod, setPaymentMethod] = useState<"sadad" | "cash_pos">("sadad");
   const [customerInfo, setCustomerInfo] = useState({
@@ -158,7 +160,7 @@ const Checkout = () => {
       localStorage.setItem("orderIds", JSON.stringify([order.id]));
       localStorage.removeItem("ticketSelection");
 
-      toast.success("Booking created successfully!");
+      toast.success(t('bookingCreated'));
       navigate("/confirmation");
     } catch (error) {
       console.error("Error creating booking:", error);
@@ -170,25 +172,25 @@ const Checkout = () => {
 
   if (selections.length === 0) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-pulse text-lg">Loading...</div>
+      <div className="min-h-screen flex items-center justify-center font-lusail">
+        <div className="animate-pulse text-lg">{t('loading')}</div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background py-12 px-4">
+    <div className="min-h-screen bg-background py-12 px-4 font-lusail">
       <div className="max-w-6xl mx-auto">
-        <h1 className="text-4xl font-bold mb-8 text-center">Checkout</h1>
+        <h1 className="text-4xl font-bold mb-8 text-center">{t('checkoutTitle')}</h1>
 
         <div className="grid lg:grid-cols-3 gap-8">
           {/* Customer Information */}
           <div className="lg:col-span-2 space-y-6">
             <Card className="p-6">
-              <h2 className="text-2xl font-semibold mb-6">Booking Contact</h2>
+              <h2 className="text-2xl font-semibold mb-6">{t('customerInfo')}</h2>
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
-                  <Label htmlFor="name">Full Name *</Label>
+                  <Label htmlFor="name">{t('fullName')} *</Label>
                   <Input
                     id="name"
                     value={customerInfo.name}
@@ -197,7 +199,7 @@ const Checkout = () => {
                   />
                 </div>
                 <div>
-                  <Label htmlFor="email">Email Address *</Label>
+                  <Label htmlFor="email">{t('email')} *</Label>
                   <Input
                     id="email"
                     type="email"
@@ -207,7 +209,7 @@ const Checkout = () => {
                   />
                 </div>
                 <div>
-                  <Label htmlFor="phone">Phone Number *</Label>
+                  <Label htmlFor="phone">{t('phoneNumber')} *</Label>
                   <Input
                     id="phone"
                     type="tel"
@@ -221,26 +223,26 @@ const Checkout = () => {
 
             {/* Ticket Holders Information */}
             <Card className="p-6">
-              <h2 className="text-2xl font-semibold mb-6">Ticket Holders Information</h2>
+              <h2 className="text-2xl font-semibold mb-6">{t('ticketHolderInfo')}</h2>
               <div className="space-y-6">
                 {ticketHolders.map((holder, index) => (
                   <div key={index} className="p-4 border rounded-lg space-y-4">
                     <h3 className="font-semibold text-lg">
-                      Ticket #{index + 1} - {holder.ticketType.toUpperCase()}
+                      {t('ticket')} #{index + 1} - {holder.ticketType.toUpperCase()}
                     </h3>
                     <div className="grid md:grid-cols-3 gap-4">
                       <div>
-                        <Label htmlFor={`holder-name-${index}`}>Full Name *</Label>
+                        <Label htmlFor={`holder-name-${index}`}>{t('fullName')} *</Label>
                         <Input
                           id={`holder-name-${index}`}
                           value={holder.name}
                           onChange={(e) => updateTicketHolder(index, 'name', e.target.value)}
                           required
-                          placeholder="Enter name"
+                          placeholder={t('fullName')}
                         />
                       </div>
                       <div>
-                        <Label htmlFor={`holder-phone-${index}`}>Phone Number *</Label>
+                        <Label htmlFor={`holder-phone-${index}`}>{t('phoneNumber')} *</Label>
                         <Input
                           id={`holder-phone-${index}`}
                           type="tel"
@@ -251,13 +253,13 @@ const Checkout = () => {
                         />
                       </div>
                       <div>
-                        <Label htmlFor={`holder-nationality-${index}`}>Nationality *</Label>
+                        <Label htmlFor={`holder-nationality-${index}`}>{t('nationality')} *</Label>
                         <Input
                           id={`holder-nationality-${index}`}
                           value={holder.nationality}
                           onChange={(e) => updateTicketHolder(index, 'nationality', e.target.value)}
                           required
-                          placeholder="e.g., Qatari"
+                          placeholder={t('nationality')}
                         />
                       </div>
                     </div>
@@ -268,25 +270,25 @@ const Checkout = () => {
 
             {/* Payment Method */}
             <Card className="p-6">
-              <h3 className="text-lg font-semibold mb-4">Payment Method</h3>
+              <h3 className="text-lg font-semibold mb-4">{t('selectPaymentMethod')}</h3>
               <RadioGroup value={paymentMethod} onValueChange={(value: any) => setPaymentMethod(value)}>
-                <div className="flex items-center space-x-2 p-4 border rounded-lg hover:bg-accent cursor-pointer">
+                <div className="flex items-center space-x-2 space-x-reverse p-4 border rounded-lg hover:bg-accent cursor-pointer">
                   <RadioGroupItem value="sadad" id="sadad" />
                   <Label htmlFor="sadad" className="flex items-center gap-2 cursor-pointer flex-1">
                     <CreditCard className="w-5 h-5 text-primary" />
                     <div>
-                      <div className="font-medium">Sadad Payment</div>
-                      <div className="text-sm text-muted-foreground">Pay online via Sadad</div>
+                      <div className="font-medium">{t('sadadOnline')}</div>
+                      <div className="text-sm text-muted-foreground">{t('sadadOnline')}</div>
                     </div>
                   </Label>
                 </div>
-                <div className="flex items-center space-x-2 p-4 border rounded-lg hover:bg-accent cursor-pointer">
+                <div className="flex items-center space-x-2 space-x-reverse p-4 border rounded-lg hover:bg-accent cursor-pointer">
                   <RadioGroupItem value="cash_pos" id="cash_pos" />
                   <Label htmlFor="cash_pos" className="flex items-center gap-2 cursor-pointer flex-1">
                     <Banknote className="w-5 h-5 text-secondary" />
                     <div>
-                      <div className="font-medium">Cash / POS at Venue</div>
-                      <div className="text-sm text-muted-foreground">Pay when you arrive</div>
+                      <div className="font-medium">{t('cashAtVenue')}</div>
+                      <div className="text-sm text-muted-foreground">{t('cashAtVenue')}</div>
                     </div>
                   </Label>
                 </div>
@@ -301,11 +303,11 @@ const Checkout = () => {
             >
               {loading ? (
                 <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  Processing...
+                  <Loader2 className="w-4 h-4 ml-2 animate-spin" />
+                  {t('loading')}
                 </>
               ) : (
-                "Complete Booking"
+                t('completeBooking')
               )}
             </Button>
           </div>
@@ -313,37 +315,37 @@ const Checkout = () => {
           {/* Order Summary */}
           <div className="lg:col-span-1">
             <Card className="p-6 sticky top-4">
-              <h2 className="text-2xl font-semibold mb-6">Order Summary</h2>
+              <h2 className="text-2xl font-semibold mb-6">{t('orderSummary')}</h2>
               <div className="space-y-4">
                 {selections.map((item, index) => (
                   <div key={index} className="flex justify-between items-center py-3 border-b">
                     <div>
-                      <div className="font-medium capitalize">{item.type} Ticket</div>
-                      <div className="text-sm text-muted-foreground">Quantity: {item.quantity}</div>
+                      <div className="font-medium capitalize">{item.type} {t('ticket')}</div>
+                      <div className="text-sm text-muted-foreground">{t('quantity')}: {item.quantity}</div>
                     </div>
                     <div className="font-semibold">
-                      {(item.price * item.quantity).toFixed(2)} QAR
+                      {(item.price * item.quantity).toFixed(2)} {t('qar')}
                     </div>
                   </div>
                 ))}
                 
                 <div className="pt-4 border-t">
                   <div className="flex justify-between items-center text-xl font-bold">
-                    <span>Total</span>
-                    <span className="text-primary">{calculateTotal().toFixed(2)} QAR</span>
+                    <span>{t('totalAmount')}</span>
+                    <span className="text-primary">{calculateTotal().toFixed(2)} {t('qar')}</span>
                   </div>
                 </div>
 
                 <div className="pt-4 text-sm text-muted-foreground">
-                  <p>* You will receive a confirmation email after payment is confirmed.</p>
-                  <p className="mt-2">* Your tickets with QR codes will be sent to your email.</p>
+                  <p>* {t('receiveEmail')}</p>
+                  <p className="mt-2">* {t('presentQR')}</p>
                 </div>
               </div>
             </Card>
 
             <div className="text-center mt-6">
               <Button variant="ghost" onClick={() => navigate("/tickets")} className="w-full">
-                ← Back to Ticket Selection
+                {t('backToTickets')}
               </Button>
             </div>
           </div>

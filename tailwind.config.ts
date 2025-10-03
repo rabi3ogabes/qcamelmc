@@ -14,8 +14,8 @@ export default {
     },
     extend: {
       fontFamily: {
-        'lusail': ['Almarai', 'sans-serif'],
-        'sans': ['Almarai', 'sans-serif'],
+        'lusail': ['Tajawal', 'sans-serif'],
+        'sans': ['Tajawal', 'sans-serif'],
       },
       colors: {
         border: "hsl(var(--border))",
