@@ -31,7 +31,8 @@ const Checkout = () => {
   const [customerInfo, setCustomerInfo] = useState({
     name: "",
     email: "",
-    phone: ""
+    phone: "",
+    nationality: ""
   });
   const [ticketHolders, setTicketHolders] = useState<TicketHolder[]>([]);
   const [loading, setLoading] = useState(false);
@@ -72,16 +73,17 @@ const Checkout = () => {
 
   // Auto-fill first ticket holder from customer info
   useEffect(() => {
-    if (ticketHolders.length > 0 && customerInfo.name && customerInfo.phone) {
+    if (ticketHolders.length > 0 && customerInfo.name && customerInfo.phone && customerInfo.nationality) {
       const updated = [...ticketHolders];
       updated[0] = { 
         ...updated[0], 
         name: customerInfo.name, 
-        phone: customerInfo.phone 
+        phone: customerInfo.phone,
+        nationality: customerInfo.nationality
       };
       setTicketHolders(updated);
     }
-  }, [customerInfo.name, customerInfo.phone]);
+  }, [customerInfo.name, customerInfo.phone, customerInfo.nationality]);
 
   const updateTicketHolder = (index: number, field: keyof TicketHolder, value: string) => {
     const updated = [...ticketHolders];
@@ -92,7 +94,7 @@ const Checkout = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!customerInfo.name || !customerInfo.email || !customerInfo.phone) {
+    if (!customerInfo.name || !customerInfo.email || !customerInfo.phone || !customerInfo.nationality) {
       toast.error("Please fill in all customer information");
       return;
     }
@@ -231,6 +233,16 @@ const Checkout = () => {
                     required
                   />
                 </div>
+                <div>
+                  <Label htmlFor="nationality">{t('nationality')} *</Label>
+                  <Input
+                    id="nationality"
+                    value={customerInfo.nationality}
+                    onChange={(e) => setCustomerInfo({ ...customerInfo, nationality: e.target.value })}
+                    required
+                    placeholder={t('nationality')}
+                  />
+                </div>
               </form>
             </Card>
 
@@ -238,16 +250,38 @@ const Checkout = () => {
             <Card className="p-6">
               <h2 className="text-2xl font-semibold mb-6">{t('ticketHolderInfo')}</h2>
               <div className="space-y-6">
-                {ticketHolders.map((holder, index) => (
-                  <div key={index} className="p-4 border rounded-lg space-y-4">
-                    <h3 className="font-semibold text-lg">
-                      {t('ticket')} #{index + 1} - {holder.ticketType.toUpperCase()}
-                      {index === 0 && <span className="text-sm text-muted-foreground mr-2"> ({t('customerInfo')})</span>}
-                    </h3>
-                    <div className="grid md:grid-cols-3 gap-4">
-                      {index === 0 ? (
-                        // First ticket holder - only show nationality field
-                        <div className="md:col-span-3">
+                {ticketHolders.map((holder, index) => {
+                  // Skip rendering the first ticket holder since info is from customer
+                  if (index === 0) return null;
+                  
+                  return (
+                    <div key={index} className="p-4 border rounded-lg space-y-4">
+                      <h3 className="font-semibold text-lg">
+                        {t('ticket')} #{index + 1} - {holder.ticketType.toUpperCase()}
+                      </h3>
+                      <div className="grid md:grid-cols-3 gap-4">
+                        <div>
+                          <Label htmlFor={`holder-name-${index}`}>{t('fullName')} *</Label>
+                          <Input
+                            id={`holder-name-${index}`}
+                            value={holder.name}
+                            onChange={(e) => updateTicketHolder(index, 'name', e.target.value)}
+                            required
+                            placeholder={t('fullName')}
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor={`holder-phone-${index}`}>{t('phoneNumber')} *</Label>
+                          <Input
+                            id={`holder-phone-${index}`}
+                            type="tel"
+                            value={holder.phone}
+                            onChange={(e) => updateTicketHolder(index, 'phone', e.target.value)}
+                            required
+                            placeholder="+974 XXXX XXXX"
+                          />
+                        </div>
+                        <div>
                           <Label htmlFor={`holder-nationality-${index}`}>{t('nationality')} *</Label>
                           <Input
                             id={`holder-nationality-${index}`}
@@ -257,45 +291,10 @@ const Checkout = () => {
                             placeholder={t('nationality')}
                           />
                         </div>
-                      ) : (
-                        // Other ticket holders - show all fields
-                        <>
-                          <div>
-                            <Label htmlFor={`holder-name-${index}`}>{t('fullName')} *</Label>
-                            <Input
-                              id={`holder-name-${index}`}
-                              value={holder.name}
-                              onChange={(e) => updateTicketHolder(index, 'name', e.target.value)}
-                              required
-                              placeholder={t('fullName')}
-                            />
-                          </div>
-                          <div>
-                            <Label htmlFor={`holder-phone-${index}`}>{t('phoneNumber')} *</Label>
-                            <Input
-                              id={`holder-phone-${index}`}
-                              type="tel"
-                              value={holder.phone}
-                              onChange={(e) => updateTicketHolder(index, 'phone', e.target.value)}
-                              required
-                              placeholder="+974 XXXX XXXX"
-                            />
-                          </div>
-                          <div>
-                            <Label htmlFor={`holder-nationality-${index}`}>{t('nationality')} *</Label>
-                            <Input
-                              id={`holder-nationality-${index}`}
-                              value={holder.nationality}
-                              onChange={(e) => updateTicketHolder(index, 'nationality', e.target.value)}
-                              required
-                              placeholder={t('nationality')}
-                            />
-                          </div>
-                        </>
-                      )}
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </Card>
 
