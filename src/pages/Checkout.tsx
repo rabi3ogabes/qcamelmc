@@ -71,7 +71,7 @@ const Checkout = () => {
     }, 0);
   };
 
-  // Auto-fill first ticket holder from customer info and nationality for all holders
+  // Auto-fill first ticket holder from customer info and nationality for empty holders only
   useEffect(() => {
     if (ticketHolders.length > 0 && customerInfo.name && customerInfo.phone && customerInfo.nationality) {
       const updated = [...ticketHolders];
@@ -82,12 +82,14 @@ const Checkout = () => {
         phone: customerInfo.phone,
         nationality: customerInfo.nationality
       };
-      // Update all other ticket holders with the same nationality
+      // Update only empty nationality fields for other ticket holders
       for (let i = 1; i < updated.length; i++) {
-        updated[i] = {
-          ...updated[i],
-          nationality: customerInfo.nationality
-        };
+        if (!updated[i].nationality) {
+          updated[i] = {
+            ...updated[i],
+            nationality: customerInfo.nationality
+          };
+        }
       }
       setTicketHolders(updated);
     }
