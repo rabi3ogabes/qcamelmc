@@ -93,12 +93,12 @@ const AdminLogin = () => {
             variant="outline"
             className="w-full text-sm"
             onClick={() => {
-              setEmail("admin@example.com");
-              setPassword("admin123");
+              setEmail("rabii.souai@gmail.com");
+              setPassword("@@@Qatar123");
               toast.info("Credentials filled");
             }}
           >
-            Click to use: admin@example.com / admin123
+            Click to use: rabii.souai@gmail.com / @@@Qatar123
           </Button>
         </div>
 

@@ -3,10 +3,32 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { CheckCircle, MapPin, Calendar } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { CheckCircle, MapPin, Calendar, Eye } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+
+interface TicketHolder {
+  id: string;
+  name: string;
+  phone: string;
+  nationality: string;
+  ticket_type: string;
+}
 
 interface Order {
   id: string;
@@ -32,6 +54,24 @@ interface OrdersTabProps {
 export const OrdersTab = ({ orders, onRefresh }: OrdersTabProps) => {
   const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState("all");
+  const [selectedOrder, setSelectedOrder] = useState<string | null>(null);
+  const [ticketHolders, setTicketHolders] = useState<TicketHolder[]>([]);
+
+  const viewOrderDetails = async (orderId: string) => {
+    setSelectedOrder(orderId);
+    try {
+      const { data, error } = await supabase
+        .from("ticket_holders")
+        .select("*")
+        .eq("order_id", orderId);
+
+      if (error) throw error;
+      setTicketHolders(data || []);
+    } catch (error) {
+      console.error("Error fetching ticket holders:", error);
+      toast.error(t("failedToLoad"));
+    }
+  };
 
   const confirmPayment = async (orderId: string) => {
     try {
@@ -103,6 +143,15 @@ export const OrdersTab = ({ orders, onRefresh }: OrdersTabProps) => {
         </div>
         
         <div className="flex gap-2">
+          <Button 
+            size="sm" 
+            variant="outline" 
+            onClick={() => viewOrderDetails(order.id)} 
+            className="font-lusail"
+          >
+            <Eye className="w-4 h-4 ml-2" />
+            {t("viewDetails")}
+          </Button>
           {order.payment_status === "pending" && (
             <Button size="sm" onClick={() => confirmPayment(order.id)} className="font-lusail">
               <CheckCircle className="w-4 h-4 ml-2" />
@@ -174,6 +223,49 @@ export const OrdersTab = ({ orders, onRefresh }: OrdersTabProps) => {
           )}
         </TabsContent>
       </Tabs>
+
+      {/* Order Details Dialog */}
+      <Dialog open={!!selectedOrder} onOpenChange={() => setSelectedOrder(null)}>
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="font-lusail text-2xl">{t("ticketHoldersTitle")}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            {ticketHolders.length > 0 ? (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="text-right font-lusail">#</TableHead>
+                    <TableHead className="text-right font-lusail">{t("holderName")}</TableHead>
+                    <TableHead className="text-right font-lusail">{t("holderPhone")}</TableHead>
+                    <TableHead className="text-right font-lusail">{t("holderNationality")}</TableHead>
+                    <TableHead className="text-right font-lusail">{t("ticketType")}</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {ticketHolders.map((holder, index) => (
+                    <TableRow key={holder.id}>
+                      <TableCell className="font-medium">{index + 1}</TableCell>
+                      <TableCell className="font-medium">{holder.name}</TableCell>
+                      <TableCell>{holder.phone}</TableCell>
+                      <TableCell>{holder.nationality}</TableCell>
+                      <TableCell>
+                        <Badge variant="outline" className="capitalize font-lusail">
+                          {holder.ticket_type}
+                        </Badge>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            ) : (
+              <p className="text-center text-muted-foreground py-8 font-lusail">
+                {t("noTicketHolders")}
+              </p>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

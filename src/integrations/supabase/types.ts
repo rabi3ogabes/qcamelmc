@@ -161,6 +161,44 @@ export type Database = {
           },
         ]
       }
+      ticket_holders: {
+        Row: {
+          created_at: string | null
+          id: string
+          name: string
+          nationality: string
+          order_id: string
+          phone: string
+          ticket_type: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          name: string
+          nationality: string
+          order_id: string
+          phone: string
+          ticket_type: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          name?: string
+          nationality?: string
+          order_id?: string
+          phone?: string
+          ticket_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ticket_holders_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tickets: {
         Row: {
           available_quantity: number

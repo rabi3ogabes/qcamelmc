@@ -39,6 +39,13 @@ const resources = {
       "location": "الموقع",
       "date": "التاريخ",
       "actions": "الإجراءات",
+      "viewDetails": "عرض التفاصيل",
+      "ticketHoldersTitle": "معلومات حاملي التذاكر",
+      "holderName": "اسم حامل التذكرة",
+      "holderPhone": "رقم الهاتف",
+      "holderNationality": "الجنسية",
+      "ticketType": "نوع التذكرة",
+      "noTicketHolders": "لا توجد معلومات حاملي التذاكر",
       
       // Events
       "eventManagement": "إدارة الفعاليات",
