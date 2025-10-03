@@ -70,6 +70,19 @@ const Checkout = () => {
     }, 0);
   };
 
+  // Auto-fill first ticket holder from customer info
+  useEffect(() => {
+    if (ticketHolders.length > 0 && customerInfo.name && customerInfo.phone) {
+      const updated = [...ticketHolders];
+      updated[0] = { 
+        ...updated[0], 
+        name: customerInfo.name, 
+        phone: customerInfo.phone 
+      };
+      setTicketHolders(updated);
+    }
+  }, [customerInfo.name, customerInfo.phone]);
+
   const updateTicketHolder = (index: number, field: keyof TicketHolder, value: string) => {
     const updated = [...ticketHolders];
     updated[index] = { ...updated[index], [field]: value };
@@ -229,39 +242,57 @@ const Checkout = () => {
                   <div key={index} className="p-4 border rounded-lg space-y-4">
                     <h3 className="font-semibold text-lg">
                       {t('ticket')} #{index + 1} - {holder.ticketType.toUpperCase()}
+                      {index === 0 && <span className="text-sm text-muted-foreground mr-2"> ({t('customerInfo')})</span>}
                     </h3>
                     <div className="grid md:grid-cols-3 gap-4">
-                      <div>
-                        <Label htmlFor={`holder-name-${index}`}>{t('fullName')} *</Label>
-                        <Input
-                          id={`holder-name-${index}`}
-                          value={holder.name}
-                          onChange={(e) => updateTicketHolder(index, 'name', e.target.value)}
-                          required
-                          placeholder={t('fullName')}
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor={`holder-phone-${index}`}>{t('phoneNumber')} *</Label>
-                        <Input
-                          id={`holder-phone-${index}`}
-                          type="tel"
-                          value={holder.phone}
-                          onChange={(e) => updateTicketHolder(index, 'phone', e.target.value)}
-                          required
-                          placeholder="+974 XXXX XXXX"
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor={`holder-nationality-${index}`}>{t('nationality')} *</Label>
-                        <Input
-                          id={`holder-nationality-${index}`}
-                          value={holder.nationality}
-                          onChange={(e) => updateTicketHolder(index, 'nationality', e.target.value)}
-                          required
-                          placeholder={t('nationality')}
-                        />
-                      </div>
+                      {index === 0 ? (
+                        // First ticket holder - only show nationality field
+                        <div className="md:col-span-3">
+                          <Label htmlFor={`holder-nationality-${index}`}>{t('nationality')} *</Label>
+                          <Input
+                            id={`holder-nationality-${index}`}
+                            value={holder.nationality}
+                            onChange={(e) => updateTicketHolder(index, 'nationality', e.target.value)}
+                            required
+                            placeholder={t('nationality')}
+                          />
+                        </div>
+                      ) : (
+                        // Other ticket holders - show all fields
+                        <>
+                          <div>
+                            <Label htmlFor={`holder-name-${index}`}>{t('fullName')} *</Label>
+                            <Input
+                              id={`holder-name-${index}`}
+                              value={holder.name}
+                              onChange={(e) => updateTicketHolder(index, 'name', e.target.value)}
+                              required
+                              placeholder={t('fullName')}
+                            />
+                          </div>
+                          <div>
+                            <Label htmlFor={`holder-phone-${index}`}>{t('phoneNumber')} *</Label>
+                            <Input
+                              id={`holder-phone-${index}`}
+                              type="tel"
+                              value={holder.phone}
+                              onChange={(e) => updateTicketHolder(index, 'phone', e.target.value)}
+                              required
+                              placeholder="+974 XXXX XXXX"
+                            />
+                          </div>
+                          <div>
+                            <Label htmlFor={`holder-nationality-${index}`}>{t('nationality')} *</Label>
+                            <Input
+                              id={`holder-nationality-${index}`}
+                              value={holder.nationality}
+                              onChange={(e) => updateTicketHolder(index, 'nationality', e.target.value)}
+                              required
+                              placeholder={t('nationality')}
+                            />
+                          </div>
+                        </>
+                      )}
                     </div>
                   </div>
                 ))}
