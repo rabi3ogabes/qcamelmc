@@ -50,7 +50,17 @@ const TicketSelection = () => {
     }
   };
 
-  const MAX_TICKETS_PER_TYPE = 5;
+  const MAX_ADMISSION_TICKETS = 5; // Combined max for VIP + General
+  const MAX_TICKETS_PER_TYPE = 5; // Max for parking
+
+  const getAdmissionTicketCount = () => {
+    return tickets.reduce((total, ticket) => {
+      if (ticket.type === "vip" || ticket.type === "normal") {
+        return total + (selections[ticket.id] || 0);
+      }
+      return total;
+    }, 0);
+  };
 
   const handleQuantityChange = (ticketId: string, value: string) => {
     const quantity = parseInt(value) || 0;
@@ -60,9 +70,19 @@ const TicketSelection = () => {
     }));
   };
 
-  const incrementQuantity = (ticketId: string, maxAvailable: number) => {
+  const incrementQuantity = (ticketId: string, ticketType: string, maxAvailable: number) => {
     setSelections(prev => {
       const current = prev[ticketId] || 0;
+      
+      // Check combined limit for VIP and General admission
+      if (ticketType === "vip" || ticketType === "normal") {
+        const currentAdmissionCount = getAdmissionTicketCount();
+        if (currentAdmissionCount >= MAX_ADMISSION_TICKETS) {
+          toast.error("Maximum 5 tickets allowed for VIP and General Admission combined");
+          return prev;
+        }
+      }
+      
       const newValue = Math.min(current + 1, MAX_TICKETS_PER_TYPE, maxAvailable);
       return { ...prev, [ticketId]: newValue };
     });
@@ -202,13 +222,18 @@ const TicketSelection = () => {
                       variant="outline"
                       size="icon"
                       className="h-9 w-9 shrink-0"
-                      onClick={() => incrementQuantity(ticket.id, Math.min(ticket.available_quantity - ticket.sold_quantity, MAX_TICKETS_PER_TYPE))}
-                      disabled={(selections[ticket.id] || 0) >= Math.min(ticket.available_quantity - ticket.sold_quantity, MAX_TICKETS_PER_TYPE)}
+                      onClick={() => incrementQuantity(ticket.id, ticket.type, Math.min(ticket.available_quantity - ticket.sold_quantity, MAX_TICKETS_PER_TYPE))}
+                      disabled={
+                        (selections[ticket.id] || 0) >= Math.min(ticket.available_quantity - ticket.sold_quantity, MAX_TICKETS_PER_TYPE) ||
+                        ((ticket.type === "vip" || ticket.type === "normal") && getAdmissionTicketCount() >= MAX_ADMISSION_TICKETS)
+                      }
                     >
                       <Plus className="h-4 w-4" />
                     </Button>
                   </div>
-                  <p className="text-xs text-muted-foreground">Max: 5 per type</p>
+                  <p className="text-xs text-muted-foreground">
+                    {ticket.type === "parking" ? "Max: 5" : "Max: 5 total for VIP + General"}
+                  </p>
                 </div>
               </div>
             </Card>
