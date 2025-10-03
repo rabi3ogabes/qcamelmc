@@ -71,16 +71,24 @@ const Checkout = () => {
     }, 0);
   };
 
-  // Auto-fill first ticket holder from customer info
+  // Auto-fill first ticket holder from customer info and nationality for all holders
   useEffect(() => {
     if (ticketHolders.length > 0 && customerInfo.name && customerInfo.phone && customerInfo.nationality) {
       const updated = [...ticketHolders];
+      // Update first ticket holder with all customer info
       updated[0] = { 
         ...updated[0], 
         name: customerInfo.name, 
         phone: customerInfo.phone,
         nationality: customerInfo.nationality
       };
+      // Update all other ticket holders with the same nationality
+      for (let i = 1; i < updated.length; i++) {
+        updated[i] = {
+          ...updated[i],
+          nationality: customerInfo.nationality
+        };
+      }
       setTicketHolders(updated);
     }
   }, [customerInfo.name, customerInfo.phone, customerInfo.nationality]);
