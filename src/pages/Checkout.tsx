@@ -7,8 +7,33 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { CreditCard, Banknote, Loader2 } from "lucide-react";
+
+const ARABIC_COUNTRIES = [
+  "السعودية",
+  "الإمارات",
+  "قطر",
+  "الكويت",
+  "البحرين",
+  "عمان",
+  "مصر",
+  "الأردن",
+  "لبنان",
+  "العراق",
+  "سوريا",
+  "اليمن",
+  "ليبيا",
+  "السودان",
+  "الجزائر",
+  "المغرب",
+  "تونس",
+  "موريتانيا",
+  "الصومال",
+  "جيبوتي",
+  "فلسطين"
+];
 
 interface TicketSelection {
   ticketId: string;
@@ -248,13 +273,22 @@ const Checkout = () => {
                 </div>
                 <div>
                   <Label htmlFor="nationality">{t('nationality')} *</Label>
-                  <Input
-                    id="nationality"
+                  <Select
                     value={customerInfo.nationality}
-                    onChange={(e) => setCustomerInfo({ ...customerInfo, nationality: e.target.value })}
+                    onValueChange={(value) => setCustomerInfo({ ...customerInfo, nationality: value })}
                     required
-                    placeholder={t('nationality')}
-                  />
+                  >
+                    <SelectTrigger id="nationality">
+                      <SelectValue placeholder={t('nationality')} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {ARABIC_COUNTRIES.map((country) => (
+                        <SelectItem key={country} value={country}>
+                          {country}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
               </form>
             </Card>
@@ -285,13 +319,22 @@ const Checkout = () => {
                         </div>
                         <div>
                           <Label htmlFor={`holder-nationality-${index}`}>{t('nationality')} *</Label>
-                          <Input
-                            id={`holder-nationality-${index}`}
+                          <Select
                             value={holder.nationality}
-                            onChange={(e) => updateTicketHolder(index, 'nationality', e.target.value)}
+                            onValueChange={(value) => updateTicketHolder(index, 'nationality', value)}
                             required
-                            placeholder={t('nationality')}
-                          />
+                          >
+                            <SelectTrigger id={`holder-nationality-${index}`}>
+                              <SelectValue placeholder={t('nationality')} />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {ARABIC_COUNTRIES.map((country) => (
+                                <SelectItem key={country} value={country}>
+                                  {country}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
                         </div>
                       </div>
                     </div>
