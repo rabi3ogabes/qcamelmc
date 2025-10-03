@@ -99,10 +99,13 @@ const Checkout = () => {
       return;
     }
 
-    // Validate all ticket holders
-    const allHoldersFilled = ticketHolders.every(holder => 
-      holder.name && holder.phone && holder.nationality
-    );
+    // Validate all ticket holders (first holder needs all fields, others just name and nationality)
+    const allHoldersFilled = ticketHolders.every((holder, index) => {
+      if (index === 0) {
+        return holder.name && holder.phone && holder.nationality;
+      }
+      return holder.name && holder.nationality;
+    });
     
     if (!allHoldersFilled) {
       toast.error("Please fill in information for all ticket holders");
@@ -156,11 +159,11 @@ const Checkout = () => {
 
       if (orderError) throw orderError;
 
-      // Insert all ticket holders
+      // Insert all ticket holders (use customer phone for additional holders)
       const holdersToInsert = ticketHolders.map(holder => ({
         order_id: order.id,
         name: holder.name,
-        phone: holder.phone,
+        phone: holder.phone || customerInfo.phone,
         nationality: holder.nationality,
         ticket_type: holder.ticketType
       }));
@@ -259,7 +262,7 @@ const Checkout = () => {
                       <h3 className="font-semibold text-lg">
                         {t('ticket')} #{index + 1} - {holder.ticketType.toUpperCase()}
                       </h3>
-                      <div className="grid md:grid-cols-3 gap-4">
+                      <div className="grid md:grid-cols-2 gap-4">
                         <div>
                           <Label htmlFor={`holder-name-${index}`}>{t('fullName')} *</Label>
                           <Input
@@ -268,17 +271,6 @@ const Checkout = () => {
                             onChange={(e) => updateTicketHolder(index, 'name', e.target.value)}
                             required
                             placeholder={t('fullName')}
-                          />
-                        </div>
-                        <div>
-                          <Label htmlFor={`holder-phone-${index}`}>{t('phoneNumber')} *</Label>
-                          <Input
-                            id={`holder-phone-${index}`}
-                            type="tel"
-                            value={holder.phone}
-                            onChange={(e) => updateTicketHolder(index, 'phone', e.target.value)}
-                            required
-                            placeholder="+974 XXXX XXXX"
                           />
                         </div>
                         <div>
