@@ -102,6 +102,23 @@ const resources = {
       "failedToLoad": "فشل التحميل",
       "savedSuccessfully": "تم الحفظ بنجاح",
       
+      // Live Bookings
+      "liveBookings": "الحجوزات المباشرة",
+      "trackBookingsRealtime": "تتبع الحجوزات والحضور في الوقت الفعلي",
+      "selectDate": "اختر التاريخ",
+      "totalBookings": "إجمالي الحجوزات",
+      "confirmedBookings": "الحجوزات المؤكدة",
+      "presentAttendees": "الحضور",
+      "attendance": "الحضور",
+      "present": "حاضر",
+      "absent": "غائب",
+      "notMarked": "غير محدد",
+      "markPresent": "تحديد كحاضر",
+      "markAbsent": "تحديد كغائب",
+      "markedAsPresent": "تم التحديد كحاضر",
+      "markedAsAbsent": "تم التحديد كغائب",
+      "noBookingsForDate": "لا توجد حجوزات لهذا التاريخ",
+      
       // Common
       "search": "بحث",
       "filter": "تصفية",

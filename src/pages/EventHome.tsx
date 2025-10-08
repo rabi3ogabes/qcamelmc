@@ -47,8 +47,14 @@ const EventHome = () => {
 
   return (
     <div className="min-h-screen bg-background font-lusail">
-      {/* Admin Login Button - Always visible */}
-      <div className="fixed top-4 left-4 z-50">
+      {/* Admin Login and Live Bookings Buttons - Always visible */}
+      <div className="fixed top-4 left-4 z-50 flex gap-2">
+        <Link to="/live-bookings">
+          <Button variant="outline" size="sm">
+            <Calendar className="w-4 h-4 ml-2" />
+            {t('liveBookings')}
+          </Button>
+        </Link>
         <Link to="/admin/login">
           <Button variant="outline" size="sm">
             <Lock className="w-4 h-4 ml-2" />

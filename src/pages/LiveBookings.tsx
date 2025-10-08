@@ -20,7 +20,7 @@ interface Booking {
   quantity: number;
   total_amount: number;
   created_at: string;
-  is_present: boolean | null;
+  is_present?: boolean | null;
   customers: {
     name: string;
     email: string;
@@ -111,11 +111,11 @@ const LiveBookings = () => {
     setStats({ total, confirmed, present, totalTickets });
   };
 
-  const togglePresence = async (bookingId: string, currentStatus: boolean | null) => {
+  const togglePresence = async (bookingId: string, currentStatus: boolean | null | undefined) => {
     try {
       const { error } = await supabase
         .from("orders")
-        .update({ is_present: !currentStatus })
+        .update({ is_present: !currentStatus } as any)
         .eq("id", bookingId);
 
       if (error) throw error;

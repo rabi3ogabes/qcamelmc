@@ -104,6 +104,7 @@ export type Database = {
           customer_id: string
           event_id: string
           id: string
+          is_present: boolean | null
           payment_id: string | null
           payment_method: Database["public"]["Enums"]["payment_method"]
           payment_status: Database["public"]["Enums"]["payment_status"] | null
@@ -120,6 +121,7 @@ export type Database = {
           customer_id: string
           event_id: string
           id?: string
+          is_present?: boolean | null
           payment_id?: string | null
           payment_method: Database["public"]["Enums"]["payment_method"]
           payment_status?: Database["public"]["Enums"]["payment_status"] | null
@@ -136,6 +138,7 @@ export type Database = {
           customer_id?: string
           event_id?: string
           id?: string
+          is_present?: boolean | null
           payment_id?: string | null
           payment_method?: Database["public"]["Enums"]["payment_method"]
           payment_status?: Database["public"]["Enums"]["payment_status"] | null
