@@ -3,7 +3,7 @@ import { useNavigate, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { LogOut, ShoppingCart, Calendar, Ticket, Settings, ExternalLink, Image } from "lucide-react";
+import { LogOut, ShoppingCart, Calendar, Ticket, Settings, ExternalLink, Image, ScanLine } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { OrdersTab } from "@/components/admin/OrdersTab";
 import { EventsTab } from "@/components/admin/EventsTab";
@@ -105,6 +105,14 @@ const AdminDashboard = () => {
             </TabsList>
 
             <div className="flex justify-center mb-6 gap-2">
+              <Button
+                variant="outline"
+                onClick={() => navigate('/admin/qr-scanner')}
+                className="font-lusail flex items-center gap-2 bg-primary/10 hover:bg-primary/20 border-primary"
+              >
+                <ScanLine className="w-4 h-4" />
+                {t("scanTicket") || "مسح التذكرة"}
+              </Button>
               <Button
                 variant="outline"
                 onClick={() => window.open('/live-bookings', '_blank')}
