@@ -23,12 +23,6 @@ export const CreateEventDialog = ({ onEventCreated }: CreateEventDialogProps) =>
     event_date: "",
     location: "",
     image_url: "",
-    vip_quantity: "",
-    vip_price: "",
-    regular_quantity: "",
-    regular_price: "",
-    student_quantity: "",
-    student_price: "",
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -51,46 +45,6 @@ export const CreateEventDialog = ({ onEventCreated }: CreateEventDialogProps) =>
 
       if (eventError) throw eventError;
 
-      const tickets = [];
-      
-      if (formData.vip_quantity && formData.vip_price) {
-        tickets.push({
-          event_id: event.id,
-          type: "vip",
-          available_quantity: parseInt(formData.vip_quantity),
-          price: parseFloat(formData.vip_price),
-          sold_quantity: 0,
-        });
-      }
-
-      if (formData.regular_quantity && formData.regular_price) {
-        tickets.push({
-          event_id: event.id,
-          type: "regular",
-          available_quantity: parseInt(formData.regular_quantity),
-          price: parseFloat(formData.regular_price),
-          sold_quantity: 0,
-        });
-      }
-
-      if (formData.student_quantity && formData.student_price) {
-        tickets.push({
-          event_id: event.id,
-          type: "student",
-          available_quantity: parseInt(formData.student_quantity),
-          price: parseFloat(formData.student_price),
-          sold_quantity: 0,
-        });
-      }
-
-      if (tickets.length > 0) {
-        const { error: ticketsError } = await supabase
-          .from("tickets")
-          .insert(tickets);
-
-        if (ticketsError) throw ticketsError;
-      }
-
       toast.success(t("savedSuccessfully"));
       setOpen(false);
       setFormData({
@@ -99,12 +53,6 @@ export const CreateEventDialog = ({ onEventCreated }: CreateEventDialogProps) =>
         event_date: "",
         location: "",
         image_url: "",
-        vip_quantity: "",
-        vip_price: "",
-        regular_quantity: "",
-        regular_price: "",
-        student_quantity: "",
-        student_price: "",
       });
       onEventCreated();
     } catch (error) {
@@ -186,90 +134,6 @@ export const CreateEventDialog = ({ onEventCreated }: CreateEventDialogProps) =>
                 placeholder="https://example.com/image.jpg"
                 className="font-lusail"
               />
-            </div>
-
-            <div className="border-t pt-4">
-              <h3 className="font-lusail font-bold mb-4">{t("ticketConfiguration")}</h3>
-              
-              <div className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="vip_quantity" className="font-lusail">{t("vipQuantity")}</Label>
-                    <Input
-                      id="vip_quantity"
-                      type="number"
-                      min="0"
-                      value={formData.vip_quantity}
-                      onChange={(e) => setFormData({ ...formData, vip_quantity: e.target.value })}
-                      className="font-lusail"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="vip_price" className="font-lusail">{t("vipPrice")}</Label>
-                    <Input
-                      id="vip_price"
-                      type="number"
-                      min="0"
-                      step="0.01"
-                      value={formData.vip_price}
-                      onChange={(e) => setFormData({ ...formData, vip_price: e.target.value })}
-                      className="font-lusail"
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="regular_quantity" className="font-lusail">{t("regularQuantity")}</Label>
-                    <Input
-                      id="regular_quantity"
-                      type="number"
-                      min="0"
-                      value={formData.regular_quantity}
-                      onChange={(e) => setFormData({ ...formData, regular_quantity: e.target.value })}
-                      className="font-lusail"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="regular_price" className="font-lusail">{t("regularPrice")}</Label>
-                    <Input
-                      id="regular_price"
-                      type="number"
-                      min="0"
-                      step="0.01"
-                      value={formData.regular_price}
-                      onChange={(e) => setFormData({ ...formData, regular_price: e.target.value })}
-                      className="font-lusail"
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="student_quantity" className="font-lusail">{t("studentQuantity")}</Label>
-                    <Input
-                      id="student_quantity"
-                      type="number"
-                      min="0"
-                      value={formData.student_quantity}
-                      onChange={(e) => setFormData({ ...formData, student_quantity: e.target.value })}
-                      className="font-lusail"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="student_price" className="font-lusail">{t("studentPrice")}</Label>
-                    <Input
-                      id="student_price"
-                      type="number"
-                      min="0"
-                      step="0.01"
-                      value={formData.student_price}
-                      onChange={(e) => setFormData({ ...formData, student_price: e.target.value })}
-                      className="font-lusail"
-                    />
-                  </div>
-                </div>
-              </div>
             </div>
           </div>
 
