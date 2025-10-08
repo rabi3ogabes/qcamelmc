@@ -2,10 +2,11 @@ import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Calendar, MapPin, Edit } from "lucide-react";
+import { Calendar, MapPin, Edit } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { CreateEventDialog } from "./CreateEventDialog";
 
 interface Event {
   id: string;
@@ -65,10 +66,7 @@ export const EventsTab = () => {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold font-lusail">{t("eventManagement")}</h2>
-        <Button className="font-lusail">
-          <Plus className="w-4 h-4 ml-2" />
-          {t("createEvent")}
-        </Button>
+        <CreateEventDialog onEventCreated={fetchEvents} />
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

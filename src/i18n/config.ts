@@ -57,6 +57,15 @@ const resources = {
       "eventLocation": "موقع الفعالية",
       "active": "نشط",
       "inactive": "غير نشط",
+      "description": "الوصف",
+      "imageUrl": "رابط الصورة",
+      "ticketConfiguration": "إعدادات التذاكر",
+      "vipQuantity": "كمية VIP",
+      "vipPrice": "سعر VIP",
+      "regularQuantity": "كمية التذاكر العادية",
+      "regularPrice": "سعر التذاكر العادية",
+      "studentQuantity": "كمية تذاكر الطلاب",
+      "studentPrice": "سعر تذاكر الطلاب",
       
       // Tickets
       "ticketManagement": "إدارة التذاكر",
