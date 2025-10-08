@@ -12,6 +12,8 @@ export const SettingsTab = () => {
   const { t } = useTranslation();
   const [logoUrl, setLogoUrl] = useState("");
   const [newLogoUrl, setNewLogoUrl] = useState("");
+  const [headerBgColor, setHeaderBgColor] = useState("hsl(var(--card) / 0.5)");
+  const [newHeaderBgColor, setNewHeaderBgColor] = useState("hsl(var(--card) / 0.5)");
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -21,8 +23,8 @@ export const SettingsTab = () => {
   const fetchSettings = async () => {
     const { data, error } = await supabase
       .from("settings")
-      .select("logo_url")
-      .single();
+      .select("logo_url, header_bg_color")
+      .maybeSingle();
 
     if (error) {
       console.error("Error fetching settings:", error);
@@ -32,6 +34,11 @@ export const SettingsTab = () => {
     if (data?.logo_url) {
       setLogoUrl(data.logo_url);
       setNewLogoUrl(data.logo_url);
+    }
+    
+    if (data?.header_bg_color) {
+      setHeaderBgColor(data.header_bg_color);
+      setNewHeaderBgColor(data.header_bg_color);
     }
   };
 
@@ -51,19 +58,20 @@ export const SettingsTab = () => {
       if (settings) {
         const { error } = await supabase
           .from("settings")
-          .update({ logo_url: newLogoUrl })
+          .update({ logo_url: newLogoUrl, header_bg_color: newHeaderBgColor })
           .eq("id", settings.id);
 
         if (error) throw error;
       } else {
         const { error } = await supabase
           .from("settings")
-          .insert({ logo_url: newLogoUrl });
+          .insert({ logo_url: newLogoUrl, header_bg_color: newHeaderBgColor });
 
         if (error) throw error;
       }
 
       setLogoUrl(newLogoUrl);
+      setHeaderBgColor(newHeaderBgColor);
       toast.success(t("savedSuccessfully"));
     } catch (error) {
       console.error("Error saving logo:", error);
@@ -102,6 +110,24 @@ export const SettingsTab = () => {
                 value={newLogoUrl}
                 onChange={(e) => setNewLogoUrl(e.target.value)}
                 className="font-lusail" 
+              />
+            </div>
+          </div>
+          
+          <div>
+            <Label htmlFor="header-bg" className="font-lusail">لون خلفية الترويسة</Label>
+            <div className="mt-2 flex gap-2">
+              <Input 
+                id="header-bg" 
+                type="text" 
+                placeholder="hsl(var(--card) / 0.5)"
+                value={newHeaderBgColor}
+                onChange={(e) => setNewHeaderBgColor(e.target.value)}
+                className="font-lusail" 
+              />
+              <div 
+                className="w-12 h-10 rounded border"
+                style={{ backgroundColor: newHeaderBgColor }}
               />
             </div>
           </div>

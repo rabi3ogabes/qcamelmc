@@ -24,6 +24,7 @@ const EventHome = () => {
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
+  const [headerBgColor, setHeaderBgColor] = useState<string>("hsl(var(--card) / 0.5)");
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -34,8 +35,8 @@ const EventHome = () => {
   const fetchSettings = async () => {
     const { data, error } = await supabase
       .from("settings")
-      .select("logo_url")
-      .single();
+      .select("logo_url, header_bg_color")
+      .maybeSingle();
 
     if (error) {
       console.error("Error fetching settings:", error);
@@ -44,6 +45,10 @@ const EventHome = () => {
 
     if (data?.logo_url) {
       setLogoUrl(data.logo_url);
+    }
+    
+    if (data?.header_bg_color) {
+      setHeaderBgColor(data.header_bg_color);
     }
   };
 
@@ -70,7 +75,7 @@ const EventHome = () => {
       <PopupBanner />
       
       {/* Header */}
-      <header className="border-b bg-card/50 backdrop-blur-sm sticky top-0 z-10">
+      <header className="border-b backdrop-blur-sm sticky top-0 z-10" style={{ backgroundColor: headerBgColor }}>
         <div className="container mx-auto px-4 py-4 flex justify-between items-center">
           {logoUrl ? (
             <img src={logoUrl} alt="Logo" className="h-12 object-contain" />

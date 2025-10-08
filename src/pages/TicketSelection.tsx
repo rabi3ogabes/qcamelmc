@@ -30,6 +30,7 @@ const TicketSelection = () => {
   const [selections, setSelections] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
+  const [headerBgColor, setHeaderBgColor] = useState<string>("hsl(var(--card) / 0.5)");
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -40,7 +41,7 @@ const TicketSelection = () => {
   const fetchSettings = async () => {
     const { data, error } = await supabase
       .from("settings")
-      .select("logo_url")
+      .select("logo_url, header_bg_color")
       .maybeSingle();
 
     if (error) {
@@ -50,6 +51,10 @@ const TicketSelection = () => {
 
     if (data?.logo_url) {
       setLogoUrl(data.logo_url);
+    }
+    
+    if (data?.header_bg_color) {
+      setHeaderBgColor(data.header_bg_color);
     }
   };
 

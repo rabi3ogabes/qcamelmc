@@ -197,18 +197,21 @@ export type Database = {
       settings: {
         Row: {
           created_at: string | null
+          header_bg_color: string | null
           id: string
           logo_url: string | null
           updated_at: string | null
         }
         Insert: {
           created_at?: string | null
+          header_bg_color?: string | null
           id?: string
           logo_url?: string | null
           updated_at?: string | null
         }
         Update: {
           created_at?: string | null
+          header_bg_color?: string | null
           id?: string
           logo_url?: string | null
           updated_at?: string | null
