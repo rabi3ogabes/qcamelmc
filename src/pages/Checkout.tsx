@@ -61,6 +61,7 @@ const Checkout = () => {
   });
   const [ticketHolders, setTicketHolders] = useState<TicketHolder[]>([]);
   const [loading, setLoading] = useState(false);
+  const [logoUrl, setLogoUrl] = useState<string | null>(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -88,7 +89,26 @@ const Checkout = () => {
       }
     });
     setTicketHolders(holders);
+    
+    // Fetch logo
+    fetchSettings();
   }, [navigate]);
+
+  const fetchSettings = async () => {
+    const { data, error } = await supabase
+      .from("settings")
+      .select("logo_url")
+      .maybeSingle();
+
+    if (error) {
+      console.error("Error fetching settings:", error);
+      return;
+    }
+
+    if (data?.logo_url) {
+      setLogoUrl(data.logo_url);
+    }
+  };
 
   const calculateTotal = () => {
     return selections.reduce((total, item) => {
@@ -232,6 +252,11 @@ const Checkout = () => {
   return (
     <div className="min-h-screen bg-background py-12 px-4 font-lusail">
       <div className="max-w-6xl mx-auto">
+        {logoUrl && (
+          <div className="flex justify-center mb-8">
+            <img src={logoUrl} alt="Logo" className="h-16 object-contain" />
+          </div>
+        )}
         <h1 className="text-4xl font-bold mb-8 text-center">{t('checkoutTitle')}</h1>
 
         <div className="grid lg:grid-cols-3 gap-8">

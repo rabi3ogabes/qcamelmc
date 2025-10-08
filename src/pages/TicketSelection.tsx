@@ -29,11 +29,29 @@ const TicketSelection = () => {
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [selections, setSelections] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
+  const [logoUrl, setLogoUrl] = useState<string | null>(null);
   const navigate = useNavigate();
 
   useEffect(() => {
     fetchTickets();
+    fetchSettings();
   }, []);
+
+  const fetchSettings = async () => {
+    const { data, error } = await supabase
+      .from("settings")
+      .select("logo_url")
+      .maybeSingle();
+
+    if (error) {
+      console.error("Error fetching settings:", error);
+      return;
+    }
+
+    if (data?.logo_url) {
+      setLogoUrl(data.logo_url);
+    }
+  };
 
   const fetchTickets = async () => {
     try {
@@ -174,6 +192,11 @@ const TicketSelection = () => {
   return (
     <div className="min-h-screen bg-background py-6 sm:py-12 px-4 font-lusail">
       <div className="max-w-4xl mx-auto">
+        {logoUrl && (
+          <div className="flex justify-center mb-6">
+            <img src={logoUrl} alt="Logo" className="h-16 object-contain" />
+          </div>
+        )}
         <div className="text-center mb-8 sm:mb-12">
           <h1 className="text-3xl sm:text-4xl font-bold mb-3 sm:mb-4">{t('selectTicketsTitle')}</h1>
           <p className="text-sm sm:text-base text-muted-foreground">{t('chooseQuantity')}</p>

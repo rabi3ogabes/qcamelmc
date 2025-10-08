@@ -20,11 +20,29 @@ const Confirmation = () => {
   const { t } = useTranslation();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
+  const [logoUrl, setLogoUrl] = useState<string | null>(null);
   const navigate = useNavigate();
 
   useEffect(() => {
     fetchOrders();
+    fetchSettings();
   }, []);
+
+  const fetchSettings = async () => {
+    const { data, error } = await supabase
+      .from("settings")
+      .select("logo_url")
+      .maybeSingle();
+
+    if (error) {
+      console.error("Error fetching settings:", error);
+      return;
+    }
+
+    if (data?.logo_url) {
+      setLogoUrl(data.logo_url);
+    }
+  };
 
   const fetchOrders = async () => {
     try {
@@ -61,6 +79,11 @@ const Confirmation = () => {
   return (
     <div className="min-h-screen bg-background py-12 px-4 font-lusail">
       <div className="max-w-3xl mx-auto">
+        {logoUrl && (
+          <div className="flex justify-center mb-8">
+            <img src={logoUrl} alt="Logo" className="h-16 object-contain" />
+          </div>
+        )}
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-16 h-16 bg-secondary/20 rounded-full mb-4">
             <Clock className="w-8 h-8 text-secondary" />
