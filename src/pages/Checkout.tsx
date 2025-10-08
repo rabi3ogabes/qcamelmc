@@ -280,13 +280,12 @@ const Checkout = () => {
                   />
                 </div>
                 <div>
-                  <Label htmlFor="email">{t('email')} *</Label>
+                  <Label htmlFor="email">{t('email')}</Label>
                   <Input
                     id="email"
                     type="email"
                     value={customerInfo.email}
                     onChange={(e) => setCustomerInfo({ ...customerInfo, email: e.target.value })}
-                    required
                   />
                 </div>
                 <div>
