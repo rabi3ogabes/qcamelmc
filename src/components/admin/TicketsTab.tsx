@@ -134,7 +134,7 @@ export const TicketsTab = () => {
                 {dailyBookings.map((booking, index) => (
                   <tr key={index} className="border-b hover:bg-muted/50">
                     <td className="py-3 px-4 font-lusail">
-                      {new Date(booking.date).toLocaleDateString('ar-QA', { 
+                      {new Date(booking.date).toLocaleDateString('en-US', { 
                         year: 'numeric', 
                         month: 'long', 
                         day: 'numeric' 
