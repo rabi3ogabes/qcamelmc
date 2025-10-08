@@ -255,13 +255,22 @@ const Checkout = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background py-12 px-4 font-lusail">
-      <div className="max-w-6xl mx-auto">
-        {logoUrl && (
-          <div className="flex justify-center mb-8">
-            <img src={logoUrl} alt="Logo" className="h-16 object-contain" />
-          </div>
-        )}
+    <div className="min-h-screen bg-background font-lusail">
+      {/* Header */}
+      <header className="border-b backdrop-blur-sm sticky top-0 z-10 mb-8" style={{ backgroundColor: headerBgColor }}>
+        <div className="container mx-auto px-4 py-4 flex justify-between items-center">
+          {logoUrl ? (
+            <img src={logoUrl} alt="Logo" className="h-12 object-contain" />
+          ) : (
+            <h1 className="text-2xl font-bold">فعاليات قطر</h1>
+          )}
+          <Button variant="ghost" onClick={() => navigate("/")}>
+            {t('backToHome') || 'العودة للرئيسية'}
+          </Button>
+        </div>
+      </header>
+
+      <div className="max-w-6xl mx-auto py-12 px-4">
         <h1 className="text-4xl font-bold mb-8 text-center">{t('checkoutTitle')}</h1>
 
         <div className="grid lg:grid-cols-3 gap-8">
