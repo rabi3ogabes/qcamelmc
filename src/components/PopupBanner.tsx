@@ -44,8 +44,8 @@ export const PopupBanner = () => {
       if (error) throw error;
       
       if (data) {
-        // Check if user has already seen this banner
-        const seenBanners = JSON.parse(localStorage.getItem("seenBanners") || "[]");
+        // Check if user has already seen this banner in current session
+        const seenBanners = JSON.parse(sessionStorage.getItem("seenBanners") || "[]");
         if (!seenBanners.includes(data.id)) {
           setBanner(data);
           setOpen(true);
@@ -61,11 +61,11 @@ export const PopupBanner = () => {
     
     setOpen(false);
     
-    // Mark banner as seen
+    // Mark banner as seen for this session
     if (banner) {
-      const seenBanners = JSON.parse(localStorage.getItem("seenBanners") || "[]");
+      const seenBanners = JSON.parse(sessionStorage.getItem("seenBanners") || "[]");
       seenBanners.push(banner.id);
-      localStorage.setItem("seenBanners", JSON.stringify(seenBanners));
+      sessionStorage.setItem("seenBanners", JSON.stringify(seenBanners));
     }
   };
 
