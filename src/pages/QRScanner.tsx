@@ -57,19 +57,38 @@ const QRScanner = () => {
     }
   };
 
-  const initializeScanner = () => {
+  const initializeScanner = async () => {
     try {
+      console.log("Initializing QR scanner...");
+      
+      // Request camera permissions explicitly
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        console.log("Camera permission granted");
+        stream.getTracks().forEach(track => track.stop()); // Stop the test stream
+      } catch (permError) {
+        console.error("Camera permission denied:", permError);
+        toast.error("يرجى السماح بالوصول إلى الكاميرا لاستخدام الماسح الضوئي");
+        return;
+      }
+
       const config = {
         fps: 10,
         qrbox: { width: 250, height: 250 },
         aspectRatio: 1.0,
         showTorchButtonIfSupported: true,
         formatsToSupport: [0], // QR_CODE
+        useBarCodeDetectorIfSupported: true,
+        rememberLastUsedCamera: true,
       };
 
       const scanner = new Html5QrcodeScanner("qr-reader", config, false);
       setScannerInstance(scanner);
+      
+      console.log("Rendering scanner...");
       scanner.render(onScanSuccess, onScanError);
+      console.log("Scanner initialized successfully");
+      
     } catch (error) {
       console.error("Failed to initialize scanner:", error);
       toast.error("فشل تشغيل الكاميرا. يرجى التحقق من الأذونات.");
