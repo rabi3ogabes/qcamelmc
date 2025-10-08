@@ -164,7 +164,16 @@ export const OrdersTab = ({ orders, onRefresh }: OrdersTabProps) => {
       <div className="mt-4 pt-4 border-t flex items-center gap-4 text-sm text-muted-foreground">
         <div className="flex items-center gap-1">
           <Calendar className="w-4 h-4" />
-          {new Date(order.created_at).toLocaleDateString('ar-QA')}
+          {new Date(order.created_at).toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric',
+            timeZone: 'Asia/Qatar'
+          })} - {new Date(order.created_at).toLocaleTimeString('en-US', {
+            hour: '2-digit',
+            minute: '2-digit',
+            timeZone: 'Asia/Qatar'
+          })} (Qatar Time)
         </div>
         <div className="flex items-center gap-1">
           <MapPin className="w-4 h-4" />
