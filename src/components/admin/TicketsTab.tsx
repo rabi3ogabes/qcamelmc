@@ -15,13 +15,22 @@ interface TicketType {
   event_id: string;
 }
 
+interface DailyBooking {
+  date: string;
+  ticket_type: string;
+  count: number;
+  total_amount: number;
+}
+
 export const TicketsTab = () => {
   const { t } = useTranslation();
   const [tickets, setTickets] = useState<TicketType[]>([]);
+  const [dailyBookings, setDailyBookings] = useState<DailyBooking[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     fetchTickets();
+    fetchDailyBookings();
   }, []);
 
   const fetchTickets = async () => {
@@ -37,6 +46,46 @@ export const TicketsTab = () => {
       toast.error(t("failedToLoad"));
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchDailyBookings = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("orders")
+        .select("created_at, ticket_type, quantity, total_amount")
+        .eq("payment_status", "confirmed")
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+
+      // Group by date and ticket type
+      const grouped = (data || []).reduce((acc: Record<string, DailyBooking>, order) => {
+        const date = new Date(order.created_at).toLocaleDateString('en-CA');
+        const key = `${date}-${order.ticket_type}`;
+        
+        if (!acc[key]) {
+          acc[key] = {
+            date,
+            ticket_type: order.ticket_type,
+            count: 0,
+            total_amount: 0
+          };
+        }
+        
+        acc[key].count += order.quantity;
+        acc[key].total_amount += parseFloat(order.total_amount.toString());
+        
+        return acc;
+      }, {});
+
+      const bookingsArray = Object.values(grouped).sort((a, b) => 
+        new Date(b.date).getTime() - new Date(a.date).getTime()
+      );
+      
+      setDailyBookings(bookingsArray);
+    } catch (error) {
+      console.error("Error fetching daily bookings:", error);
     }
   };
 
@@ -61,9 +110,54 @@ export const TicketsTab = () => {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <h2 className="text-2xl font-bold font-lusail">{t("ticketManagement")}</h2>
 
+      {/* Daily Bookings Statistics */}
+      <Card className="p-6">
+        <h3 className="text-xl font-bold font-lusail mb-4">الحجوزات اليومية حسب نوع التذكرة</h3>
+        
+        {dailyBookings.length === 0 ? (
+          <p className="text-muted-foreground text-center py-8 font-lusail">لا توجد حجوزات مؤكدة</p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b">
+                  <th className="text-right py-3 px-4 font-lusail">التاريخ</th>
+                  <th className="text-right py-3 px-4 font-lusail">نوع التذكرة</th>
+                  <th className="text-right py-3 px-4 font-lusail">عدد التذاكر</th>
+                  <th className="text-right py-3 px-4 font-lusail">المبلغ الإجمالي</th>
+                </tr>
+              </thead>
+              <tbody>
+                {dailyBookings.map((booking, index) => (
+                  <tr key={index} className="border-b hover:bg-muted/50">
+                    <td className="py-3 px-4 font-lusail">
+                      {new Date(booking.date).toLocaleDateString('ar-QA', { 
+                        year: 'numeric', 
+                        month: 'long', 
+                        day: 'numeric' 
+                      })}
+                    </td>
+                    <td className="py-3 px-4 font-lusail">
+                      <Badge variant={booking.ticket_type === 'vip' ? 'default' : 'secondary'}>
+                        {getTicketTypeName(booking.ticket_type)}
+                      </Badge>
+                    </td>
+                    <td className="py-3 px-4 font-lusail font-bold">{booking.count}</td>
+                    <td className="py-3 px-4 font-lusail font-bold text-primary">
+                      {booking.total_amount.toFixed(2)} {t("qar")}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </Card>
+
+      {/* Ticket Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {tickets.map((ticket) => {
           const remaining = ticket.available_quantity - ticket.sold_quantity;
