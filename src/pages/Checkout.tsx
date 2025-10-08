@@ -81,7 +81,8 @@ const Checkout = () => {
     name: "",
     email: "",
     phone: "",
-    nationality: ""
+    nationality: "",
+    countryCode: "+974"
   });
   const [ticketHolders, setTicketHolders] = useState<TicketHolder[]>([]);
   const [loading, setLoading] = useState(false);
@@ -149,11 +150,12 @@ const Checkout = () => {
   useEffect(() => {
     if (ticketHolders.length > 0 && customerInfo.name && customerInfo.phone && customerInfo.nationality) {
       const updated = [...ticketHolders];
+      const fullPhone = `${customerInfo.countryCode} ${customerInfo.phone}`;
       // Update first ticket holder with all customer info
       updated[0] = { 
         ...updated[0], 
         name: customerInfo.name, 
-        phone: customerInfo.phone,
+        phone: fullPhone,
         nationality: customerInfo.nationality
       };
       // Apply main user's nationality to all other ticket holders
@@ -165,7 +167,7 @@ const Checkout = () => {
       }
       setTicketHolders(updated);
     }
-  }, [customerInfo.name, customerInfo.phone, customerInfo.nationality]);
+  }, [customerInfo.name, customerInfo.phone, customerInfo.nationality, customerInfo.countryCode]);
 
   const updateTicketHolder = (index: number, field: keyof TicketHolder, value: string) => {
     const updated = [...ticketHolders];
@@ -243,11 +245,12 @@ const Checkout = () => {
 
       if (orderError) throw orderError;
 
-      // Insert all ticket holders (use customer phone for additional holders)
+      // Insert all ticket holders (use customer phone with country code for additional holders)
+      const fullCustomerPhone = `${customerInfo.countryCode} ${customerInfo.phone}`;
       const holdersToInsert = ticketHolders.map(holder => ({
         order_id: order.id,
         name: holder.name,
-        phone: holder.phone || customerInfo.phone,
+        phone: holder.phone || fullCustomerPhone,
         nationality: holder.nationality,
         ticket_type: holder.ticketType
       }));
@@ -328,14 +331,11 @@ const Checkout = () => {
                   <Select
                     value={customerInfo.nationality}
                     onValueChange={(value) => {
-                      const countryCode = COUNTRY_CODES[value] || "";
-                      const currentPhone = customerInfo.phone;
-                      // Remove any existing country code from phone
-                      const phoneWithoutCode = currentPhone.replace(/^\+\d+\s*/, "");
+                      const countryCode = COUNTRY_CODES[value] || "+974";
                       setCustomerInfo({ 
                         ...customerInfo, 
                         nationality: value,
-                        phone: countryCode ? `${countryCode} ${phoneWithoutCode}` : phoneWithoutCode
+                        countryCode: countryCode
                       });
                     }}
                     required
@@ -354,13 +354,31 @@ const Checkout = () => {
                 </div>
                 <div>
                   <Label htmlFor="phone">{t('phoneNumber')} *</Label>
-                  <Input
-                    id="phone"
-                    type="tel"
-                    value={customerInfo.phone}
-                    onChange={(e) => setCustomerInfo({ ...customerInfo, phone: e.target.value })}
-                    required
-                  />
+                  <div className="flex gap-2">
+                    <Select
+                      value={customerInfo.countryCode}
+                      onValueChange={(value) => setCustomerInfo({ ...customerInfo, countryCode: value })}
+                    >
+                      <SelectTrigger className="w-[120px]">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {ARABIC_COUNTRIES.map((country) => (
+                          <SelectItem key={country} value={COUNTRY_CODES[country]}>
+                            {COUNTRY_CODES[country]}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Input
+                      id="phone"
+                      type="tel"
+                      value={customerInfo.phone}
+                      onChange={(e) => setCustomerInfo({ ...customerInfo, phone: e.target.value })}
+                      required
+                      className="flex-1"
+                    />
+                  </div>
                 </div>
               </form>
             </Card>
