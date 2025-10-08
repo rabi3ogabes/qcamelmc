@@ -164,6 +164,36 @@ export type Database = {
           },
         ]
       }
+      popup_banners: {
+        Row: {
+          created_at: string | null
+          id: string
+          image_url: string | null
+          is_active: boolean | null
+          message: string
+          title: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          image_url?: string | null
+          is_active?: boolean | null
+          message: string
+          title: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          image_url?: string | null
+          is_active?: boolean | null
+          message?: string
+          title?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       ticket_holders: {
         Row: {
           created_at: string | null

@@ -124,6 +124,18 @@ const resources = {
       "upcomingEvents": "الفعاليات القادمة",
       "discoverUpcomingEvents": "اكتشف أحدث الفعاليات والمناسبات",
       
+      // Popup Banners
+      "popupBanners": "إعلانات البوب أب",
+      "createBanner": "إنشاء إعلان",
+      "editBanner": "تعديل الإعلان",
+      "bannerTitle": "عنوان الإعلان",
+      "bannerMessage": "رسالة الإعلان",
+      "bannerCreated": "تم إنشاء الإعلان بنجاح",
+      "noBanners": "لا توجد إعلانات",
+      "confirmDelete": "هل أنت متأكد من حذف هذا الإعلان؟",
+      "deletedSuccessfully": "تم الحذف بنجاح",
+      "closeAfter3Seconds": "يمكنك إغلاق هذه النافذة بعد 3 ثواني",
+      
       // Common
       "search": "بحث",
       "filter": "تصفية",

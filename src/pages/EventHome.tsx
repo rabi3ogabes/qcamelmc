@@ -8,6 +8,7 @@ import { Calendar, MapPin, Ticket, Lock, ExternalLink } from "lucide-react";
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
 import heroImage from "@/assets/qatar-event-hero.jpg";
+import { PopupBanner } from "@/components/PopupBanner";
 
 interface Event {
   id: string;
@@ -47,6 +48,9 @@ const EventHome = () => {
 
   return (
     <div className="min-h-screen bg-background font-lusail">
+      {/* Popup Banner */}
+      <PopupBanner />
+      
       {/* Admin Login and Live Bookings Buttons - Always visible */}
       <div className="fixed top-4 left-4 z-50 flex gap-2">
         <div className="flex gap-1">
