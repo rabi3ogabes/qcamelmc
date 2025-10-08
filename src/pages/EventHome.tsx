@@ -34,7 +34,9 @@ const EventHome = () => {
         .from("events")
         .select("*")
         .eq("is_active", true)
-        .single();
+        .order("event_date", { ascending: true })
+        .limit(1)
+        .maybeSingle();
 
       if (error) throw error;
       setEvent(data);
