@@ -142,18 +142,18 @@ export const OrdersTab = ({ orders, onRefresh }: OrdersTabProps) => {
           </Badge>
         </div>
         
-        <div className="flex gap-2">
+        <div className="flex flex-col gap-2">
           <Button 
             size="sm" 
             variant="outline" 
             onClick={() => viewOrderDetails(order.id)} 
-            className="font-lusail flex items-center gap-2"
+            className="font-lusail flex items-center justify-center gap-2"
           >
             {t("viewDetails")}
             <Eye className="w-4 h-4" />
           </Button>
           {order.payment_status === "pending" && (
-            <Button size="sm" onClick={() => confirmPayment(order.id)} className="font-lusail flex items-center gap-2">
+            <Button size="sm" onClick={() => confirmPayment(order.id)} className="font-lusail flex items-center justify-center gap-2">
               {t("confirmPayment")}
               <CheckCircle className="w-4 h-4" />
             </Button>
