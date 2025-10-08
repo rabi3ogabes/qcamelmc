@@ -114,7 +114,7 @@ export const SettingsTab = () => {
             </div>
           </div>
           
-          <div>
+          <div className="p-4 rounded-lg bg-primary/10 border border-primary/20">
             <Label htmlFor="header-bg" className="font-lusail">لون خلفية الترويسة</Label>
             <div className="mt-2 flex gap-2">
               <Input 
