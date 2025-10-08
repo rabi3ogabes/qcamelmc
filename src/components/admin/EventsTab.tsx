@@ -98,7 +98,7 @@ export const EventsTab = () => {
                 <div className="flex items-center gap-2 text-sm">
                   <Calendar className="w-4 h-4 text-muted-foreground" />
                   <span className="font-lusail">
-                    {new Date(event.event_date).toLocaleDateString('ar-QA', {
+                    {new Date(event.event_date).toLocaleDateString('en-US', {
                       year: 'numeric',
                       month: 'long',
                       day: 'numeric'
