@@ -27,18 +27,26 @@ const QRScanner = () => {
   const [scanResult, setScanResult] = useState<'success' | 'error' | null>(null);
   const [manualSearch, setManualSearch] = useState("");
   const [showManualSearch, setShowManualSearch] = useState(false);
+  const [scannerInstance, setScannerInstance] = useState<Html5QrcodeScanner | null>(null);
 
   useEffect(() => {
     checkAuth();
     initializeScanner();
 
     return () => {
-      const scanner = document.getElementById("qr-reader");
-      if (scanner) {
-        scanner.innerHTML = "";
-      }
+      cleanupScanner();
     };
   }, []);
+
+  const cleanupScanner = () => {
+    if (scannerInstance) {
+      scannerInstance.clear().catch(console.error);
+    }
+    const scanner = document.getElementById("qr-reader");
+    if (scanner) {
+      scanner.innerHTML = "";
+    }
+  };
 
   const checkAuth = async () => {
     const { data: { session } } = await supabase.auth.getSession();
@@ -48,15 +56,22 @@ const QRScanner = () => {
   };
 
   const initializeScanner = () => {
-    const config = {
-      fps: 10,
-      qrbox: { width: 250, height: 250 },
-      aspectRatio: 1.0,
-    };
+    try {
+      const config = {
+        fps: 10,
+        qrbox: { width: 250, height: 250 },
+        aspectRatio: 1.0,
+        showTorchButtonIfSupported: true,
+        formatsToSupport: [0], // QR_CODE
+      };
 
-    const scanner = new Html5QrcodeScanner("qr-reader", config, false);
-
-    scanner.render(onScanSuccess, onScanError);
+      const scanner = new Html5QrcodeScanner("qr-reader", config, false);
+      setScannerInstance(scanner);
+      scanner.render(onScanSuccess, onScanError);
+    } catch (error) {
+      console.error("Failed to initialize scanner:", error);
+      toast.error("فشل تشغيل الكاميرا. يرجى التحقق من الأذونات.");
+    }
   };
 
   const processTicket = async (bookingRef: string) => {
@@ -165,11 +180,10 @@ const QRScanner = () => {
     setManualSearch("");
     
     // Reinitialize scanner
-    const scanner = document.getElementById("qr-reader");
-    if (scanner) {
-      scanner.innerHTML = "";
-    }
-    initializeScanner();
+    cleanupScanner();
+    setTimeout(() => {
+      initializeScanner();
+    }, 100);
   };
 
   const handleManualSearch = async (e: React.FormEvent) => {
