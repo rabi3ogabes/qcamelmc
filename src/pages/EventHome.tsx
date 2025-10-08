@@ -23,11 +23,29 @@ const EventHome = () => {
   const { t } = useTranslation();
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
+  const [logoUrl, setLogoUrl] = useState<string | null>(null);
   const navigate = useNavigate();
 
   useEffect(() => {
     fetchEvents();
+    fetchSettings();
   }, []);
+
+  const fetchSettings = async () => {
+    const { data, error } = await supabase
+      .from("settings")
+      .select("logo_url")
+      .single();
+
+    if (error) {
+      console.error("Error fetching settings:", error);
+      return;
+    }
+
+    if (data?.logo_url) {
+      setLogoUrl(data.logo_url);
+    }
+  };
 
   const fetchEvents = async () => {
     try {
@@ -51,31 +69,30 @@ const EventHome = () => {
       {/* Popup Banner */}
       <PopupBanner />
       
-      {/* Admin Login and Live Bookings Buttons - Always visible */}
-      <div className="fixed top-4 left-4 z-50 flex gap-2">
-        <div className="flex gap-1">
-          <Link to="/live-bookings">
-            <Button variant="outline" size="sm">
-              <Calendar className="w-4 h-4 ml-2" />
-              {t('liveBookings')}
-            </Button>
-          </Link>
-          <Button 
-            variant="ghost" 
-            size="sm"
-            onClick={() => window.open('/live-bookings', '_blank')}
-            title={t('openInNewTab')}
-          >
-            <ExternalLink className="w-4 h-4" />
-          </Button>
+      {/* Header */}
+      <header className="border-b bg-card/50 backdrop-blur-sm sticky top-0 z-10">
+        <div className="container mx-auto px-4 py-4 flex justify-between items-center">
+          {logoUrl ? (
+            <img src={logoUrl} alt="Logo" className="h-12 object-contain" />
+          ) : (
+            <h1 className="text-2xl font-bold">فعاليات قطر</h1>
+          )}
+          <div className="flex gap-2">
+            <Link to="/live-bookings">
+              <Button variant="outline" size="sm">
+                <Calendar className="w-4 h-4 ml-2" />
+                {t('liveBookings')}
+              </Button>
+            </Link>
+            <Link to="/admin/login">
+              <Button variant="outline" size="sm">
+                <Lock className="w-4 h-4 ml-2" />
+                {t('adminLoginBtn')}
+              </Button>
+            </Link>
+          </div>
         </div>
-        <Link to="/admin/login">
-          <Button variant="outline" size="sm">
-            <Lock className="w-4 h-4 ml-2" />
-            {t('adminLoginBtn')}
-          </Button>
-        </Link>
-      </div>
+      </header>
 
       {loading ? (
         <div className="flex items-center justify-center min-h-screen">

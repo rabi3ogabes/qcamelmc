@@ -1,12 +1,77 @@
+import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Upload, Image as ImageIcon } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 export const SettingsTab = () => {
   const { t } = useTranslation();
+  const [logoUrl, setLogoUrl] = useState("");
+  const [newLogoUrl, setNewLogoUrl] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    fetchSettings();
+  }, []);
+
+  const fetchSettings = async () => {
+    const { data, error } = await supabase
+      .from("settings")
+      .select("logo_url")
+      .single();
+
+    if (error) {
+      console.error("Error fetching settings:", error);
+      return;
+    }
+
+    if (data?.logo_url) {
+      setLogoUrl(data.logo_url);
+      setNewLogoUrl(data.logo_url);
+    }
+  };
+
+  const handleSaveLogo = async () => {
+    if (!newLogoUrl.trim()) {
+      toast.error("الرجاء إدخال رابط الشعار");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const { data: settings } = await supabase
+        .from("settings")
+        .select("id")
+        .single();
+
+      if (settings) {
+        const { error } = await supabase
+          .from("settings")
+          .update({ logo_url: newLogoUrl })
+          .eq("id", settings.id);
+
+        if (error) throw error;
+      } else {
+        const { error } = await supabase
+          .from("settings")
+          .insert({ logo_url: newLogoUrl });
+
+        if (error) throw error;
+      }
+
+      setLogoUrl(newLogoUrl);
+      toast.success(t("savedSuccessfully"));
+    } catch (error) {
+      console.error("Error saving logo:", error);
+      toast.error("فشل في حفظ الشعار");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="space-y-6 max-w-4xl">
@@ -19,20 +84,31 @@ export const SettingsTab = () => {
           <div>
             <Label className="font-lusail">{t("currentLogo")}</Label>
             <div className="mt-2 p-8 border-2 border-dashed rounded-lg flex items-center justify-center bg-muted/50">
-              <ImageIcon className="w-16 h-16 text-muted-foreground" />
+              {logoUrl ? (
+                <img src={logoUrl} alt="Logo" className="max-h-32 object-contain" />
+              ) : (
+                <ImageIcon className="w-16 h-16 text-muted-foreground" />
+              )}
             </div>
           </div>
           
           <div>
-            <Label htmlFor="logo-upload" className="font-lusail">{t("uploadNewLogo")}</Label>
+            <Label htmlFor="logo-url" className="font-lusail">رابط الشعار</Label>
             <div className="mt-2">
-              <Input id="logo-upload" type="file" accept="image/*" className="font-lusail" />
+              <Input 
+                id="logo-url" 
+                type="url" 
+                placeholder="https://example.com/logo.png"
+                value={newLogoUrl}
+                onChange={(e) => setNewLogoUrl(e.target.value)}
+                className="font-lusail" 
+              />
             </div>
           </div>
           
-          <Button className="font-lusail">
+          <Button onClick={handleSaveLogo} disabled={loading} className="font-lusail">
             <Upload className="w-4 h-4 ml-2" />
-            {t("uploadNewLogo")}
+            {loading ? t("loading") : t("save")}
           </Button>
         </div>
       </Card>
