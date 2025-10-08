@@ -66,6 +66,8 @@ const resources = {
       "regularPrice": "سعر التذاكر العادية",
       "studentQuantity": "كمية تذاكر الطلاب",
       "studentPrice": "سعر تذاكر الطلاب",
+      "filterByDate": "تصفية حسب التاريخ",
+      "noEventsForDate": "لا توجد فعاليات في هذا التاريخ",
       
       // Tickets
       "ticketManagement": "إدارة التذاكر",

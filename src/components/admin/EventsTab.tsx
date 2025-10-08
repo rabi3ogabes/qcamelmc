@@ -4,12 +4,16 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { Calendar, MapPin, Edit } from "lucide-react";
+import { Calendar as CalendarIcon, MapPin, Edit, X } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { CreateEventDialog } from "./CreateEventDialog";
 import { EditEventDialog } from "./EditEventDialog";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { format } from "date-fns";
+import { cn } from "@/lib/utils";
 
 interface Event {
   id: string;
@@ -27,6 +31,7 @@ export const EventsTab = () => {
   const [loading, setLoading] = useState(true);
   const [editingEvent, setEditingEvent] = useState<Event | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [filterDate, setFilterDate] = useState<Date | undefined>(undefined);
 
   useEffect(() => {
     fetchEvents();
@@ -67,15 +72,61 @@ export const EventsTab = () => {
     return <div className="text-center py-12 font-lusail">{t("loading")}</div>;
   }
 
+  const filteredEvents = filterDate
+    ? events.filter(event => {
+        const eventDate = new Date(event.event_date);
+        return (
+          eventDate.getFullYear() === filterDate.getFullYear() &&
+          eventDate.getMonth() === filterDate.getMonth() &&
+          eventDate.getDate() === filterDate.getDate()
+        );
+      })
+    : events;
+
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
+      <div className="flex justify-between items-center gap-4">
         <h2 className="text-2xl font-bold font-lusail">{t("eventManagement")}</h2>
-        <CreateEventDialog onEventCreated={fetchEvents} />
+        <div className="flex items-center gap-2">
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                className={cn(
+                  "font-lusail flex items-center gap-2",
+                  !filterDate && "text-muted-foreground"
+                )}
+              >
+                <CalendarIcon className="w-4 h-4" />
+                {filterDate ? format(filterDate, "PPP") : t("filterByDate")}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <Calendar
+                mode="single"
+                selected={filterDate}
+                onSelect={setFilterDate}
+                initialFocus
+                className={cn("p-3 pointer-events-auto")}
+              />
+            </PopoverContent>
+          </Popover>
+          {filterDate && (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setFilterDate(undefined)}
+              className="font-lusail"
+            >
+              <X className="w-4 h-4" />
+            </Button>
+          )}
+          <CreateEventDialog onEventCreated={fetchEvents} />
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {events.map((event) => (
+        {filteredEvents.map((event) => (
           <Card key={event.id} className="overflow-hidden hover:shadow-lg transition-shadow">
             {event.image_url && (
               <img 
@@ -98,7 +149,7 @@ export const EventsTab = () => {
               
               <div className="space-y-2 mb-4">
                 <div className="flex items-center gap-2 text-sm">
-                  <Calendar className="w-4 h-4 text-muted-foreground" />
+                  <CalendarIcon className="w-4 h-4 text-muted-foreground" />
                   <span className="font-lusail">
                     {new Date(event.event_date).toLocaleDateString('en-US', {
                       year: 'numeric',
@@ -142,9 +193,11 @@ export const EventsTab = () => {
         ))}
       </div>
 
-      {events.length === 0 && (
+      {filteredEvents.length === 0 && (
         <Card className="p-12 text-center">
-          <p className="text-muted-foreground font-lusail">{t("noEvents")}</p>
+          <p className="text-muted-foreground font-lusail">
+            {filterDate ? t("noEventsForDate") : t("noEvents")}
+          </p>
         </Card>
       )}
 
