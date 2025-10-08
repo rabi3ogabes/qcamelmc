@@ -7,6 +7,7 @@ import { useTranslation } from "react-i18next";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { CreateEventDialog } from "./CreateEventDialog";
+import { EditEventDialog } from "./EditEventDialog";
 
 interface Event {
   id: string;
@@ -22,6 +23,8 @@ export const EventsTab = () => {
   const { t } = useTranslation();
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
+  const [editingEvent, setEditingEvent] = useState<Event | null>(null);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
 
   useEffect(() => {
     fetchEvents();
@@ -109,9 +112,17 @@ export const EventsTab = () => {
               </div>
               
               <div className="flex gap-2">
-                <Button variant="outline" size="sm" className="flex-1 font-lusail">
-                  <Edit className="w-4 h-4 ml-2" />
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="flex-1 font-lusail"
+                  onClick={() => {
+                    setEditingEvent(event);
+                    setEditDialogOpen(true);
+                  }}
+                >
                   {t("edit")}
+                  <Edit className="w-4 h-4" />
                 </Button>
                 <Button 
                   variant={event.is_active ? "destructive" : "default"}
@@ -132,6 +143,13 @@ export const EventsTab = () => {
           <p className="text-muted-foreground font-lusail">{t("noEvents")}</p>
         </Card>
       )}
+
+      <EditEventDialog
+        event={editingEvent}
+        open={editDialogOpen}
+        onOpenChange={setEditDialogOpen}
+        onEventUpdated={fetchEvents}
+      />
     </div>
   );
 };
