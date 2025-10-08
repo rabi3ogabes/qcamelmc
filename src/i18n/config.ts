@@ -186,7 +186,7 @@ const resources = {
       "ticketHolderInfo": "معلومات حامل التذكرة",
       "selectPaymentMethod": "اختر طريقة الدفع",
       "sadadOnline": "سداد (دفع إلكتروني)",
-      "cashAtVenue": "نقداً/بطاقة في المكان",
+      "cashAtVenue": "الدفع بالبطاقة عند الحضور",
       "orderSummary": "ملخص الطلب",
       "completeBooking": "إتمام الحجز",
       "backToTickets": "← العودة لاختيار التذاكر",
