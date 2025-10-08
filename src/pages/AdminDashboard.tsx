@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { LogOut, ShoppingCart, Calendar, Ticket, Settings } from "lucide-react";
+import { LogOut, ShoppingCart, Calendar, Ticket, Settings, ExternalLink } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { OrdersTab } from "@/components/admin/OrdersTab";
 import { EventsTab } from "@/components/admin/EventsTab";
@@ -98,6 +98,17 @@ const AdminDashboard = () => {
                 {t("settings")}
               </TabsTrigger>
             </TabsList>
+
+            <div className="flex justify-center mb-6">
+              <Button
+                variant="outline"
+                onClick={() => window.open('/live-bookings', '_blank')}
+                className="font-lusail flex items-center gap-2"
+              >
+                <ExternalLink className="w-4 h-4" />
+                {t("liveBookings")}
+              </Button>
+            </div>
 
             <TabsContent value="orders">
               <OrdersTab orders={orders} onRefresh={fetchOrders} />
