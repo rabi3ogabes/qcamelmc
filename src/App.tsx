@@ -13,6 +13,7 @@ import AdminLogin from "./pages/AdminLogin";
 import AdminDashboard from "./pages/AdminDashboard";
 import LiveBookings from "./pages/LiveBookings";
 import QRScanner from "./pages/QRScanner";
+import AdminPOS from "./pages/AdminPOS";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -33,6 +34,7 @@ const App = () => (
             <Route path="/admin/login" element={<AdminLogin />} />
             <Route path="/admin/dashboard" element={<AdminDashboard />} />
             <Route path="/admin/qr-scanner" element={<QRScanner />} />
+            <Route path="/admin/pos" element={<AdminPOS />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
