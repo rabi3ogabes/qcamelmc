@@ -117,19 +117,25 @@ export const SettingsTab = () => {
           <div className="p-4 rounded-lg bg-primary/10 border border-primary/20">
             <Label htmlFor="header-bg" className="font-lusail">لون خلفية الترويسة</Label>
             <div className="mt-2 flex gap-2">
+              <input 
+                id="header-bg-picker"
+                type="color"
+                value={newHeaderBgColor.startsWith('#') ? newHeaderBgColor : '#ffffff'}
+                onChange={(e) => setNewHeaderBgColor(e.target.value)}
+                className="w-12 h-10 rounded border cursor-pointer"
+              />
               <Input 
                 id="header-bg" 
                 type="text" 
-                placeholder="hsl(var(--card) / 0.5)"
+                placeholder="#ffffff"
                 value={newHeaderBgColor}
                 onChange={(e) => setNewHeaderBgColor(e.target.value)}
                 className="font-lusail" 
               />
-              <div 
-                className="w-12 h-10 rounded border"
-                style={{ backgroundColor: newHeaderBgColor }}
-              />
             </div>
+            <p className="text-xs text-muted-foreground mt-2">
+              أدخل رمز لون hex (مثال: #ffffff) أو استخدم منتقي الألوان
+            </p>
           </div>
           
           <Button onClick={handleSaveLogo} disabled={loading} className="font-lusail">
