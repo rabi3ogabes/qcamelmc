@@ -324,16 +324,6 @@ const Checkout = () => {
                   />
                 </div>
                 <div>
-                  <Label htmlFor="phone">{t('phoneNumber')} *</Label>
-                  <Input
-                    id="phone"
-                    type="tel"
-                    value={customerInfo.phone}
-                    onChange={(e) => setCustomerInfo({ ...customerInfo, phone: e.target.value })}
-                    required
-                  />
-                </div>
-                <div>
                   <Label htmlFor="nationality">{t('nationality')} *</Label>
                   <Select
                     value={customerInfo.nationality}
@@ -361,6 +351,16 @@ const Checkout = () => {
                       ))}
                     </SelectContent>
                   </Select>
+                </div>
+                <div>
+                  <Label htmlFor="phone">{t('phoneNumber')} *</Label>
+                  <Input
+                    id="phone"
+                    type="tel"
+                    value={customerInfo.phone}
+                    onChange={(e) => setCustomerInfo({ ...customerInfo, phone: e.target.value })}
+                    required
+                  />
                 </div>
               </form>
             </Card>
