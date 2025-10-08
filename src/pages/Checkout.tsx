@@ -35,6 +35,30 @@ const ARABIC_COUNTRIES = [
   "فلسطين"
 ];
 
+const COUNTRY_CODES: Record<string, string> = {
+  "السعودية": "+966",
+  "الإمارات": "+971",
+  "قطر": "+974",
+  "الكويت": "+965",
+  "البحرين": "+973",
+  "عمان": "+968",
+  "مصر": "+20",
+  "الأردن": "+962",
+  "لبنان": "+961",
+  "العراق": "+964",
+  "سوريا": "+963",
+  "اليمن": "+967",
+  "ليبيا": "+218",
+  "السودان": "+249",
+  "الجزائر": "+213",
+  "المغرب": "+212",
+  "تونس": "+216",
+  "موريتانيا": "+222",
+  "الصومال": "+252",
+  "جيبوتي": "+253",
+  "فلسطين": "+970"
+};
+
 interface TicketSelection {
   ticketId: string;
   type: string;
@@ -313,7 +337,17 @@ const Checkout = () => {
                   <Label htmlFor="nationality">{t('nationality')} *</Label>
                   <Select
                     value={customerInfo.nationality}
-                    onValueChange={(value) => setCustomerInfo({ ...customerInfo, nationality: value })}
+                    onValueChange={(value) => {
+                      const countryCode = COUNTRY_CODES[value] || "";
+                      const currentPhone = customerInfo.phone;
+                      // Remove any existing country code from phone
+                      const phoneWithoutCode = currentPhone.replace(/^\+\d+\s*/, "");
+                      setCustomerInfo({ 
+                        ...customerInfo, 
+                        nationality: value,
+                        phone: countryCode ? `${countryCode} ${phoneWithoutCode}` : phoneWithoutCode
+                      });
+                    }}
                     required
                   >
                     <SelectTrigger id="nationality">
@@ -359,7 +393,19 @@ const Checkout = () => {
                           <Label htmlFor={`holder-nationality-${index}`}>{t('nationality')} *</Label>
                           <Select
                             value={holder.nationality}
-                            onValueChange={(value) => updateTicketHolder(index, 'nationality', value)}
+                            onValueChange={(value) => {
+                              const countryCode = COUNTRY_CODES[value] || "";
+                              const currentPhone = holder.phone;
+                              // Remove any existing country code from phone
+                              const phoneWithoutCode = currentPhone.replace(/^\+\d+\s*/, "");
+                              const updated = [...ticketHolders];
+                              updated[index] = { 
+                                ...updated[index], 
+                                nationality: value,
+                                phone: countryCode ? `${countryCode} ${phoneWithoutCode}` : phoneWithoutCode
+                              };
+                              setTicketHolders(updated);
+                            }}
                             required
                           >
                             <SelectTrigger id={`holder-nationality-${index}`}>
