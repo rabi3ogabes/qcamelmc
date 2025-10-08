@@ -118,6 +118,7 @@ const resources = {
       "markedAsPresent": "تم التحديد كحاضر",
       "markedAsAbsent": "تم التحديد كغائب",
       "noBookingsForDate": "لا توجد حجوزات لهذا التاريخ",
+      "openInNewTab": "فتح في تبويب جديد",
       
       // Common
       "search": "بحث",

@@ -4,7 +4,7 @@ import { useTranslation } from "react-i18next";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Calendar, MapPin, Ticket, Lock } from "lucide-react";
+import { Calendar, MapPin, Ticket, Lock, ExternalLink } from "lucide-react";
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
 import heroImage from "@/assets/qatar-event-hero.jpg";
@@ -49,12 +49,22 @@ const EventHome = () => {
     <div className="min-h-screen bg-background font-lusail">
       {/* Admin Login and Live Bookings Buttons - Always visible */}
       <div className="fixed top-4 left-4 z-50 flex gap-2">
-        <Link to="/live-bookings">
-          <Button variant="outline" size="sm">
-            <Calendar className="w-4 h-4 ml-2" />
-            {t('liveBookings')}
+        <div className="flex gap-1">
+          <Link to="/live-bookings">
+            <Button variant="outline" size="sm">
+              <Calendar className="w-4 h-4 ml-2" />
+              {t('liveBookings')}
+            </Button>
+          </Link>
+          <Button 
+            variant="ghost" 
+            size="sm"
+            onClick={() => window.open('/live-bookings', '_blank')}
+            title={t('openInNewTab')}
+          >
+            <ExternalLink className="w-4 h-4" />
           </Button>
-        </Link>
+        </div>
         <Link to="/admin/login">
           <Button variant="outline" size="sm">
             <Lock className="w-4 h-4 ml-2" />
