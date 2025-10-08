@@ -1,11 +1,11 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { Html5QrcodeScanner } from "html5-qrcode";
+import { Html5Qrcode } from "html5-qrcode";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { ArrowLeft, CheckCircle2, XCircle, Loader2, Search } from "lucide-react";
+import { ArrowLeft, CheckCircle2, XCircle, Loader2, Search, Camera, AlertCircle } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 
@@ -23,30 +23,33 @@ interface TicketInfo {
 const QRScanner = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const [scanning, setScanning] = useState(true);
+  const [scanning, setScanning] = useState(false);
   const [processing, setProcessing] = useState(false);
   const [ticketInfo, setTicketInfo] = useState<TicketInfo | null>(null);
   const [scanResult, setScanResult] = useState<'success' | 'error' | null>(null);
   const [manualSearch, setManualSearch] = useState("");
   const [showManualSearch, setShowManualSearch] = useState(false);
-  const [scannerInstance, setScannerInstance] = useState<Html5QrcodeScanner | null>(null);
+  const [cameraError, setCameraError] = useState<string | null>(null);
+  const [cameraStarting, setCameraStarting] = useState(false);
+  const scannerRef = useRef<Html5Qrcode | null>(null);
+  const isScanning = useRef(false);
 
   useEffect(() => {
     checkAuth();
-    initializeScanner();
-
     return () => {
-      cleanupScanner();
+      stopScanner();
     };
   }, []);
 
-  const cleanupScanner = () => {
-    if (scannerInstance) {
-      scannerInstance.clear().catch(console.error);
-    }
-    const scanner = document.getElementById("qr-reader");
-    if (scanner) {
-      scanner.innerHTML = "";
+  const stopScanner = async () => {
+    if (scannerRef.current && isScanning.current) {
+      try {
+        await scannerRef.current.stop();
+        console.log("Scanner stopped");
+      } catch (error) {
+        console.error("Error stopping scanner:", error);
+      }
+      isScanning.current = false;
     }
   };
 
@@ -57,41 +60,76 @@ const QRScanner = () => {
     }
   };
 
-  const initializeScanner = async () => {
+  const startScanner = async () => {
+    setCameraStarting(true);
+    setCameraError(null);
+    
     try {
-      console.log("Initializing QR scanner...");
+      console.log("Starting camera...");
       
-      // Request camera permissions explicitly
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-        console.log("Camera permission granted");
-        stream.getTracks().forEach(track => track.stop()); // Stop the test stream
-      } catch (permError) {
-        console.error("Camera permission denied:", permError);
-        toast.error("يرجى السماح بالوصول إلى الكاميرا لاستخدام الماسح الضوئي");
-        return;
+      // Check if browser supports camera
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        throw new Error("المتصفح لا يدعم الكاميرا");
       }
 
-      const config = {
-        fps: 10,
-        qrbox: { width: 250, height: 250 },
-        aspectRatio: 1.0,
-        showTorchButtonIfSupported: true,
-        formatsToSupport: [0], // QR_CODE
-        useBarCodeDetectorIfSupported: true,
-        rememberLastUsedCamera: true,
-      };
+      // Stop any existing scanner
+      await stopScanner();
 
-      const scanner = new Html5QrcodeScanner("qr-reader", config, false);
-      setScannerInstance(scanner);
+      // Create new scanner instance
+      const scanner = new Html5Qrcode("qr-reader");
+      scannerRef.current = scanner;
+
+      // Get available cameras
+      const cameras = await Html5Qrcode.getCameras();
+      console.log("Available cameras:", cameras);
+
+      if (!cameras || cameras.length === 0) {
+        throw new Error("لم يتم العثور على كاميرا");
+      }
+
+      // Prefer back camera on mobile
+      const backCamera = cameras.find(cam => 
+        cam.label.toLowerCase().includes('back') || 
+        cam.label.toLowerCase().includes('rear')
+      ) || cameras[0];
+
+      console.log("Using camera:", backCamera.label);
+
+      // Start scanning
+      await scanner.start(
+        backCamera.id,
+        {
+          fps: 10,
+          qrbox: { width: 250, height: 250 },
+        },
+        onScanSuccess,
+        onScanError
+      );
+
+      isScanning.current = true;
+      setScanning(true);
+      setCameraStarting(false);
+      console.log("Scanner started successfully");
+      toast.success("تم تشغيل الكاميرا بنجاح");
+
+    } catch (error: any) {
+      console.error("Failed to start scanner:", error);
+      setCameraStarting(false);
       
-      console.log("Rendering scanner...");
-      scanner.render(onScanSuccess, onScanError);
-      console.log("Scanner initialized successfully");
+      let errorMessage = "فشل تشغيل الكاميرا";
       
-    } catch (error) {
-      console.error("Failed to initialize scanner:", error);
-      toast.error("فشل تشغيل الكاميرا. يرجى التحقق من الأذونات.");
+      if (error.name === 'NotAllowedError') {
+        errorMessage = "يرجى السماح بالوصول إلى الكاميرا";
+      } else if (error.name === 'NotFoundError') {
+        errorMessage = "لم يتم العثور على كاميرا";
+      } else if (error.name === 'NotReadableError') {
+        errorMessage = "الكاميرا قيد الاستخدام من تطبيق آخر";
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      setCameraError(errorMessage);
+      toast.error(errorMessage);
     }
   };
 
@@ -163,26 +201,29 @@ const QRScanner = () => {
 
   const onScanSuccess = async (decodedText: string) => {
     if (processing) return;
+    console.log("QR Code scanned:", decodedText);
+    
+    // Stop scanner while processing
+    await stopScanner();
+    setScanning(false);
+    
     await processTicket(decodedText);
   };
 
   const onScanError = (error: any) => {
     // Ignore scan errors (they happen frequently during scanning)
-    console.debug("Scan error:", error);
+    // Don't log to avoid console spam
   };
 
-  const resetScanner = () => {
+  const resetScanner = async () => {
     setTicketInfo(null);
     setScanResult(null);
-    setScanning(true);
     setProcessing(false);
     setManualSearch("");
+    setCameraError(null);
     
-    // Reinitialize scanner
-    cleanupScanner();
-    setTimeout(() => {
-      initializeScanner();
-    }, 100);
+    // Restart scanner
+    await startScanner();
   };
 
   const handleManualSearch = async (e: React.FormEvent) => {
@@ -218,8 +259,48 @@ const QRScanner = () => {
             <CardTitle className="text-center">{t('scanTicket') || 'مسح التذكرة'}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
+            {/* Camera Controls */}
+            {!scanning && !ticketInfo && (
+              <div className="flex flex-col items-center gap-3">
+                {cameraError && (
+                  <div className="flex items-center gap-2 text-destructive text-sm bg-destructive/10 p-3 rounded-lg w-full">
+                    <AlertCircle className="w-4 h-4 shrink-0" />
+                    <span>{cameraError}</span>
+                  </div>
+                )}
+                <Button
+                  onClick={startScanner}
+                  disabled={cameraStarting}
+                  className="w-full max-w-xs"
+                  size="lg"
+                >
+                  {cameraStarting ? (
+                    <>
+                      <Loader2 className="w-5 h-5 ml-2 animate-spin" />
+                      جاري تشغيل الكاميرا...
+                    </>
+                  ) : (
+                    <>
+                      <Camera className="w-5 h-5 ml-2" />
+                      تشغيل الكاميرا
+                    </>
+                  )}
+                </Button>
+              </div>
+            )}
+
+            {/* Scanner Status */}
+            {scanning && !ticketInfo && (
+              <div className="text-center space-y-2">
+                <div className="flex items-center justify-center gap-2 text-green-600 dark:text-green-400">
+                  <div className="w-2 h-2 bg-green-600 dark:bg-green-400 rounded-full animate-pulse"></div>
+                  <span className="font-semibold">الكاميرا تعمل - جاهز للمسح</span>
+                </div>
+              </div>
+            )}
+
             {/* Manual Search Toggle */}
-            <div className="flex justify-center gap-2">
+            <div className="flex justify-center gap-2 pt-2">
               <Button
                 variant={showManualSearch ? "default" : "outline"}
                 onClick={() => setShowManualSearch(!showManualSearch)}
@@ -257,20 +338,32 @@ const QRScanner = () => {
               </form>
             )}
 
-            {/* QR Scanner */}
-            <div id="qr-reader" className="w-full"></div>
+            {/* QR Scanner Container */}
+            <div 
+              id="qr-reader" 
+              className="w-full min-h-[300px] rounded-lg overflow-hidden bg-muted/30"
+            ></div>
             
-            {processing && !showManualSearch && (
+            {processing && (
               <div className="flex items-center justify-center gap-2 mt-4">
                 <Loader2 className="w-6 h-6 animate-spin" />
                 <span>{t('processing') || 'جاري المعالجة...'}</span>
               </div>
             )}
 
-            <div className="text-center space-y-2 text-sm text-muted-foreground">
-              <p>وجه الكاميرا نحو QR Code للمسح التلقائي</p>
-              <p className="text-xs">يعمل على الجوال والكمبيوتر 📱💻</p>
-            </div>
+            {!scanning && !ticketInfo && !cameraStarting && (
+              <div className="text-center space-y-2 text-sm text-muted-foreground">
+                <p>اضغط على زر "تشغيل الكاميرا" للبدء</p>
+                <p className="text-xs">أو استخدم البحث اليدوي</p>
+              </div>
+            )}
+
+            {scanning && (
+              <div className="text-center space-y-2 text-sm text-muted-foreground">
+                <p>وجه الكاميرا نحو QR Code للمسح التلقائي</p>
+                <p className="text-xs">يعمل على الجوال والكمبيوتر 📱💻</p>
+              </div>
+            )}
           </CardContent>
         </Card>
 
@@ -350,8 +443,16 @@ const QRScanner = () => {
                   onClick={resetScanner} 
                   className="w-full"
                   variant={scanResult === 'success' ? 'default' : 'outline'}
+                  disabled={cameraStarting}
                 >
-                  مسح تذكرة جديدة
+                  {cameraStarting ? (
+                    <>
+                      <Loader2 className="w-4 h-4 ml-2 animate-spin" />
+                      جاري التحميل...
+                    </>
+                  ) : (
+                    "مسح تذكرة جديدة"
+                  )}
                 </Button>
               </div>
             </CardContent>
