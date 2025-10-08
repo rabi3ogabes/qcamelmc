@@ -121,6 +121,7 @@ const resources = {
       "openInNewTab": "فتح في تبويب جديد",
       "mainWebsite": "الموقع الرئيسي",
       "openMainWebsite": "فتح الموقع الرئيسي",
+      "upcomingEvents": "الفعاليات القادمة",
       
       // Common
       "search": "بحث",

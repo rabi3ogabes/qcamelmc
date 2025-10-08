@@ -20,28 +20,26 @@ interface Event {
 
 const EventHome = () => {
   const { t } = useTranslation();
-  const [event, setEvent] = useState<Event | null>(null);
+  const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
   useEffect(() => {
-    fetchEvent();
+    fetchEvents();
   }, []);
 
-  const fetchEvent = async () => {
+  const fetchEvents = async () => {
     try {
       const { data, error } = await supabase
         .from("events")
         .select("*")
         .eq("is_active", true)
-        .order("event_date", { ascending: true })
-        .limit(1)
-        .maybeSingle();
+        .order("event_date", { ascending: true });
 
       if (error) throw error;
-      setEvent(data);
+      setEvents(data || []);
     } catch (error) {
-      console.error("Error fetching event:", error);
+      console.error("Error fetching events:", error);
     } finally {
       setLoading(false);
     }
@@ -76,95 +74,69 @@ const EventHome = () => {
       </div>
 
       {loading ? (
-        <div className="flex items-center justify-center" style={{ minHeight: 'calc(100vh - 80px)' }}>
+        <div className="flex items-center justify-center min-h-screen">
           <div className="animate-pulse text-lg">{t('loadingEvents')}</div>
         </div>
-      ) : !event ? (
-        <div className="flex items-center justify-center" style={{ minHeight: 'calc(100vh - 80px)' }}>
+      ) : events.length === 0 ? (
+        <div className="flex items-center justify-center min-h-screen">
           <p className="text-lg">{t('noActiveEvents')}</p>
         </div>
       ) : (
-        <>
-      {/* Hero Section */}
-      <div className="relative h-[70vh] overflow-hidden">
-        <div 
-          className="absolute inset-0 bg-cover bg-center"
-          style={{ backgroundImage: `url(${heroImage})` }}
-        >
-          <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/40 to-background" />
-        </div>
-        
-        <div className="relative h-full flex items-center justify-center px-4">
-          <div className="max-w-4xl text-center space-y-6">
-            <h1 className="text-5xl md:text-7xl font-bold text-white drop-shadow-2xl animate-in fade-in duration-700">
-              {event.title}
-            </h1>
-            <p className="text-xl md:text-2xl text-white/90 max-w-2xl mx-auto animate-in fade-in duration-700 delay-150">
-              {event.description}
-            </p>
-            <Button 
-              size="xl" 
-              variant="premium"
-              onClick={() => navigate("/tickets")}
-              className="animate-in fade-in duration-700 delay-300 mt-8"
-            >
-              <Ticket className="w-5 h-5 ml-2" />
-              {t('bookTicketsNow')}
-            </Button>
+        <div className="pt-20 pb-16 px-4">
+          <div className="max-w-7xl mx-auto">
+            <h1 className="text-4xl md:text-5xl font-bold text-center mb-12">{t('upcomingEvents')}</h1>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              {events.map((event) => (
+                <Card key={event.id} className="overflow-hidden hover:shadow-2xl transition-shadow">
+                  {event.image_url && (
+                    <div className="relative h-64 overflow-hidden">
+                      <img 
+                        src={event.image_url} 
+                        alt={event.title}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                  )}
+                  
+                  <div className="p-8">
+                    <h2 className="text-3xl font-bold mb-4">{event.title}</h2>
+                    <p className="text-muted-foreground mb-6 line-clamp-3">{event.description}</p>
+                    
+                    <div className="space-y-4 mb-6">
+                      <div className="flex items-start gap-3">
+                        <Calendar className="w-5 h-5 text-primary mt-1" />
+                        <div>
+                          <p className="font-semibold">{t('eventDateTime')}</p>
+                          <p className="text-sm text-muted-foreground">
+                            {format(new Date(event.event_date), "EEEE، d MMMM، yyyy - h:mm a", { locale: ar })}
+                          </p>
+                        </div>
+                      </div>
+                      
+                      <div className="flex items-start gap-3">
+                        <MapPin className="w-5 h-5 text-primary mt-1" />
+                        <div>
+                          <p className="font-semibold">{t('location')}</p>
+                          <p className="text-sm text-muted-foreground">{event.location}</p>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <Button 
+                      className="w-full"
+                      size="lg"
+                      onClick={() => navigate("/tickets")}
+                    >
+                      <Ticket className="w-5 h-5 ml-2" />
+                      {t('bookTicketsNow')}
+                    </Button>
+                  </div>
+                </Card>
+              ))}
+            </div>
           </div>
         </div>
-      </div>
-
-      {/* Event Details Section */}
-      <div className="max-w-6xl mx-auto px-4 py-16">
-        <div className="grid md:grid-cols-2 gap-8">
-          <Card className="p-8 shadow-lg hover:shadow-xl transition-shadow">
-            <div className="flex items-start gap-4">
-              <div className="p-3 bg-primary/10 rounded-lg">
-                <Calendar className="w-6 h-6 text-primary" />
-              </div>
-              <div>
-                <h3 className="text-lg font-semibold mb-2">{t('eventDateTime')}</h3>
-                <p className="text-muted-foreground">
-                  {format(new Date(event.event_date), "EEEE، d MMMM، yyyy", { locale: ar })}
-                </p>
-                <p className="text-muted-foreground">
-                  {format(new Date(event.event_date), "h:mm a", { locale: ar })}
-                </p>
-              </div>
-            </div>
-          </Card>
-
-          <Card className="p-8 shadow-lg hover:shadow-xl transition-shadow">
-            <div className="flex items-start gap-4">
-              <div className="p-3 bg-secondary/10 rounded-lg">
-                <MapPin className="w-6 h-6 text-secondary" />
-              </div>
-              <div>
-                <h3 className="text-lg font-semibold mb-2">{t('location')}</h3>
-                <p className="text-muted-foreground">{event.location}</p>
-              </div>
-            </div>
-          </Card>
-        </div>
-
-        {/* Call to Action */}
-        <div className="mt-16 text-center">
-          <h2 className="text-3xl font-bold mb-4">{t('readyToJoin')}</h2>
-          <p className="text-muted-foreground mb-8 max-w-2xl mx-auto">
-            {t('secureYourSpot')}
-          </p>
-          <Button 
-            size="lg" 
-            variant="default"
-            onClick={() => navigate("/tickets")}
-            className="shadow-lg hover:shadow-xl"
-          >
-            {t('selectYourTickets')}
-          </Button>
-        </div>
-      </div>
-      </>
       )}
     </div>
   );
