@@ -186,11 +186,13 @@ const Checkout = () => {
 
       if (customerError) throw customerError;
 
-      // Get event ID
+      // Get event ID - fetch the earliest active event
       const { data: event, error: eventError } = await supabase
         .from("events")
         .select("id")
         .eq("is_active", true)
+        .order("event_date", { ascending: true })
+        .limit(1)
         .single();
 
       if (eventError) throw eventError;
