@@ -119,6 +119,8 @@ const resources = {
       "markedAsAbsent": "تم التحديد كغائب",
       "noBookingsForDate": "لا توجد حجوزات لهذا التاريخ",
       "openInNewTab": "فتح في تبويب جديد",
+      "mainWebsite": "الموقع الرئيسي",
+      "openMainWebsite": "فتح الموقع الرئيسي",
       
       // Common
       "search": "بحث",

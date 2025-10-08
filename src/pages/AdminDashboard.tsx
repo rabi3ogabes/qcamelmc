@@ -99,7 +99,7 @@ const AdminDashboard = () => {
               </TabsTrigger>
             </TabsList>
 
-            <div className="flex justify-center mb-6">
+            <div className="flex justify-center mb-6 gap-2">
               <Button
                 variant="outline"
                 onClick={() => window.open('/live-bookings', '_blank')}
@@ -107,6 +107,15 @@ const AdminDashboard = () => {
               >
                 <ExternalLink className="w-4 h-4" />
                 {t("liveBookings")}
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => window.open('/', '_blank')}
+                className="font-lusail flex items-center gap-2"
+                title={t("openMainWebsite")}
+              >
+                <ExternalLink className="w-4 h-4" />
+                {t("mainWebsite")}
               </Button>
             </div>
 
