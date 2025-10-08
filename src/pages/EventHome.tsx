@@ -82,61 +82,83 @@ const EventHome = () => {
           <p className="text-lg">{t('noActiveEvents')}</p>
         </div>
       ) : (
-        <div className="pt-20 pb-16 px-4">
-          <div className="max-w-7xl mx-auto">
-            <h1 className="text-4xl md:text-5xl font-bold text-center mb-12">{t('upcomingEvents')}</h1>
+        <>
+          {/* Hero Section */}
+          <div className="relative h-[70vh] overflow-hidden">
+            <div 
+              className="absolute inset-0 bg-cover bg-center"
+              style={{ backgroundImage: `url(${heroImage})` }}
+            >
+              <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/40 to-background" />
+            </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              {events.map((event) => (
-                <Card key={event.id} className="overflow-hidden hover:shadow-2xl transition-shadow">
-                  {event.image_url && (
-                    <div className="relative h-64 overflow-hidden">
-                      <img 
-                        src={event.image_url} 
-                        alt={event.title}
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
-                  )}
-                  
-                  <div className="p-8">
-                    <h2 className="text-3xl font-bold mb-4">{event.title}</h2>
-                    <p className="text-muted-foreground mb-6 line-clamp-3">{event.description}</p>
+            <div className="relative h-full flex items-center justify-center px-4">
+              <div className="max-w-4xl text-center space-y-6">
+                <h1 className="text-5xl md:text-7xl font-bold text-white drop-shadow-2xl animate-in fade-in duration-700">
+                  {t('upcomingEvents')}
+                </h1>
+                <p className="text-xl md:text-2xl text-white/90 max-w-2xl mx-auto animate-in fade-in duration-700 delay-150">
+                  {t('discoverUpcomingEvents')}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Events Grid */}
+          <div className="py-16 px-4">
+            <div className="max-w-7xl mx-auto">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                {events.map((event) => (
+                  <Card key={event.id} className="overflow-hidden hover:shadow-2xl transition-shadow">
+                    {event.image_url && (
+                      <div className="relative h-64 overflow-hidden">
+                        <img 
+                          src={event.image_url} 
+                          alt={event.title}
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                    )}
                     
-                    <div className="space-y-4 mb-6">
-                      <div className="flex items-start gap-3">
-                        <Calendar className="w-5 h-5 text-primary mt-1" />
-                        <div>
-                          <p className="font-semibold">{t('eventDateTime')}</p>
-                          <p className="text-sm text-muted-foreground">
-                            {format(new Date(event.event_date), "EEEE، d MMMM، yyyy - h:mm a", { locale: ar })}
-                          </p>
+                    <div className="p-8">
+                      <h2 className="text-3xl font-bold mb-4">{event.title}</h2>
+                      <p className="text-muted-foreground mb-6 line-clamp-3">{event.description}</p>
+                      
+                      <div className="space-y-4 mb-6">
+                        <div className="flex items-start gap-3">
+                          <Calendar className="w-5 h-5 text-primary mt-1" />
+                          <div>
+                            <p className="font-semibold">{t('eventDateTime')}</p>
+                            <p className="text-sm text-muted-foreground">
+                              {format(new Date(event.event_date), "EEEE، d MMMM، yyyy - h:mm a", { locale: ar })}
+                            </p>
+                          </div>
+                        </div>
+                        
+                        <div className="flex items-start gap-3">
+                          <MapPin className="w-5 h-5 text-primary mt-1" />
+                          <div>
+                            <p className="font-semibold">{t('location')}</p>
+                            <p className="text-sm text-muted-foreground">{event.location}</p>
+                          </div>
                         </div>
                       </div>
                       
-                      <div className="flex items-start gap-3">
-                        <MapPin className="w-5 h-5 text-primary mt-1" />
-                        <div>
-                          <p className="font-semibold">{t('location')}</p>
-                          <p className="text-sm text-muted-foreground">{event.location}</p>
-                        </div>
-                      </div>
+                      <Button 
+                        className="w-full"
+                        size="lg"
+                        onClick={() => navigate("/tickets")}
+                      >
+                        <Ticket className="w-5 h-5 ml-2" />
+                        {t('bookTicketsNow')}
+                      </Button>
                     </div>
-                    
-                    <Button 
-                      className="w-full"
-                      size="lg"
-                      onClick={() => navigate("/tickets")}
-                    >
-                      <Ticket className="w-5 h-5 ml-2" />
-                      {t('bookTicketsNow')}
-                    </Button>
-                  </div>
-                </Card>
-              ))}
+                  </Card>
+                ))}
+              </div>
             </div>
           </div>
-        </div>
+        </>
       )}
     </div>
   );

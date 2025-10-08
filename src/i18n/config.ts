@@ -122,6 +122,7 @@ const resources = {
       "mainWebsite": "الموقع الرئيسي",
       "openMainWebsite": "فتح الموقع الرئيسي",
       "upcomingEvents": "الفعاليات القادمة",
+      "discoverUpcomingEvents": "اكتشف أحدث الفعاليات والمناسبات",
       
       // Common
       "search": "بحث",
