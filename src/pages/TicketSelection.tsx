@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { Crown, Users, Car, ArrowRight, Plus, Minus } from "lucide-react";
+import { PopupBanner } from "@/components/PopupBanner";
 
 interface Ticket {
   id: string;
@@ -195,13 +196,20 @@ const TicketSelection = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background py-6 sm:py-12 px-4 font-lusail">
-      <div className="max-w-4xl mx-auto">
-        {logoUrl && (
-          <div className="flex justify-center mb-6">
-            <img src={logoUrl} alt="Logo" className="h-16 object-contain" />
-          </div>
-        )}
+    <div className="min-h-screen bg-background font-lusail">
+      {/* Popup Banner */}
+      <PopupBanner />
+      
+      {/* Header */}
+      <header className="border-b backdrop-blur-sm sticky top-0 z-10 bg-background" style={{ backgroundColor: headerBgColor }}>
+        <div className="container mx-auto px-4 py-4 flex justify-center items-center">
+          {logoUrl && (
+            <img src={logoUrl} alt="Logo" className="h-12 object-contain" />
+          )}
+        </div>
+      </header>
+
+      <div className="max-w-4xl mx-auto py-6 sm:py-12 px-4">
         <div className="text-center mb-8 sm:mb-12">
           <h1 className="text-3xl sm:text-4xl font-bold mb-3 sm:mb-4">{t('selectTicketsTitle')}</h1>
           <p className="text-sm sm:text-base text-muted-foreground">{t('chooseQuantity')}</p>
