@@ -2,6 +2,8 @@ import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import { Calendar, MapPin, Edit } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { supabase } from "@/integrations/supabase/client";
@@ -111,11 +113,11 @@ export const EventsTab = () => {
                 </div>
               </div>
               
-              <div className="flex gap-2">
+              <div className="flex flex-col gap-3">
                 <Button 
                   variant="outline" 
                   size="sm" 
-                  className="flex-1 font-lusail"
+                  className="w-full font-lusail"
                   onClick={() => {
                     setEditingEvent(event);
                     setEditDialogOpen(true);
@@ -124,14 +126,16 @@ export const EventsTab = () => {
                   {t("edit")}
                   <Edit className="w-4 h-4" />
                 </Button>
-                <Button 
-                  variant={event.is_active ? "destructive" : "default"}
-                  size="sm" 
-                  className="flex-1 font-lusail"
-                  onClick={() => toggleEventStatus(event.id, event.is_active)}
-                >
-                  {event.is_active ? t("inactive") : t("active")}
-                </Button>
+                <div className="flex items-center justify-between p-2 border rounded-lg">
+                  <Label htmlFor={`active-${event.id}`} className="font-lusail text-sm cursor-pointer">
+                    {event.is_active ? t("active") : t("inactive")}
+                  </Label>
+                  <Switch
+                    id={`active-${event.id}`}
+                    checked={event.is_active}
+                    onCheckedChange={() => toggleEventStatus(event.id, event.is_active)}
+                  />
+                </div>
               </div>
             </div>
           </Card>
