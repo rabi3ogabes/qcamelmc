@@ -265,6 +265,34 @@ const Checkout = () => {
       localStorage.setItem("orderIds", JSON.stringify([order.id]));
       localStorage.removeItem("ticketSelection");
 
+      // Call webhook if configured
+      try {
+        const { data: settings } = await supabase
+          .from("settings")
+          .select("webhook_url")
+          .maybeSingle();
+
+        if (settings?.webhook_url) {
+          console.log("Calling n8n webhook:", settings.webhook_url);
+          await fetch(settings.webhook_url, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              customer: customer,
+              order: order,
+              ticketHolders: holdersToInsert,
+              bookingReference: bookingRef,
+              timestamp: new Date().toISOString(),
+            }),
+          });
+        }
+      } catch (webhookError) {
+        console.error("Webhook call failed:", webhookError);
+        // Don't block the user flow if webhook fails
+      }
+
       toast.success(t('bookingCreated'));
       navigate("/confirmation");
     } catch (error) {

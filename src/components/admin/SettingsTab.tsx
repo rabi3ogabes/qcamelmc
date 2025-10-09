@@ -14,6 +14,8 @@ export const SettingsTab = () => {
   const [newLogoUrl, setNewLogoUrl] = useState("");
   const [headerBgColor, setHeaderBgColor] = useState("hsl(var(--card) / 0.5)");
   const [newHeaderBgColor, setNewHeaderBgColor] = useState("hsl(var(--card) / 0.5)");
+  const [webhookUrl, setWebhookUrl] = useState("");
+  const [newWebhookUrl, setNewWebhookUrl] = useState("");
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -23,7 +25,7 @@ export const SettingsTab = () => {
   const fetchSettings = async () => {
     const { data, error } = await supabase
       .from("settings")
-      .select("logo_url, header_bg_color")
+      .select("logo_url, header_bg_color, webhook_url")
       .maybeSingle();
 
     if (error) {
@@ -39,6 +41,11 @@ export const SettingsTab = () => {
     if (data?.header_bg_color) {
       setHeaderBgColor(data.header_bg_color);
       setNewHeaderBgColor(data.header_bg_color);
+    }
+
+    if (data?.webhook_url) {
+      setWebhookUrl(data.webhook_url);
+      setNewWebhookUrl(data.webhook_url);
     }
   };
 
@@ -58,20 +65,21 @@ export const SettingsTab = () => {
       if (settings) {
         const { error } = await supabase
           .from("settings")
-          .update({ logo_url: newLogoUrl, header_bg_color: newHeaderBgColor })
+          .update({ logo_url: newLogoUrl, header_bg_color: newHeaderBgColor, webhook_url: newWebhookUrl })
           .eq("id", settings.id);
 
         if (error) throw error;
       } else {
         const { error } = await supabase
           .from("settings")
-          .insert({ logo_url: newLogoUrl, header_bg_color: newHeaderBgColor });
+          .insert({ logo_url: newLogoUrl, header_bg_color: newHeaderBgColor, webhook_url: newWebhookUrl });
 
         if (error) throw error;
       }
 
       setLogoUrl(newLogoUrl);
       setHeaderBgColor(newHeaderBgColor);
+      setWebhookUrl(newWebhookUrl);
       toast.success(t("savedSuccessfully"));
     } catch (error) {
       console.error("Error saving logo:", error);
@@ -138,6 +146,23 @@ export const SettingsTab = () => {
             </p>
           </div>
           
+          <div>
+            <Label htmlFor="webhook-url" className="font-lusail">رابط Webhook (n8n)</Label>
+            <div className="mt-2">
+              <Input 
+                id="webhook-url" 
+                type="url" 
+                placeholder="https://your-n8n-instance.com/webhook/..."
+                value={newWebhookUrl}
+                onChange={(e) => setNewWebhookUrl(e.target.value)}
+                className="font-lusail" 
+              />
+            </div>
+            <p className="text-xs text-muted-foreground mt-2">
+              سيتم استدعاء هذا الرابط بعد كل حجز ناجح لإرسال الفاتورة
+            </p>
+          </div>
+
           <Button onClick={handleSaveLogo} disabled={loading} className="font-lusail">
             <Upload className="w-4 h-4 ml-2" />
             {loading ? t("loading") : t("save")}
