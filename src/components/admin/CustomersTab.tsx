@@ -44,6 +44,7 @@ export const CustomersTab = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [sendingInvoice, setSendingInvoice] = useState<string | null>(null);
+  const [sendingTicket, setSendingTicket] = useState<string | null>(null);
 
   useEffect(() => {
     fetchCustomers();
@@ -163,6 +164,74 @@ export const CustomersTab = () => {
     }
   };
 
+  const sendTicketToWhatsApp = async (customer: Customer, e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent opening the customer dialog
+    
+    // Get the latest order
+    const latestOrder = customer.orders[0];
+    if (!latestOrder) {
+      toast.error("لا توجد حجوزات لهذا العميل");
+      return;
+    }
+
+    setSendingTicket(customer.id);
+    
+    try {
+      // Fetch webhook URL from settings
+      const { data: settings, error: settingsError } = await supabase
+        .from("settings")
+        .select("webhook_url")
+        .maybeSingle();
+
+      if (settingsError) throw settingsError;
+
+      if (!settings?.webhook_url) {
+        toast.error("لم يتم تكوين رابط n8n webhook في الإعدادات");
+        return;
+      }
+
+      // Send to n8n webhook
+      console.log("Sending ticket via n8n webhook:", settings.webhook_url);
+      const response = await fetch(settings.webhook_url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          customer: {
+            id: customer.id,
+            name: customer.name,
+            email: customer.email,
+            phone: customer.phone,
+          },
+          order: {
+            id: latestOrder.id,
+            booking_reference: latestOrder.booking_reference,
+            ticket_type: latestOrder.ticket_type,
+            quantity: latestOrder.quantity,
+            total_amount: latestOrder.total_amount,
+            payment_status: latestOrder.payment_status,
+          },
+          ticketHolders: latestOrder.ticket_holders,
+          bookingReference: latestOrder.booking_reference,
+          timestamp: new Date().toISOString(),
+          action: "send_ticket", // To differentiate action type
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("فشل إرسال التذكرة");
+      }
+
+      toast.success("تم إرسال التذكرة إلى واتساب بنجاح");
+    } catch (error) {
+      console.error("Error sending ticket:", error);
+      toast.error("فشل إرسال التذكرة. يرجى المحاولة مرة أخرى");
+    } finally {
+      setSendingTicket(null);
+    }
+  };
+
   if (loading) {
     return <div className="text-center py-12 font-lusail">{t("loading")}</div>;
   }
@@ -216,6 +285,23 @@ export const CustomersTab = () => {
                 <Badge variant="secondary" className="font-lusail text-xs">
                   {customer.orders.length} {customer.orders.length === 1 ? "حجز" : "حجوزات"}
                 </Badge>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={(e) => sendTicketToWhatsApp(customer, e)}
+                  disabled={sendingTicket === customer.id}
+                  className="w-full"
+                  title="إرسال التذكرة عبر n8n"
+                >
+                  {sendingTicket === customer.id ? (
+                    <span className="animate-spin">⏳</span>
+                  ) : (
+                    <>
+                      <Ticket className="w-3.5 h-3.5 ml-1" />
+                      <span className="text-xs">إرسال التذكرة</span>
+                    </>
+                  )}
+                </Button>
               </div>
             </Card>
           ))}
