@@ -3,8 +3,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import { useTranslation } from "react-i18next";
-import { User, Phone, Mail, Ticket, Calendar } from "lucide-react";
+import { User, Phone, Mail, Ticket, Calendar, Send } from "lucide-react";
+import { toast } from "sonner";
 import {
   Dialog,
   DialogContent,
@@ -41,6 +43,7 @@ export const CustomersTab = () => {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
+  const [sendingInvoice, setSendingInvoice] = useState<string | null>(null);
 
   useEffect(() => {
     fetchCustomers();
@@ -91,6 +94,74 @@ export const CustomersTab = () => {
       customer.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
       customer.phone.includes(searchTerm)
   );
+
+  const sendInvoiceToWhatsApp = async (customer: Customer, orderId: string, e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent opening the customer dialog
+    
+    setSendingInvoice(orderId);
+    
+    try {
+      // Fetch webhook URL from settings
+      const { data: settings, error: settingsError } = await supabase
+        .from("settings")
+        .select("webhook_url")
+        .maybeSingle();
+
+      if (settingsError) throw settingsError;
+
+      if (!settings?.webhook_url) {
+        toast.error("لم يتم تكوين رابط n8n webhook في الإعدادات");
+        return;
+      }
+
+      // Find the order
+      const order = customer.orders.find(o => o.id === orderId);
+      if (!order) {
+        toast.error("لم يتم العثور على الطلب");
+        return;
+      }
+
+      // Send to n8n webhook
+      console.log("Sending invoice via n8n webhook:", settings.webhook_url);
+      const response = await fetch(settings.webhook_url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          customer: {
+            id: customer.id,
+            name: customer.name,
+            email: customer.email,
+            phone: customer.phone,
+          },
+          order: {
+            id: order.id,
+            booking_reference: order.booking_reference,
+            ticket_type: order.ticket_type,
+            quantity: order.quantity,
+            total_amount: order.total_amount,
+            payment_status: order.payment_status,
+          },
+          ticketHolders: order.ticket_holders,
+          bookingReference: order.booking_reference,
+          timestamp: new Date().toISOString(),
+          action: "send_invoice", // To differentiate from booking confirmation
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("فشل إرسال الفاتورة");
+      }
+
+      toast.success("تم إرسال الفاتورة إلى واتساب بنجاح");
+    } catch (error) {
+      console.error("Error sending invoice:", error);
+      toast.error("فشل إرسال الفاتورة. يرجى المحاولة مرة أخرى");
+    } finally {
+      setSendingInvoice(null);
+    }
+  };
 
   if (loading) {
     return <div className="text-center py-12 font-lusail">{t("loading")}</div>;
@@ -195,12 +266,27 @@ export const CustomersTab = () => {
                               : "ملغي"}
                           </Badge>
                         </div>
-                        <div className="text-left">
-                          <div className="font-bold text-primary font-lusail">
-                            {parseFloat(order.total_amount.toString()).toFixed(2)} {t("qar")}
-                          </div>
-                          <div className="text-sm text-muted-foreground font-lusail">
-                            {order.quantity} تذكرة
+                        <div className="flex items-center gap-3">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={(e) => sendInvoiceToWhatsApp(selectedCustomer, order.id, e)}
+                            disabled={sendingInvoice === order.id}
+                            title="إرسال الفاتورة عبر واتساب"
+                          >
+                            {sendingInvoice === order.id ? (
+                              <span className="animate-spin">⏳</span>
+                            ) : (
+                              <Send className="w-4 h-4 text-green-600" />
+                            )}
+                          </Button>
+                          <div className="text-left">
+                            <div className="font-bold text-primary font-lusail">
+                              {parseFloat(order.total_amount.toString()).toFixed(2)} {t("qar")}
+                            </div>
+                            <div className="text-sm text-muted-foreground font-lusail">
+                              {order.quantity} تذكرة
+                            </div>
                           </div>
                         </div>
                       </div>
