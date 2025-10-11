@@ -93,6 +93,7 @@ const AdminPOS = () => {
   };
 
   const getMaxQuantity = (ticketType: string) => {
+    // Maximum 5 tickets total for VIP and normal, parking can be more
     if (ticketType === "vip" || ticketType === "normal") {
       return 5;
     }
@@ -116,14 +117,34 @@ const AdminPOS = () => {
   ];
 
   const otherNationalities = [
-    "مصري", "أردني", "لبناني", "سوري", "عراقي", "يمني",
-    "مغربي", "جزائري", "تونسي", "ليبي", "سوداني", "فلسطيني",
-    "باكستاني", "هندي", "بنغالي", "فلبيني", "إندونيسي", "نيبالي",
-    "أمريكي", "بريطاني", "فرنسي", "ألماني", "إيطالي", "أسباني",
+    { name: "مصري", flag: "🇪🇬" },
+    { name: "أردني", flag: "🇯🇴" },
+    { name: "لبناني", flag: "🇱🇧" },
+    { name: "سوري", flag: "🇸🇾" },
+    { name: "عراقي", flag: "🇮🇶" },
+    { name: "يمني", flag: "🇾🇪" },
+    { name: "مغربي", flag: "🇲🇦" },
+    { name: "جزائري", flag: "🇩🇿" },
+    { name: "تونسي", flag: "🇹🇳" },
+    { name: "ليبي", flag: "🇱🇾" },
+    { name: "سوداني", flag: "🇸🇩" },
+    { name: "فلسطيني", flag: "🇵🇸" },
+    { name: "باكستاني", flag: "🇵🇰" },
+    { name: "هندي", flag: "🇮🇳" },
+    { name: "بنغالي", flag: "🇧🇩" },
+    { name: "فلبيني", flag: "🇵🇭" },
+    { name: "إندونيسي", flag: "🇮🇩" },
+    { name: "نيبالي", flag: "🇳🇵" },
+    { name: "أمريكي", flag: "🇺🇸" },
+    { name: "بريطاني", flag: "🇬🇧" },
+    { name: "فرنسي", flag: "🇫🇷" },
+    { name: "ألماني", flag: "🇩🇪" },
+    { name: "إيطالي", flag: "🇮🇹" },
+    { name: "أسباني", flag: "🇪🇸" },
   ];
 
   const displayedNationalities = showAllNationalities 
-    ? [...gulfNationalities.map(n => ({ name: n.name, flag: n.flag })), ...otherNationalities.map(n => ({ name: n, flag: "" }))]
+    ? [...gulfNationalities, ...otherNationalities]
     : gulfNationalities;
 
   const handleSubmit = async (e: React.FormEvent) => {
