@@ -32,19 +32,10 @@ const AdminPOS = () => {
   const [customerName, setCustomerName] = useState("");
   const [customerEmail, setCustomerEmail] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
-  const [paymentMethod, setPaymentMethod] = useState<"cash_pos" | "sadad">("cash_pos");
 
   useEffect(() => {
-    checkAuth();
     fetchTickets();
   }, []);
-
-  const checkAuth = async () => {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) {
-      navigate("/admin/login");
-    }
-  };
 
   const fetchTickets = async () => {
     try {
@@ -116,7 +107,7 @@ const AdminPOS = () => {
           ticket_type: selectedTicketData!.type as "vip" | "normal" | "parking",
           quantity: quantity,
           total_amount: totalAmount,
-          payment_method: paymentMethod,
+          payment_method: "cash_pos",
           payment_status: "confirmed" as const,
           booking_reference: `POS-${Date.now()}`,
         }]);
@@ -144,7 +135,6 @@ const AdminPOS = () => {
       setCustomerName("");
       setCustomerEmail("");
       setCustomerPhone("");
-      setPaymentMethod("cash_pos");
       
       fetchTickets();
     } catch (error) {
@@ -211,19 +201,6 @@ const AdminPOS = () => {
                       onChange={(e) => setQuantity(parseInt(e.target.value) || 1)}
                       required
                     />
-                  </div>
-
-                  <div>
-                    <Label htmlFor="payment">طريقة الدفع</Label>
-                    <Select value={paymentMethod} onValueChange={(value: "cash_pos" | "sadad") => setPaymentMethod(value)}>
-                      <SelectTrigger id="payment">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="cash_pos">نقدي</SelectItem>
-                        <SelectItem value="sadad">بطاقة</SelectItem>
-                      </SelectContent>
-                    </Select>
                   </div>
 
                   {selectedTicketData && (
