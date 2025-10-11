@@ -32,6 +32,7 @@ const AdminPOS = () => {
   const [customerName, setCustomerName] = useState("");
   const [customerEmail, setCustomerEmail] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
+  const [customerNationality, setCustomerNationality] = useState("");
 
   useEffect(() => {
     fetchTickets();
@@ -70,10 +71,18 @@ const AdminPOS = () => {
   const selectedTicketData = tickets.find(t => t.id === selectedTicket);
   const totalAmount = selectedTicketData ? selectedTicketData.price * quantity : 0;
 
+  const nationalities = [
+    "قطري", "سعودي", "إماراتي", "كويتي", "بحريني", "عماني",
+    "مصري", "أردني", "لبناني", "سوري", "عراقي", "يمني",
+    "مغربي", "جزائري", "تونسي", "ليبي", "سوداني", "فلسطيني",
+    "باكستاني", "هندي", "بنغالي", "فلبيني", "إندونيسي", "نيبالي",
+    "أمريكي", "بريطاني", "فرنسي", "ألماني", "إيطالي", "أسباني",
+  ];
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!selectedTicket || !customerName || !customerEmail || !customerPhone) {
+    if (!selectedTicket || !customerName || !customerEmail || !customerPhone || !customerNationality) {
       toast({
         title: "خطأ",
         description: "يرجى ملء جميع الحقول المطلوبة",
@@ -92,6 +101,7 @@ const AdminPOS = () => {
           name: customerName,
           email: customerEmail,
           phone: customerPhone,
+          nationality: customerNationality,
         })
         .select()
         .single();
@@ -135,6 +145,7 @@ const AdminPOS = () => {
       setCustomerName("");
       setCustomerEmail("");
       setCustomerPhone("");
+      setCustomerNationality("");
       
       fetchTickets();
     } catch (error) {
@@ -250,6 +261,28 @@ const AdminPOS = () => {
                       placeholder="974XXXXXXXX"
                       required
                     />
+                  </div>
+
+                  <div>
+                    <Label className="mb-3 block">الجنسية *</Label>
+                    <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2">
+                      {nationalities.map((nationality) => (
+                        <Button
+                          key={nationality}
+                          type="button"
+                          variant={customerNationality === nationality ? "default" : "outline"}
+                          className="h-12 text-sm"
+                          onClick={() => setCustomerNationality(nationality)}
+                        >
+                          {nationality}
+                        </Button>
+                      ))}
+                    </div>
+                    {customerNationality && (
+                      <div className="mt-2 text-sm text-muted-foreground">
+                        الجنسية المختارة: <span className="font-bold">{customerNationality}</span>
+                      </div>
+                    )}
                   </div>
                 </CardContent>
               </Card>
