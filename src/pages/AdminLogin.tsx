@@ -92,13 +92,43 @@ const AdminLogin = () => {
           <Button
             variant="outline"
             className="w-full text-sm"
-            onClick={() => {
-              setEmail("rabii.souai@gmail.com");
-              setPassword("@@@Qatar123");
-              toast.info("Credentials filled");
+            onClick={async () => {
+              const demoEmail = "rabii.souai@gmail.com";
+              const demoPassword = "@@@Qatar123";
+              setEmail(demoEmail);
+              setPassword(demoPassword);
+              setLoading(true);
+
+              try {
+                const { data, error } = await supabase.auth.signInWithPassword({
+                  email: demoEmail,
+                  password: demoPassword,
+                });
+
+                if (error) throw error;
+
+                const { data: adminUser, error: adminError } = await supabase
+                  .from("admin_users")
+                  .select("*")
+                  .eq("id", data.user.id)
+                  .single();
+
+                if (adminError || !adminUser) {
+                  await supabase.auth.signOut();
+                  throw new Error("Unauthorized: Admin access only");
+                }
+
+                toast.success("Logged in successfully!");
+                navigate("/admin/dashboard");
+              } catch (error: any) {
+                toast.error(error.message || "Failed to log in");
+              } finally {
+                setLoading(false);
+              }
             }}
+            disabled={loading}
           >
-            Click to use: rabii.souai@gmail.com / @@@Qatar123
+            {loading ? "Logging in..." : "Click to use: rabii.souai@gmail.com / @@@Qatar123"}
           </Button>
         </div>
 
