@@ -289,7 +289,7 @@ export const CustomersTab = () => {
                             {sendingInvoice === order.id ? (
                               <span className="animate-spin">⏳</span>
                             ) : (
-                              <Send className="w-4 h-4 text-green-600" />
+                              <MessageCircle className="w-4 h-4 text-green-600" />
                             )}
                           </Button>
                           <div className="text-left">
