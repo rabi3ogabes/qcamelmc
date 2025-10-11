@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useTranslation } from "react-i18next";
-import { User, Phone, Mail, Ticket, Calendar, Send } from "lucide-react";
+import { User, Phone, Mail, Ticket, Calendar, Send, MessageCircle } from "lucide-react";
 import { toast } from "sonner";
 import {
   Dialog,
@@ -197,9 +197,21 @@ export const CustomersTab = () => {
                 </div>
                 <div>
                   <h3 className="font-bold font-lusail text-sm">{customer.name}</h3>
-                  <p className="text-xs text-muted-foreground font-lusail mt-1">
-                    {customer.phone}
-                  </p>
+                  <div className="flex items-center justify-center gap-1 mt-1">
+                    <p className="text-xs text-muted-foreground font-lusail">
+                      {customer.phone}
+                    </p>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        window.open(`https://wa.me/${customer.phone.replace(/[^0-9]/g, '')}`, '_blank');
+                      }}
+                      className="text-green-600 hover:text-green-700 transition-colors"
+                      title="إرسال رسالة واتساب"
+                    >
+                      <MessageCircle className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
                 </div>
                 <Badge variant="secondary" className="font-lusail text-xs">
                   {customer.orders.length} {customer.orders.length === 1 ? "حجز" : "حجوزات"}
