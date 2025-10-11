@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowRight, ShoppingCart, ArrowLeft } from "lucide-react";
+import { ArrowRight, ShoppingCart } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useTranslation } from "react-i18next";
 
@@ -26,6 +26,8 @@ const AdminPOS = () => {
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
+  const [logoUrl, setLogoUrl] = useState<string | null>(null);
+  const [headerBgColor, setHeaderBgColor] = useState<string>("hsl(var(--card) / 0.5)");
   
   const [selectedTicket, setSelectedTicket] = useState<string>("");
   const [quantity, setQuantity] = useState(1);
@@ -36,7 +38,28 @@ const AdminPOS = () => {
 
   useEffect(() => {
     fetchTickets();
+    fetchSettings();
   }, []);
+
+  const fetchSettings = async () => {
+    const { data, error } = await supabase
+      .from("settings")
+      .select("logo_url, header_bg_color")
+      .maybeSingle();
+
+    if (error) {
+      console.error("Error fetching settings:", error);
+      return;
+    }
+
+    if (data?.logo_url) {
+      setLogoUrl(data.logo_url);
+    }
+    
+    if (data?.header_bg_color) {
+      setHeaderBgColor(data.header_bg_color);
+    }
+  };
 
   const fetchTickets = async () => {
     try {
@@ -172,17 +195,20 @@ const AdminPOS = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background py-8 px-4 font-lusail" dir="rtl">
-      <div className="max-w-4xl mx-auto">
-        <div className="flex items-center justify-between mb-8">
-          <Button variant="outline" onClick={() => navigate("/admin/dashboard")}>
-            <ArrowLeft className="w-4 h-4 ml-2" />
-            العودة للوحة التحكم
-          </Button>
-          <h1 className="text-4xl font-bold">نقاط البيع - بيع تذكرة</h1>
+    <div className="min-h-screen bg-background font-lusail" dir="rtl">
+      {/* Header */}
+      <header className="border-b backdrop-blur-sm sticky top-0 z-10" style={{ backgroundColor: headerBgColor }}>
+        <div className="container mx-auto px-4 py-4 flex justify-between items-center">
+          {logoUrl ? (
+            <img src={logoUrl} alt="Logo" className="h-12 object-contain" />
+          ) : (
+            <h1 className="text-2xl font-bold">نقاط البيع</h1>
+          )}
+          <h2 className="text-xl font-semibold">بيع تذكرة</h2>
         </div>
+      </header>
 
-        {loading ? (
+      <div className="max-w-4xl mx-auto py-8 px-4">{loading ? (
           <div className="text-center py-12">جاري التحميل...</div>
         ) : (
           <form onSubmit={handleSubmit}>
