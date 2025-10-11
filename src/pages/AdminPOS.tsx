@@ -118,7 +118,16 @@ const AdminPOS = () => {
   };
 
   const addToCart = (ticket: Ticket, quantity: number) => {
-    if (!canAddToCart(ticket.type, quantity)) {
+    const existingItem = cart.find(item => item.ticketId === ticket.id);
+    
+    // Calculate what the new total would be
+    let totalVipNormalAfterAdd = getTotalVipNormalInCart();
+    if (ticket.type === "vip" || ticket.type === "normal") {
+      totalVipNormalAfterAdd += quantity;
+    }
+    
+    // Check if adding this quantity would exceed the limit
+    if ((ticket.type === "vip" || ticket.type === "normal") && totalVipNormalAfterAdd > 5) {
       toast({
         title: "خطأ",
         description: "الحد الأقصى لتذاكر VIP والعادي معاً هو 5",
@@ -127,20 +136,10 @@ const AdminPOS = () => {
       return;
     }
 
-    const existingItem = cart.find(item => item.ticketId === ticket.id);
     if (existingItem) {
-      const newQuantity = existingItem.quantity + quantity;
-      if (!canAddToCart(ticket.type, quantity)) {
-        toast({
-          title: "خطأ",
-          description: "الحد الأقصى لتذاكر VIP والعادي معاً هو 5",
-          variant: "destructive",
-        });
-        return;
-      }
       setCart(cart.map(item =>
         item.ticketId === ticket.id
-          ? { ...item, quantity: newQuantity }
+          ? { ...item, quantity: item.quantity + quantity }
           : item
       ));
     } else {
