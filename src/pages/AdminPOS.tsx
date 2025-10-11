@@ -35,6 +35,7 @@ const AdminPOS = () => {
   const [customerEmail, setCustomerEmail] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
   const [customerNationality, setCustomerNationality] = useState("");
+  const [showAllNationalities, setShowAllNationalities] = useState(false);
 
   useEffect(() => {
     fetchTickets();
@@ -105,13 +106,25 @@ const AdminPOS = () => {
   ) : 5;
   const totalAmount = selectedTicketData ? selectedTicketData.price * quantity : 0;
 
-  const nationalities = [
-    "قطري", "سعودي", "إماراتي", "كويتي", "بحريني", "عماني",
+  const gulfNationalities = [
+    { name: "قطري", flag: "🇶🇦" },
+    { name: "سعودي", flag: "🇸🇦" },
+    { name: "إماراتي", flag: "🇦🇪" },
+    { name: "كويتي", flag: "🇰🇼" },
+    { name: "بحريني", flag: "🇧🇭" },
+    { name: "عماني", flag: "🇴🇲" },
+  ];
+
+  const otherNationalities = [
     "مصري", "أردني", "لبناني", "سوري", "عراقي", "يمني",
     "مغربي", "جزائري", "تونسي", "ليبي", "سوداني", "فلسطيني",
     "باكستاني", "هندي", "بنغالي", "فلبيني", "إندونيسي", "نيبالي",
     "أمريكي", "بريطاني", "فرنسي", "ألماني", "إيطالي", "أسباني",
   ];
+
+  const displayedNationalities = showAllNationalities 
+    ? [...gulfNationalities.map(n => ({ name: n.name, flag: n.flag })), ...otherNationalities.map(n => ({ name: n, flag: "" }))]
+    : gulfNationalities;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -180,6 +193,7 @@ const AdminPOS = () => {
       setCustomerEmail("");
       setCustomerPhone("");
       setCustomerNationality("");
+      setShowAllNationalities(false);
       
       fetchTickets();
     } catch (error) {
@@ -317,19 +331,30 @@ const AdminPOS = () => {
 
                   <div>
                     <Label className="mb-3 block">الجنسية *</Label>
-                    <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2">
-                      {nationalities.map((nationality) => (
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                      {displayedNationalities.map((nationality) => (
                         <Button
-                          key={nationality}
+                          key={nationality.name}
                           type="button"
-                          variant={customerNationality === nationality ? "default" : "outline"}
-                          className="h-12 text-sm"
-                          onClick={() => setCustomerNationality(nationality)}
+                          variant={customerNationality === nationality.name ? "default" : "outline"}
+                          className="h-14 text-base flex items-center justify-center gap-2"
+                          onClick={() => setCustomerNationality(nationality.name)}
                         >
-                          {nationality}
+                          {nationality.flag && <span className="text-2xl">{nationality.flag}</span>}
+                          <span>{nationality.name}</span>
                         </Button>
                       ))}
                     </div>
+                    
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      className="w-full mt-3"
+                      onClick={() => setShowAllNationalities(!showAllNationalities)}
+                    >
+                      {showAllNationalities ? "إخفاء الجنسيات الأخرى" : "عرض المزيد من الجنسيات"}
+                    </Button>
+
                     {customerNationality && (
                       <div className="mt-2 text-sm text-muted-foreground">
                         الجنسية المختارة: <span className="font-bold">{customerNationality}</span>
