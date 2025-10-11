@@ -112,7 +112,7 @@ const AdminDashboard = () => {
             <div className="flex justify-center mb-6 gap-2">
               <Button
                 variant="outline"
-                onClick={() => navigate('/admin/pos')}
+                onClick={() => window.open('/admin/pos', '_blank')}
                 className="font-lusail flex items-center gap-2 bg-primary/10 hover:bg-primary/20 border-primary"
               >
                 <CreditCard className="w-4 h-4" />
