@@ -68,7 +68,18 @@ const AdminPOS = () => {
     return types[type] || type;
   };
 
+  const getMaxQuantity = (ticketType: string) => {
+    if (ticketType === "vip" || ticketType === "normal") {
+      return 5;
+    }
+    return selectedTicketData ? selectedTicketData.available_quantity - (selectedTicketData.sold_quantity || 0) : 10;
+  };
+
   const selectedTicketData = tickets.find(t => t.id === selectedTicket);
+  const maxQuantity = selectedTicketData ? Math.min(
+    getMaxQuantity(selectedTicketData.type),
+    selectedTicketData.available_quantity - (selectedTicketData.sold_quantity || 0)
+  ) : 5;
   const totalAmount = selectedTicketData ? selectedTicketData.price * quantity : 0;
 
   const nationalities = [
@@ -183,36 +194,51 @@ const AdminPOS = () => {
                     اختيار التذكرة
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-4">
+                <CardContent className="space-y-6">
                   <div>
-                    <Label htmlFor="ticket">نوع التذكرة</Label>
-                    <Select value={selectedTicket} onValueChange={setSelectedTicket}>
-                      <SelectTrigger id="ticket">
-                        <SelectValue placeholder="اختر نوع التذكرة" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {tickets.map((ticket) => (
-                          <SelectItem key={ticket.id} value={ticket.id}>
-                            {getTicketTypeName(ticket.type)} - {ticket.price} ريال
-                            ({ticket.available_quantity - (ticket.sold_quantity || 0)} متاح)
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <Label className="mb-3 block">نوع التذكرة</Label>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                      {tickets.map((ticket) => {
+                        const available = ticket.available_quantity - (ticket.sold_quantity || 0);
+                        return (
+                          <Button
+                            key={ticket.id}
+                            type="button"
+                            variant={selectedTicket === ticket.id ? "default" : "outline"}
+                            className="h-20 flex flex-col items-center justify-center gap-1"
+                            onClick={() => {
+                              setSelectedTicket(ticket.id);
+                              setQuantity(1);
+                            }}
+                            disabled={available === 0}
+                          >
+                            <span className="text-lg font-bold">{getTicketTypeName(ticket.type)}</span>
+                            <span className="text-sm">{ticket.price} ریال</span>
+                            <span className="text-xs opacity-70">({available} متاح)</span>
+                          </Button>
+                        );
+                      })}
+                    </div>
                   </div>
 
-                  <div>
-                    <Label htmlFor="quantity">الكمية</Label>
-                    <Input
-                      id="quantity"
-                      type="number"
-                      min="1"
-                      max={selectedTicketData ? selectedTicketData.available_quantity - (selectedTicketData.sold_quantity || 0) : 1}
-                      value={quantity}
-                      onChange={(e) => setQuantity(parseInt(e.target.value) || 1)}
-                      required
-                    />
-                  </div>
+                  {selectedTicketData && (
+                    <div>
+                      <Label className="mb-3 block">الكمية (الحد الأقصى: {maxQuantity})</Label>
+                      <div className="grid grid-cols-5 gap-2">
+                        {Array.from({ length: maxQuantity }, (_, i) => i + 1).map((num) => (
+                          <Button
+                            key={num}
+                            type="button"
+                            variant={quantity === num ? "default" : "outline"}
+                            className="h-16 text-xl font-bold"
+                            onClick={() => setQuantity(num)}
+                          >
+                            {num}
+                          </Button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
 
                   {selectedTicketData && (
                     <div className="pt-4 border-t">
