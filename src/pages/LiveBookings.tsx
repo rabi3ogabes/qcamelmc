@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { CalendarIcon, CheckCircle, XCircle, Users } from "lucide-react";
+import { CalendarIcon, CheckCircle, XCircle, Users, LayoutGrid, Table as TableIcon, User } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -37,6 +37,7 @@ const LiveBookings = () => {
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  const [viewType, setViewType] = useState<"cards" | "table">("cards");
   const [stats, setStats] = useState({
     total: 0,
     confirmed: 0,
@@ -140,9 +141,31 @@ const LiveBookings = () => {
     <div className="min-h-screen bg-background py-8 px-4 font-lusail" dir="rtl">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-4xl font-bold mb-2">{t("liveBookings")}</h1>
-          <p className="text-muted-foreground">{t("trackBookingsRealtime")}</p>
+        <div className="mb-8 flex justify-between items-center">
+          <div>
+            <h1 className="text-4xl font-bold mb-2">{t("liveBookings")}</h1>
+            <p className="text-muted-foreground">{t("trackBookingsRealtime")}</p>
+          </div>
+          <div className="flex gap-2">
+            <Button
+              variant={viewType === "cards" ? "default" : "outline"}
+              size="sm"
+              onClick={() => setViewType("cards")}
+              className="font-lusail"
+            >
+              <LayoutGrid className="w-4 h-4 ml-2" />
+              عرض البطاقات
+            </Button>
+            <Button
+              variant={viewType === "table" ? "default" : "outline"}
+              size="sm"
+              onClick={() => setViewType("table")}
+              className="font-lusail"
+            >
+              <TableIcon className="w-4 h-4 ml-2" />
+              عرض الجدول
+            </Button>
+          </div>
         </div>
 
         {/* Date Selector and Stats */}
@@ -214,53 +237,63 @@ const LiveBookings = () => {
           </Card>
         </div>
 
-        {/* Bookings Table */}
-        <Card className="overflow-hidden">
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="text-right font-lusail">{t("reference")}</TableHead>
-                  <TableHead className="text-right font-lusail">{t("customer")}</TableHead>
-                  <TableHead className="text-right font-lusail">{t("event")}</TableHead>
-                  <TableHead className="text-right font-lusail">{t("ticketType")}</TableHead>
-                  <TableHead className="text-right font-lusail">{t("quantity")}</TableHead>
-                  <TableHead className="text-right font-lusail">{t("amount")}</TableHead>
-                  <TableHead className="text-right font-lusail">{t("status")}</TableHead>
-                  <TableHead className="text-right font-lusail">{t("attendance")}</TableHead>
-                  <TableHead className="text-right font-lusail">{t("actions")}</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {bookings.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={9} className="text-center py-12">
-                      <p className="text-muted-foreground font-lusail">{t("noBookingsForDate")}</p>
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  bookings.map((booking) => (
-                    <TableRow key={booking.id}>
-                      <TableCell className="font-mono font-semibold">{booking.booking_reference}</TableCell>
-                      <TableCell>
-                        <div>
-                          <p className="font-semibold">{booking.customers.name}</p>
-                          <p className="text-xs text-muted-foreground">{booking.customers.phone}</p>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <p className="font-semibold">{booking.events?.title || 'N/A'}</p>
-                      </TableCell>
-                      <TableCell>
+        {/* Bookings Display */}
+        {viewType === "cards" ? (
+          /* Cards View */
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {bookings.length === 0 ? (
+              <Card className="col-span-full p-12">
+                <p className="text-center text-muted-foreground font-lusail">{t("noBookingsForDate")}</p>
+              </Card>
+            ) : (
+              bookings.map((booking) => (
+                <Card key={booking.id} className="p-6 hover:shadow-lg transition-shadow">
+                  <div className="flex flex-col gap-4">
+                    {/* Header with Avatar */}
+                    <div className="flex items-start gap-4">
+                      <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                        <User className="w-6 h-6 text-primary" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-bold text-lg truncate">{booking.customers.name}</h3>
+                        <p className="text-sm text-muted-foreground truncate">{booking.customers.phone}</p>
+                        <p className="text-xs text-muted-foreground truncate">{booking.customers.email}</p>
+                      </div>
+                    </div>
+
+                    {/* Booking Details */}
+                    <div className="space-y-2">
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm text-muted-foreground">رقم الحجز:</span>
+                        <span className="font-mono font-semibold text-sm">{booking.booking_reference}</span>
+                      </div>
+                      
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm text-muted-foreground">الفعالية:</span>
+                        <span className="font-semibold text-sm truncate max-w-[60%]">{booking.events?.title || 'N/A'}</span>
+                      </div>
+
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm text-muted-foreground">نوع التذكرة:</span>
                         <Badge variant="outline" className="capitalize">
                           {booking.ticket_type === "vip" ? t("vipAccess") : 
                            booking.ticket_type === "normal" ? t("generalAdmission") : 
                            t("parking")}
                         </Badge>
-                      </TableCell>
-                      <TableCell className="font-semibold">{booking.quantity}</TableCell>
-                      <TableCell className="font-semibold">{booking.total_amount.toFixed(2)} {t("qar")}</TableCell>
-                      <TableCell>
+                      </div>
+
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm text-muted-foreground">العدد:</span>
+                        <span className="font-semibold">{booking.quantity}</span>
+                      </div>
+
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm text-muted-foreground">المبلغ:</span>
+                        <span className="font-bold text-primary">{booking.total_amount.toFixed(2)} {t("qar")}</span>
+                      </div>
+
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm text-muted-foreground">حالة الدفع:</span>
                         <Badge 
                           variant={booking.payment_status === "confirmed" ? "default" : booking.payment_status === "failed" ? "destructive" : "secondary"}
                         >
@@ -268,8 +301,10 @@ const LiveBookings = () => {
                            booking.payment_status === "failed" ? t("failed") :
                            t("pending")}
                         </Badge>
-                      </TableCell>
-                      <TableCell>
+                      </div>
+
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm text-muted-foreground">الحضور:</span>
                         {booking.is_present === true ? (
                           <Badge className="bg-green-500">
                             <CheckCircle className="w-3 h-3 ml-1" />
@@ -283,24 +318,112 @@ const LiveBookings = () => {
                         ) : (
                           <Badge variant="outline">{t("notMarked")}</Badge>
                         )}
-                      </TableCell>
-                      <TableCell>
-                        <Button
-                          size="sm"
-                          variant={booking.is_present ? "outline" : "default"}
-                          onClick={() => togglePresence(booking.id, booking.is_present)}
-                          className="font-lusail"
-                        >
-                          {booking.is_present ? t("markAbsent") : t("markPresent")}
-                        </Button>
+                      </div>
+                    </div>
+
+                    {/* Action Button */}
+                    <Button
+                      size="sm"
+                      variant={booking.is_present ? "outline" : "default"}
+                      onClick={() => togglePresence(booking.id, booking.is_present)}
+                      className="w-full font-lusail"
+                    >
+                      {booking.is_present ? t("markAbsent") : t("markPresent")}
+                    </Button>
+                  </div>
+                </Card>
+              ))
+            )}
+          </div>
+        ) : (
+          /* Table View */
+          <Card className="overflow-hidden">
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="text-right font-lusail">{t("reference")}</TableHead>
+                    <TableHead className="text-right font-lusail">{t("customer")}</TableHead>
+                    <TableHead className="text-right font-lusail">{t("event")}</TableHead>
+                    <TableHead className="text-right font-lusail">{t("ticketType")}</TableHead>
+                    <TableHead className="text-right font-lusail">{t("quantity")}</TableHead>
+                    <TableHead className="text-right font-lusail">{t("amount")}</TableHead>
+                    <TableHead className="text-right font-lusail">{t("status")}</TableHead>
+                    <TableHead className="text-right font-lusail">{t("attendance")}</TableHead>
+                    <TableHead className="text-right font-lusail">{t("actions")}</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {bookings.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={9} className="text-center py-12">
+                        <p className="text-muted-foreground font-lusail">{t("noBookingsForDate")}</p>
                       </TableCell>
                     </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
-          </div>
-        </Card>
+                  ) : (
+                    bookings.map((booking) => (
+                      <TableRow key={booking.id}>
+                        <TableCell className="font-mono font-semibold">{booking.booking_reference}</TableCell>
+                        <TableCell>
+                          <div>
+                            <p className="font-semibold">{booking.customers.name}</p>
+                            <p className="text-xs text-muted-foreground">{booking.customers.phone}</p>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <p className="font-semibold">{booking.events?.title || 'N/A'}</p>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="outline" className="capitalize">
+                            {booking.ticket_type === "vip" ? t("vipAccess") : 
+                             booking.ticket_type === "normal" ? t("generalAdmission") : 
+                             t("parking")}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="font-semibold">{booking.quantity}</TableCell>
+                        <TableCell className="font-semibold">{booking.total_amount.toFixed(2)} {t("qar")}</TableCell>
+                        <TableCell>
+                          <Badge 
+                            variant={booking.payment_status === "confirmed" ? "default" : booking.payment_status === "failed" ? "destructive" : "secondary"}
+                          >
+                            {booking.payment_status === "confirmed" ? t("confirmed") :
+                             booking.payment_status === "failed" ? t("failed") :
+                             t("pending")}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          {booking.is_present === true ? (
+                            <Badge className="bg-green-500">
+                              <CheckCircle className="w-3 h-3 ml-1" />
+                              {t("present")}
+                            </Badge>
+                          ) : booking.is_present === false ? (
+                            <Badge variant="secondary">
+                              <XCircle className="w-3 h-3 ml-1" />
+                              {t("absent")}
+                            </Badge>
+                          ) : (
+                            <Badge variant="outline">{t("notMarked")}</Badge>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          <Button
+                            size="sm"
+                            variant={booking.is_present ? "outline" : "default"}
+                            onClick={() => togglePresence(booking.id, booking.is_present)}
+                            className="font-lusail"
+                          >
+                            {booking.is_present ? t("markAbsent") : t("markPresent")}
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+          </Card>
+        )}
       </div>
     </div>
   );
