@@ -52,7 +52,7 @@ export const CustomersTab = () => {
   const [editForm, setEditForm] = useState({ name: "", email: "", phone: "" });
   const [saving, setSaving] = useState(false);
   const [qrCodes, setQrCodes] = useState<Record<string, string>>({});
-  const [viewingQrCode, setViewingQrCode] = useState<{ code: string; name: string } | null>(null);
+  const [viewingQrCode, setViewingQrCode] = useState<{ code: string; name: string; reference: string } | null>(null);
 
   useEffect(() => {
     fetchCustomers();
@@ -693,7 +693,7 @@ export const CustomersTab = () => {
                                     <Button
                                       size="sm"
                                       variant="outline"
-                                      onClick={() => setViewingQrCode({ code: qrCodes[holder.qr_code], name: holder.name })}
+                                      onClick={() => setViewingQrCode({ code: qrCodes[holder.qr_code], name: holder.name, reference: holder.qr_code })}
                                       className="flex-shrink-0"
                                     >
                                       <QrCode className="w-4 h-4" />
@@ -733,12 +733,23 @@ export const CustomersTab = () => {
             </DialogTitle>
           </DialogHeader>
           {viewingQrCode && (
-            <div className="flex justify-center p-4">
-              <img
-                src={viewingQrCode.code}
-                alt={`QR Code for ${viewingQrCode.name}`}
-                className="w-full max-w-[400px] h-auto"
-              />
+            <div className="space-y-4">
+              <div className="flex justify-center p-4">
+                <img
+                  src={viewingQrCode.code}
+                  alt={`QR Code for ${viewingQrCode.name}`}
+                  className="w-full max-w-[400px] h-auto"
+                />
+              </div>
+              <div className="bg-muted p-4 rounded-lg">
+                <p className="text-sm font-medium mb-2 font-lusail">QR Code Value:</p>
+                <p className="font-mono text-xs break-all bg-background p-2 rounded border">
+                  {viewingQrCode.reference}
+                </p>
+                <p className="text-xs text-muted-foreground mt-2 font-lusail">
+                  This is the value encoded in the QR code. It should match what the scanner reads.
+                </p>
+              </div>
             </div>
           )}
         </DialogContent>
