@@ -65,23 +65,27 @@ serve(async (req) => {
     if (isTicketHolderQR) {
       // Handle individual ticket holder check-in
       console.log('[Ticket Check-in] Processing individual ticket holder');
+      console.log('[Ticket Check-in] Looking for QR code:', booking_reference);
       
       // Extract booking reference from ticket holder QR
       const baseBookingRef = booking_reference.split('-TKT')[0];
       
-      // Query ticket holder by QR code
+      // Query ticket holder by QR code - using order_id relationship
       const { data: ticketHolder, error: holderError } = await supabase
         .from('ticket_holders')
         .select(`
           *,
-          orders!inner(
+          orders:order_id(
             *,
-            customers(name, email, phone),
-            events(title, event_date, location)
+            customers:customer_id(name, email, phone),
+            events:event_id(title, event_date, location)
           )
         `)
         .eq('qr_code', booking_reference)
         .single();
+      
+      console.log('[Ticket Check-in] Ticket holder query result:', ticketHolder);
+      console.log('[Ticket Check-in] Ticket holder query error:', holderError);
 
       if (holderError || !ticketHolder) {
         console.error('[Ticket Check-in] Ticket holder not found:', holderError);
