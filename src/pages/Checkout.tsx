@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { CreditCard, Banknote, Loader2, Pencil, Trash2 } from "lucide-react";
+import { CreditCard, Banknote, Loader2, Plus, Minus } from "lucide-react";
 
 const ARABIC_COUNTRIES = [
   "السعودية",
@@ -179,49 +179,68 @@ const Checkout = () => {
     setTicketHolders(updated);
   };
 
-  const handleEditTicket = (index: number) => {
-    const item = selections[index];
-    const newQuantity = prompt(`تعديل الكمية لـ ${item.type}:`, item.quantity.toString());
+  const handleIncreaseQuantity = (index: number) => {
+    const updated = [...selections];
+    updated[index] = { ...updated[index], quantity: updated[index].quantity + 1 };
+    setSelections(updated);
+    localStorage.setItem("ticketSelection", JSON.stringify(updated));
     
-    if (newQuantity && !isNaN(parseInt(newQuantity)) && parseInt(newQuantity) > 0) {
-      const quantity = parseInt(newQuantity);
-      const updated = [...selections];
-      updated[index] = { ...updated[index], quantity };
-      setSelections(updated);
-      localStorage.setItem("ticketSelection", JSON.stringify(updated));
-      
-      // Rebuild ticket holders array
-      const holders: TicketHolder[] = [];
-      updated.forEach((selection: TicketSelection) => {
-        for (let i = 0; i < selection.quantity; i++) {
-          holders.push({
-            name: "",
-            phone: "",
-            nationality: "",
-            ticketType: selection.type,
-            idNumber: ""
-          });
-        }
-      });
-      setTicketHolders(holders);
-      toast.success("تم تحديث الكمية");
-    }
+    // Rebuild ticket holders array
+    const holders: TicketHolder[] = [];
+    updated.forEach((selection: TicketSelection) => {
+      for (let i = 0; i < selection.quantity; i++) {
+        holders.push({
+          name: "",
+          phone: "",
+          nationality: "",
+          ticketType: selection.type,
+          idNumber: ""
+        });
+      }
+    });
+    setTicketHolders(holders);
+    toast.success("تم زيادة الكمية");
   };
 
-  const handleDeleteTicket = (index: number) => {
+  const handleDecreaseQuantity = (index: number) => {
     const item = selections[index];
-    const confirmed = confirm(`هل تريد حذف ${item.type} من الطلب؟`);
     
-    if (confirmed) {
-      const updated = selections.filter((_, i) => i !== index);
+    if (item.quantity === 1) {
+      // If quantity is 1, remove the item entirely
+      const confirmed = confirm(`هل تريد حذف ${item.type} من الطلب؟`);
       
-      if (updated.length === 0) {
-        localStorage.removeItem("ticketSelection");
-        toast.info("تم حذف جميع التذاكر، سيتم إعادتك إلى صفحة التذاكر");
-        navigate("/tickets");
-        return;
+      if (confirmed) {
+        const updated = selections.filter((_, i) => i !== index);
+        
+        if (updated.length === 0) {
+          localStorage.removeItem("ticketSelection");
+          toast.info("تم حذف جميع التذاكر، سيتم إعادتك إلى صفحة التذاكر");
+          navigate("/tickets");
+          return;
+        }
+        
+        setSelections(updated);
+        localStorage.setItem("ticketSelection", JSON.stringify(updated));
+        
+        // Rebuild ticket holders array
+        const holders: TicketHolder[] = [];
+        updated.forEach((selection: TicketSelection) => {
+          for (let i = 0; i < selection.quantity; i++) {
+            holders.push({
+              name: "",
+              phone: "",
+              nationality: "",
+              ticketType: selection.type,
+              idNumber: ""
+            });
+          }
+        });
+        setTicketHolders(holders);
+        toast.success("تم حذف التذكرة");
       }
-      
+    } else {
+      const updated = [...selections];
+      updated[index] = { ...updated[index], quantity: updated[index].quantity - 1 };
       setSelections(updated);
       localStorage.setItem("ticketSelection", JSON.stringify(updated));
       
@@ -239,7 +258,7 @@ const Checkout = () => {
         }
       });
       setTicketHolders(holders);
-      toast.success("تم حذف التذكرة");
+      toast.success("تم تقليل الكمية");
     }
   };
 
@@ -654,22 +673,23 @@ const Checkout = () => {
                       <div className="font-semibold text-sm sm:text-base flex-shrink-0">
                         {(item.price * item.quantity).toFixed(2)} {t('qar')}
                       </div>
-                      <div className="flex gap-1">
+                      <div className="flex items-center gap-1 border rounded-md">
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="h-8 w-8"
-                          onClick={() => handleEditTicket(index)}
+                          className="h-8 w-8 hover:bg-accent"
+                          onClick={() => handleDecreaseQuantity(index)}
                         >
-                          <Pencil className="h-4 w-4" />
+                          <Minus className="h-4 w-4" />
                         </Button>
+                        <span className="px-2 text-sm font-medium min-w-[20px] text-center">{item.quantity}</span>
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="h-8 w-8 text-destructive hover:text-destructive"
-                          onClick={() => handleDeleteTicket(index)}
+                          className="h-8 w-8 hover:bg-accent"
+                          onClick={() => handleIncreaseQuantity(index)}
                         >
-                          <Trash2 className="h-4 w-4" />
+                          <Plus className="h-4 w-4" />
                         </Button>
                       </div>
                     </div>
