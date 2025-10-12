@@ -29,6 +29,7 @@ interface Customer {
     total_amount: number;
     payment_status: string;
     created_at: string;
+    qr_code?: string;
     ticket_holders: Array<{
       name: string;
       phone: string;
@@ -56,7 +57,7 @@ export const CustomersTab = () => {
     fetchCustomers();
   }, []);
 
-  // Generate QR codes for selected customer's ticket holders
+  // Generate QR codes for selected customer's ticket holders and orders
   useEffect(() => {
     const generateQRCodes = async () => {
       if (!selectedCustomer) {
@@ -66,6 +67,20 @@ export const CustomersTab = () => {
 
       const codes: Record<string, string> = {};
       for (const order of selectedCustomer.orders) {
+        // Generate QR code for order
+        if (order.qr_code) {
+          try {
+            const qrDataUrl = await QRCode.toDataURL(order.qr_code, {
+              width: 200,
+              margin: 2,
+            });
+            codes[order.qr_code] = qrDataUrl;
+          } catch (error) {
+            console.error("Error generating QR code:", error);
+          }
+        }
+        
+        // Generate QR codes for ticket holders
         if (order.ticket_holders) {
           for (const holder of order.ticket_holders) {
             if (holder.qr_code) {
@@ -503,6 +518,16 @@ export const CustomersTab = () => {
                               <MessageCircle className="w-4 h-4 text-green-600" />
                             )}
                           </Button>
+                          {order.qr_code && qrCodes[order.qr_code] && (
+                            <div className="flex-shrink-0 bg-white p-2 rounded">
+                              <img
+                                src={qrCodes[order.qr_code]}
+                                alt={`QR Code for ${order.booking_reference}`}
+                                className="w-[200px] h-[200px]"
+                                style={{ display: 'block' }}
+                              />
+                            </div>
+                          )}
                           <div className="text-left">
                             <div className="font-bold text-primary font-lusail">
                               {parseFloat(order.total_amount.toString()).toFixed(2)} {t("qar")}
