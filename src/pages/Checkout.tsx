@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { CreditCard, Banknote, Loader2 } from "lucide-react";
+import { CreditCard, Banknote, Loader2, Pencil, Trash2 } from "lucide-react";
 
 const ARABIC_COUNTRIES = [
   "السعودية",
@@ -177,6 +177,70 @@ const Checkout = () => {
     const updated = [...ticketHolders];
     updated[index] = { ...updated[index], [field]: value };
     setTicketHolders(updated);
+  };
+
+  const handleEditTicket = (index: number) => {
+    const item = selections[index];
+    const newQuantity = prompt(`تعديل الكمية لـ ${item.type}:`, item.quantity.toString());
+    
+    if (newQuantity && !isNaN(parseInt(newQuantity)) && parseInt(newQuantity) > 0) {
+      const quantity = parseInt(newQuantity);
+      const updated = [...selections];
+      updated[index] = { ...updated[index], quantity };
+      setSelections(updated);
+      localStorage.setItem("ticketSelection", JSON.stringify(updated));
+      
+      // Rebuild ticket holders array
+      const holders: TicketHolder[] = [];
+      updated.forEach((selection: TicketSelection) => {
+        for (let i = 0; i < selection.quantity; i++) {
+          holders.push({
+            name: "",
+            phone: "",
+            nationality: "",
+            ticketType: selection.type,
+            idNumber: ""
+          });
+        }
+      });
+      setTicketHolders(holders);
+      toast.success("تم تحديث الكمية");
+    }
+  };
+
+  const handleDeleteTicket = (index: number) => {
+    const item = selections[index];
+    const confirmed = confirm(`هل تريد حذف ${item.type} من الطلب؟`);
+    
+    if (confirmed) {
+      const updated = selections.filter((_, i) => i !== index);
+      
+      if (updated.length === 0) {
+        localStorage.removeItem("ticketSelection");
+        toast.info("تم حذف جميع التذاكر، سيتم إعادتك إلى صفحة التذاكر");
+        navigate("/tickets");
+        return;
+      }
+      
+      setSelections(updated);
+      localStorage.setItem("ticketSelection", JSON.stringify(updated));
+      
+      // Rebuild ticket holders array
+      const holders: TicketHolder[] = [];
+      updated.forEach((selection: TicketSelection) => {
+        for (let i = 0; i < selection.quantity; i++) {
+          holders.push({
+            name: "",
+            phone: "",
+            nationality: "",
+            ticketType: selection.type,
+            idNumber: ""
+          });
+        }
+      });
+      setTicketHolders(holders);
+      toast.success("تم حذف التذكرة");
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -586,8 +650,28 @@ const Checkout = () => {
                       <div className="font-medium capitalize text-sm sm:text-base truncate">{item.type} {t('ticket')}</div>
                       <div className="text-xs sm:text-sm text-muted-foreground">{t('quantity')}: {item.quantity}</div>
                     </div>
-                    <div className="font-semibold text-sm sm:text-base flex-shrink-0">
-                      {(item.price * item.quantity).toFixed(2)} {t('qar')}
+                    <div className="flex items-center gap-2">
+                      <div className="font-semibold text-sm sm:text-base flex-shrink-0">
+                        {(item.price * item.quantity).toFixed(2)} {t('qar')}
+                      </div>
+                      <div className="flex gap-1">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8"
+                          onClick={() => handleEditTicket(index)}
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-destructive hover:text-destructive"
+                          onClick={() => handleDeleteTicket(index)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </div>
                   </div>
                 ))}
