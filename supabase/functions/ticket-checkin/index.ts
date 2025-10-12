@@ -128,36 +128,7 @@ serve(async (req) => {
 
       const order: any = Array.isArray(ticketHolder.orders) ? ticketHolder.orders[0] : ticketHolder.orders;
 
-      // Validate payment status
-      if (order.payment_status !== 'confirmed') {
-        console.warn(`[Ticket Check-in] Payment not confirmed for ${booking_reference}`);
-        return new Response(
-          JSON.stringify({
-            success: false,
-            error: 'Payment not confirmed',
-            message: 'الدفع غير مؤكد',
-            ticket_info: {
-              booking_reference: order.booking_reference,
-              customer_name: (Array.isArray(order.customers) ? order.customers[0]?.name : order.customers?.name) || 'غير معروف',
-              event_title: (Array.isArray(order.events) ? order.events[0]?.title : order.events?.title) || 'غير معروف',
-              ticket_type: ticketHolder.ticket_type,
-              ticket_holder_name: ticketHolder.name,
-              ticket_holder_phone: ticketHolder.phone,
-              ticket_holder_nationality: ticketHolder.nationality,
-              ticket_holder_id_number: ticketHolder.id_number,
-              quantity: 1,
-              payment_status: order.payment_status,
-              is_present: ticketHolder.is_present,
-            }
-          } as CheckInResponse),
-          { 
-            status: 400, 
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-          }
-        );
-      }
-
-      // Check if already checked in
+      // Check if already checked in first
       if (ticketHolder.is_present) {
         console.warn(`[Ticket Check-in] Already checked in: ${booking_reference}`);
         return new Response(
@@ -182,6 +153,35 @@ serve(async (req) => {
           } as CheckInResponse),
           { 
             status: 400, 
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+          }
+        );
+      }
+
+      // Validate payment status (but still return ticket info)
+      if (order.payment_status !== 'confirmed') {
+        console.warn(`[Ticket Check-in] Payment not confirmed for ${booking_reference}`);
+        return new Response(
+          JSON.stringify({
+            success: false,
+            error: 'Payment not confirmed',
+            message: '⚠️ الدفع غير مؤكد - لا يمكن تسجيل الدخول',
+            ticket_info: {
+              booking_reference: order.booking_reference,
+              customer_name: (Array.isArray(order.customers) ? order.customers[0]?.name : order.customers?.name) || 'غير معروف',
+              event_title: (Array.isArray(order.events) ? order.events[0]?.title : order.events?.title) || 'غير معروف',
+              ticket_type: ticketHolder.ticket_type,
+              ticket_holder_name: ticketHolder.name,
+              ticket_holder_phone: ticketHolder.phone,
+              ticket_holder_nationality: ticketHolder.nationality,
+              ticket_holder_id_number: ticketHolder.id_number,
+              quantity: 1,
+              payment_status: order.payment_status,
+              is_present: ticketHolder.is_present,
+            }
+          } as CheckInResponse),
+          { 
+            status: 200,  // Changed to 200 so UI displays the info
             headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
           }
         );

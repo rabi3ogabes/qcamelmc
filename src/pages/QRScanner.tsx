@@ -183,7 +183,13 @@ const QRScanner = () => {
       // Success case
       setScanResult('success');
       setTicketInfo(response.ticket_info!);
-      toast.success(response.message);
+      
+      // Show appropriate message based on payment status
+      if (response.ticket_info?.payment_status !== 'confirmed') {
+        toast.warning(response.message);
+      } else {
+        toast.success(response.message);
+      }
 
     } catch (error) {
       console.error("Error validating ticket:", error);
@@ -374,20 +380,29 @@ const QRScanner = () => {
         {/* Result Display */}
         {ticketInfo && (
           <Card className={`mb-6 border-2 ${
-            scanResult === 'success' 
+            scanResult === 'success' && ticketInfo.payment_status === 'confirmed'
               ? 'border-green-500 bg-green-50 dark:bg-green-950/20' 
+              : scanResult === 'success' && ticketInfo.payment_status !== 'confirmed'
+              ? 'border-yellow-500 bg-yellow-50 dark:bg-yellow-950/20'
               : 'border-red-500 bg-red-50 dark:bg-red-950/20'
           }`}>
             <CardHeader>
               <CardTitle className={`flex items-center justify-center gap-3 text-2xl ${
-                scanResult === 'success' 
+                scanResult === 'success' && ticketInfo.payment_status === 'confirmed'
                   ? 'text-green-700 dark:text-green-400' 
+                  : scanResult === 'success' && ticketInfo.payment_status !== 'confirmed'
+                  ? 'text-yellow-700 dark:text-yellow-400'
                   : 'text-red-700 dark:text-red-400'
               }`}>
-                {scanResult === 'success' ? (
+                {scanResult === 'success' && ticketInfo.payment_status === 'confirmed' ? (
                   <>
                     <CheckCircle2 className="w-8 h-8" />
                     ✅ تم التحقق من التذكرة
+                  </>
+                ) : scanResult === 'success' && ticketInfo.payment_status !== 'confirmed' ? (
+                  <>
+                    <CheckCircle2 className="w-8 h-8" />
+                    ⚠️ معلومات التذكرة (الدفع معلق)
                   </>
                 ) : (
                   <>
@@ -461,6 +476,18 @@ const QRScanner = () => {
                       : (t('pending') || 'معلق')}
                   </span>
                 </div>
+                
+                {ticketInfo.payment_status !== 'confirmed' && (
+                  <div className="pt-3 mt-3 border-t-2 border-yellow-400 bg-yellow-100 dark:bg-yellow-900/30 p-4 rounded-lg">
+                    <p className="text-yellow-800 dark:text-yellow-300 font-bold text-center text-lg">
+                      ⚠️ تحذير: الدفع غير مؤكد - لا يمكن تسجيل الدخول
+                    </p>
+                    <p className="text-yellow-700 dark:text-yellow-400 text-center text-sm mt-2">
+                      يرجى تأكيد الدفع قبل السماح بالدخول
+                    </p>
+                  </div>
+                )}
+                
                 {ticketInfo.is_present && scanResult === 'error' && (
                   <div className="pt-3 mt-3 border-t-2 border-red-400">
                     <p className="text-red-700 dark:text-red-400 font-bold text-center text-lg">
