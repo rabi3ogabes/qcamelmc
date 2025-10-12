@@ -127,10 +127,12 @@ export const CustomersTab = () => {
 
       // Send to n8n webhook
       console.log("Sending invoice via n8n webhook:", settings.webhook_url);
-      // Format phone number: remove + and spaces
-      const formattedPhone = settings.admin_phone 
-        ? settings.admin_phone.replace(/[\+\s]/g, '') 
-        : null;
+      // Format phone number: ensure 974 country code without +
+      let formattedPhone = null;
+      if (settings.admin_phone) {
+        const cleanPhone = settings.admin_phone.replace(/[\+\s]/g, '');
+        formattedPhone = cleanPhone.startsWith('974') ? cleanPhone : `974${cleanPhone}`;
+      }
       
       const response = await fetch(settings.webhook_url, {
         method: "POST",
@@ -201,10 +203,12 @@ export const CustomersTab = () => {
 
       // Send to n8n webhook
       console.log("Sending ticket via n8n webhook:", settings.webhook_url);
-      // Format phone number: remove + and spaces
-      const formattedPhone = settings.admin_phone 
-        ? settings.admin_phone.replace(/[\+\s]/g, '') 
-        : null;
+      // Format phone number: ensure 974 country code without +
+      let formattedPhone = null;
+      if (settings.admin_phone) {
+        const cleanPhone = settings.admin_phone.replace(/[\+\s]/g, '');
+        formattedPhone = cleanPhone.startsWith('974') ? cleanPhone : `974${cleanPhone}`;
+      }
       
       const response = await fetch(settings.webhook_url, {
         method: "POST",

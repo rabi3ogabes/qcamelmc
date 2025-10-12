@@ -274,10 +274,12 @@ const Checkout = () => {
 
         if (settings?.webhook_url) {
           console.log("Calling n8n webhook:", settings.webhook_url);
-          // Format phone number: remove + and spaces
-          const formattedPhone = settings.admin_phone 
-            ? settings.admin_phone.replace(/[\+\s]/g, '') 
-            : null;
+          // Format phone number: ensure 974 country code without +
+          let formattedPhone = null;
+          if (settings.admin_phone) {
+            const cleanPhone = settings.admin_phone.replace(/[\+\s]/g, '');
+            formattedPhone = cleanPhone.startsWith('974') ? cleanPhone : `974${cleanPhone}`;
+          }
           
           await fetch(settings.webhook_url, {
             method: "POST",
