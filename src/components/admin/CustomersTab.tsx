@@ -128,11 +128,29 @@ export const CustomersTab = () => {
       // Send to n8n webhook
       console.log("Sending invoice via n8n webhook:", settings.webhook_url);
       // Format phone number: ensure 974 country code without +
-      let formattedPhone = null;
+      let formattedAdminPhone = null;
       if (settings.admin_phone) {
         const cleanPhone = settings.admin_phone.replace(/[\+\s]/g, '');
-        formattedPhone = cleanPhone.startsWith('974') ? cleanPhone : `974${cleanPhone}`;
+        formattedAdminPhone = cleanPhone.startsWith('974') ? cleanPhone : `974${cleanPhone}`;
       }
+
+      // Format customer and ticket holder phones
+      const formatPhoneNumber = (phone: string | null | undefined) => {
+        if (!phone) return null;
+        const cleanPhone = phone.replace(/[\+\s]/g, '');
+        return cleanPhone.startsWith('974') ? cleanPhone : `974${cleanPhone}`;
+      };
+
+      const formattedCustomer = {
+        name: customer.name,
+        email: customer.email,
+        phone: formatPhoneNumber(customer.phone)
+      };
+
+      const formattedHolders = order.ticket_holders?.map((holder: any) => ({
+        ...holder,
+        phone: formatPhoneNumber(holder.phone)
+      })) || [];
       
       const response = await fetch(settings.webhook_url, {
         method: "POST",
@@ -140,12 +158,7 @@ export const CustomersTab = () => {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          customer: {
-            id: customer.id,
-            name: customer.name,
-            email: customer.email,
-            phone: customer.phone,
-          },
+          customer: formattedCustomer,
           order: {
             id: order.id,
             booking_reference: order.booking_reference,
@@ -154,9 +167,9 @@ export const CustomersTab = () => {
             total_amount: order.total_amount,
             payment_status: order.payment_status,
           },
-          ticketHolders: order.ticket_holders,
+          ticketHolders: formattedHolders,
           bookingReference: order.booking_reference,
-          adminPhone: formattedPhone,
+          adminPhone: formattedAdminPhone,
           timestamp: new Date().toISOString(),
           action: "send_invoice", // To differentiate from booking confirmation
         }),
@@ -204,11 +217,29 @@ export const CustomersTab = () => {
       // Send to n8n webhook
       console.log("Sending ticket via n8n webhook:", settings.webhook_url);
       // Format phone number: ensure 974 country code without +
-      let formattedPhone = null;
+      let formattedAdminPhone = null;
       if (settings.admin_phone) {
         const cleanPhone = settings.admin_phone.replace(/[\+\s]/g, '');
-        formattedPhone = cleanPhone.startsWith('974') ? cleanPhone : `974${cleanPhone}`;
+        formattedAdminPhone = cleanPhone.startsWith('974') ? cleanPhone : `974${cleanPhone}`;
       }
+
+      // Format customer and ticket holder phones
+      const formatPhoneNumber = (phone: string | null | undefined) => {
+        if (!phone) return null;
+        const cleanPhone = phone.replace(/[\+\s]/g, '');
+        return cleanPhone.startsWith('974') ? cleanPhone : `974${cleanPhone}`;
+      };
+
+      const formattedCustomer = {
+        name: customer.name,
+        email: customer.email,
+        phone: formatPhoneNumber(customer.phone)
+      };
+
+      const formattedHolders = latestOrder.ticket_holders?.map((holder: any) => ({
+        ...holder,
+        phone: formatPhoneNumber(holder.phone)
+      })) || [];
       
       const response = await fetch(settings.webhook_url, {
         method: "POST",
@@ -216,12 +247,7 @@ export const CustomersTab = () => {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          customer: {
-            id: customer.id,
-            name: customer.name,
-            email: customer.email,
-            phone: customer.phone,
-          },
+          customer: formattedCustomer,
           order: {
             id: latestOrder.id,
             booking_reference: latestOrder.booking_reference,
@@ -230,9 +256,9 @@ export const CustomersTab = () => {
             total_amount: latestOrder.total_amount,
             payment_status: latestOrder.payment_status,
           },
-          ticketHolders: latestOrder.ticket_holders,
+          ticketHolders: formattedHolders,
           bookingReference: latestOrder.booking_reference,
-          adminPhone: formattedPhone,
+          adminPhone: formattedAdminPhone,
           timestamp: new Date().toISOString(),
           action: "send_ticket", // To differentiate action type
         }),

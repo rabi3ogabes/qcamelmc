@@ -275,11 +275,28 @@ const Checkout = () => {
         if (settings?.webhook_url) {
           console.log("Calling n8n webhook:", settings.webhook_url);
           // Format phone number: ensure 974 country code without +
-          let formattedPhone = null;
+          let formattedAdminPhone = null;
           if (settings.admin_phone) {
             const cleanPhone = settings.admin_phone.replace(/[\+\s]/g, '');
-            formattedPhone = cleanPhone.startsWith('974') ? cleanPhone : `974${cleanPhone}`;
+            formattedAdminPhone = cleanPhone.startsWith('974') ? cleanPhone : `974${cleanPhone}`;
           }
+
+          // Format customer phone
+          const formatPhoneNumber = (phone: string | null | undefined) => {
+            if (!phone) return null;
+            const cleanPhone = phone.replace(/[\+\s]/g, '');
+            return cleanPhone.startsWith('974') ? cleanPhone : `974${cleanPhone}`;
+          };
+
+          const formattedCustomer = {
+            ...customer,
+            phone: formatPhoneNumber(customer.phone)
+          };
+
+          const formattedHolders = holdersToInsert.map(holder => ({
+            ...holder,
+            phone: formatPhoneNumber(holder.phone)
+          }));
           
           await fetch(settings.webhook_url, {
             method: "POST",
@@ -287,11 +304,11 @@ const Checkout = () => {
               "Content-Type": "application/json",
             },
             body: JSON.stringify({
-              customer: customer,
+              customer: formattedCustomer,
               order: order,
-              ticketHolders: holdersToInsert,
+              ticketHolders: formattedHolders,
               bookingReference: bookingRef,
-              adminPhone: formattedPhone,
+              adminPhone: formattedAdminPhone,
               timestamp: new Date().toISOString(),
             }),
           });
