@@ -117,6 +117,7 @@ export const CustomersTab = () => {
             total_amount,
             payment_status,
             created_at,
+            qr_code,
             ticket_holders (
               name,
               phone,
