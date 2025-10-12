@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useTranslation } from "react-i18next";
-import { User, Phone, Mail, Ticket, Calendar, Send, MessageCircle } from "lucide-react";
+import { User, Phone, Mail, Ticket, Calendar, Send, MessageCircle, Edit } from "lucide-react";
 import { toast } from "sonner";
 import {
   Dialog,
@@ -45,6 +45,9 @@ export const CustomersTab = () => {
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [sendingInvoice, setSendingInvoice] = useState<string | null>(null);
   const [sendingTicket, setSendingTicket] = useState<string | null>(null);
+  const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
+  const [editForm, setEditForm] = useState({ name: "", email: "", phone: "" });
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     fetchCustomers();
@@ -232,6 +235,52 @@ export const CustomersTab = () => {
     }
   };
 
+  const handleEditCustomer = (customer: Customer) => {
+    setEditingCustomer(customer);
+    setEditForm({
+      name: customer.name,
+      email: customer.email,
+      phone: customer.phone,
+    });
+  };
+
+  const handleSaveCustomer = async () => {
+    if (!editingCustomer) return;
+
+    setSaving(true);
+    try {
+      const { error } = await supabase
+        .from("customers")
+        .update({
+          name: editForm.name,
+          email: editForm.email,
+          phone: editForm.phone,
+        })
+        .eq("id", editingCustomer.id);
+
+      if (error) throw error;
+
+      toast.success("تم تحديث بيانات العميل بنجاح");
+      setEditingCustomer(null);
+      fetchCustomers();
+      
+      // Update selected customer if it's the same one
+      if (selectedCustomer?.id === editingCustomer.id) {
+        setSelectedCustomer({
+          ...selectedCustomer,
+          name: editForm.name,
+          email: editForm.email,
+          phone: editForm.phone,
+        });
+      }
+    } catch (error) {
+      console.error("Error updating customer:", error);
+      toast.error("فشل تحديث بيانات العميل");
+    } finally {
+      setSaving(false);
+    }
+  };
+
   if (loading) {
     return <div className="text-center py-12 font-lusail">{t("loading")}</div>;
   }
@@ -307,19 +356,29 @@ export const CustomersTab = () => {
             <div className="space-y-6">
               {/* Customer Info */}
               <Card className="p-4 bg-muted/30">
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2">
-                    <User className="w-4 h-4 text-primary" />
-                    <span className="font-bold text-lg font-lusail">{selectedCustomer.name}</span>
+                <div className="flex items-start justify-between">
+                  <div className="space-y-2 flex-1">
+                    <div className="flex items-center gap-2">
+                      <User className="w-4 h-4 text-primary" />
+                      <span className="font-bold text-lg font-lusail">{selectedCustomer.name}</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-muted-foreground">
+                      <Mail className="w-4 h-4" />
+                      <span className="font-lusail">{selectedCustomer.email}</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-muted-foreground">
+                      <Phone className="w-4 h-4" />
+                      <span className="font-lusail">{selectedCustomer.phone}</span>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2 text-muted-foreground">
-                    <Mail className="w-4 h-4" />
-                    <span className="font-lusail">{selectedCustomer.email}</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-muted-foreground">
-                    <Phone className="w-4 h-4" />
-                    <span className="font-lusail">{selectedCustomer.phone}</span>
-                  </div>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => handleEditCustomer(selectedCustomer)}
+                  >
+                    <Edit className="w-4 h-4 ml-1" />
+                    <span className="font-lusail">تعديل</span>
+                  </Button>
                 </div>
               </Card>
 
@@ -422,6 +481,66 @@ export const CustomersTab = () => {
               </div>
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Customer Dialog */}
+      <Dialog open={!!editingCustomer} onOpenChange={() => setEditingCustomer(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="font-lusail text-xl">تعديل بيانات العميل</DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div>
+              <label className="text-sm font-medium font-lusail block mb-2">الاسم</label>
+              <Input
+                value={editForm.name}
+                onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
+                placeholder="اسم العميل"
+                className="font-lusail"
+              />
+            </div>
+
+            <div>
+              <label className="text-sm font-medium font-lusail block mb-2">البريد الإلكتروني</label>
+              <Input
+                type="email"
+                value={editForm.email}
+                onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
+                placeholder="email@example.com"
+                className="font-lusail"
+              />
+            </div>
+
+            <div>
+              <label className="text-sm font-medium font-lusail block mb-2">رقم الهاتف</label>
+              <Input
+                value={editForm.phone}
+                onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })}
+                placeholder="+974 XXXX XXXX"
+                className="font-lusail"
+              />
+            </div>
+
+            <div className="flex justify-end gap-2 pt-4">
+              <Button
+                variant="outline"
+                onClick={() => setEditingCustomer(null)}
+                disabled={saving}
+                className="font-lusail"
+              >
+                إلغاء
+              </Button>
+              <Button
+                onClick={handleSaveCustomer}
+                disabled={saving}
+                className="font-lusail"
+              >
+                {saving ? "جاري الحفظ..." : "حفظ التعديلات"}
+              </Button>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
     </div>
