@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -12,7 +12,33 @@ const AdminLogin = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [logoUrl, setLogoUrl] = useState<string | null>(null);
+  const [headerBgColor, setHeaderBgColor] = useState<string>("hsl(var(--card) / 0.5)");
   const navigate = useNavigate();
+
+  useEffect(() => {
+    fetchSettings();
+  }, []);
+
+  const fetchSettings = async () => {
+    const { data, error } = await supabase
+      .from("settings")
+      .select("logo_url, header_bg_color")
+      .maybeSingle();
+
+    if (error) {
+      console.error("Error fetching settings:", error);
+      return;
+    }
+
+    if (data?.logo_url) {
+      setLogoUrl(data.logo_url);
+    }
+    
+    if (data?.header_bg_color) {
+      setHeaderBgColor(data.header_bg_color);
+    }
+  };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -49,8 +75,20 @@ const AdminLogin = () => {
 
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center px-4">
-      <Card className="w-full max-w-md p-8">
+    <div className="min-h-screen bg-background">
+      {/* Header */}
+      <header className="border-b backdrop-blur-sm sticky top-0 z-10" style={{ backgroundColor: headerBgColor }}>
+        <div className="container mx-auto px-4 py-4 flex justify-center items-center">
+          {logoUrl ? (
+            <img src={logoUrl} alt="Logo" className="h-12 object-contain" />
+          ) : (
+            <h1 className="text-2xl font-bold">Admin Login</h1>
+          )}
+        </div>
+      </header>
+
+      <div className="flex items-center justify-center px-4 py-16">
+        <Card className="w-full max-w-md p-8">
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-16 h-16 bg-primary/10 rounded-full mb-4">
             <Lock className="w-8 h-8 text-primary" />
@@ -132,12 +170,13 @@ const AdminLogin = () => {
           </Button>
         </div>
 
-        <div className="mt-4 text-center">
-          <Button variant="ghost" onClick={() => navigate("/")}>
-            ← Back to Home
-          </Button>
-        </div>
-      </Card>
+          <div className="mt-4 text-center">
+            <Button variant="ghost" onClick={() => navigate("/")}>
+              ← Back to Home
+            </Button>
+          </div>
+        </Card>
+      </div>
     </div>
   );
 };
