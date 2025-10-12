@@ -274,6 +274,11 @@ const Checkout = () => {
 
         if (settings?.webhook_url) {
           console.log("Calling n8n webhook:", settings.webhook_url);
+          // Format phone number: remove + and spaces
+          const formattedPhone = settings.admin_phone 
+            ? settings.admin_phone.replace(/[\+\s]/g, '') 
+            : null;
+          
           await fetch(settings.webhook_url, {
             method: "POST",
             headers: {
@@ -284,7 +289,7 @@ const Checkout = () => {
               order: order,
               ticketHolders: holdersToInsert,
               bookingReference: bookingRef,
-              adminPhone: settings.admin_phone || null,
+              adminPhone: formattedPhone,
               timestamp: new Date().toISOString(),
             }),
           });

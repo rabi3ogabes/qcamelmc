@@ -127,6 +127,11 @@ export const CustomersTab = () => {
 
       // Send to n8n webhook
       console.log("Sending invoice via n8n webhook:", settings.webhook_url);
+      // Format phone number: remove + and spaces
+      const formattedPhone = settings.admin_phone 
+        ? settings.admin_phone.replace(/[\+\s]/g, '') 
+        : null;
+      
       const response = await fetch(settings.webhook_url, {
         method: "POST",
         headers: {
@@ -149,7 +154,7 @@ export const CustomersTab = () => {
           },
           ticketHolders: order.ticket_holders,
           bookingReference: order.booking_reference,
-          adminPhone: settings.admin_phone || null,
+          adminPhone: formattedPhone,
           timestamp: new Date().toISOString(),
           action: "send_invoice", // To differentiate from booking confirmation
         }),
@@ -196,6 +201,11 @@ export const CustomersTab = () => {
 
       // Send to n8n webhook
       console.log("Sending ticket via n8n webhook:", settings.webhook_url);
+      // Format phone number: remove + and spaces
+      const formattedPhone = settings.admin_phone 
+        ? settings.admin_phone.replace(/[\+\s]/g, '') 
+        : null;
+      
       const response = await fetch(settings.webhook_url, {
         method: "POST",
         headers: {
@@ -218,7 +228,7 @@ export const CustomersTab = () => {
           },
           ticketHolders: latestOrder.ticket_holders,
           bookingReference: latestOrder.booking_reference,
-          adminPhone: settings.admin_phone || null,
+          adminPhone: formattedPhone,
           timestamp: new Date().toISOString(),
           action: "send_ticket", // To differentiate action type
         }),
