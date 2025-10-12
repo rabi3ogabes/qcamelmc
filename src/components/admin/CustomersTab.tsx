@@ -267,6 +267,27 @@ export const CustomersTab = () => {
         return;
       }
 
+      // Generate QR codes for ticket holders with 500x500 size
+      const holdersWithQrImages = await Promise.all(
+        (latestOrder.ticket_holders || []).map(async (holder: any) => {
+          let qrCodeImage = null;
+          if (holder.qr_code) {
+            try {
+              qrCodeImage = await QRCode.toDataURL(holder.qr_code, {
+                width: 500,
+                margin: 2,
+              });
+            } catch (error) {
+              console.error("Error generating QR code:", error);
+            }
+          }
+          return {
+            ...holder,
+            qr_code_image: qrCodeImage
+          };
+        })
+      );
+
       // Send to n8n webhook
       console.log("Sending ticket via n8n webhook:", settings.webhook_url);
       // Format phone number: ensure 974 country code without +
@@ -289,10 +310,14 @@ export const CustomersTab = () => {
         phone: formatPhoneNumber(customer.phone)
       };
 
-      const formattedHolders = latestOrder.ticket_holders?.map((holder: any) => ({
-        ...holder,
-        phone: formatPhoneNumber(holder.phone)
-      })) || [];
+      const formattedHolders = holdersWithQrImages.map((holder: any) => ({
+        name: holder.name,
+        phone: formatPhoneNumber(holder.phone),
+        nationality: holder.nationality,
+        ticket_type: holder.ticket_type,
+        qr_code: holder.qr_code,
+        qr_code_image: holder.qr_code_image // Base64 image data
+      }));
       
       const response = await fetch(settings.webhook_url, {
         method: "POST",
