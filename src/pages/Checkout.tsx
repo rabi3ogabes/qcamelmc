@@ -352,27 +352,27 @@ const Checkout = () => {
   return (
     <div className="min-h-screen bg-background font-lusail">
       {/* Header */}
-      <header className="border-b backdrop-blur-sm sticky top-0 z-10 mb-8" style={{ backgroundColor: headerBgColor }}>
-        <div className="container mx-auto px-4 py-4 flex justify-between items-center">
+      <header className="border-b backdrop-blur-sm sticky top-0 z-10 mb-4 sm:mb-6 md:mb-8" style={{ backgroundColor: headerBgColor }}>
+        <div className="container mx-auto px-3 sm:px-4 py-3 sm:py-4 flex justify-between items-center gap-2">
           {logoUrl ? (
-            <img src={logoUrl} alt="Logo" className="h-12 object-contain" />
+            <img src={logoUrl} alt="Logo" className="h-8 sm:h-10 md:h-12 object-contain" />
           ) : (
-            <h1 className="text-2xl font-bold">فعاليات قطر</h1>
+            <h1 className="text-lg sm:text-xl md:text-2xl font-bold">فعاليات قطر</h1>
           )}
-          <Button variant="ghost" onClick={() => navigate("/")}>
+          <Button variant="ghost" onClick={() => navigate("/")} className="text-xs sm:text-sm">
             {t('backToHome') || 'العودة للرئيسية'}
           </Button>
         </div>
       </header>
 
-      <div className="max-w-6xl mx-auto py-12 px-4">
-        <h1 className="text-4xl font-bold mb-8 text-center">{t('checkoutTitle')}</h1>
+      <div className="max-w-6xl mx-auto py-4 sm:py-6 md:py-12 px-3 sm:px-4">
+        <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-4 sm:mb-6 md:mb-8 text-center">{t('checkoutTitle')}</h1>
 
-        <div className="grid lg:grid-cols-3 gap-8">
+        <div className="grid lg:grid-cols-3 gap-4 sm:gap-6 md:gap-8">
           {/* Customer Information */}
-          <div className="lg:col-span-2 space-y-6">
-            <Card className="p-6">
-              <h2 className="text-2xl font-semibold mb-6">{t('customerInfo')}</h2>
+          <div className="lg:col-span-2 space-y-4 sm:space-y-6">
+            <Card className="p-4 sm:p-5 md:p-6">
+              <h2 className="text-xl sm:text-2xl font-semibold mb-4 sm:mb-6">{t('customerInfo')}</h2>
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
                   <Label htmlFor="name">{t('fullName')} *</Label>
@@ -425,7 +425,7 @@ const Checkout = () => {
                       value={customerInfo.countryCode}
                       onValueChange={(value) => setCustomerInfo({ ...customerInfo, countryCode: value })}
                     >
-                      <SelectTrigger className="w-[120px]">
+                      <SelectTrigger className="w-[90px] sm:w-[110px] md:w-[120px]">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -460,19 +460,19 @@ const Checkout = () => {
             </Card>
 
             {/* Ticket Holders Information */}
-            <Card className="p-6">
-              <h2 className="text-2xl font-semibold mb-6">{t('ticketHolderInfo')}</h2>
-              <div className="space-y-6">
+            <Card className="p-4 sm:p-5 md:p-6">
+              <h2 className="text-xl sm:text-2xl font-semibold mb-4 sm:mb-6">{t('ticketHolderInfo')}</h2>
+              <div className="space-y-4 sm:space-y-6">
                 {ticketHolders.map((holder, index) => {
                   // Skip rendering the first ticket holder since info is from customer
                   if (index === 0) return null;
                   
                   return (
-                    <div key={index} className="p-4 border rounded-lg space-y-4">
-                      <h3 className="font-semibold text-lg">
+                    <div key={index} className="p-3 sm:p-4 border rounded-lg space-y-3 sm:space-y-4">
+                      <h3 className="font-semibold text-base sm:text-lg">
                         {t('ticket')} #{index + 1} - {holder.ticketType.toUpperCase()}
                       </h3>
-                      <div className="grid md:grid-cols-2 gap-4">
+                      <div className="grid sm:grid-cols-2 gap-3 sm:gap-4">
                         <div>
                           <Label htmlFor={`holder-name-${index}`}>{t('fullName')} *</Label>
                           <Input
@@ -532,26 +532,26 @@ const Checkout = () => {
             </Card>
 
             {/* Payment Method */}
-            <Card className="p-6">
-              <h3 className="text-lg font-semibold mb-4">{t('selectPaymentMethod')}</h3>
-              <RadioGroup value={paymentMethod} onValueChange={(value: any) => setPaymentMethod(value)}>
-                <div className="flex items-center space-x-2 space-x-reverse p-4 border rounded-lg hover:bg-accent cursor-pointer">
+            <Card className="p-4 sm:p-5 md:p-6">
+              <h3 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4">{t('selectPaymentMethod')}</h3>
+              <RadioGroup value={paymentMethod} onValueChange={(value: any) => setPaymentMethod(value)} className="space-y-3">
+                <div className="flex items-center space-x-2 space-x-reverse p-3 sm:p-4 border rounded-lg hover:bg-accent cursor-pointer">
                   <RadioGroupItem value="sadad" id="sadad" />
                   <Label htmlFor="sadad" className="flex items-center gap-2 cursor-pointer flex-1">
-                    <CreditCard className="w-5 h-5 text-primary" />
+                    <CreditCard className="w-4 h-4 sm:w-5 sm:h-5 text-primary flex-shrink-0" />
                     <div>
-                      <div className="font-medium">{t('sadadOnline')}</div>
-                      <div className="text-sm text-muted-foreground">{t('sadadOnline')}</div>
+                      <div className="font-medium text-sm sm:text-base">{t('sadadOnline')}</div>
+                      <div className="text-xs sm:text-sm text-muted-foreground">{t('sadadOnline')}</div>
                     </div>
                   </Label>
                 </div>
-                <div className="flex items-center space-x-2 space-x-reverse p-4 border rounded-lg hover:bg-accent cursor-pointer">
+                <div className="flex items-center space-x-2 space-x-reverse p-3 sm:p-4 border rounded-lg hover:bg-accent cursor-pointer">
                   <RadioGroupItem value="cash_pos" id="cash_pos" />
                   <Label htmlFor="cash_pos" className="flex items-center gap-2 cursor-pointer flex-1">
-                    <Banknote className="w-5 h-5 text-secondary" />
+                    <Banknote className="w-4 h-4 sm:w-5 sm:h-5 text-secondary flex-shrink-0" />
                     <div>
-                      <div className="font-medium">{t('cashAtVenue')}</div>
-                      <div className="text-sm text-muted-foreground">{t('cashAtVenue')}</div>
+                      <div className="font-medium text-sm sm:text-base">{t('cashAtVenue')}</div>
+                      <div className="text-xs sm:text-sm text-muted-foreground">{t('cashAtVenue')}</div>
                     </div>
                   </Label>
                 </div>
@@ -577,37 +577,37 @@ const Checkout = () => {
 
           {/* Order Summary */}
           <div className="lg:col-span-1">
-            <Card className="p-6 sticky top-4">
-              <h2 className="text-2xl font-semibold mb-6">{t('orderSummary')}</h2>
-              <div className="space-y-4">
+            <Card className="p-4 sm:p-5 md:p-6 lg:sticky lg:top-20">
+              <h2 className="text-xl sm:text-2xl font-semibold mb-4 sm:mb-6">{t('orderSummary')}</h2>
+              <div className="space-y-3 sm:space-y-4">
                 {selections.map((item, index) => (
-                  <div key={index} className="flex justify-between items-center py-3 border-b">
-                    <div>
-                      <div className="font-medium capitalize">{item.type} {t('ticket')}</div>
-                      <div className="text-sm text-muted-foreground">{t('quantity')}: {item.quantity}</div>
+                  <div key={index} className="flex justify-between items-center py-2 sm:py-3 border-b gap-4">
+                    <div className="flex-1 min-w-0">
+                      <div className="font-medium capitalize text-sm sm:text-base truncate">{item.type} {t('ticket')}</div>
+                      <div className="text-xs sm:text-sm text-muted-foreground">{t('quantity')}: {item.quantity}</div>
                     </div>
-                    <div className="font-semibold">
+                    <div className="font-semibold text-sm sm:text-base flex-shrink-0">
                       {(item.price * item.quantity).toFixed(2)} {t('qar')}
                     </div>
                   </div>
                 ))}
                 
-                <div className="pt-4 border-t">
-                  <div className="flex justify-between items-center text-xl font-bold">
-                    <span>{t('totalAmount')}</span>
-                    <span className="text-primary">{calculateTotal().toFixed(2)} {t('qar')}</span>
+                <div className="pt-3 sm:pt-4 border-t">
+                  <div className="flex justify-between items-center text-lg sm:text-xl font-bold gap-4">
+                    <span className="truncate">{t('totalAmount')}</span>
+                    <span className="text-primary flex-shrink-0">{calculateTotal().toFixed(2)} {t('qar')}</span>
                   </div>
                 </div>
 
-                <div className="pt-4 text-sm text-muted-foreground">
+                <div className="pt-3 sm:pt-4 text-xs sm:text-sm text-muted-foreground">
                   <p>* {t('receiveEmail')}</p>
                   <p className="mt-2">* {t('presentQR')}</p>
                 </div>
               </div>
             </Card>
 
-            <div className="text-center mt-6">
-              <Button variant="ghost" onClick={() => navigate("/tickets")} className="w-full">
+            <div className="text-center mt-4 sm:mt-6">
+              <Button variant="ghost" onClick={() => navigate("/tickets")} className="w-full text-sm sm:text-base">
                 {t('backToTickets')}
               </Button>
             </div>
