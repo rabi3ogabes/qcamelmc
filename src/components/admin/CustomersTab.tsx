@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useTranslation } from "react-i18next";
-import { User, Phone, Mail, Ticket, Calendar, Send, MessageCircle, Edit, QrCode } from "lucide-react";
+import { User, Phone, Mail, Ticket, Calendar, Send, MessageCircle, Edit, QrCode, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import QRCode from "qrcode";
 import {
@@ -428,6 +428,61 @@ export const CustomersTab = () => {
     }
   };
 
+  const handleDeleteCustomer = async (customerId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    
+    if (!confirm("هل أنت متأكد من حذف هذا العميل وجميع حجوزاته وتذاكره؟ لا يمكن التراجع عن هذا الإجراء.")) {
+      return;
+    }
+
+    try {
+      // First, delete all ticket holders for all orders of this customer
+      const { data: orders } = await supabase
+        .from("orders")
+        .select("id")
+        .eq("customer_id", customerId);
+
+      if (orders && orders.length > 0) {
+        const orderIds = orders.map(o => o.id);
+        
+        // Delete ticket holders
+        const { error: ticketHoldersError } = await supabase
+          .from("ticket_holders")
+          .delete()
+          .in("order_id", orderIds);
+
+        if (ticketHoldersError) throw ticketHoldersError;
+      }
+
+      // Delete all orders for this customer
+      const { error: ordersError } = await supabase
+        .from("orders")
+        .delete()
+        .eq("customer_id", customerId);
+
+      if (ordersError) throw ordersError;
+
+      // Finally, delete the customer
+      const { error: customerError } = await supabase
+        .from("customers")
+        .delete()
+        .eq("id", customerId);
+
+      if (customerError) throw customerError;
+
+      toast.success("تم حذف العميل وجميع حجوزاته بنجاح");
+      fetchCustomers();
+      
+      // Close dialog if this customer was selected
+      if (selectedCustomer?.id === customerId) {
+        setSelectedCustomer(null);
+      }
+    } catch (error) {
+      console.error("Error deleting customer:", error);
+      toast.error("فشل حذف العميل. يرجى المحاولة مرة أخرى");
+    }
+  };
+
   if (loading) {
     return <div className="text-center py-12 font-lusail">{t("loading")}</div>;
   }
@@ -456,7 +511,16 @@ export const CustomersTab = () => {
               className="p-4 hover:shadow-lg transition-shadow cursor-pointer"
               onClick={() => setSelectedCustomer(customer)}
             >
-              <div className="flex flex-col items-center text-center space-y-3">
+              <div className="flex flex-col items-center text-center space-y-3 relative">
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  onClick={(e) => handleDeleteCustomer(customer.id, e)}
+                  className="absolute top-0 right-0 h-7 w-7 text-destructive hover:text-destructive hover:bg-destructive/10"
+                  title="حذف العميل وجميع حجوزاته"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </Button>
                 <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
                   <User className="w-8 h-8 text-primary" />
                 </div>
