@@ -20,6 +20,9 @@ interface CheckInResponse {
     event_title: string;
     ticket_type: string;
     ticket_holder_name?: string;
+    ticket_holder_phone?: string;
+    ticket_holder_nationality?: string;
+    ticket_holder_id_number?: string;
     quantity: number;
     payment_status: string;
     is_present: boolean;
@@ -81,6 +84,7 @@ serve(async (req) => {
           confirmed_at,
           confirmed_by,
           order_id,
+          id_number,
           orders!inner (
             id,
             booking_reference,
@@ -138,6 +142,9 @@ serve(async (req) => {
               event_title: (Array.isArray(order.events) ? order.events[0]?.title : order.events?.title) || 'غير معروف',
               ticket_type: ticketHolder.ticket_type,
               ticket_holder_name: ticketHolder.name,
+              ticket_holder_phone: ticketHolder.phone,
+              ticket_holder_nationality: ticketHolder.nationality,
+              ticket_holder_id_number: ticketHolder.id_number,
               quantity: 1,
               payment_status: order.payment_status,
               is_present: ticketHolder.is_present,
@@ -164,6 +171,9 @@ serve(async (req) => {
               event_title: (Array.isArray(order.events) ? order.events[0]?.title : order.events?.title) || 'غير معروف',
               ticket_type: ticketHolder.ticket_type,
               ticket_holder_name: ticketHolder.name,
+              ticket_holder_phone: ticketHolder.phone,
+              ticket_holder_nationality: ticketHolder.nationality,
+              ticket_holder_id_number: ticketHolder.id_number,
               quantity: 1,
               payment_status: order.payment_status,
               is_present: true,
@@ -210,6 +220,9 @@ serve(async (req) => {
             event_title: (Array.isArray(order.events) ? order.events[0]?.title : order.events?.title) || 'غير معروف',
             ticket_type: ticketHolder.ticket_type,
             ticket_holder_name: ticketHolder.name,
+            ticket_holder_phone: ticketHolder.phone,
+            ticket_holder_nationality: ticketHolder.nationality,
+            ticket_holder_id_number: ticketHolder.id_number,
             quantity: 1,
             payment_status: order.payment_status,
             is_present: true,

@@ -14,6 +14,10 @@ interface TicketInfo {
   customer_name: string;
   event_title: string;
   ticket_type: string;
+  ticket_holder_name?: string;
+  ticket_holder_phone?: string;
+  ticket_holder_nationality?: string;
+  ticket_holder_id_number?: string;
   quantity: number;
   payment_status: string;
   is_present: boolean;
@@ -400,6 +404,35 @@ const QRScanner = () => {
                   <span className="font-semibold">{t('bookingReference') || 'رقم الحجز'}:</span>
                   <span className="font-mono text-lg">{ticketInfo.booking_reference}</span>
                 </div>
+                
+                {ticketInfo.ticket_holder_name && (
+                  <div className="flex justify-between items-center py-2 border-b">
+                    <span className="font-semibold">اسم حامل التذكرة:</span>
+                    <span className="font-bold text-lg">{ticketInfo.ticket_holder_name}</span>
+                  </div>
+                )}
+                
+                {ticketInfo.ticket_holder_phone && (
+                  <div className="flex justify-between items-center py-2 border-b">
+                    <span className="font-semibold">رقم الهاتف:</span>
+                    <span className="font-mono">{ticketInfo.ticket_holder_phone}</span>
+                  </div>
+                )}
+                
+                {ticketInfo.ticket_holder_nationality && (
+                  <div className="flex justify-between items-center py-2 border-b">
+                    <span className="font-semibold">الجنسية:</span>
+                    <span>{ticketInfo.ticket_holder_nationality}</span>
+                  </div>
+                )}
+                
+                {ticketInfo.ticket_holder_id_number && (
+                  <div className="flex justify-between items-center py-2 border-b">
+                    <span className="font-semibold">رقم الهوية:</span>
+                    <span className="font-mono">{ticketInfo.ticket_holder_id_number}</span>
+                  </div>
+                )}
+                
                 <div className="flex justify-between items-center py-2 border-b">
                   <span className="font-semibold">{t('customerName') || 'اسم العميل'}:</span>
                   <span>{ticketInfo.customer_name}</span>
