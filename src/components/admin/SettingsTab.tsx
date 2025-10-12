@@ -16,7 +16,10 @@ export const SettingsTab = () => {
   const [newHeaderBgColor, setNewHeaderBgColor] = useState("hsl(var(--card) / 0.5)");
   const [webhookUrl, setWebhookUrl] = useState("");
   const [newWebhookUrl, setNewWebhookUrl] = useState("");
+  const [adminPhone, setAdminPhone] = useState("");
+  const [newAdminPhone, setNewAdminPhone] = useState("");
   const [loading, setLoading] = useState(false);
+  const [savingPhone, setSavingPhone] = useState(false);
 
   useEffect(() => {
     fetchSettings();
@@ -25,7 +28,7 @@ export const SettingsTab = () => {
   const fetchSettings = async () => {
     const { data, error } = await supabase
       .from("settings")
-      .select("logo_url, header_bg_color, webhook_url")
+      .select("logo_url, header_bg_color, webhook_url, admin_phone")
       .maybeSingle();
 
     if (error) {
@@ -46,6 +49,11 @@ export const SettingsTab = () => {
     if (data?.webhook_url) {
       setWebhookUrl(data.webhook_url);
       setNewWebhookUrl(data.webhook_url);
+    }
+
+    if (data?.admin_phone) {
+      setAdminPhone(data.admin_phone);
+      setNewAdminPhone(data.admin_phone);
     }
   };
 
@@ -86,6 +94,39 @@ export const SettingsTab = () => {
       toast.error("فشل في حفظ الشعار");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleSaveAdminPhone = async () => {
+    setSavingPhone(true);
+    try {
+      const { data: settings } = await supabase
+        .from("settings")
+        .select("id")
+        .single();
+
+      if (settings) {
+        const { error } = await supabase
+          .from("settings")
+          .update({ admin_phone: newAdminPhone })
+          .eq("id", settings.id);
+
+        if (error) throw error;
+      } else {
+        const { error } = await supabase
+          .from("settings")
+          .insert({ admin_phone: newAdminPhone });
+
+        if (error) throw error;
+      }
+
+      setAdminPhone(newAdminPhone);
+      toast.success(t("savedSuccessfully"));
+    } catch (error) {
+      console.error("Error saving admin phone:", error);
+      toast.error("فشل في حفظ رقم الهاتف");
+    } finally {
+      setSavingPhone(false);
     }
   };
 
@@ -196,21 +237,28 @@ export const SettingsTab = () => {
         </div>
       </Card>
 
-      {/* General Settings */}
+      {/* Admin Phone Number */}
       <Card className="p-6">
-        <h3 className="text-lg font-semibold mb-4 font-lusail">الإعدادات العامة</h3>
+        <h3 className="text-lg font-semibold mb-4 font-lusail">رقم هاتف الإدارة</h3>
         <div className="space-y-4">
           <div>
-            <Label htmlFor="support-email" className="font-lusail">البريد الإلكتروني للدعم</Label>
-            <Input id="support-email" type="email" placeholder="support@example.com" className="mt-2 font-lusail" />
+            <Label htmlFor="admin-phone" className="font-lusail">رقم الهاتف</Label>
+            <Input 
+              id="admin-phone" 
+              type="tel" 
+              placeholder="+974 XXXX XXXX"
+              value={newAdminPhone}
+              onChange={(e) => setNewAdminPhone(e.target.value)}
+              className="mt-2 font-lusail" 
+            />
+            <p className="text-xs text-muted-foreground mt-2">
+              رقم هاتف المسؤول للتواصل (مثال: +974 12345678)
+            </p>
           </div>
           
-          <div>
-            <Label htmlFor="support-phone" className="font-lusail">هاتف الدعم</Label>
-            <Input id="support-phone" type="tel" placeholder="+974 XXXX XXXX" className="mt-2 font-lusail" />
-          </div>
-          
-          <Button className="font-lusail">{t("save")}</Button>
+          <Button onClick={handleSaveAdminPhone} disabled={savingPhone} className="font-lusail">
+            {savingPhone ? t("loading") : t("save")}
+          </Button>
         </div>
       </Card>
     </div>

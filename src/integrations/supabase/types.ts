@@ -199,6 +199,7 @@ export type Database = {
       }
       settings: {
         Row: {
+          admin_phone: string | null
           created_at: string | null
           header_bg_color: string | null
           id: string
@@ -207,6 +208,7 @@ export type Database = {
           webhook_url: string | null
         }
         Insert: {
+          admin_phone?: string | null
           created_at?: string | null
           header_bg_color?: string | null
           id?: string
@@ -215,6 +217,7 @@ export type Database = {
           webhook_url?: string | null
         }
         Update: {
+          admin_phone?: string | null
           created_at?: string | null
           header_bg_color?: string | null
           id?: string
