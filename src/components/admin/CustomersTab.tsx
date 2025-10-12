@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useTranslation } from "react-i18next";
-import { User, Phone, Mail, Ticket, Calendar, Send, MessageCircle, Edit } from "lucide-react";
+import { User, Phone, Mail, Ticket, Calendar, Send, MessageCircle, Edit, QrCode } from "lucide-react";
 import { toast } from "sonner";
 import QRCode from "qrcode";
 import {
@@ -52,6 +52,7 @@ export const CustomersTab = () => {
   const [editForm, setEditForm] = useState({ name: "", email: "", phone: "" });
   const [saving, setSaving] = useState(false);
   const [qrCodes, setQrCodes] = useState<Record<string, string>>({});
+  const [viewingQrCode, setViewingQrCode] = useState<{ code: string; name: string } | null>(null);
 
   useEffect(() => {
     fetchCustomers();
@@ -573,14 +574,14 @@ export const CustomersTab = () => {
                                     )}
                                   </div>
                                   {holder.qr_code && qrCodes[holder.qr_code] && (
-                                    <div className="flex-shrink-0 bg-white p-2 rounded">
-                                      <img
-                                        src={qrCodes[holder.qr_code]}
-                                        alt={`QR Code for ${holder.name}`}
-                                        className="w-[500px] h-[500px]"
-                                        style={{ display: 'block' }}
-                                      />
-                                    </div>
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      onClick={() => setViewingQrCode({ code: qrCodes[holder.qr_code], name: holder.name })}
+                                      className="flex-shrink-0"
+                                    >
+                                      <QrCode className="w-4 h-4" />
+                                    </Button>
                                   )}
                                 </div>
                               </div>
@@ -602,6 +603,26 @@ export const CustomersTab = () => {
                   </Card>
                 ))}
               </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* QR Code Viewer Dialog */}
+      <Dialog open={!!viewingQrCode} onOpenChange={() => setViewingQrCode(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="font-lusail text-xl">
+              QR Code - {viewingQrCode?.name}
+            </DialogTitle>
+          </DialogHeader>
+          {viewingQrCode && (
+            <div className="flex justify-center p-4">
+              <img
+                src={viewingQrCode.code}
+                alt={`QR Code for ${viewingQrCode.name}`}
+                className="w-full max-w-[400px] h-auto"
+              />
             </div>
           )}
         </DialogContent>
