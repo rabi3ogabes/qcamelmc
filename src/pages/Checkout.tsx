@@ -71,6 +71,7 @@ interface TicketHolder {
   phone: string;
   nationality: string;
   ticketType: string;
+  idNumber: string;
 }
 
 const Checkout = () => {
@@ -82,7 +83,8 @@ const Checkout = () => {
     email: "",
     phone: "",
     nationality: "",
-    countryCode: "+974"
+    countryCode: "+974",
+    idNumber: ""
   });
   const [ticketHolders, setTicketHolders] = useState<TicketHolder[]>([]);
   const [loading, setLoading] = useState(false);
@@ -110,7 +112,8 @@ const Checkout = () => {
           name: "",
           phone: "",
           nationality: "",
-          ticketType: selection.type
+          ticketType: selection.type,
+          idNumber: ""
         });
       }
     });
@@ -156,7 +159,8 @@ const Checkout = () => {
         ...updated[0], 
         name: customerInfo.name, 
         phone: fullPhone,
-        nationality: customerInfo.nationality
+        nationality: customerInfo.nationality,
+        idNumber: customerInfo.idNumber
       };
       // Apply main user's nationality to all other ticket holders
       for (let i = 1; i < updated.length; i++) {
@@ -167,7 +171,7 @@ const Checkout = () => {
       }
       setTicketHolders(updated);
     }
-  }, [customerInfo.name, customerInfo.phone, customerInfo.nationality, customerInfo.countryCode]);
+  }, [customerInfo.name, customerInfo.phone, customerInfo.nationality, customerInfo.countryCode, customerInfo.idNumber]);
 
   const updateTicketHolder = (index: number, field: keyof TicketHolder, value: string) => {
     const updated = [...ticketHolders];
@@ -178,17 +182,17 @@ const Checkout = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!customerInfo.name || !customerInfo.email || !customerInfo.phone || !customerInfo.nationality) {
+    if (!customerInfo.name || !customerInfo.email || !customerInfo.phone || !customerInfo.nationality || !customerInfo.idNumber) {
       toast.error("Please fill in all customer information");
       return;
     }
 
-    // Validate all ticket holders (first holder needs all fields, others just name and nationality)
+    // Validate all ticket holders (first holder needs all fields, others just name, nationality, and idNumber)
     const allHoldersFilled = ticketHolders.every((holder, index) => {
       if (index === 0) {
-        return holder.name && holder.phone && holder.nationality;
+        return holder.name && holder.phone && holder.nationality && holder.idNumber;
       }
-      return holder.name && holder.nationality;
+      return holder.name && holder.nationality && holder.idNumber;
     });
     
     if (!allHoldersFilled) {
@@ -205,7 +209,9 @@ const Checkout = () => {
         .insert({
           name: customerInfo.name,
           email: customerInfo.email,
-          phone: customerInfo.phone
+          phone: customerInfo.phone,
+          nationality: customerInfo.nationality,
+          id_number: customerInfo.idNumber
         })
         .select()
         .single();
@@ -257,7 +263,8 @@ const Checkout = () => {
           phone: holder.phone || fullCustomerPhone,
           nationality: holder.nationality,
           ticket_type: holder.ticketType,
-          qr_code: ticketRef // Store the reference text, not the QR image
+          qr_code: ticketRef, // Store the reference text, not the QR image
+          id_number: holder.idNumber
         };
       });
 
@@ -439,6 +446,16 @@ const Checkout = () => {
                     />
                   </div>
                 </div>
+                <div>
+                  <Label htmlFor="idNumber">رقم الهوية *</Label>
+                  <Input
+                    id="idNumber"
+                    value={customerInfo.idNumber}
+                    onChange={(e) => setCustomerInfo({ ...customerInfo, idNumber: e.target.value })}
+                    required
+                    placeholder="رقم الهوية"
+                  />
+                </div>
               </form>
             </Card>
 
@@ -496,6 +513,16 @@ const Checkout = () => {
                               ))}
                             </SelectContent>
                           </Select>
+                        </div>
+                        <div>
+                          <Label htmlFor={`holder-idNumber-${index}`}>رقم الهوية *</Label>
+                          <Input
+                            id={`holder-idNumber-${index}`}
+                            value={holder.idNumber}
+                            onChange={(e) => updateTicketHolder(index, 'idNumber', e.target.value)}
+                            required
+                            placeholder="رقم الهوية"
+                          />
                         </div>
                       </div>
                     </div>

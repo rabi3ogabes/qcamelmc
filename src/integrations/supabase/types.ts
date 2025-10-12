@@ -37,6 +37,7 @@ export type Database = {
           created_at: string | null
           email: string
           id: string
+          id_number: string | null
           name: string
           nationality: string | null
           phone: string
@@ -45,6 +46,7 @@ export type Database = {
           created_at?: string | null
           email: string
           id?: string
+          id_number?: string | null
           name: string
           nationality?: string | null
           phone: string
@@ -53,6 +55,7 @@ export type Database = {
           created_at?: string | null
           email?: string
           id?: string
+          id_number?: string | null
           name?: string
           nationality?: string | null
           phone?: string
@@ -233,6 +236,7 @@ export type Database = {
           confirmed_by: string | null
           created_at: string | null
           id: string
+          id_number: string | null
           is_present: boolean | null
           name: string
           nationality: string
@@ -246,6 +250,7 @@ export type Database = {
           confirmed_by?: string | null
           created_at?: string | null
           id?: string
+          id_number?: string | null
           is_present?: boolean | null
           name: string
           nationality: string
@@ -259,6 +264,7 @@ export type Database = {
           confirmed_by?: string | null
           created_at?: string | null
           id?: string
+          id_number?: string | null
           is_present?: boolean | null
           name?: string
           nationality?: string
