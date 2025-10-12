@@ -142,32 +142,33 @@ const QRScanner = () => {
     setScanning(false);
 
     try {
-      // Get current admin user
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      // Call backend API for check-in
-      const { data, error } = await supabase.functions.invoke('ticket-checkin', {
-        body: {
-          booking_reference: bookingRef,
-          admin_id: user?.id
-        }
-      });
+      // First, just fetch ticket info without confirming
+      const { data: orderData, error: orderError } = await supabase
+        .from('ticket_holders')
+        .select(`
+          id,
+          name,
+          phone,
+          nationality,
+          ticket_type,
+          qr_code,
+          is_present,
+          confirmed_at,
+          id_number,
+          orders!inner (
+            booking_reference,
+            payment_status,
+            quantity,
+            customers!inner (name),
+            events!inner (title)
+          )
+        `)
+        .eq('qr_code', bookingRef)
+        .single();
 
-      if (error) {
-        console.error("API Error:", error);
-        throw new Error(error.message);
-      }
-
-      const response = data as { 
-        success: boolean; 
-        message: string; 
-        ticket_info?: any;
-        error?: string;
-      };
-
-      if (!response.success) {
+      if (orderError || !orderData) {
         setScanResult('error');
-        setTicketInfo(response.ticket_info || {
+        setTicketInfo({
           booking_reference: bookingRef,
           customer_name: "غير موجود",
           event_title: "-",
@@ -176,21 +177,37 @@ const QRScanner = () => {
           payment_status: "غير مؤكد",
           is_present: false,
         });
-        toast.error(response.message);
+        toast.error('تذكرة غير موجودة');
         return;
       }
 
-      // Success case
-      setScanResult('success');
-      setTicketInfo(response.ticket_info!);
+      const order: any = orderData.orders;
       
-      // Show appropriate message based on payment status
-      if (response.ticket_info?.payment_status !== 'confirmed') {
-        toast.warning(response.message);
-      } else {
-        toast.success(response.message);
-      }
+      setTicketInfo({
+        booking_reference: order.booking_reference,
+        customer_name: order.customers.name,
+        event_title: order.events.title,
+        ticket_type: orderData.ticket_type,
+        ticket_holder_name: orderData.name,
+        ticket_holder_phone: orderData.phone,
+        ticket_holder_nationality: orderData.nationality,
+        ticket_holder_id_number: orderData.id_number,
+        quantity: 1,
+        payment_status: order.payment_status,
+        is_present: orderData.is_present,
+        confirmed_at: orderData.confirmed_at,
+      });
 
+      if (orderData.is_present) {
+        setScanResult('error');
+        toast.error('تم استخدام التذكرة مسبقاً');
+      } else if (order.payment_status !== 'confirmed') {
+        setScanResult('success');
+        toast.warning('⚠️ الدفع غير مؤكد');
+      } else {
+        setScanResult('success');
+        toast.success('معلومات التذكرة - جاهز للتأكيد');
+      }
     } catch (error) {
       console.error("Error validating ticket:", error);
       setScanResult('error');
@@ -204,6 +221,40 @@ const QRScanner = () => {
         is_present: false,
       });
       toast.error(t('validationError') || "خطأ في التحقق من التذكرة");
+    } finally {
+      setProcessing(false);
+    }
+  };
+
+  const handleConfirmPresence = async () => {
+    if (!ticketInfo) return;
+    
+    setProcessing(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      const { data, error } = await supabase.functions.invoke('ticket-checkin', {
+        body: { 
+          booking_reference: ticketInfo.booking_reference + '-TKT01',
+          admin_id: user?.id 
+        },
+      });
+
+      if (error) throw error;
+
+      const response = data as { success: boolean; message: string; ticket_info?: any; };
+
+      if (!response.success) {
+        toast.error(response.message || 'فشل تأكيد الحضور');
+        return;
+      }
+
+      setTicketInfo(response.ticket_info);
+      setScanResult('success');
+      toast.success(response.message || '✅ تم تأكيد الحضور بنجاح');
+    } catch (err: any) {
+      console.error('Confirmation error:', err);
+      toast.error(err.message || 'حدث خطأ أثناء تأكيد الحضور');
     } finally {
       setProcessing(false);
     }
@@ -452,6 +503,30 @@ const QRScanner = () => {
                   <span className="font-semibold">{t('customerName') || 'اسم العميل'}:</span>
                   <span>{ticketInfo.customer_name}</span>
                 </div>
+                
+                {/* Confirm Presence Button */}
+                {!ticketInfo.is_present && ticketInfo.payment_status === 'confirmed' && (
+                  <div className="pt-4">
+                    <Button 
+                      onClick={handleConfirmPresence}
+                      disabled={processing}
+                      className="w-full bg-green-600 hover:bg-green-700 text-white"
+                      size="lg"
+                    >
+                      {processing ? (
+                        <>
+                          <Loader2 className="w-5 h-5 ml-2 animate-spin" />
+                          جاري التأكيد...
+                        </>
+                      ) : (
+                        <>
+                          <CheckCircle2 className="w-5 h-5 ml-2" />
+                          ✓ تأكيد الحضور
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                )}
                 <div className="flex justify-between items-center py-2 border-b">
                   <span className="font-semibold">اسم الحدث:</span>
                   <span>{ticketInfo.event_title}</span>
