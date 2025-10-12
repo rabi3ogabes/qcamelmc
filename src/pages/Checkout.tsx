@@ -245,15 +245,21 @@ const Checkout = () => {
 
       if (orderError) throw orderError;
 
-      // Insert all ticket holders (use customer phone with country code for additional holders)
+      // Generate unique references for each ticket holder
       const fullCustomerPhone = `${customerInfo.countryCode} ${customerInfo.phone}`;
-      const holdersToInsert = ticketHolders.map(holder => ({
-        order_id: order.id,
-        name: holder.name,
-        phone: holder.phone || fullCustomerPhone,
-        nationality: holder.nationality,
-        ticket_type: holder.ticketType
-      }));
+      const holdersToInsert = ticketHolders.map((holder, index) => {
+        // Generate unique reference for this ticket holder
+        const ticketRef = `${bookingRef}-TKT${(index + 1).toString().padStart(2, '0')}`;
+
+        return {
+          order_id: order.id,
+          name: holder.name,
+          phone: holder.phone || fullCustomerPhone,
+          nationality: holder.nationality,
+          ticket_type: holder.ticketType,
+          qr_code: ticketRef // Store the reference text, not the QR image
+        };
+      });
 
       const { error: holdersError } = await supabase
         .from("ticket_holders")

@@ -33,6 +33,7 @@ interface Customer {
       phone: string;
       nationality: string;
       ticket_type: string;
+      qr_code?: string;
     }>;
   }>;
 }
@@ -71,7 +72,8 @@ export const CustomersTab = () => {
               name,
               phone,
               nationality,
-              ticket_type
+              ticket_type,
+              qr_code
             )
           )
         `)

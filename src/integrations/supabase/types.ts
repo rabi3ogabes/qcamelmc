@@ -229,30 +229,42 @@ export type Database = {
       }
       ticket_holders: {
         Row: {
+          confirmed_at: string | null
+          confirmed_by: string | null
           created_at: string | null
           id: string
+          is_present: boolean | null
           name: string
           nationality: string
           order_id: string
           phone: string
+          qr_code: string | null
           ticket_type: string
         }
         Insert: {
+          confirmed_at?: string | null
+          confirmed_by?: string | null
           created_at?: string | null
           id?: string
+          is_present?: boolean | null
           name: string
           nationality: string
           order_id: string
           phone: string
+          qr_code?: string | null
           ticket_type: string
         }
         Update: {
+          confirmed_at?: string | null
+          confirmed_by?: string | null
           created_at?: string | null
           id?: string
+          is_present?: boolean | null
           name?: string
           nationality?: string
           order_id?: string
           phone?: string
+          qr_code?: string | null
           ticket_type?: string
         }
         Relationships: [
@@ -309,6 +321,10 @@ export type Database = {
     }
     Functions: {
       generate_booking_reference: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
+      generate_ticket_holder_reference: {
         Args: Record<PropertyKey, never>
         Returns: string
       }

@@ -19,6 +19,7 @@ interface CheckInResponse {
     customer_name: string;
     event_title: string;
     ticket_type: string;
+    ticket_holder_name?: string;
     quantity: number;
     payment_status: string;
     is_present: boolean;
@@ -41,10 +42,10 @@ serve(async (req) => {
     // Parse request body
     const { booking_reference, admin_id }: CheckInRequest = await req.json();
 
-    console.log(`[Ticket Check-in] Processing booking: ${booking_reference}`);
+    console.log(`[Ticket Check-in] Processing: ${booking_reference}`);
 
     if (!booking_reference) {
-      console.error('[Ticket Check-in] Missing booking reference');
+      console.error('[Ticket Check-in] Missing reference');
       return new Response(
         JSON.stringify({
           success: false,
@@ -58,7 +59,147 @@ serve(async (req) => {
       );
     }
 
-    // Query the order by booking reference with related data
+    // Check if this is a ticket holder QR code (format: QTR-XXXXXXXX-TKT01)
+    const isTicketHolderQR = booking_reference.includes('-TKT');
+    
+    if (isTicketHolderQR) {
+      // Handle individual ticket holder check-in
+      console.log('[Ticket Check-in] Processing individual ticket holder');
+      
+      // Extract booking reference from ticket holder QR
+      const baseBookingRef = booking_reference.split('-TKT')[0];
+      
+      // Query ticket holder by QR code
+      const { data: ticketHolder, error: holderError } = await supabase
+        .from('ticket_holders')
+        .select(`
+          *,
+          orders!inner(
+            *,
+            customers(name, email, phone),
+            events(title, event_date, location)
+          )
+        `)
+        .eq('qr_code', booking_reference)
+        .single();
+
+      if (holderError || !ticketHolder) {
+        console.error('[Ticket Check-in] Ticket holder not found:', holderError);
+        return new Response(
+          JSON.stringify({
+            success: false,
+            error: 'Ticket not found',
+            message: 'تذكرة غير موجودة'
+          } as CheckInResponse),
+          { 
+            status: 404, 
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+          }
+        );
+      }
+
+      const order = ticketHolder.orders;
+
+      // Validate payment status
+      if (order.payment_status !== 'confirmed') {
+        console.warn(`[Ticket Check-in] Payment not confirmed for ${booking_reference}`);
+        return new Response(
+          JSON.stringify({
+            success: false,
+            error: 'Payment not confirmed',
+            message: 'الدفع غير مؤكد',
+            ticket_info: {
+              booking_reference: order.booking_reference,
+              customer_name: order.customers?.name || 'غير معروف',
+              event_title: order.events?.title || 'غير معروف',
+              ticket_type: ticketHolder.ticket_type,
+              ticket_holder_name: ticketHolder.name,
+              quantity: 1,
+              payment_status: order.payment_status,
+              is_present: ticketHolder.is_present,
+            }
+          } as CheckInResponse),
+          { 
+            status: 400, 
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+          }
+        );
+      }
+
+      // Check if already checked in
+      if (ticketHolder.is_present) {
+        console.warn(`[Ticket Check-in] Already checked in: ${booking_reference}`);
+        return new Response(
+          JSON.stringify({
+            success: false,
+            error: 'Already checked in',
+            message: 'تم استخدام التذكرة مسبقاً',
+            ticket_info: {
+              booking_reference: order.booking_reference,
+              customer_name: order.customers?.name || 'غير معروف',
+              event_title: order.events?.title || 'غير معروف',
+              ticket_type: ticketHolder.ticket_type,
+              ticket_holder_name: ticketHolder.name,
+              quantity: 1,
+              payment_status: order.payment_status,
+              is_present: true,
+              confirmed_at: ticketHolder.confirmed_at,
+            }
+          } as CheckInResponse),
+          { 
+            status: 400, 
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+          }
+        );
+      }
+
+      // Mark ticket holder as present
+      const confirmed_at = new Date().toISOString();
+      const updateData: any = {
+        is_present: true,
+        confirmed_at: confirmed_at,
+      };
+
+      if (admin_id) {
+        updateData.confirmed_by = admin_id;
+      }
+
+      const { error: updateError } = await supabase
+        .from('ticket_holders')
+        .update(updateData)
+        .eq('id', ticketHolder.id);
+
+      if (updateError) {
+        console.error('[Ticket Check-in] Update failed:', updateError);
+        throw updateError;
+      }
+
+      console.log(`[Ticket Check-in] ✅ Successfully checked in ticket holder: ${ticketHolder.name}`);
+
+      return new Response(
+        JSON.stringify({
+          success: true,
+          message: `✅ تم التحقق من تذكرة ${ticketHolder.name}`,
+          ticket_info: {
+            booking_reference: order.booking_reference,
+            customer_name: order.customers?.name || 'غير معروف',
+            event_title: order.events?.title || 'غير معروف',
+            ticket_type: ticketHolder.ticket_type,
+            ticket_holder_name: ticketHolder.name,
+            quantity: 1,
+            payment_status: order.payment_status,
+            is_present: true,
+            confirmed_at: confirmed_at,
+          }
+        } as CheckInResponse),
+        { 
+          status: 200, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      );
+    }
+
+    // Legacy: Handle order-level check-in by booking reference
     const { data: order, error: fetchError } = await supabase
       .from('orders')
       .select(`
