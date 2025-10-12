@@ -267,23 +267,50 @@ export const CustomersTab = () => {
         return;
       }
 
-      // Generate QR codes for ticket holders with 500x500 size
+      // Generate QR codes for ticket holders with 500x500 size and upload to storage
       const holdersWithQrImages = await Promise.all(
         (latestOrder.ticket_holders || []).map(async (holder: any) => {
-          let qrCodeImage = null;
+          let qrCodeImageUrl = null;
           if (holder.qr_code) {
             try {
-              qrCodeImage = await QRCode.toDataURL(holder.qr_code, {
+              // Generate QR code as canvas
+              const canvas = document.createElement('canvas');
+              await QRCode.toCanvas(canvas, holder.qr_code, {
                 width: 500,
                 margin: 2,
               });
+              
+              // Convert canvas to blob (JPEG format)
+              const blob = await new Promise<Blob>((resolve) => {
+                canvas.toBlob((blob) => resolve(blob!), 'image/jpeg', 0.95);
+              });
+              
+              // Upload to storage
+              const fileName = `${holder.id || Date.now()}-${Math.random().toString(36).substring(7)}.jpg`;
+              const { data: uploadData, error: uploadError } = await supabase.storage
+                .from('qr-codes')
+                .upload(fileName, blob, {
+                  contentType: 'image/jpeg',
+                  cacheControl: '3600',
+                  upsert: false
+                });
+              
+              if (uploadError) {
+                console.error("Error uploading QR code:", uploadError);
+              } else {
+                // Get public URL
+                const { data: { publicUrl } } = supabase.storage
+                  .from('qr-codes')
+                  .getPublicUrl(fileName);
+                qrCodeImageUrl = publicUrl;
+              }
             } catch (error) {
               console.error("Error generating QR code:", error);
             }
           }
           return {
             ...holder,
-            qr_code_image: qrCodeImage
+            qr_code_image: qrCodeImageUrl
           };
         })
       );
@@ -316,7 +343,7 @@ export const CustomersTab = () => {
         nationality: holder.nationality,
         ticket_type: holder.ticket_type,
         qr_code: holder.qr_code,
-        qr_code_image: holder.qr_code_image // Base64 image data
+        qr_code_image: holder.qr_code_image // Public URL to .jpg image
       }));
       
       const response = await fetch(settings.webhook_url, {
