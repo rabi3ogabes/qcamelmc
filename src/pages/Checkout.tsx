@@ -269,7 +269,7 @@ const Checkout = () => {
       try {
         const { data: settings } = await supabase
           .from("settings")
-          .select("webhook_url")
+          .select("webhook_url, admin_phone")
           .maybeSingle();
 
         if (settings?.webhook_url) {
@@ -284,6 +284,7 @@ const Checkout = () => {
               order: order,
               ticketHolders: holdersToInsert,
               bookingReference: bookingRef,
+              adminPhone: settings.admin_phone || null,
               timestamp: new Date().toISOString(),
             }),
           });

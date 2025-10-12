@@ -108,7 +108,7 @@ export const CustomersTab = () => {
       // Fetch webhook URL from settings
       const { data: settings, error: settingsError } = await supabase
         .from("settings")
-        .select("webhook_url")
+        .select("webhook_url, admin_phone")
         .maybeSingle();
 
       if (settingsError) throw settingsError;
@@ -149,6 +149,7 @@ export const CustomersTab = () => {
           },
           ticketHolders: order.ticket_holders,
           bookingReference: order.booking_reference,
+          adminPhone: settings.admin_phone || null,
           timestamp: new Date().toISOString(),
           action: "send_invoice", // To differentiate from booking confirmation
         }),
@@ -183,7 +184,7 @@ export const CustomersTab = () => {
       // Fetch webhook URL from settings
       const { data: settings, error: settingsError } = await supabase
         .from("settings")
-        .select("webhook_url")
+        .select("webhook_url, admin_phone")
         .maybeSingle();
 
       if (settingsError) throw settingsError;
@@ -217,6 +218,7 @@ export const CustomersTab = () => {
           },
           ticketHolders: latestOrder.ticket_holders,
           bookingReference: latestOrder.booking_reference,
+          adminPhone: settings.admin_phone || null,
           timestamp: new Date().toISOString(),
           action: "send_ticket", // To differentiate action type
         }),
