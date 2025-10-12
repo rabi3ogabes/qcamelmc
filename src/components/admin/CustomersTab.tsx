@@ -547,11 +547,12 @@ export const CustomersTab = () => {
                                     )}
                                   </div>
                                   {holder.qr_code && qrCodes[holder.qr_code] && (
-                                    <div className="flex-shrink-0">
+                                    <div className="flex-shrink-0 bg-white p-2 rounded">
                                       <img
                                         src={qrCodes[holder.qr_code]}
                                         alt={`QR Code for ${holder.name}`}
-                                        className="w-[500px] h-[500px] border-2 border-border rounded"
+                                        className="w-[500px] h-[500px]"
+                                        style={{ display: 'block' }}
                                       />
                                     </div>
                                   )}
