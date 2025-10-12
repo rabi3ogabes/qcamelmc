@@ -30,12 +30,35 @@ const AdminDashboard = () => {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("orders");
+  const [logoUrl, setLogoUrl] = useState<string | null>(null);
+  const [headerBgColor, setHeaderBgColor] = useState<string>("hsl(var(--card) / 0.5)");
   const navigate = useNavigate();
 
   useEffect(() => {
     checkAuth();
     fetchOrders();
+    fetchSettings();
   }, []);
+
+  const fetchSettings = async () => {
+    const { data, error } = await supabase
+      .from("settings")
+      .select("logo_url, header_bg_color")
+      .maybeSingle();
+
+    if (error) {
+      console.error("Error fetching settings:", error);
+      return;
+    }
+
+    if (data?.logo_url) {
+      setLogoUrl(data.logo_url);
+    }
+    
+    if (data?.header_bg_color) {
+      setHeaderBgColor(data.header_bg_color);
+    }
+  };
 
   const checkAuth = async () => {
     const { data: { session } } = await supabase.auth.getSession();
@@ -66,16 +89,23 @@ const AdminDashboard = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background py-8 px-4 font-lusail" dir="rtl">
-      <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="flex justify-between items-center mb-8">
-          <h1 className="text-4xl font-bold">{t("adminDashboard")}</h1>
+    <div className="min-h-screen bg-background font-lusail" dir="rtl">
+      {/* Header */}
+      <header className="border-b backdrop-blur-sm sticky top-0 z-10" style={{ backgroundColor: headerBgColor }}>
+        <div className="container mx-auto px-4 py-4 flex justify-between items-center">
+          {logoUrl ? (
+            <img src={logoUrl} alt="Logo" className="h-12 object-contain" />
+          ) : (
+            <h1 className="text-2xl font-bold">{t("adminDashboard")}</h1>
+          )}
           <Button variant="outline" onClick={handleLogout}>
             <LogOut className="w-4 h-4 ml-2" />
             {t("logout")}
           </Button>
         </div>
+      </header>
+
+      <div className="max-w-7xl mx-auto py-8 px-4">
 
         {/* Main Content */}
         {loading ? (
