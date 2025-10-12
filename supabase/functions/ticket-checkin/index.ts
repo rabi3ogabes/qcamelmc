@@ -65,27 +65,47 @@ serve(async (req) => {
     if (isTicketHolderQR) {
       // Handle individual ticket holder check-in
       console.log('[Ticket Check-in] Processing individual ticket holder');
-      console.log('[Ticket Check-in] Looking for QR code:', booking_reference);
+      console.log('[Ticket Check-in] QR code:', booking_reference);
       
-      // Extract booking reference from ticket holder QR
-      const baseBookingRef = booking_reference.split('-TKT')[0];
-      
-      // Query ticket holder by QR code - using order_id relationship
+      // Query ticket holder by QR code with proper foreign key syntax
       const { data: ticketHolder, error: holderError } = await supabase
         .from('ticket_holders')
         .select(`
-          *,
-          orders:order_id(
-            *,
-            customers:customer_id(name, email, phone),
-            events:event_id(title, event_date, location)
+          id,
+          name,
+          phone,
+          nationality,
+          ticket_type,
+          qr_code,
+          is_present,
+          confirmed_at,
+          confirmed_by,
+          order_id,
+          orders!inner (
+            id,
+            booking_reference,
+            payment_status,
+            payment_method,
+            total_amount,
+            quantity,
+            ticket_type,
+            customers!inner (
+              name,
+              email,
+              phone
+            ),
+            events!inner (
+              title,
+              event_date,
+              location
+            )
           )
         `)
         .eq('qr_code', booking_reference)
         .single();
-      
-      console.log('[Ticket Check-in] Ticket holder query result:', ticketHolder);
-      console.log('[Ticket Check-in] Ticket holder query error:', holderError);
+
+      console.log('[Ticket Check-in] Query result:', JSON.stringify(ticketHolder, null, 2));
+      console.log('[Ticket Check-in] Query error:', JSON.stringify(holderError, null, 2));
 
       if (holderError || !ticketHolder) {
         console.error('[Ticket Check-in] Ticket holder not found:', holderError);
@@ -102,7 +122,7 @@ serve(async (req) => {
         );
       }
 
-      const order = ticketHolder.orders;
+      const order: any = Array.isArray(ticketHolder.orders) ? ticketHolder.orders[0] : ticketHolder.orders;
 
       // Validate payment status
       if (order.payment_status !== 'confirmed') {
@@ -114,8 +134,8 @@ serve(async (req) => {
             message: 'الدفع غير مؤكد',
             ticket_info: {
               booking_reference: order.booking_reference,
-              customer_name: order.customers?.name || 'غير معروف',
-              event_title: order.events?.title || 'غير معروف',
+              customer_name: (Array.isArray(order.customers) ? order.customers[0]?.name : order.customers?.name) || 'غير معروف',
+              event_title: (Array.isArray(order.events) ? order.events[0]?.title : order.events?.title) || 'غير معروف',
               ticket_type: ticketHolder.ticket_type,
               ticket_holder_name: ticketHolder.name,
               quantity: 1,
@@ -140,8 +160,8 @@ serve(async (req) => {
             message: 'تم استخدام التذكرة مسبقاً',
             ticket_info: {
               booking_reference: order.booking_reference,
-              customer_name: order.customers?.name || 'غير معروف',
-              event_title: order.events?.title || 'غير معروف',
+              customer_name: (Array.isArray(order.customers) ? order.customers[0]?.name : order.customers?.name) || 'غير معروف',
+              event_title: (Array.isArray(order.events) ? order.events[0]?.title : order.events?.title) || 'غير معروف',
               ticket_type: ticketHolder.ticket_type,
               ticket_holder_name: ticketHolder.name,
               quantity: 1,
@@ -186,8 +206,8 @@ serve(async (req) => {
           message: `✅ تم التحقق من تذكرة ${ticketHolder.name}`,
           ticket_info: {
             booking_reference: order.booking_reference,
-            customer_name: order.customers?.name || 'غير معروف',
-            event_title: order.events?.title || 'غير معروف',
+            customer_name: (Array.isArray(order.customers) ? order.customers[0]?.name : order.customers?.name) || 'غير معروف',
+            event_title: (Array.isArray(order.events) ? order.events[0]?.title : order.events?.title) || 'غير معروف',
             ticket_type: ticketHolder.ticket_type,
             ticket_holder_name: ticketHolder.name,
             quantity: 1,
@@ -302,15 +322,6 @@ serve(async (req) => {
     }
 
     console.log(`[Ticket Check-in] ✅ Successfully checked in: ${booking_reference}`);
-
-    // TODO: Add webhook notification here
-    // await notifyWebhook({
-    //   event: 'ticket.checkin',
-    //   booking_reference,
-    //   customer: order.customers,
-    //   event: order.events,
-    //   timestamp: confirmed_at
-    // });
 
     return new Response(
       JSON.stringify({
