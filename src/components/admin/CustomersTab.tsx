@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { useTranslation } from "react-i18next";
 import { User, Phone, Mail, Ticket, Calendar, Send, MessageCircle, Edit } from "lucide-react";
 import { toast } from "sonner";
+import QRCode from "qrcode";
 import {
   Dialog,
   DialogContent,
@@ -49,10 +50,43 @@ export const CustomersTab = () => {
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
   const [editForm, setEditForm] = useState({ name: "", email: "", phone: "" });
   const [saving, setSaving] = useState(false);
+  const [qrCodes, setQrCodes] = useState<Record<string, string>>({});
 
   useEffect(() => {
     fetchCustomers();
   }, []);
+
+  // Generate QR codes for selected customer's ticket holders
+  useEffect(() => {
+    const generateQRCodes = async () => {
+      if (!selectedCustomer) {
+        setQrCodes({});
+        return;
+      }
+
+      const codes: Record<string, string> = {};
+      for (const order of selectedCustomer.orders) {
+        if (order.ticket_holders) {
+          for (const holder of order.ticket_holders) {
+            if (holder.qr_code) {
+              try {
+                const qrDataUrl = await QRCode.toDataURL(holder.qr_code, {
+                  width: 500,
+                  margin: 2,
+                });
+                codes[holder.qr_code] = qrDataUrl;
+              } catch (error) {
+                console.error("Error generating QR code:", error);
+              }
+            }
+          }
+        }
+      }
+      setQrCodes(codes);
+    };
+
+    generateQRCodes();
+  }, [selectedCustomer]);
 
   const fetchCustomers = async () => {
     try {
@@ -489,20 +523,38 @@ export const CustomersTab = () => {
                               حاملو التذاكر:
                             </span>
                           </div>
-                          <div className="grid gap-2">
+                          <div className="grid gap-4">
                             {order.ticket_holders.map((holder, idx) => (
                               <div
                                 key={idx}
-                                className="bg-muted/30 rounded p-2 text-sm font-lusail"
+                                className="bg-muted/30 rounded p-4 text-sm font-lusail"
                               >
-                                <div className="flex justify-between items-center">
-                                  <span className="font-medium">{holder.name}</span>
-                                  <Badge variant="outline" className="text-xs">
-                                    {holder.ticket_type.toUpperCase()}
-                                  </Badge>
-                                </div>
-                                <div className="text-xs text-muted-foreground mt-1">
-                                  {holder.phone} • {holder.nationality}
+                                <div className="flex justify-between items-start gap-4">
+                                  <div className="flex-1">
+                                    <div className="flex justify-between items-center mb-2">
+                                      <span className="font-medium">{holder.name}</span>
+                                      <Badge variant="outline" className="text-xs">
+                                        {holder.ticket_type.toUpperCase()}
+                                      </Badge>
+                                    </div>
+                                    <div className="text-xs text-muted-foreground">
+                                      {holder.phone} • {holder.nationality}
+                                    </div>
+                                    {holder.qr_code && (
+                                      <div className="text-xs text-muted-foreground mt-1 font-mono">
+                                        {holder.qr_code}
+                                      </div>
+                                    )}
+                                  </div>
+                                  {holder.qr_code && qrCodes[holder.qr_code] && (
+                                    <div className="flex-shrink-0">
+                                      <img
+                                        src={qrCodes[holder.qr_code]}
+                                        alt={`QR Code for ${holder.name}`}
+                                        className="w-[500px] h-[500px] border-2 border-border rounded"
+                                      />
+                                    </div>
+                                  )}
                                 </div>
                               </div>
                             ))}
