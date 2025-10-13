@@ -381,6 +381,7 @@ const Checkout = () => {
             const form = document.createElement('form');
             form.method = 'POST';
             form.action = sadadData.sadadUrl;
+            form.target = '_top'; // Ensure full page redirect
 
             // Add all payment fields
             Object.entries(sadadData.paymentData).forEach(([key, value]) => {
