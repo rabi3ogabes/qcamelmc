@@ -23,11 +23,31 @@ const SadadRedirect = () => {
       // Clear the session storage
       sessionStorage.removeItem('sadadPaymentData');
       
-      // Submit the form after a brief delay to ensure DOM is ready
+      // Try to break out of any iframe and submit at top level
       setTimeout(() => {
         if (formRef.current && !hasSubmitted.current) {
           hasSubmitted.current = true;
-          formRef.current.submit();
+          
+          // If we're in an iframe, try to submit from parent
+          if (window.top !== window.self) {
+            // Open in new window to avoid iframe issues
+            const form = formRef.current;
+            const formData = new FormData(form);
+            const params = new URLSearchParams();
+            
+            // Convert FormData to URLSearchParams for the new window
+            formData.forEach((value, key) => {
+              params.append(key, value.toString());
+            });
+            
+            // Open payment in new window
+            window.open('about:blank', '_blank');
+            form.target = '_blank';
+            form.submit();
+          } else {
+            // Submit normally
+            formRef.current.submit();
+          }
         }
       }, 500);
     } catch (error) {
