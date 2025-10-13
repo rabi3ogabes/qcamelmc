@@ -91,15 +91,44 @@ const SadadRedirect = () => {
           </div>
         </div>
 
-        {/* Debug info */}
-        <details className="mt-4 text-left bg-gray-50 p-4 rounded border">
-          <summary className="cursor-pointer font-semibold">معلومات التصحيح (للدعم الفني)</summary>
-          <div className="mt-2 text-xs font-mono space-y-1">
-            <div>Merchant ID: {paymentData.merchant_id}</div>
-            <div>Order ID: {paymentData.ORDER_ID}</div>
-            <div>Amount: {paymentData.TXN_AMOUNT} QAR</div>
-            <div>URL: {sadadUrl}</div>
-            <div>Checksum: {paymentData.checksumhash?.substring(0, 30)}...</div>
+        {/* Debug info - EXPANDED by default for troubleshooting */}
+        <details className="mt-4 text-left bg-gray-50 p-4 rounded border" open>
+          <summary className="cursor-pointer font-semibold text-lg mb-2">معلومات التصحيح (Debug Info)</summary>
+          <div className="mt-2 text-sm space-y-2 font-mono">
+            <div className="p-2 bg-white rounded border">
+              <strong>Merchant ID:</strong> {paymentData.merchant_id}
+            </div>
+            <div className="p-2 bg-white rounded border">
+              <strong>Order ID:</strong> {paymentData.ORDER_ID}
+            </div>
+            <div className="p-2 bg-white rounded border">
+              <strong>Amount:</strong> {paymentData.TXN_AMOUNT} QAR
+            </div>
+            <div className="p-2 bg-white rounded border">
+              <strong>Website:</strong> {paymentData.WEBSITE}
+            </div>
+            <div className="p-2 bg-white rounded border">
+              <strong>Mobile:</strong> {paymentData.MOBILE_NO}
+            </div>
+            <div className="p-2 bg-white rounded border">
+              <strong>Callback URL:</strong> {paymentData.CALLBACK_URL}
+            </div>
+            <div className="p-2 bg-white rounded border">
+              <strong>Target URL:</strong> {sadadUrl}
+            </div>
+            <div className="p-2 bg-white rounded border">
+              <strong>Checksum (first 50 chars):</strong> 
+              <div className="break-all text-xs mt-1">{paymentData.checksumhash?.substring(0, 50)}...</div>
+            </div>
+            <div className="p-2 bg-red-50 rounded border border-red-300 mt-3">
+              <strong className="text-red-700">⚠️ إذا كنت تحصل على خطأ 404:</strong>
+              <ol className="list-decimal list-inside mt-2 text-xs space-y-1">
+                <li>تحقق من أن <code className="bg-white px-1">merchant_id</code> يطابق "Sadad ID" في لوحة التحكم</li>
+                <li>تحقق من تفعيل "Test Mode" في قسم API</li>
+                <li>تأكد أن <code className="bg-white px-1">WEBSITE</code> يطابق النطاق المسجل في المفتاح السري</li>
+                <li>جرب إعادة توليد المفتاح السري من لوحة التحكم</li>
+              </ol>
+            </div>
           </div>
         </details>
         
