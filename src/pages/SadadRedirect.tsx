@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Loader2 } from "lucide-react";
 
@@ -6,6 +6,7 @@ const SadadRedirect = () => {
   const navigate = useNavigate();
   const formRef = useRef<HTMLFormElement>(null);
   const hasSubmitted = useRef(false);
+  const [paymentInfo, setPaymentInfo] = useState<{ paymentData: any; sadadUrl: string } | null>(null);
 
   useEffect(() => {
     if (hasSubmitted.current) return;
@@ -13,41 +14,31 @@ const SadadRedirect = () => {
     const paymentDataStr = sessionStorage.getItem('sadadPaymentData');
     
     if (!paymentDataStr) {
+      console.log('No payment data found, redirecting to checkout');
       navigate('/checkout');
       return;
     }
 
     try {
-      const { paymentData, sadadUrl } = JSON.parse(paymentDataStr);
+      const data = JSON.parse(paymentDataStr);
+      setPaymentInfo(data);
       
       // Clear the session storage
       sessionStorage.removeItem('sadadPaymentData');
       
-      // Try to break out of any iframe and submit at top level
+      // Submit form after brief delay
       setTimeout(() => {
         if (formRef.current && !hasSubmitted.current) {
           hasSubmitted.current = true;
           
-          // If we're in an iframe, try to submit from parent
-          if (window.top !== window.self) {
-            // Open in new window to avoid iframe issues
-            const form = formRef.current;
-            const formData = new FormData(form);
-            const params = new URLSearchParams();
-            
-            // Convert FormData to URLSearchParams for the new window
-            formData.forEach((value, key) => {
-              params.append(key, value.toString());
-            });
-            
-            // Open payment in new window
-            window.open('about:blank', '_blank');
-            form.target = '_blank';
-            form.submit();
-          } else {
-            // Submit normally
-            formRef.current.submit();
-          }
+          // Open in new window/tab to avoid iframe restrictions
+          formRef.current.target = '_blank';
+          formRef.current.submit();
+          
+          // Redirect back to checkout after opening payment window
+          setTimeout(() => {
+            navigate('/checkout');
+          }, 1000);
         }
       }, 500);
     } catch (error) {
@@ -56,22 +47,27 @@ const SadadRedirect = () => {
     }
   }, [navigate]);
 
-  // Get payment data for rendering form
-  const paymentDataStr = sessionStorage.getItem('sadadPaymentData');
-  if (!paymentDataStr) {
-    return null;
+  if (!paymentInfo) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center p-4 font-lusail">
+        <div className="text-center">
+          <Loader2 className="w-16 h-16 animate-spin mx-auto mb-4 text-primary" />
+          <h2 className="text-2xl font-bold mb-2">جاري التحميل...</h2>
+        </div>
+      </div>
+    );
   }
 
-  const { paymentData, sadadUrl } = JSON.parse(paymentDataStr);
+  const { paymentData, sadadUrl } = paymentInfo;
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4 font-lusail">
       <div className="text-center">
         <Loader2 className="w-16 h-16 animate-spin mx-auto mb-4 text-primary" />
         <h2 className="text-2xl font-bold mb-2">جاري تحويلك لبوابة الدفع</h2>
-        <p className="text-muted-foreground">يرجى الانتظار...</p>
+        <p className="text-muted-foreground">سيتم فتح نافذة جديدة للدفع...</p>
         
-        {/* Hidden form that will auto-submit */}
+        {/* Hidden form that will auto-submit in new window */}
         <form 
           ref={formRef}
           method="POST" 
