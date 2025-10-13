@@ -132,11 +132,12 @@ const SadadRedirect = () => {
           </div>
         </details>
         
-        {/* Hidden form that will auto-submit in new window */}
+        {/* Hidden form that will auto-submit */}
         <form 
           ref={formRef}
           method="POST" 
           action={sadadUrl}
+          target="_top"
           style={{ display: 'none' }}
         >
           {Object.entries(paymentData).map(([key, value]) => {
