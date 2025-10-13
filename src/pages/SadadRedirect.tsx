@@ -34,15 +34,67 @@ const SadadRedirect = () => {
       // Clear the session storage
       sessionStorage.removeItem('sadadPaymentData');
       
-      // Submit form after brief delay
+      // Create form HTML and open in new window via blob URL
       setTimeout(() => {
-        if (formRef.current && !hasSubmitted.current) {
+        if (!hasSubmitted.current) {
           hasSubmitted.current = true;
           
           console.log('Submitting form to Sadad...');
           
-          // Submit form directly in current window
-          formRef.current.submit();
+          // Build form HTML
+          let formHtml = `<!DOCTYPE html>
+<html dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <title>جاري تحويلك لبوابة الدفع...</title>
+  <style>
+    body { font-family: Arial, sans-serif; text-align: center; padding: 50px; }
+    .loader { border: 5px solid #f3f3f3; border-top: 5px solid #9c1638; 
+              border-radius: 50%; width: 50px; height: 50px; 
+              animation: spin 1s linear infinite; margin: 20px auto; }
+    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+  <div class="loader"></div>
+  <h2>جاري تحويلك لبوابة الدفع سداد...</h2>
+  <p>يرجى الانتظار...</p>
+  <form id="paymentForm" method="POST" action="${sadadUrl}">`;
+          
+          // Add all form fields
+          Object.entries(paymentData).forEach(([key, value]) => {
+            if (key === 'productdetail' && Array.isArray(value)) {
+              value.forEach((product: any, index: number) => {
+                Object.entries(product).forEach(([pKey, pValue]) => {
+                  formHtml += `<input type="hidden" name="productdetail[${index}][${pKey}]" value="${String(pValue)}" />`;
+                });
+              });
+            } else {
+              formHtml += `<input type="hidden" name="${key}" value="${String(value)}" />`;
+            }
+          });
+          
+          formHtml += `</form>
+  <script>
+    document.getElementById('paymentForm').submit();
+  </script>
+</body>
+</html>`;
+          
+          // Create blob URL and open in new window
+          const blob = new Blob([formHtml], { type: 'text/html' });
+          const url = URL.createObjectURL(blob);
+          const newWindow = window.open(url, '_blank');
+          
+          if (!newWindow) {
+            alert('يرجى السماح بالنوافذ المنبثقة لإتمام الدفع');
+            window.location.href = '/checkout';
+          } else {
+            // Clean up blob URL after a delay
+            setTimeout(() => URL.revokeObjectURL(url), 1000);
+            // Redirect back to home after opening payment
+            setTimeout(() => window.location.href = '/', 2000);
+          }
         }
       }, 500);
     } catch (error) {
