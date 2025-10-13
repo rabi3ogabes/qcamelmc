@@ -1,10 +1,12 @@
 import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Ticket } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Ticket, Edit } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { EditTicketDialog } from "@/components/admin/EditTicketDialog";
 
 interface TicketType {
   id: string;
@@ -27,6 +29,8 @@ export const TicketsTab = () => {
   const [tickets, setTickets] = useState<TicketType[]>([]);
   const [dailyBookings, setDailyBookings] = useState<DailyBooking[]>([]);
   const [loading, setLoading] = useState(true);
+  const [editingTicket, setEditingTicket] = useState<TicketType | null>(null);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
 
   useEffect(() => {
     fetchTickets();
@@ -109,6 +113,15 @@ export const TicketsTab = () => {
     return "text-green-600";
   };
 
+  const handleEditTicket = (ticket: TicketType) => {
+    setEditingTicket(ticket);
+    setEditDialogOpen(true);
+  };
+
+  const handleTicketUpdated = () => {
+    fetchTickets();
+  };
+
   return (
     <div className="space-y-8">
       <h2 className="text-2xl font-bold font-lusail">{t("ticketManagement")}</h2>
@@ -179,6 +192,14 @@ export const TicketsTab = () => {
                     </p>
                   </div>
                 </div>
+                <Button 
+                  variant="ghost" 
+                  size="icon"
+                  onClick={() => handleEditTicket(ticket)}
+                  className="shrink-0"
+                >
+                  <Edit className="w-4 h-4" />
+                </Button>
               </div>
 
               <div className="space-y-3">
@@ -223,6 +244,13 @@ export const TicketsTab = () => {
           );
         })}
       </div>
+
+      <EditTicketDialog
+        ticket={editingTicket}
+        open={editDialogOpen}
+        onOpenChange={setEditDialogOpen}
+        onTicketUpdated={handleTicketUpdated}
+      />
     </div>
   );
 };
