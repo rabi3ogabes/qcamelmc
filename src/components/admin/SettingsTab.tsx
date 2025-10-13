@@ -275,15 +275,18 @@ export const SettingsTab = () => {
           </div>
           
           <div>
-            <Label htmlFor="sadad-api-key" className="font-lusail">مفتاح API</Label>
+            <Label htmlFor="sadad-api-key" className="font-lusail">رقم الدعم (Support Pin Number)</Label>
             <Input 
               id="sadad-api-key" 
-              type="password" 
-              placeholder="أدخل مفتاح API" 
+              type="text" 
+              placeholder="أدخل رقم الدعم" 
               value={sadadApiKey}
               onChange={(e) => setSadadApiKey(e.target.value)}
               className="mt-2 font-lusail" 
             />
+            <p className="text-xs text-muted-foreground mt-2">
+              رقم الدعم الخاص بحساب سداد - Support Pin Number
+            </p>
           </div>
           
           <div>
