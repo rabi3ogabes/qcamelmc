@@ -90,11 +90,12 @@ serve(async (req) => {
     const txnDate = new Date().toISOString().replace('T', ' ').substring(0, 19);
     const callbackUrl = `${req.headers.get('origin')}/sadad-callback`;
     
+    // Payment data - parameter names are CASE-SENSITIVE per Sadad docs
     const paymentData = {
-      merchant_id: settings.sadad_merchant_id,
-      ORDER_ID: orderId,
+      merchant_id: settings.sadad_merchant_id,  // lowercase per docs
+      ORDER_ID: orderId,                         // UPPERCASE per docs
       WEBSITE: req.headers.get('origin')?.replace('https://', '').replace('http://', '') || 'localhost',
-      TXN_AMOUNT: orderData.total_amount.toFixed(2),
+      TXN_AMOUNT: orderData.total_amount.toFixed(2),  // UPPERCASE per docs
       CUST_ID: orderData.customer_email,
       EMAIL: orderData.customer_email,
       MOBILE_NO: orderData.customer_phone.replace(/[^0-9]/g, ''),
@@ -103,7 +104,7 @@ serve(async (req) => {
       CALLBACK_URL: callbackUrl,
       txnDate: txnDate,
       productdetail: orderData.items.map((item: any, index: number) => ({
-        order_id: orderId,
+        order_id: orderId,              // lowercase to match merchant_id convention
         itemname: item.name,
         amount: item.price.toFixed(2),
         quantity: item.quantity.toString(),
