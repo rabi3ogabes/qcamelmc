@@ -41,8 +41,33 @@ const SadadRedirect = () => {
           
           console.log('Submitting form to Sadad...');
           
-          // Submit in same window (don't use _blank to avoid popup blockers)
-          formRef.current.submit();
+          // Break out of iframe by navigating top window
+          if (window.top) {
+            const form = formRef.current;
+            // Create a temporary form in the top window and submit it
+            const topDoc = window.top.document;
+            const tempForm = topDoc.createElement('form');
+            tempForm.method = 'POST';
+            tempForm.action = form.action;
+            tempForm.style.display = 'none';
+            
+            // Copy all form inputs to the new form
+            Array.from(form.elements).forEach((element: any) => {
+              if (element.tagName === 'INPUT') {
+                const input = topDoc.createElement('input');
+                input.type = 'hidden';
+                input.name = element.name;
+                input.value = element.value;
+                tempForm.appendChild(input);
+              }
+            });
+            
+            topDoc.body.appendChild(tempForm);
+            tempForm.submit();
+          } else {
+            // Fallback to regular submit
+            formRef.current.submit();
+          }
         }
       }, 500);
     } catch (error) {
