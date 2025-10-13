@@ -41,14 +41,8 @@ const SadadRedirect = () => {
           
           console.log('Submitting form to Sadad...');
           
-          // Open in new window/tab to avoid iframe restrictions
-          formRef.current.target = '_blank';
+          // Submit in same window (don't use _blank to avoid popup blockers)
           formRef.current.submit();
-          
-          // Redirect back to checkout after opening payment window
-          setTimeout(() => {
-            navigate('/checkout');
-          }, 1000);
         }
       }, 500);
     } catch (error) {
