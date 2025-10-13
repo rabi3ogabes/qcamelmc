@@ -18,8 +18,12 @@ export const SettingsTab = () => {
   const [newWebhookUrl, setNewWebhookUrl] = useState("");
   const [adminPhone, setAdminPhone] = useState("");
   const [newAdminPhone, setNewAdminPhone] = useState("");
+  const [sadadMerchantId, setSadadMerchantId] = useState("");
+  const [sadadApiKey, setSadadApiKey] = useState("");
+  const [sadadSecret, setSadadSecret] = useState("");
   const [loading, setLoading] = useState(false);
   const [savingPhone, setSavingPhone] = useState(false);
+  const [savingSadad, setSavingSadad] = useState(false);
 
   useEffect(() => {
     fetchSettings();
@@ -28,7 +32,7 @@ export const SettingsTab = () => {
   const fetchSettings = async () => {
     const { data, error } = await supabase
       .from("settings")
-      .select("logo_url, header_bg_color, webhook_url, admin_phone")
+      .select("logo_url, header_bg_color, webhook_url, admin_phone, sadad_merchant_id, sadad_api_key, sadad_secret")
       .maybeSingle();
 
     if (error) {
@@ -55,6 +59,10 @@ export const SettingsTab = () => {
       setAdminPhone(data.admin_phone);
       setNewAdminPhone(data.admin_phone);
     }
+
+    if (data?.sadad_merchant_id) setSadadMerchantId(data.sadad_merchant_id);
+    if (data?.sadad_api_key) setSadadApiKey(data.sadad_api_key);
+    if (data?.sadad_secret) setSadadSecret(data.sadad_secret);
   };
 
   const handleSaveLogo = async () => {
@@ -127,6 +135,46 @@ export const SettingsTab = () => {
       toast.error("فشل في حفظ رقم الهاتف");
     } finally {
       setSavingPhone(false);
+    }
+  };
+
+  const handleSaveSadad = async () => {
+    setSavingSadad(true);
+    try {
+      const { data: settings } = await supabase
+        .from("settings")
+        .select("id")
+        .maybeSingle();
+
+      if (settings) {
+        const { error } = await supabase
+          .from("settings")
+          .update({ 
+            sadad_merchant_id: sadadMerchantId,
+            sadad_api_key: sadadApiKey,
+            sadad_secret: sadadSecret
+          })
+          .eq("id", settings.id);
+
+        if (error) throw error;
+      } else {
+        const { error } = await supabase
+          .from("settings")
+          .insert({ 
+            sadad_merchant_id: sadadMerchantId,
+            sadad_api_key: sadadApiKey,
+            sadad_secret: sadadSecret
+          });
+
+        if (error) throw error;
+      }
+
+      toast.success(t("savedSuccessfully"));
+    } catch (error) {
+      console.error("Error saving Sadad settings:", error);
+      toast.error("فشل في حفظ إعدادات سداد");
+    } finally {
+      setSavingSadad(false);
     }
   };
 
@@ -217,22 +265,43 @@ export const SettingsTab = () => {
         <div className="space-y-4">
           <div>
             <Label htmlFor="sadad-merchant-id" className="font-lusail">معرف التاجر (Merchant ID)</Label>
-            <Input id="sadad-merchant-id" placeholder="أدخل معرف التاجر" className="mt-2 font-lusail" />
+            <Input 
+              id="sadad-merchant-id" 
+              placeholder="أدخل معرف التاجر" 
+              value={sadadMerchantId}
+              onChange={(e) => setSadadMerchantId(e.target.value)}
+              className="mt-2 font-lusail" 
+            />
           </div>
           
           <div>
             <Label htmlFor="sadad-api-key" className="font-lusail">مفتاح API</Label>
-            <Input id="sadad-api-key" type="password" placeholder="أدخل مفتاح API" className="mt-2 font-lusail" />
+            <Input 
+              id="sadad-api-key" 
+              type="password" 
+              placeholder="أدخل مفتاح API" 
+              value={sadadApiKey}
+              onChange={(e) => setSadadApiKey(e.target.value)}
+              className="mt-2 font-lusail" 
+            />
           </div>
           
           <div>
             <Label htmlFor="sadad-secret" className="font-lusail">المفتاح السري</Label>
-            <Input id="sadad-secret" type="password" placeholder="أدخل المفتاح السري" className="mt-2 font-lusail" />
+            <Input 
+              id="sadad-secret" 
+              type="password" 
+              placeholder="أدخل المفتاح السري" 
+              value={sadadSecret}
+              onChange={(e) => setSadadSecret(e.target.value)}
+              className="mt-2 font-lusail" 
+            />
           </div>
           
           <div className="flex gap-2 pt-4">
-            <Button className="font-lusail">{t("save")}</Button>
-            <Button variant="outline" className="font-lusail">{t("cancel")}</Button>
+            <Button onClick={handleSaveSadad} disabled={savingSadad} className="font-lusail">
+              {savingSadad ? t("loading") : t("save")}
+            </Button>
           </div>
         </div>
       </Card>

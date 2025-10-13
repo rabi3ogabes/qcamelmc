@@ -207,6 +207,9 @@ export type Database = {
           header_bg_color: string | null
           id: string
           logo_url: string | null
+          sadad_api_key: string | null
+          sadad_merchant_id: string | null
+          sadad_secret: string | null
           updated_at: string | null
           webhook_url: string | null
         }
@@ -216,6 +219,9 @@ export type Database = {
           header_bg_color?: string | null
           id?: string
           logo_url?: string | null
+          sadad_api_key?: string | null
+          sadad_merchant_id?: string | null
+          sadad_secret?: string | null
           updated_at?: string | null
           webhook_url?: string | null
         }
@@ -225,6 +231,9 @@ export type Database = {
           header_bg_color?: string | null
           id?: string
           logo_url?: string | null
+          sadad_api_key?: string | null
+          sadad_merchant_id?: string | null
+          sadad_secret?: string | null
           updated_at?: string | null
           webhook_url?: string | null
         }
