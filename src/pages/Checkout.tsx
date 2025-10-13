@@ -377,35 +377,14 @@ const Checkout = () => {
           if (sadadError) throw sadadError;
 
           if (sadadData.success && sadadData.paymentData) {
-            // Create a form and submit to Sadad
-            const form = document.createElement('form');
-            form.method = 'POST';
-            form.action = sadadData.sadadUrl;
-            form.target = '_top'; // Ensure full page redirect
-
-            // Add all payment fields
-            Object.entries(sadadData.paymentData).forEach(([key, value]) => {
-              if (key === 'productdetail' && Array.isArray(value)) {
-                value.forEach((product, index) => {
-                  Object.entries(product).forEach(([pKey, pValue]) => {
-                    const input = document.createElement('input');
-                    input.type = 'hidden';
-                    input.name = `productdetail[${index}][${pKey}]`;
-                    input.value = String(pValue);
-                    form.appendChild(input);
-                  });
-                });
-              } else {
-                const input = document.createElement('input');
-                input.type = 'hidden';
-                input.name = key;
-                input.value = String(value);
-                form.appendChild(input);
-              }
-            });
-
-            document.body.appendChild(form);
-            form.submit();
+            // Store payment data temporarily to use in a new page
+            sessionStorage.setItem('sadadPaymentData', JSON.stringify({
+              paymentData: sadadData.paymentData,
+              sadadUrl: sadadData.sadadUrl
+            }));
+            
+            // Redirect to a payment redirect page that will auto-submit the form
+            window.location.href = '/sadad-redirect';
             return;
           }
         } catch (sadadError) {

@@ -10,6 +10,7 @@ import TicketSelection from "./pages/TicketSelection";
 import Checkout from "./pages/Checkout";
 import Confirmation from "./pages/Confirmation";
 import SadadCallback from "./pages/SadadCallback";
+import SadadRedirect from "./pages/SadadRedirect";
 import AdminLogin from "./pages/AdminLogin";
 import AdminDashboard from "./pages/AdminDashboard";
 import LiveBookings from "./pages/LiveBookings";
@@ -32,6 +33,7 @@ const App = () => (
             <Route path="/checkout" element={<Checkout />} />
             <Route path="/confirmation" element={<Confirmation />} />
             <Route path="/sadad-callback" element={<SadadCallback />} />
+            <Route path="/sadad-redirect" element={<SadadRedirect />} />
             <Route path="/live-bookings" element={<LiveBookings />} />
             <Route path="/admin/login" element={<AdminLogin />} />
             <Route path="/admin/dashboard" element={<AdminDashboard />} />
