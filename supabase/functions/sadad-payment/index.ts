@@ -114,11 +114,15 @@ serve(async (req) => {
     // Generate checksumhash
     const dataString = JSON.stringify({
       postData: paymentData,
-      secretKey: encodeURIComponent(settings.sadad_secret)
+      secretKey: settings.sadad_secret  // Don't URL encode in the data string
     });
     
-    const key = encodeURIComponent(settings.sadad_secret) + settings.sadad_merchant_id;
+    const key = settings.sadad_secret + settings.sadad_merchant_id;  // Don't URL encode the key
     const checksumhash = await getChecksumFromString(dataString, key);
+
+    console.log('Generated checksum for order:', orderId);
+    console.log('Merchant ID:', settings.sadad_merchant_id);
+    console.log('Payment amount:', orderData.total_amount);
 
     return new Response(
       JSON.stringify({ 
