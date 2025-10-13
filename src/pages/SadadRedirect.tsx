@@ -41,8 +41,24 @@ const SadadRedirect = () => {
           
           console.log('Submitting form to Sadad...');
           
-          // Form will submit to _top window, breaking out of iframe
-          formRef.current.submit();
+          // Open new window for payment (avoids iframe restrictions)
+          const newWindow = window.open('', '_blank');
+          
+          if (newWindow) {
+            // Write form to new window and submit
+            const form = formRef.current;
+            newWindow.document.write('<html><body></body></html>');
+            newWindow.document.body.appendChild(form.cloneNode(true));
+            const newForm = newWindow.document.querySelector('form') as HTMLFormElement;
+            if (newForm) {
+              newForm.style.display = 'block';
+              newForm.submit();
+            }
+          } else {
+            // Popup blocked - fallback to current window
+            alert('يرجى السماح بالنوافذ المنبثقة لإتمام الدفع');
+            window.location.href = '/checkout';
+          }
         }
       }, 500);
     } catch (error) {
