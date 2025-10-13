@@ -112,23 +112,14 @@ serve(async (req) => {
       }))
     };
 
-    // Generate checksumhash - must be in exact pipe-separated format per Sadad docs
-    // Format: merchant_id=value|ORDER_ID=value|WEBSITE=value|TXN_AMOUNT=value|...
-    const checksumFields = [
-      `merchant_id=${paymentData.merchant_id}`,
-      `ORDER_ID=${paymentData.ORDER_ID}`,
-      `WEBSITE=${paymentData.WEBSITE}`,
-      `TXN_AMOUNT=${paymentData.TXN_AMOUNT}`,
-      `CUST_ID=${paymentData.CUST_ID}`,
-      `EMAIL=${paymentData.EMAIL}`,
-      `MOBILE_NO=${paymentData.MOBILE_NO}`,
-      `SADAD_WEBCHECKOUT_PAGE_LANGUAGE=${paymentData.SADAD_WEBCHECKOUT_PAGE_LANGUAGE}`,
-      `VERSION=${paymentData.VERSION}`,
-      `CALLBACK_URL=${paymentData.CALLBACK_URL}`,
-      `txnDate=${paymentData.txnDate}`
-    ];
+    // Generate checksumhash using the exact format from Sadad documentation
+    // Must be JSON structure with postData and secretKey
+    const checksumData = {
+      postData: paymentData,
+      secretKey: settings.sadad_secret
+    };
     
-    const dataString = checksumFields.join('|');
+    const dataString = JSON.stringify(checksumData);
     const key = settings.sadad_secret + settings.sadad_merchant_id;
     const checksumhash = await getChecksumFromString(dataString, key);
 
