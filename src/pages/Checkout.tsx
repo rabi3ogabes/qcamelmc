@@ -270,7 +270,7 @@ const Checkout = () => {
       return;
     }
 
-    // Validate all ticket holders (first holder needs all fields, others just name, nationality, and idNumber)
+    // Validate all ticket holders
     const allHoldersFilled = ticketHolders.every((holder, index) => {
       if (index === 0) {
         return holder.name && holder.phone && holder.nationality && holder.idNumber;
@@ -301,7 +301,7 @@ const Checkout = () => {
 
       if (customerError) throw customerError;
 
-      // Get event ID - fetch the earliest active event
+      // Get event ID
       const { data: event, error: eventError } = await supabase
         .from("events")
         .select("id")
@@ -312,14 +312,14 @@ const Checkout = () => {
 
       if (eventError) throw eventError;
 
-      // Create a single order for all tickets
+      // Create order
       const bookingRef = `QTR-${Math.random().toString(36).substring(2, 10).toUpperCase()}`;
       const totalQuantity = selections.reduce((sum, s) => sum + s.quantity, 0);
       
       const orderData = {
         customer_id: customer.id,
         event_id: event.id,
-        ticket_type: selections[0].type as "vip" | "normal" | "parking", // Primary ticket type
+        ticket_type: selections[0].type as "vip" | "normal" | "parking",
         quantity: totalQuantity,
         total_amount: calculateTotal(),
         payment_method: paymentMethod,
@@ -334,19 +334,17 @@ const Checkout = () => {
 
       if (orderError) throw orderError;
 
-      // Generate unique references for each ticket holder
+      // Generate ticket holders
       const fullCustomerPhone = `${customerInfo.countryCode} ${customerInfo.phone}`;
       const holdersToInsert = ticketHolders.map((holder, index) => {
-        // Generate unique reference for this ticket holder
         const ticketRef = `${bookingRef}-TKT${(index + 1).toString().padStart(2, '0')}`;
-
         return {
           order_id: order.id,
           name: holder.name,
           phone: holder.phone || fullCustomerPhone,
           nationality: holder.nationality,
           ticket_type: holder.ticketType,
-          qr_code: ticketRef, // Store the reference text, not the QR image
+          qr_code: ticketRef,
           id_number: holder.idNumber
         };
       });
@@ -357,11 +355,71 @@ const Checkout = () => {
 
       if (holdersError) throw holdersError;
 
-      // Store order ID for confirmation page
+      // If Sadad payment, redirect to Sadad gateway
+      if (paymentMethod === "sadad") {
+        try {
+          const { data: sadadData, error: sadadError } = await supabase.functions.invoke('sadad-payment', {
+            body: {
+              orderId: bookingRef,
+              orderData: {
+                customer_email: customerInfo.email,
+                customer_phone: customerInfo.phone,
+                total_amount: calculateTotal(),
+                items: selections.map(s => ({
+                  name: `تذكرة ${s.type}`,
+                  price: s.price,
+                  quantity: s.quantity
+                }))
+              }
+            }
+          });
+
+          if (sadadError) throw sadadError;
+
+          if (sadadData.success && sadadData.paymentData) {
+            // Create a form and submit to Sadad
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = sadadData.sadadUrl;
+
+            // Add all payment fields
+            Object.entries(sadadData.paymentData).forEach(([key, value]) => {
+              if (key === 'productdetail' && Array.isArray(value)) {
+                value.forEach((product, index) => {
+                  Object.entries(product).forEach(([pKey, pValue]) => {
+                    const input = document.createElement('input');
+                    input.type = 'hidden';
+                    input.name = `productdetail[${index}][${pKey}]`;
+                    input.value = String(pValue);
+                    form.appendChild(input);
+                  });
+                });
+              } else {
+                const input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = key;
+                input.value = String(value);
+                form.appendChild(input);
+              }
+            });
+
+            document.body.appendChild(form);
+            form.submit();
+            return;
+          }
+        } catch (sadadError) {
+          console.error('Sadad payment error:', sadadError);
+          toast.error('فشل الاتصال ببوابة الدفع. يرجى المحاولة مرة أخرى.');
+          setLoading(false);
+          return;
+        }
+      }
+
+      // For cash/POS, proceed directly
       localStorage.setItem("orderIds", JSON.stringify([order.id]));
       localStorage.removeItem("ticketSelection");
 
-      // Call webhook if configured
+      // Call webhook
       try {
         const { data: settings } = await supabase
           .from("settings")
@@ -369,49 +427,27 @@ const Checkout = () => {
           .maybeSingle();
 
         if (settings?.webhook_url) {
-          console.log("Calling n8n webhook:", settings.webhook_url);
-          // Format phone number: ensure 974 country code without +
-          let formattedAdminPhone = null;
-          if (settings.admin_phone) {
-            const cleanPhone = settings.admin_phone.replace(/[\+\s]/g, '');
-            formattedAdminPhone = cleanPhone.startsWith('974') ? cleanPhone : `974${cleanPhone}`;
-          }
-
-          // Format customer phone
           const formatPhoneNumber = (phone: string | null | undefined) => {
             if (!phone) return null;
             const cleanPhone = phone.replace(/[\+\s]/g, '');
             return cleanPhone.startsWith('974') ? cleanPhone : `974${cleanPhone}`;
           };
 
-          const formattedCustomer = {
-            ...customer,
-            phone: formatPhoneNumber(customer.phone)
-          };
-
-          const formattedHolders = holdersToInsert.map(holder => ({
-            ...holder,
-            phone: formatPhoneNumber(holder.phone)
-          }));
-          
           await fetch(settings.webhook_url, {
             method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
+            headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-              customer: formattedCustomer,
-              order: order,
-              ticketHolders: formattedHolders,
+              customer: { ...customer, phone: formatPhoneNumber(customer.phone) },
+              order,
+              ticketHolders: holdersToInsert.map(h => ({ ...h, phone: formatPhoneNumber(h.phone) })),
               bookingReference: bookingRef,
-              adminPhone: formattedAdminPhone,
+              adminPhone: formatPhoneNumber(settings.admin_phone),
               timestamp: new Date().toISOString(),
             }),
           });
         }
       } catch (webhookError) {
         console.error("Webhook call failed:", webhookError);
-        // Don't block the user flow if webhook fails
       }
 
       toast.success(t('bookingCreated'));
