@@ -162,6 +162,16 @@ const AdminPOS = () => {
       }]);
     }
 
+    // Add ticket holder slots for the new tickets
+    const newHolders = Array(quantity).fill(null).map(() => ({
+      name: "",
+      nationality: "",
+      idNumber: "",
+      phone: "",
+      ticketType: ticket.type
+    }));
+    setTicketHolders([...ticketHolders, ...newHolders]);
+
     toast({
       title: "تمت الإضافة",
       description: `تم إضافة ${quantity} ${getTicketTypeName(ticket.type)} للسلة`,
