@@ -504,7 +504,7 @@ export const CustomersTab = () => {
           <p className="text-muted-foreground font-lusail">لا يوجد عملاء مع حجوزات</p>
         </Card>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 auto-rows-fr">
           {filteredCustomers.map((customer) => {
             // Collect all ticket holders from all orders
             const allTickets = customer.orders.flatMap(order => 
