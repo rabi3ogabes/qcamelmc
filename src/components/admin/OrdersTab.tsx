@@ -73,6 +73,42 @@ export const OrdersTab = ({
       setQrCodeImage(null);
     }
   }, [selectedHolder]);
+
+  // Real-time subscription for ticket holders updates
+  useEffect(() => {
+    const channel = supabase
+      .channel('ticket-holders-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'ticket_holders'
+        },
+        (payload) => {
+          console.log('Ticket holder updated:', payload);
+          
+          // Update the ticket holders list if viewing details
+          if (selectedOrder) {
+            setTicketHolders((current) =>
+              current.map((holder) =>
+                holder.id === payload.new.id
+                  ? { ...holder, ...payload.new }
+                  : holder
+              )
+            );
+          }
+          
+          // Also refresh the orders list to update the main view
+          onRefresh();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [selectedOrder, onRefresh]);
   const generateMissingQrCodes = async () => {
     setGeneratingQrCodes(true);
     try {

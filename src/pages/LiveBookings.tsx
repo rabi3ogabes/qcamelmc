@@ -110,7 +110,8 @@ const LiveBookings = () => {
         .select(`
           *,
           customers(name, email, phone, id_number, nationality),
-          events(title, event_date)
+          events(title, event_date),
+          ticket_holders(id, is_present)
         `)
         .gte("created_at", startOfDay.toISOString())
         .lte("created_at", endOfDay.toISOString())
@@ -118,8 +119,18 @@ const LiveBookings = () => {
 
       if (error) throw error;
 
-      setBookings(data || []);
-      calculateStats(data || []);
+      // Calculate presence based on ticket holders
+      const bookingsWithPresence = (data || []).map(order => {
+        const holders = order.ticket_holders || [];
+        const hasPresent = holders.some((h: any) => h.is_present === true);
+        return {
+          ...order,
+          is_present: hasPresent || order.is_present
+        };
+      });
+
+      setBookings(bookingsWithPresence);
+      calculateStats(bookingsWithPresence);
     } catch (error) {
       console.error("Error fetching bookings:", error);
       toast.error(t("failedToLoad"));
@@ -129,8 +140,9 @@ const LiveBookings = () => {
   };
 
   const setupRealtimeSubscription = () => {
-    const channel = supabase
-      .channel('live-bookings')
+    // Subscribe to orders changes
+    const ordersChannel = supabase
+      .channel('live-bookings-orders')
       .on(
         'postgres_changes',
         {
@@ -139,14 +151,32 @@ const LiveBookings = () => {
           table: 'orders'
         },
         (payload) => {
-          console.log('Booking update:', payload);
+          console.log('Order update:', payload);
+          fetchBookings();
+        }
+      )
+      .subscribe();
+
+    // Subscribe to ticket_holders changes
+    const ticketHoldersChannel = supabase
+      .channel('live-bookings-ticket-holders')
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'ticket_holders'
+        },
+        (payload) => {
+          console.log('Ticket holder update:', payload);
           fetchBookings();
         }
       )
       .subscribe();
 
     return () => {
-      supabase.removeChannel(channel);
+      supabase.removeChannel(ordersChannel);
+      supabase.removeChannel(ticketHoldersChannel);
     };
   };
 
