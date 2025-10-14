@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { CalendarIcon, CheckCircle, XCircle, Users, LayoutGrid, Table as TableIcon, User, Phone, CreditCard, Hash, Maximize } from "lucide-react";
+import { CalendarIcon, CheckCircle, XCircle, Users, LayoutGrid, Table as TableIcon, User, Phone, CreditCard, Hash, Maximize, Minimize } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -42,6 +42,7 @@ const LiveBookings = () => {
   const [viewType, setViewType] = useState<"cards" | "table">("cards");
   const [logoUrl, setLogoUrl] = useState<string>("");
   const [headerBgColor, setHeaderBgColor] = useState<string>("hsl(var(--card) / 0.5)");
+  const [isFullscreen, setIsFullscreen] = useState(false);
   const [stats, setStats] = useState({
     total: 0,
     confirmed: 0,
@@ -55,6 +56,15 @@ const LiveBookings = () => {
     const cleanup = setupRealtimeSubscription();
     return cleanup;
   }, [selectedDate]);
+
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+    };
+
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
+  }, []);
 
   const fetchSettings = async () => {
     try {
@@ -79,7 +89,9 @@ const LiveBookings = () => {
 
   const toggleFullscreen = () => {
     if (!document.fullscreenElement) {
-      document.documentElement.requestFullscreen();
+      document.documentElement.requestFullscreen().catch(err => {
+        toast.error("لا يمكن تفعيل وضع ملء الشاشة");
+      });
     } else {
       document.exitFullscreen();
     }
@@ -186,13 +198,16 @@ const LiveBookings = () => {
           </div>
           <div className="flex gap-2">
             <Button
-              variant="outline"
-              size="sm"
+              variant="ghost"
+              size="icon"
               onClick={toggleFullscreen}
-              className="font-lusail"
+              title={isFullscreen ? "تصغير الشاشة" : "ملء الشاشة"}
             >
-              <Maximize className="w-4 h-4 ml-2" />
-              ملء الشاشة
+              {isFullscreen ? (
+                <Minimize className="w-5 h-5" />
+              ) : (
+                <Maximize className="w-5 h-5" />
+              )}
             </Button>
             <Button
               variant={viewType === "cards" ? "default" : "outline"}
