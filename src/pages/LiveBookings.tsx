@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { CalendarIcon, CheckCircle, XCircle, Users, LayoutGrid, Table as TableIcon, User } from "lucide-react";
+import { CalendarIcon, CheckCircle, XCircle, Users, LayoutGrid, Table as TableIcon, User, Phone, CreditCard, Hash } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -25,6 +25,7 @@ interface Booking {
     name: string;
     email: string;
     phone: string;
+    id_number?: string;
   };
   events: {
     title: string;
@@ -62,7 +63,7 @@ const LiveBookings = () => {
         .from("orders")
         .select(`
           *,
-          customers(name, email, phone),
+          customers(name, email, phone, id_number),
           events(title, event_date)
         `)
         .gte("created_at", startOfDay.toISOString())
@@ -240,85 +241,76 @@ const LiveBookings = () => {
         {/* Bookings Display */}
         {viewType === "cards" ? (
           /* Cards View */
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
             {bookings.length === 0 ? (
               <Card className="col-span-full p-12">
                 <p className="text-center text-muted-foreground font-lusail">{t("noBookingsForDate")}</p>
               </Card>
             ) : (
               bookings.map((booking) => (
-                <Card key={booking.id} className="p-6 hover:shadow-lg transition-shadow">
-                  <div className="flex flex-col gap-4">
-                    {/* Header with Avatar */}
-                    <div className="flex items-start gap-4">
-                      <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-                        <User className="w-6 h-6 text-primary" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <h3 className="font-bold text-lg truncate">{booking.customers.name}</h3>
-                        <p className="text-sm text-muted-foreground truncate">{booking.customers.phone}</p>
-                        <p className="text-xs text-muted-foreground truncate">{booking.customers.email}</p>
-                      </div>
+                <Card key={booking.id} className="p-4 hover:shadow-lg transition-shadow">
+                  <div className="flex flex-col gap-3">
+                    {/* Name with icon */}
+                    <div className="flex items-center gap-2">
+                      <User className="w-4 h-4 text-primary flex-shrink-0" />
+                      <span className="font-semibold text-sm truncate">{booking.customers.name}</span>
                     </div>
 
-                    {/* Booking Details */}
-                    <div className="space-y-2">
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm text-muted-foreground">رقم الحجز:</span>
-                        <span className="font-mono font-semibold text-sm">{booking.booking_reference}</span>
-                      </div>
-                      
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm text-muted-foreground">الفعالية:</span>
-                        <span className="font-semibold text-sm truncate max-w-[60%]">{booking.events?.title || 'N/A'}</span>
-                      </div>
+                    {/* Phone with icon */}
+                    <div className="flex items-center gap-2">
+                      <Phone className="w-4 h-4 text-primary flex-shrink-0" />
+                      <span className="text-sm truncate">{booking.customers.phone}</span>
+                    </div>
 
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm text-muted-foreground">نوع التذكرة:</span>
-                        <Badge variant="outline" className="capitalize">
-                          {booking.ticket_type === "vip" ? t("vipAccess") : 
-                           booking.ticket_type === "normal" ? t("generalAdmission") : 
-                           t("parking")}
-                        </Badge>
+                    {/* ID Number with icon */}
+                    {booking.customers.id_number && (
+                      <div className="flex items-center gap-2">
+                        <Hash className="w-4 h-4 text-primary flex-shrink-0" />
+                        <span className="text-sm truncate">{booking.customers.id_number}</span>
                       </div>
+                    )}
 
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm text-muted-foreground">العدد:</span>
-                        <span className="font-semibold">{booking.quantity}</span>
-                      </div>
+                    {/* Payment Status */}
+                    <div className="flex items-center gap-2">
+                      <CreditCard className="w-4 h-4 text-primary flex-shrink-0" />
+                      <Badge 
+                        variant={booking.payment_status === "confirmed" ? "default" : booking.payment_status === "failed" ? "destructive" : "secondary"}
+                        className="text-xs"
+                      >
+                        {booking.payment_status === "confirmed" ? t("confirmed") :
+                         booking.payment_status === "failed" ? t("failed") :
+                         t("pending")}
+                      </Badge>
+                    </div>
 
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm text-muted-foreground">المبلغ:</span>
-                        <span className="font-bold text-primary">{booking.total_amount.toFixed(2)} {t("qar")}</span>
-                      </div>
-
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm text-muted-foreground">حالة الدفع:</span>
-                        <Badge 
-                          variant={booking.payment_status === "confirmed" ? "default" : booking.payment_status === "failed" ? "destructive" : "secondary"}
-                        >
-                          {booking.payment_status === "confirmed" ? t("confirmed") :
-                           booking.payment_status === "failed" ? t("failed") :
-                           t("pending")}
-                        </Badge>
-                      </div>
-
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm text-muted-foreground">الحضور:</span>
-                        {booking.is_present === true ? (
-                          <Badge className="bg-green-500">
-                            <CheckCircle className="w-3 h-3 ml-1" />
+                    {/* Attendance */}
+                    <div className="flex items-center gap-2">
+                      {booking.is_present === true ? (
+                        <>
+                          <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0" />
+                          <Badge className="bg-green-500 text-xs">
                             {t("present")}
                           </Badge>
-                        ) : booking.is_present === false ? (
-                          <Badge variant="secondary">
-                            <XCircle className="w-3 h-3 ml-1" />
+                        </>
+                      ) : booking.is_present === false ? (
+                        <>
+                          <XCircle className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                          <Badge variant="secondary" className="text-xs">
                             {t("absent")}
                           </Badge>
-                        ) : (
-                          <Badge variant="outline">{t("notMarked")}</Badge>
-                        )}
-                      </div>
+                        </>
+                      ) : (
+                        <>
+                          <XCircle className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                          <Badge variant="outline" className="text-xs">{t("notMarked")}</Badge>
+                        </>
+                      )}
+                    </div>
+
+                    {/* Quantity */}
+                    <div className="flex items-center gap-2">
+                      <Users className="w-4 h-4 text-primary flex-shrink-0" />
+                      <span className="text-sm font-semibold">{booking.quantity}</span>
                     </div>
 
                     {/* Action Button */}
@@ -326,7 +318,7 @@ const LiveBookings = () => {
                       size="sm"
                       variant={booking.is_present ? "outline" : "default"}
                       onClick={() => togglePresence(booking.id, booking.is_present)}
-                      className="w-full font-lusail"
+                      className="w-full font-lusail mt-2"
                     >
                       {booking.is_present ? t("markAbsent") : t("markPresent")}
                     </Button>
