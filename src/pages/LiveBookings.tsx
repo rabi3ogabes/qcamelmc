@@ -26,6 +26,7 @@ interface Booking {
     email: string;
     phone: string;
     id_number?: string;
+    nationality?: string;
   };
   events: {
     title: string;
@@ -96,7 +97,7 @@ const LiveBookings = () => {
         .from("orders")
         .select(`
           *,
-          customers(name, email, phone, id_number),
+          customers(name, email, phone, id_number, nationality),
           events(title, event_date)
         `)
         .gte("created_at", startOfDay.toISOString())
@@ -310,17 +311,25 @@ const LiveBookings = () => {
                       </div>
                     </div>
 
-                    {/* Phone with icon */}
-                    <div className="flex items-center gap-2">
-                      <Phone className="w-4 h-4 text-primary flex-shrink-0" />
-                      <span className="text-sm truncate">{booking.customers.phone}</span>
+                    {/* Phone and ID Number - Same Line */}
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2">
+                        <Phone className="w-4 h-4 text-primary flex-shrink-0" />
+                        <span className="text-sm truncate">{booking.customers.phone}</span>
+                      </div>
+                      {booking.customers.id_number && (
+                        <div className="flex items-center gap-2">
+                          <Hash className="w-4 h-4 text-primary flex-shrink-0" />
+                          <span className="text-sm truncate">{booking.customers.id_number}</span>
+                        </div>
+                      )}
                     </div>
 
-                    {/* ID Number with icon */}
-                    {booking.customers.id_number && (
+                    {/* Nationality with flag */}
+                    {booking.customers.nationality && (
                       <div className="flex items-center gap-2">
-                        <Hash className="w-4 h-4 text-primary flex-shrink-0" />
-                        <span className="text-sm truncate">{booking.customers.id_number}</span>
+                        <span className="text-lg">{booking.customers.nationality === 'قطر' ? '🇶🇦' : '🌍'}</span>
+                        <span className="text-sm">{booking.customers.nationality}</span>
                       </div>
                     )}
 
@@ -395,6 +404,11 @@ const LiveBookings = () => {
                           <div>
                             <p className="font-semibold">{booking.customers.name}</p>
                             <p className="text-xs text-muted-foreground">{booking.customers.phone}</p>
+                            {booking.customers.nationality && (
+                              <p className="text-xs text-muted-foreground">
+                                {booking.customers.nationality === 'قطر' ? '🇶🇦' : '🌍'} {booking.customers.nationality}
+                              </p>
+                            )}
                           </div>
                         </TableCell>
                         <TableCell>
