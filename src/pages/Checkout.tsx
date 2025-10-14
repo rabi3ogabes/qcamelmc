@@ -478,9 +478,19 @@ const Checkout = () => {
       <header className="border-b backdrop-blur-sm sticky top-0 z-10 mb-4 sm:mb-6 md:mb-8" style={{ backgroundColor: headerBgColor }}>
         <div className="container mx-auto px-3 sm:px-4 py-3 sm:py-4 flex justify-between items-center gap-2">
           {logoUrl ? (
-            <img src={logoUrl} alt="Logo" className="h-8 sm:h-10 md:h-12 object-contain" />
+            <img 
+              src={logoUrl} 
+              alt="Logo" 
+              className="h-8 sm:h-10 md:h-12 object-contain cursor-pointer" 
+              onClick={() => navigate("/")}
+            />
           ) : (
-            <h1 className="text-lg sm:text-xl md:text-2xl font-bold">فعاليات قطر</h1>
+            <h1 
+              className="text-lg sm:text-xl md:text-2xl font-bold cursor-pointer"
+              onClick={() => navigate("/")}
+            >
+              فعاليات قطر
+            </h1>
           )}
           <Button variant="ghost" onClick={() => navigate("/")} className="text-xs sm:text-sm text-white hover:text-white">
             {t('backToHome') || 'العودة للرئيسية'}
