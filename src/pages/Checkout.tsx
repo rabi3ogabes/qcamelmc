@@ -505,7 +505,7 @@ const Checkout = () => {
           {/* Customer Information */}
           <div className="lg:col-span-2 space-y-4 sm:space-y-6">
             <Card className="p-4 sm:p-5 md:p-6">
-              <h2 className="text-xl sm:text-2xl font-semibold mb-4 sm:mb-6">{t('customerInfo')}</h2>
+              <h2 className="text-xl sm:text-2xl font-semibold mb-4 sm:mb-6">{t('customerInfo')} - التذكرة الرئيسية</h2>
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
                   <Label htmlFor="name">{t('fullName')} *</Label>
