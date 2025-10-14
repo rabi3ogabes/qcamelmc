@@ -315,7 +315,6 @@ const LiveBookings = () => {
 
                     {/* Quantity */}
                     <div className="flex items-center gap-2">
-                      <Users className="w-4 h-4 text-primary flex-shrink-0" />
                       <span className="text-sm font-semibold">{booking.quantity}</span>
                     </div>
 
