@@ -518,11 +518,11 @@ export const CustomersTab = () => {
             return (
               <Card
                 key={customer.id}
-                className="p-4 hover:shadow-lg transition-shadow cursor-pointer"
+                className="p-4 hover:shadow-lg transition-shadow cursor-pointer flex flex-col h-full"
                 onClick={() => setSelectedCustomer(customer)}
               >
-                <div className="flex flex-col space-y-3 relative">
-                  
+                <div className="flex flex-col space-y-3 flex-1">
+
                   {/* Customer Header */}
                   <div className="flex items-center gap-3">
                     <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
@@ -564,7 +564,7 @@ export const CustomersTab = () => {
                   )}
 
                   {/* Action Buttons */}
-                  <div className="flex gap-2">
+                  <div className="flex gap-2 mt-auto pt-3">
                     <Button
                       size="sm"
                       variant="outline"
