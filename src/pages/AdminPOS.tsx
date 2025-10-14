@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowRight, ShoppingCart, Trash2, Plus, Minus } from "lucide-react";
+import { ArrowRight, ShoppingCart, Trash2, Plus, Minus, Maximize, Minimize } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useTranslation } from "react-i18next";
 import { TicketAddItem } from "@/components/admin/TicketAddItem";
@@ -54,11 +54,35 @@ const AdminPOS = () => {
   const [customerIdNumber, setCustomerIdNumber] = useState("");
   const [showAllNationalities, setShowAllNationalities] = useState(false);
   const [ticketHolders, setTicketHolders] = useState<TicketHolderInput[]>([]);
+  const [isFullscreen, setIsFullscreen] = useState(false);
 
   useEffect(() => {
     fetchTickets();
     fetchSettings();
   }, []);
+
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+    };
+
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
+  }, []);
+
+  const toggleFullscreen = () => {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen().catch(err => {
+        toast({
+          title: "خطأ",
+          description: "لا يمكن تفعيل وضع ملء الشاشة",
+          variant: "destructive",
+        });
+      });
+    } else {
+      document.exitFullscreen();
+    }
+  };
 
   const fetchSettings = async () => {
     const { data, error } = await supabase
@@ -496,7 +520,21 @@ const AdminPOS = () => {
               <h1 className="text-2xl font-bold">نقاط البيع</h1>
             )}
           </button>
-          <h2 className="text-xl font-semibold bg-yellow-400 px-4 py-2 rounded">بيع تذكرة</h2>
+          <div className="flex items-center gap-4">
+            <h2 className="text-xl font-semibold bg-yellow-400 px-4 py-2 rounded">بيع تذكرة</h2>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={toggleFullscreen}
+              title={isFullscreen ? "تصغير الشاشة" : "ملء الشاشة"}
+            >
+              {isFullscreen ? (
+                <Minimize className="w-5 h-5" />
+              ) : (
+                <Maximize className="w-5 h-5" />
+              )}
+            </Button>
+          </div>
         </div>
       </header>
 
