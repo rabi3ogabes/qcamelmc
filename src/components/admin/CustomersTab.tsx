@@ -547,15 +547,15 @@ export const CustomersTab = () => {
                         {allTickets.map((ticket, idx) => (
                           <div
                             key={idx}
-                            className="bg-background/50 rounded p-2 text-right"
+                            className="bg-background border border-border/50 rounded-lg p-3 text-right shadow-sm"
                           >
-                            <div className="flex items-center justify-between gap-2">
-                              <Badge variant="outline" className="text-xs flex-shrink-0">
-                                {ticket.ticketType.toUpperCase()}
-                              </Badge>
-                              <span className="text-xs font-medium font-lusail truncate">
+                            <div className="flex flex-col gap-2">
+                              <span className="text-xs font-medium font-lusail">
                                 {ticket.name}
                               </span>
+                              <Badge variant="outline" className="text-xs w-fit mr-auto">
+                                {ticket.ticketType.toUpperCase()}
+                              </Badge>
                             </div>
                           </div>
                         ))}
