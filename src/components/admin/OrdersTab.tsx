@@ -68,6 +68,7 @@ export const OrdersTab = ({ orders, onRefresh }: OrdersTabProps) => {
         .eq("order_id", orderId);
 
       if (error) throw error;
+      console.log("Ticket holders data:", data);
       setTicketHolders(data || []);
     } catch (error) {
       console.error("Error fetching ticket holders:", error);
@@ -267,15 +268,18 @@ export const OrdersTab = ({ orders, onRefresh }: OrdersTabProps) => {
                         </Badge>
                       </TableCell>
                       <TableCell>
-                        {holder.qr_code && (
+                        {holder.qr_code ? (
                           <Button
                             size="sm"
                             variant="ghost"
                             onClick={() => setSelectedQrCode(holder.qr_code)}
                             className="h-8 w-8 p-0"
+                            title="View QR Code"
                           >
                             <QrCode className="h-5 w-5" />
                           </Button>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">No QR</span>
                         )}
                       </TableCell>
                     </TableRow>
