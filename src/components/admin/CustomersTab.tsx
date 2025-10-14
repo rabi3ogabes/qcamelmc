@@ -526,7 +526,7 @@ export const CustomersTab = () => {
                     size="icon"
                     variant="ghost"
                     onClick={(e) => handleDeleteCustomer(customer.id, e)}
-                    className="absolute top-0 left-0 h-7 w-7 text-destructive hover:text-destructive hover:bg-destructive/10 z-10"
+                    className="absolute bottom-2 left-1/2 -translate-x-1/2 h-7 w-7 text-destructive hover:text-destructive hover:bg-destructive/10 z-10"
                     title="حذف العميل وجميع حجوزاته"
                   >
                     <Trash2 className="w-4 h-4" />
