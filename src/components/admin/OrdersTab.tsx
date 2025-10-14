@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -21,6 +21,7 @@ import { CheckCircle, MapPin, Calendar, Eye, QrCode, Loader2 } from "lucide-reac
 import { useTranslation } from "react-i18next";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import QRCodeLib from "qrcode";
 
 interface TicketHolder {
   id: string;
@@ -58,7 +59,32 @@ export const OrdersTab = ({ orders, onRefresh }: OrdersTabProps) => {
   const [selectedOrder, setSelectedOrder] = useState<string | null>(null);
   const [ticketHolders, setTicketHolders] = useState<TicketHolder[]>([]);
   const [selectedQrCode, setSelectedQrCode] = useState<string | null>(null);
+  const [qrCodeImage, setQrCodeImage] = useState<string | null>(null);
   const [generatingQrCodes, setGeneratingQrCodes] = useState(false);
+
+  // Generate QR code image when selectedQrCode changes
+  useEffect(() => {
+    if (selectedQrCode) {
+      // Check if it's already a URL
+      if (selectedQrCode.startsWith('http')) {
+        setQrCodeImage(selectedQrCode);
+      } else {
+        // Generate QR code from text
+        QRCodeLib.toDataURL(selectedQrCode, {
+          width: 800,
+          margin: 2,
+          errorCorrectionLevel: 'H'
+        })
+          .then(url => setQrCodeImage(url))
+          .catch(err => {
+            console.error('Error generating QR code:', err);
+            toast.error('Failed to generate QR code');
+          });
+      }
+    } else {
+      setQrCodeImage(null);
+    }
+  }, [selectedQrCode]);
 
   const generateMissingQrCodes = async () => {
     setGeneratingQrCodes(true);
@@ -341,12 +367,16 @@ export const OrdersTab = ({ orders, onRefresh }: OrdersTabProps) => {
             <DialogTitle className="font-lusail text-2xl">QR Code</DialogTitle>
           </DialogHeader>
           <div className="flex items-center justify-center p-4">
-            {selectedQrCode && (
+            {qrCodeImage ? (
               <img 
-                src={selectedQrCode} 
+                src={qrCodeImage} 
                 alt="Ticket QR Code" 
                 className="w-[800px] h-[800px] object-contain"
               />
+            ) : (
+              <div className="w-[800px] h-[800px] flex items-center justify-center">
+                <Loader2 className="w-12 h-12 animate-spin" />
+              </div>
             )}
           </div>
         </DialogContent>
