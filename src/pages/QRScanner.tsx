@@ -9,6 +9,18 @@ import { ArrowLeft, CheckCircle2, XCircle, Loader2, Search, Camera, AlertCircle 
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 
+interface TicketHolder {
+  id: string;
+  qr_code: string;
+  name: string;
+  phone: string;
+  nationality: string;
+  ticket_type: string;
+  id_number: string;
+  is_present: boolean;
+  confirmed_at?: string;
+}
+
 interface TicketInfo {
   booking_reference: string;
   customer_name: string;
@@ -18,6 +30,7 @@ interface TicketInfo {
   ticket_holder_phone?: string;
   ticket_holder_nationality?: string;
   ticket_holder_id_number?: string;
+  ticket_holder_qr_code?: string;
   quantity: number;
   payment_status: string;
   is_present: boolean;
@@ -35,6 +48,8 @@ const QRScanner = () => {
   const [showManualSearch, setShowManualSearch] = useState(false);
   const [cameraError, setCameraError] = useState<string | null>(null);
   const [cameraStarting, setCameraStarting] = useState(false);
+  const [availableTickets, setAvailableTickets] = useState<TicketHolder[]>([]);
+  const [selectedTicketId, setSelectedTicketId] = useState<string | null>(null);
   const scannerRef = useRef<Html5Qrcode | null>(null);
   const isScanning = useRef(false);
 
@@ -137,82 +152,145 @@ const QRScanner = () => {
     }
   };
 
-  const processTicket = async (bookingRef: string) => {
+  const processTicket = async (scannedCode: string) => {
     setProcessing(true);
     setScanning(false);
+    setAvailableTickets([]);
+    setSelectedTicketId(null);
 
     try {
-      // First, just fetch ticket info without confirming
-      const { data: orderData, error: orderError } = await supabase
-        .from('ticket_holders')
-        .select(`
-          id,
-          name,
-          phone,
-          nationality,
-          ticket_type,
-          qr_code,
-          is_present,
-          confirmed_at,
-          id_number,
-          orders!inner (
+      // Check if it's a specific ticket code (contains -TKT) or just booking reference
+      const isSpecificTicket = scannedCode.includes('-TKT');
+      
+      if (isSpecificTicket) {
+        // Process specific ticket
+        const { data: orderData, error: orderError } = await supabase
+          .from('ticket_holders')
+          .select(`
+            id,
+            name,
+            phone,
+            nationality,
+            ticket_type,
+            qr_code,
+            is_present,
+            confirmed_at,
+            id_number,
+            orders!inner (
+              booking_reference,
+              payment_status,
+              quantity,
+              customers!inner (name),
+              events!inner (title)
+            )
+          `)
+          .eq('qr_code', scannedCode)
+          .single();
+
+        if (orderError || !orderData) {
+          setScanResult('error');
+          setTicketInfo({
+            booking_reference: scannedCode,
+            customer_name: "غير موجود",
+            event_title: "-",
+            ticket_type: "-",
+            quantity: 0,
+            payment_status: "غير مؤكد",
+            is_present: false,
+          });
+          toast.error('تذكرة غير موجودة');
+          return;
+        }
+
+        const order: any = orderData.orders;
+        
+        setTicketInfo({
+          booking_reference: order.booking_reference,
+          customer_name: order.customers.name,
+          event_title: order.events.title,
+          ticket_type: orderData.ticket_type,
+          ticket_holder_name: orderData.name,
+          ticket_holder_phone: orderData.phone,
+          ticket_holder_nationality: orderData.nationality,
+          ticket_holder_id_number: orderData.id_number,
+          ticket_holder_qr_code: orderData.qr_code,
+          quantity: 1,
+          payment_status: order.payment_status,
+          is_present: orderData.is_present,
+          confirmed_at: orderData.confirmed_at,
+        });
+
+        if (orderData.is_present) {
+          setScanResult('error');
+          toast.error('تم استخدام التذكرة مسبقاً');
+        } else if (order.payment_status !== 'confirmed') {
+          setScanResult('success');
+          toast.warning('⚠️ الدفع غير مؤكد');
+        } else {
+          setScanResult('success');
+          toast.success('معلومات التذكرة - جاهز للتأكيد');
+        }
+      } else {
+        // It's a booking reference - fetch all tickets for this booking
+        const { data: orderData, error: orderError } = await supabase
+          .from('orders')
+          .select(`
+            id,
             booking_reference,
             payment_status,
             quantity,
             customers!inner (name),
             events!inner (title)
-          )
-        `)
-        .eq('qr_code', bookingRef)
-        .single();
+          `)
+          .eq('booking_reference', scannedCode)
+          .single();
 
-      if (orderError || !orderData) {
-        setScanResult('error');
+        if (orderError || !orderData) {
+          setScanResult('error');
+          setTicketInfo({
+            booking_reference: scannedCode,
+            customer_name: "غير موجود",
+            event_title: "-",
+            ticket_type: "-",
+            quantity: 0,
+            payment_status: "غير مؤكد",
+            is_present: false,
+          });
+          toast.error('حجز غير موجود');
+          return;
+        }
+
+        // Fetch all tickets for this order
+        const { data: ticketsData, error: ticketsError } = await supabase
+          .from('ticket_holders')
+          .select('*')
+          .eq('order_id', orderData.id)
+          .order('qr_code');
+
+        if (ticketsError || !ticketsData || ticketsData.length === 0) {
+          setScanResult('error');
+          toast.error('لا توجد تذاكر لهذا الحجز');
+          return;
+        }
+
+        setAvailableTickets(ticketsData);
         setTicketInfo({
-          booking_reference: bookingRef,
-          customer_name: "غير موجود",
-          event_title: "-",
-          ticket_type: "-",
-          quantity: 0,
-          payment_status: "غير مؤكد",
+          booking_reference: orderData.booking_reference,
+          customer_name: orderData.customers.name,
+          event_title: orderData.events.title,
+          ticket_type: ticketsData[0].ticket_type,
+          quantity: ticketsData.length,
+          payment_status: orderData.payment_status,
           is_present: false,
         });
-        toast.error('تذكرة غير موجودة');
-        return;
-      }
-
-      const order: any = orderData.orders;
-      
-      setTicketInfo({
-        booking_reference: order.booking_reference,
-        customer_name: order.customers.name,
-        event_title: order.events.title,
-        ticket_type: orderData.ticket_type,
-        ticket_holder_name: orderData.name,
-        ticket_holder_phone: orderData.phone,
-        ticket_holder_nationality: orderData.nationality,
-        ticket_holder_id_number: orderData.id_number,
-        quantity: 1,
-        payment_status: order.payment_status,
-        is_present: orderData.is_present,
-        confirmed_at: orderData.confirmed_at,
-      });
-
-      if (orderData.is_present) {
-        setScanResult('error');
-        toast.error('تم استخدام التذكرة مسبقاً');
-      } else if (order.payment_status !== 'confirmed') {
         setScanResult('success');
-        toast.warning('⚠️ الدفع غير مؤكد');
-      } else {
-        setScanResult('success');
-        toast.success('معلومات التذكرة - جاهز للتأكيد');
+        toast.info(`تم العثور على ${ticketsData.length} تذكرة - اختر التذكرة المراد تأكيدها`);
       }
     } catch (error) {
       console.error("Error validating ticket:", error);
       setScanResult('error');
       setTicketInfo({
-        booking_reference: bookingRef,
+        booking_reference: scannedCode,
         customer_name: "خطأ",
         event_title: "-",
         ticket_type: "-",
@@ -229,13 +307,29 @@ const QRScanner = () => {
   const handleConfirmPresence = async () => {
     if (!ticketInfo) return;
     
+    // If we have multiple tickets available, user must select one first
+    if (availableTickets.length > 0 && !selectedTicketId) {
+      toast.error('الرجاء اختيار التذكرة المراد تأكيدها');
+      return;
+    }
+    
     setProcessing(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
       
+      // Use the selected ticket's QR code, or the ticket info's QR code if it's a specific ticket
+      const qrCode = selectedTicketId 
+        ? availableTickets.find(t => t.id === selectedTicketId)?.qr_code
+        : ticketInfo.ticket_holder_qr_code;
+      
+      if (!qrCode) {
+        toast.error('خطأ: لم يتم العثور على رمز QR');
+        return;
+      }
+      
       const { data, error } = await supabase.functions.invoke('ticket-checkin', {
         body: { 
-          booking_reference: ticketInfo.booking_reference + '-TKT01',
+          booking_reference: qrCode,
           admin_id: user?.id 
         },
       });
@@ -249,7 +343,31 @@ const QRScanner = () => {
         return;
       }
 
-      setTicketInfo(response.ticket_info);
+      // Update the ticket info to show it's been confirmed
+      if (availableTickets.length > 0 && selectedTicketId) {
+        const confirmedTicket = availableTickets.find(t => t.id === selectedTicketId);
+        if (confirmedTicket) {
+          setTicketInfo({
+            ...ticketInfo,
+            ticket_holder_name: confirmedTicket.name,
+            ticket_holder_phone: confirmedTicket.phone,
+            ticket_holder_nationality: confirmedTicket.nationality,
+            ticket_holder_id_number: confirmedTicket.id_number,
+            ticket_holder_qr_code: confirmedTicket.qr_code,
+            is_present: true,
+            confirmed_at: new Date().toISOString(),
+          });
+        }
+      } else {
+        setTicketInfo({
+          ...ticketInfo,
+          is_present: true,
+          confirmed_at: new Date().toISOString(),
+        });
+      }
+      
+      setAvailableTickets([]);
+      setSelectedTicketId(null);
       setScanResult('success');
       toast.success(response.message || '✅ تم تأكيد الحضور بنجاح');
     } catch (err: any) {
@@ -282,6 +400,8 @@ const QRScanner = () => {
     setProcessing(false);
     setManualSearch("");
     setCameraError(null);
+    setAvailableTickets([]);
+    setSelectedTicketId(null);
     
     // Restart scanner
     await startScanner();
@@ -464,6 +584,54 @@ const QRScanner = () => {
               </CardTitle>
             </CardHeader>
             <CardContent>
+              {/* Ticket Selection for Booking Reference */}
+              {availableTickets.length > 0 && (
+                <div className="mb-6 p-4 bg-blue-50 dark:bg-blue-950/20 rounded-lg border-2 border-blue-300">
+                  <h3 className="font-bold text-lg mb-3 text-blue-900 dark:text-blue-100">
+                    اختر التذكرة المراد تأكيدها ({availableTickets.length} تذكرة):
+                  </h3>
+                  <div className="space-y-2">
+                    {availableTickets.map((ticket) => (
+                      <button
+                        key={ticket.id}
+                        onClick={() => setSelectedTicketId(ticket.id)}
+                        className={`w-full p-3 rounded-lg border-2 text-right transition-all ${
+                          selectedTicketId === ticket.id
+                            ? 'border-primary bg-primary/10 shadow-md'
+                            : 'border-border bg-card hover:border-primary/50'
+                        } ${
+                          ticket.is_present
+                            ? 'opacity-50 cursor-not-allowed'
+                            : 'cursor-pointer'
+                        }`}
+                        disabled={ticket.is_present}
+                      >
+                        <div className="flex justify-between items-start">
+                          <div className="flex-1">
+                            <div className="font-bold text-lg">{ticket.name}</div>
+                            <div className="text-sm text-muted-foreground font-mono">{ticket.qr_code}</div>
+                            <div className="text-sm mt-1">
+                              <span className="font-semibold">الهاتف:</span> {ticket.phone}
+                            </div>
+                            <div className="text-sm">
+                              <span className="font-semibold">النوع:</span> {ticket.ticket_type.toUpperCase()}
+                            </div>
+                          </div>
+                          <div>
+                            {ticket.is_present ? (
+                              <span className="text-green-600 font-bold text-sm">✅ حاضر</span>
+                            ) : selectedTicketId === ticket.id ? (
+                              <span className="text-primary font-bold text-sm">← مختار</span>
+                            ) : (
+                              <span className="text-muted-foreground text-sm">⭕ غير حاضر</span>
+                            )}
+                          </div>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               <div className="space-y-3">
                 <div className="flex justify-between items-center py-2 border-b">
