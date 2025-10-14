@@ -277,41 +277,44 @@ const LiveBookings = () => {
                       </div>
                     )}
 
-                    {/* Payment Status */}
-                    <div className="flex items-center gap-2">
-                      <CreditCard className="w-4 h-4 text-primary flex-shrink-0" />
-                      <Badge 
-                        variant={booking.payment_status === "confirmed" ? "default" : booking.payment_status === "failed" ? "destructive" : "secondary"}
-                        className="text-xs"
-                      >
-                        {booking.payment_status === "confirmed" ? t("confirmed") :
-                         booking.payment_status === "failed" ? t("failed") :
-                         t("pending")}
-                      </Badge>
-                    </div>
+                    {/* Payment Status and Attendance - Same Line */}
+                    <div className="flex items-center justify-between gap-2">
+                      {/* Payment Status */}
+                      <div className="flex items-center gap-2">
+                        <CreditCard className="w-4 h-4 text-primary flex-shrink-0" />
+                        <Badge 
+                          variant={booking.payment_status === "confirmed" ? "default" : booking.payment_status === "failed" ? "destructive" : "secondary"}
+                          className="text-xs"
+                        >
+                          {booking.payment_status === "confirmed" ? t("confirmed") :
+                           booking.payment_status === "failed" ? t("failed") :
+                           t("pending")}
+                        </Badge>
+                      </div>
 
-                    {/* Attendance */}
-                    <div className="flex items-center gap-2">
-                      {booking.is_present === true ? (
-                        <>
-                          <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0" />
-                          <Badge className="bg-green-500 text-xs">
-                            {t("present")}
-                          </Badge>
-                        </>
-                      ) : booking.is_present === false ? (
-                        <>
-                          <XCircle className="w-4 h-4 text-muted-foreground flex-shrink-0" />
-                          <Badge variant="secondary" className="text-xs">
-                            {t("absent")}
-                          </Badge>
-                        </>
-                      ) : (
-                        <>
-                          <XCircle className="w-4 h-4 text-muted-foreground flex-shrink-0" />
-                          <Badge variant="outline" className="text-xs">{t("notMarked")}</Badge>
-                        </>
-                      )}
+                      {/* Attendance */}
+                      <div className="flex items-center gap-2">
+                        {booking.is_present === true ? (
+                          <>
+                            <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0" />
+                            <Badge className="bg-green-500 text-xs">
+                              {t("present")}
+                            </Badge>
+                          </>
+                        ) : booking.is_present === false ? (
+                          <>
+                            <XCircle className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                            <Badge variant="secondary" className="text-xs">
+                              {t("absent")}
+                            </Badge>
+                          </>
+                        ) : (
+                          <>
+                            <XCircle className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                            <Badge variant="outline" className="text-xs">{t("notMarked")}</Badge>
+                          </>
+                        )}
+                      </div>
                     </div>
 
                     {/* Action Button */}
