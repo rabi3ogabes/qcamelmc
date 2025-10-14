@@ -341,24 +341,19 @@ const LiveBookings = () => {
 
                       {/* Attendance */}
                       <div className="flex items-center gap-2">
-                        {booking.is_present === true ? (
+                        {booking.is_present ? (
                           <>
                             <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0" />
                             <Badge className="bg-green-500 text-xs">
                               {t("present")}
                             </Badge>
                           </>
-                        ) : booking.is_present === false ? (
+                        ) : (
                           <>
                             <XCircle className="w-4 h-4 text-muted-foreground flex-shrink-0" />
                             <Badge variant="secondary" className="text-xs">
                               {t("absent")}
                             </Badge>
-                          </>
-                        ) : (
-                          <>
-                            <XCircle className="w-4 h-4 text-muted-foreground flex-shrink-0" />
-                            <Badge variant="outline" className="text-xs">غائب او حاضر</Badge>
                           </>
                         )}
                       </div>
@@ -435,18 +430,16 @@ const LiveBookings = () => {
                           </Badge>
                         </TableCell>
                         <TableCell>
-                          {booking.is_present === true ? (
+                          {booking.is_present ? (
                             <Badge className="bg-green-500">
                               <CheckCircle className="w-3 h-3 ml-1" />
                               {t("present")}
                             </Badge>
-                          ) : booking.is_present === false ? (
+                          ) : (
                             <Badge variant="secondary">
                               <XCircle className="w-3 h-3 ml-1" />
                               {t("absent")}
                             </Badge>
-                          ) : (
-                            <Badge variant="outline">غائب او حاضر</Badge>
                           )}
                         </TableCell>
                         <TableCell>
