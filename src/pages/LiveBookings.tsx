@@ -68,11 +68,47 @@ const LiveBookings = () => {
   });
 
   useEffect(() => {
-    fetchBookings();
     fetchSettings();
+    autoSelectUpcomingEvent();
     const cleanup = setupRealtimeSubscription();
     return cleanup;
+  }, []);
+
+  useEffect(() => {
+    fetchBookings();
   }, [selectedDate]);
+
+  const autoSelectUpcomingEvent = async () => {
+    try {
+      // Get current date in Qatar timezone (UTC+3)
+      const qatarDate = new Date();
+      qatarDate.setHours(qatarDate.getHours() + 3); // Convert to Qatar time
+      const todayStr = format(qatarDate, 'yyyy-MM-dd');
+      
+      // Fetch all events to find the upcoming one
+      const { data: events, error } = await supabase
+        .from("events")
+        .select("event_date")
+        .gte("event_date", todayStr)
+        .order("event_date", { ascending: true })
+        .limit(1);
+
+      if (error) throw error;
+
+      if (events && events.length > 0) {
+        // Set the selected date to the upcoming event date
+        const upcomingEventDate = new Date(events[0].event_date);
+        setSelectedDate(upcomingEventDate);
+        console.log("Auto-selected upcoming event date:", format(upcomingEventDate, 'yyyy-MM-dd'));
+      } else {
+        // No upcoming events, fetch bookings without filter
+        fetchBookings();
+      }
+    } catch (error) {
+      console.error("Error auto-selecting event:", error);
+      fetchBookings();
+    }
+  };
 
   useEffect(() => {
     const handleFullscreenChange = () => {
