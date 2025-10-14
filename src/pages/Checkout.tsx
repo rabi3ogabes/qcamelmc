@@ -498,7 +498,7 @@ const Checkout = () => {
         </div>
       </header>
 
-      <div className="max-w-6xl mx-auto py-4 sm:py-6 md:py-12 px-3 sm:px-4">
+      <div className="w-full py-4 sm:py-6 md:py-12 px-3 sm:px-4 md:px-8 lg:px-12 xl:px-16">
         <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-4 sm:mb-6 md:mb-8 text-center">{t('checkoutTitle')}</h1>
 
         <div className="grid lg:grid-cols-3 gap-4 sm:gap-6 md:gap-8">
