@@ -454,10 +454,7 @@ const LiveBookings = () => {
                     {/* Confirmed At */}
                     {holder.confirmed_at && (
                       <div className="text-xs text-muted-foreground text-center">
-                        تم التأكيد: {new Date(holder.confirmed_at).toLocaleString('ar-QA', { 
-                          dateStyle: 'short', 
-                          timeStyle: 'short' 
-                        })}
+                        تم التأكيد: {format(new Date(holder.confirmed_at), 'dd/MM/yyyy - HH:mm')}
                       </div>
                     )}
                   </div>
@@ -523,10 +520,7 @@ const LiveBookings = () => {
                         </TableCell>
                         <TableCell className="text-sm">
                           {holder.confirmed_at 
-                            ? new Date(holder.confirmed_at).toLocaleString('ar-QA', { 
-                                dateStyle: 'short', 
-                                timeStyle: 'short' 
-                              })
+                            ? format(new Date(holder.confirmed_at), 'dd/MM/yyyy - HH:mm')
                             : '-'
                           }
                         </TableCell>

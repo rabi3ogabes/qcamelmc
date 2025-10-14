@@ -11,6 +11,7 @@ import { useTranslation } from "react-i18next";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import QRCodeLib from "qrcode";
+import { format } from "date-fns";
 interface TicketHolder {
   id: string;
   name: string;
@@ -229,18 +230,10 @@ export const OrdersTab = ({
             <Calendar className="w-4 h-4 text-primary" />
             <span className="font-semibold text-primary">تاريخ الفعالية:</span>
             <span className="font-medium">
-              {new Date(order.events.event_date).toLocaleDateString('ar-QA', {
-                year: 'numeric',
-                month: 'long',
-                day: 'numeric',
-                weekday: 'long'
-              })}
+              {format(new Date(order.events.event_date), 'dd/MM/yyyy')}
             </span>
             <span className="text-muted-foreground">
-              ({new Date(order.events.event_date).toLocaleTimeString('ar-QA', {
-                hour: '2-digit',
-                minute: '2-digit'
-              })})
+              ({format(new Date(order.events.event_date), 'HH:mm')})
             </span>
           </div>
         )}
@@ -248,14 +241,7 @@ export const OrdersTab = ({
           <div className="flex items-center gap-1">
             <Calendar className="w-4 h-4" />
             <span>تاريخ الحجز: </span>
-            {new Date(order.created_at).toLocaleDateString('ar-QA', {
-              year: 'numeric',
-              month: 'short',
-              day: 'numeric'
-            })} - {new Date(order.created_at).toLocaleTimeString('ar-QA', {
-              hour: '2-digit',
-              minute: '2-digit'
-            })}
+            {format(new Date(order.created_at), 'dd/MM/yyyy - HH:mm')}
           </div>
           {order.events && (
             <div className="flex items-center gap-1">
