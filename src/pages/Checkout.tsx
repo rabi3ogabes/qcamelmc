@@ -590,81 +590,83 @@ const Checkout = () => {
               </form>
             </Card>
 
-            {/* Ticket Holders Information */}
-            <Card className="p-4 sm:p-5 md:p-6">
-              <h2 className="text-xl sm:text-2xl font-semibold mb-4 sm:mb-6">{t('ticketHolderInfo')}</h2>
-              <div className="space-y-4 sm:space-y-6">
-                {ticketHolders.map((holder, index) => {
-                  // Skip rendering the first ticket holder since info is from customer
-                  if (index === 0) return null;
-                  
-                  return (
-                    <div key={index} className="p-3 sm:p-4 border rounded-lg space-y-3 sm:space-y-4">
-                      <h3 className="font-semibold text-base sm:text-lg">
-                        {t('ticket')} #{index + 1} - {holder.ticketType.toUpperCase()}
-                      </h3>
-                      <div className="grid sm:grid-cols-2 gap-3 sm:gap-4">
-                        <div>
-                          <Label htmlFor={`holder-name-${index}`}>{t('fullName')} *</Label>
-                          <Input
-                            id={`holder-name-${index}`}
-                            value={holder.name}
-                            onChange={(e) => updateTicketHolder(index, 'name', e.target.value)}
-                            required
-                            placeholder={t('fullName')}
-                          />
-                        </div>
-                        <div>
-                          <Label htmlFor={`holder-nationality-${index}`}>{t('nationality')} *</Label>
-                          <Select
-                            value={holder.nationality}
-                            onValueChange={(value) => {
-                              const countryCode = COUNTRY_CODES[value] || "";
-                              const currentPhone = holder.phone;
-                              // Remove any existing country code from phone
-                              const phoneWithoutCode = currentPhone.replace(/^\+\d+\s*/, "");
-                              const updated = [...ticketHolders];
-                              updated[index] = { 
-                                ...updated[index], 
-                                nationality: value,
-                                phone: countryCode ? `${countryCode} ${phoneWithoutCode}` : phoneWithoutCode
-                              };
-                              setTicketHolders(updated);
-                            }}
-                            required
-                            dir="rtl"
-                          >
-                            <SelectTrigger id={`holder-nationality-${index}`}>
-                              <SelectValue placeholder={t('nationality')} />
-                            </SelectTrigger>
-                            <SelectContent align="end">
-                              {ARABIC_COUNTRIES.map((country) => (
-                                <SelectItem key={country} value={country}>
-                                  <span className="flex items-center gap-2">
-                                    <span>{COUNTRY_FLAGS[country]}</span>
-                                    <span>{country}</span>
-                                  </span>
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        <div>
-                          <Label htmlFor={`holder-idNumber-${index}`}>رقم الهوية *</Label>
-                          <Input
-                            id={`holder-idNumber-${index}`}
-                            value={holder.idNumber}
-                            onChange={(e) => updateTicketHolder(index, 'idNumber', e.target.value)}
-                            required
-                            placeholder="رقم الهوية"
-                          />
+            {/* Ticket Holders Information - Only show if more than 1 ticket */}
+            {ticketHolders.length > 1 && (
+              <Card className="p-4 sm:p-5 md:p-6">
+                <h2 className="text-xl sm:text-2xl font-semibold mb-4 sm:mb-6">تفاصيل التذاكر الإضافية</h2>
+                <div className="space-y-4 sm:space-y-6">
+                  {ticketHolders.map((holder, index) => {
+                    // Skip rendering the first ticket holder since info is from customer
+                    if (index === 0) return null;
+                    
+                    return (
+                      <div key={index} className="p-3 sm:p-4 border rounded-lg space-y-3 sm:space-y-4">
+                        <h3 className="font-semibold text-base sm:text-lg">
+                          {t('ticket')} #{index + 1} - {holder.ticketType.toUpperCase()}
+                        </h3>
+                        <div className="grid sm:grid-cols-2 gap-3 sm:gap-4">
+                          <div>
+                            <Label htmlFor={`holder-name-${index}`}>{t('fullName')} *</Label>
+                            <Input
+                              id={`holder-name-${index}`}
+                              value={holder.name}
+                              onChange={(e) => updateTicketHolder(index, 'name', e.target.value)}
+                              required
+                              placeholder={t('fullName')}
+                            />
+                          </div>
+                          <div>
+                            <Label htmlFor={`holder-nationality-${index}`}>{t('nationality')} *</Label>
+                            <Select
+                              value={holder.nationality}
+                              onValueChange={(value) => {
+                                const countryCode = COUNTRY_CODES[value] || "";
+                                const currentPhone = holder.phone;
+                                // Remove any existing country code from phone
+                                const phoneWithoutCode = currentPhone.replace(/^\+\d+\s*/, "");
+                                const updated = [...ticketHolders];
+                                updated[index] = { 
+                                  ...updated[index], 
+                                  nationality: value,
+                                  phone: countryCode ? `${countryCode} ${phoneWithoutCode}` : phoneWithoutCode
+                                };
+                                setTicketHolders(updated);
+                              }}
+                              required
+                              dir="rtl"
+                            >
+                              <SelectTrigger id={`holder-nationality-${index}`}>
+                                <SelectValue placeholder={t('nationality')} />
+                              </SelectTrigger>
+                              <SelectContent align="end">
+                                {ARABIC_COUNTRIES.map((country) => (
+                                  <SelectItem key={country} value={country}>
+                                    <span className="flex items-center gap-2">
+                                      <span>{COUNTRY_FLAGS[country]}</span>
+                                      <span>{country}</span>
+                                    </span>
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div>
+                            <Label htmlFor={`holder-idNumber-${index}`}>رقم الهوية *</Label>
+                            <Input
+                              id={`holder-idNumber-${index}`}
+                              value={holder.idNumber}
+                              onChange={(e) => updateTicketHolder(index, 'idNumber', e.target.value)}
+                              required
+                              placeholder="رقم الهوية"
+                            />
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </Card>
+                    );
+                  })}
+                </div>
+              </Card>
+            )}
 
             {/* Payment Method */}
             <Card className="p-4 sm:p-5 md:p-6">
