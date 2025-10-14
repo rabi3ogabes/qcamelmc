@@ -312,7 +312,7 @@ const LiveBookings = () => {
                     </div>
 
                     {/* Phone and ID Number - Same Line */}
-                    <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
                       <div className="flex items-center gap-2">
                         <Phone className="w-4 h-4 text-primary flex-shrink-0" />
                         <span className="text-sm truncate">{booking.customers.phone}</span>
