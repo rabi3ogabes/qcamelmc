@@ -49,6 +49,37 @@ const TicketViewer = () => {
     }
   }, [bookingRef]);
 
+  // Real-time subscription for ticket holders updates
+  useEffect(() => {
+    const channel = supabase
+      .channel('ticket-holders-viewer')
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'ticket_holders'
+        },
+        (payload) => {
+          console.log('Ticket holder updated in viewer:', payload);
+          
+          // Update the specific ticket holder in the list
+          setTicketHolders((current) =>
+            current.map((holder) =>
+              holder.id === payload.new.id
+                ? { ...holder, ...payload.new }
+                : holder
+            )
+          );
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
+
   const fetchTickets = async () => {
     try {
       setLoading(true);
