@@ -35,6 +35,30 @@ const ARABIC_COUNTRIES = [
   "فلسطين"
 ];
 
+const COUNTRY_FLAGS: Record<string, string> = {
+  "السعودية": "🇸🇦",
+  "الإمارات": "🇦🇪",
+  "قطر": "🇶🇦",
+  "الكويت": "🇰🇼",
+  "البحرين": "🇧🇭",
+  "عمان": "🇴🇲",
+  "مصر": "🇪🇬",
+  "الأردن": "🇯🇴",
+  "لبنان": "🇱🇧",
+  "العراق": "🇮🇶",
+  "سوريا": "🇸🇾",
+  "اليمن": "🇾🇪",
+  "ليبيا": "🇱🇾",
+  "السودان": "🇸🇩",
+  "الجزائر": "🇩🇿",
+  "المغرب": "🇲🇦",
+  "تونس": "🇹🇳",
+  "موريتانيا": "🇲🇷",
+  "الصومال": "🇸🇴",
+  "جيبوتي": "🇩🇯",
+  "فلسطين": "🇵🇸"
+};
+
 const COUNTRY_CODES: Record<string, string> = {
   "السعودية": "+966",
   "الإمارات": "+971",
@@ -508,10 +532,13 @@ const Checkout = () => {
                     <SelectTrigger id="nationality">
                       <SelectValue placeholder={t('nationality')} />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent align="end">
                       {ARABIC_COUNTRIES.map((country) => (
                         <SelectItem key={country} value={country}>
-                          {country}
+                          <span className="flex items-center gap-2">
+                            <span>{COUNTRY_FLAGS[country]}</span>
+                            <span>{country}</span>
+                          </span>
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -527,10 +554,13 @@ const Checkout = () => {
                       <SelectTrigger className="w-[90px] sm:w-[110px] md:w-[120px]">
                         <SelectValue />
                       </SelectTrigger>
-                      <SelectContent>
+                      <SelectContent align="end">
                         {ARABIC_COUNTRIES.map((country) => (
                           <SelectItem key={country} value={COUNTRY_CODES[country]}>
-                            {COUNTRY_CODES[country]}
+                            <span className="flex items-center gap-2">
+                              <span>{COUNTRY_FLAGS[country]}</span>
+                              <span>{COUNTRY_CODES[country]}</span>
+                            </span>
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -604,10 +634,13 @@ const Checkout = () => {
                             <SelectTrigger id={`holder-nationality-${index}`}>
                               <SelectValue placeholder={t('nationality')} />
                             </SelectTrigger>
-                            <SelectContent>
+                            <SelectContent align="end">
                               {ARABIC_COUNTRIES.map((country) => (
                                 <SelectItem key={country} value={country}>
-                                  {country}
+                                  <span className="flex items-center gap-2">
+                                    <span>{COUNTRY_FLAGS[country]}</span>
+                                    <span>{country}</span>
+                                  </span>
                                 </SelectItem>
                               ))}
                             </SelectContent>
