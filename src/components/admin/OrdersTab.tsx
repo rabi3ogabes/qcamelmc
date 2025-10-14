@@ -17,7 +17,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { CheckCircle, MapPin, Calendar, Eye, QrCode, Loader2 } from "lucide-react";
+import { CheckCircle, MapPin, Calendar, Eye, QrCode, Loader2, XCircle } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -30,6 +30,7 @@ interface TicketHolder {
   nationality: string;
   ticket_type: string;
   qr_code: string | null;
+  is_present: boolean | null;
 }
 
 interface Order {
@@ -333,19 +334,32 @@ export const OrdersTab = ({ orders, onRefresh }: OrdersTabProps) => {
                         </Badge>
                       </TableCell>
                       <TableCell>
-                        {holder.qr_code ? (
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => setSelectedHolder(holder)}
-                            className="h-8 w-8 p-0"
-                            title="View QR Code"
-                          >
-                            <QrCode className="h-5 w-5" />
-                          </Button>
-                        ) : (
-                          <span className="text-xs text-muted-foreground">No QR</span>
-                        )}
+                        <div className="flex items-center gap-2">
+                          {holder.qr_code ? (
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => setSelectedHolder(holder)}
+                              className="h-8 w-8 p-0"
+                              title="View QR Code"
+                            >
+                              <QrCode className="h-5 w-5" />
+                            </Button>
+                          ) : (
+                            <span className="text-xs text-muted-foreground">No QR</span>
+                          )}
+                          {holder.is_present ? (
+                            <div className="flex items-center gap-1 text-green-600">
+                              <CheckCircle className="w-4 h-4" />
+                              <span className="text-xs font-medium">حاضر</span>
+                            </div>
+                          ) : (
+                            <div className="flex items-center gap-1 text-muted-foreground">
+                              <XCircle className="w-4 h-4" />
+                              <span className="text-xs">غائب</span>
+                            </div>
+                          )}
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}
