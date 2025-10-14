@@ -670,25 +670,25 @@ const Checkout = () => {
             <Card className="p-4 sm:p-5 md:p-6">
               <h3 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4">{t('selectPaymentMethod')}</h3>
               <RadioGroup value={paymentMethod} onValueChange={(value: any) => setPaymentMethod(value)} className="space-y-3">
-                <div className="flex items-center space-x-2 space-x-reverse p-3 sm:p-4 border rounded-lg hover:bg-accent cursor-pointer">
-                  <RadioGroupItem value="sadad" id="sadad" />
-                  <Label htmlFor="sadad" className="flex items-center gap-2 cursor-pointer flex-1">
-                    <CreditCard className="w-4 h-4 sm:w-5 sm:h-5 text-primary flex-shrink-0" />
-                    <div>
+                <div className="flex items-center gap-3 p-3 sm:p-4 border rounded-lg hover:bg-accent cursor-pointer flex-row-reverse justify-between">
+                  <Label htmlFor="sadad" className="flex items-center gap-2 cursor-pointer flex-1 flex-row-reverse justify-end">
+                    <div className="text-right">
                       <div className="font-medium text-sm sm:text-base">{t('sadadOnline')}</div>
                       <div className="text-xs sm:text-sm text-muted-foreground">{t('sadadOnline')}</div>
                     </div>
+                    <CreditCard className="w-4 h-4 sm:w-5 sm:h-5 text-primary flex-shrink-0" />
                   </Label>
+                  <RadioGroupItem value="sadad" id="sadad" />
                 </div>
-                <div className="flex items-center space-x-2 space-x-reverse p-3 sm:p-4 border rounded-lg hover:bg-accent cursor-pointer">
-                  <RadioGroupItem value="cash_pos" id="cash_pos" />
-                  <Label htmlFor="cash_pos" className="flex items-center gap-2 cursor-pointer flex-1">
-                    <Banknote className="w-4 h-4 sm:w-5 sm:h-5 text-secondary flex-shrink-0" />
-                    <div>
+                <div className="flex items-center gap-3 p-3 sm:p-4 border rounded-lg hover:bg-accent cursor-pointer flex-row-reverse justify-between">
+                  <Label htmlFor="cash_pos" className="flex items-center gap-2 cursor-pointer flex-1 flex-row-reverse justify-end">
+                    <div className="text-right">
                       <div className="font-medium text-sm sm:text-base">{t('cashAtVenue')}</div>
                       <div className="text-xs sm:text-sm text-muted-foreground">{t('cashAtVenue')}</div>
                     </div>
+                    <Banknote className="w-4 h-4 sm:w-5 sm:h-5 text-secondary flex-shrink-0" />
                   </Label>
+                  <RadioGroupItem value="cash_pos" id="cash_pos" />
                 </div>
               </RadioGroup>
             </Card>
