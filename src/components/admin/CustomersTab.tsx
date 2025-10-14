@@ -517,6 +517,10 @@ export const CustomersTab = () => {
               })) || []
             );
 
+            // Separate main ticket (first) from secondary tickets (rest)
+            const mainTicket = allTickets[0];
+            const secondaryTickets = allTickets.slice(1);
+
             return (
               <Card
                 key={customer.id}
@@ -538,15 +542,45 @@ export const CustomersTab = () => {
                     </div>
                   </div>
 
-                  {/* Tickets List */}
-                  {allTickets.length > 0 && (
-                    <div className="bg-muted/30 rounded-lg p-3 space-y-2">
+                  {/* Main Ticket */}
+                  {mainTicket && (
+                    <div className="bg-primary/5 rounded-lg p-3 border border-primary/20">
                       <div className="flex items-center gap-2 mb-2">
                         <Ticket className="w-4 h-4 text-primary" />
-                        <span className="text-xs font-semibold font-lusail">التذاكر:</span>
+                        <span className="text-xs font-semibold font-lusail">التذكرة الرئيسية:</span>
+                      </div>
+                      <div className="bg-background border border-border/50 rounded-lg p-3 text-right shadow-sm">
+                        <div className="flex flex-col gap-2">
+                          <div className="flex items-center justify-between">
+                            <Badge variant="outline" className="text-xs">
+                              {mainTicket.ticketType.toUpperCase()}
+                            </Badge>
+                            <span className="text-xs font-medium font-lusail">
+                              {mainTicket.name}
+                            </span>
+                          </div>
+                          <div className="flex items-center justify-end gap-1 text-xs text-muted-foreground">
+                            <span className="font-lusail">{mainTicket.phone}</span>
+                            <Phone className="w-3 h-3" />
+                          </div>
+                          <div className="flex items-center justify-end gap-1 text-xs text-muted-foreground">
+                            <span className="font-lusail">{mainTicket.nationality}</span>
+                            <User className="w-3 h-3" />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Secondary Tickets */}
+                  {secondaryTickets.length > 0 && (
+                    <div className="bg-muted/30 rounded-lg p-3 space-y-2">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Ticket className="w-4 h-4 text-muted-foreground" />
+                        <span className="text-xs font-semibold font-lusail">التذاكر الإضافية:</span>
                       </div>
                       <div className="space-y-2 max-h-40 overflow-y-auto">
-                        {allTickets.map((ticket, idx) => (
+                        {secondaryTickets.map((ticket, idx) => (
                           <div
                             key={idx}
                             className="bg-background border border-border/50 rounded-lg p-3 text-right shadow-sm"
