@@ -414,6 +414,27 @@ const TicketViewer = () => {
     );
   }
 
+  const regenerateQRCodes = async () => {
+    if (!bookingRef) return;
+    
+    setLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('regenerate-booking-qr-codes', {
+        body: { booking_reference: bookingRef }
+      });
+
+      if (error) throw error;
+
+      toast.success(`تم إعادة إنشاء ${data.updated} رمز QR بنجاح`);
+      await fetchTickets(); // Reload the tickets
+    } catch (error) {
+      console.error('Error regenerating QR codes:', error);
+      toast.error('فشل إعادة إنشاء رموز QR');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background py-8 px-4 font-lusail" dir="rtl">
       <div className="max-w-6xl mx-auto">
@@ -427,7 +448,18 @@ const TicketViewer = () => {
             <ArrowLeft className="w-4 h-4" />
             رجوع
           </Button>
-          <h1 className="text-3xl font-bold">عرض وطباعة التذاكر</h1>
+          <div className="flex items-center gap-4">
+            <Button
+              variant="outline"
+              onClick={regenerateQRCodes}
+              disabled={loading}
+              className="gap-2"
+            >
+              <QrCodeIcon className="w-4 h-4" />
+              إعادة إنشاء جميع رموز QR
+            </Button>
+            <h1 className="text-3xl font-bold">عرض وطباعة التذاكر</h1>
+          </div>
         </div>
 
         {/* Order Summary */}
