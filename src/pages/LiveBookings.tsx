@@ -196,7 +196,27 @@ const LiveBookings = () => {
               <h1 className="text-2xl font-bold">{t("liveBookings")}</h1>
             )}
           </div>
-          <div className="flex gap-2">
+          <div className="flex items-center gap-4">
+            <div className="flex gap-2">
+              <Button
+                variant={viewType === "cards" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setViewType("cards")}
+                className="font-lusail"
+              >
+                <LayoutGrid className="w-4 h-4 ml-2" />
+                عرض البطاقات
+              </Button>
+              <Button
+                variant={viewType === "table" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setViewType("table")}
+                className="font-lusail"
+              >
+                <TableIcon className="w-4 h-4 ml-2" />
+                عرض الجدول
+              </Button>
+            </div>
             <Button
               variant="ghost"
               size="icon"
@@ -208,24 +228,6 @@ const LiveBookings = () => {
               ) : (
                 <Maximize className="w-5 h-5" />
               )}
-            </Button>
-            <Button
-              variant={viewType === "cards" ? "default" : "outline"}
-              size="sm"
-              onClick={() => setViewType("cards")}
-              className="font-lusail"
-            >
-              <LayoutGrid className="w-4 h-4 ml-2" />
-              عرض البطاقات
-            </Button>
-            <Button
-              variant={viewType === "table" ? "default" : "outline"}
-              size="sm"
-              onClick={() => setViewType("table")}
-              className="font-lusail"
-            >
-              <TableIcon className="w-4 h-4 ml-2" />
-              عرض الجدول
             </Button>
           </div>
         </div>
