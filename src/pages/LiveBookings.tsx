@@ -48,7 +48,8 @@ const LiveBookings = () => {
 
   useEffect(() => {
     fetchBookings();
-    setupRealtimeSubscription();
+    const cleanup = setupRealtimeSubscription();
+    return cleanup;
   }, [selectedDate]);
 
   const fetchBookings = async () => {
