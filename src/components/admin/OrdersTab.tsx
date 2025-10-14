@@ -34,6 +34,11 @@ interface Order {
     email: string;
     phone: string;
   };
+  events?: {
+    title: string;
+    event_date: string;
+    location: string;
+  };
 }
 interface OrdersTabProps {
   orders: Order[];
@@ -218,23 +223,46 @@ export const OrdersTab = ({
         </div>
       </div>
       
-      <div className="mt-4 pt-4 border-t flex items-center gap-4 text-sm text-muted-foreground">
-        <div className="flex items-center gap-1">
-          <Calendar className="w-4 h-4" />
-          {new Date(order.created_at).toLocaleDateString('en-US', {
-          year: 'numeric',
-          month: 'short',
-          day: 'numeric',
-          timeZone: 'Asia/Qatar'
-        })} - {new Date(order.created_at).toLocaleTimeString('en-US', {
-          hour: '2-digit',
-          minute: '2-digit',
-          timeZone: 'Asia/Qatar'
-        })} (Qatar Time)
-        </div>
-        <div className="flex items-center gap-1">
-          <MapPin className="w-4 h-4" />
-          <span>قطر</span>
+      <div className="mt-4 pt-4 border-t space-y-2">
+        {order.events && (
+          <div className="flex items-center gap-2 text-sm">
+            <Calendar className="w-4 h-4 text-primary" />
+            <span className="font-semibold text-primary">تاريخ الفعالية:</span>
+            <span className="font-medium">
+              {new Date(order.events.event_date).toLocaleDateString('ar-QA', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric',
+                weekday: 'long'
+              })}
+            </span>
+            <span className="text-muted-foreground">
+              ({new Date(order.events.event_date).toLocaleTimeString('ar-QA', {
+                hour: '2-digit',
+                minute: '2-digit'
+              })})
+            </span>
+          </div>
+        )}
+        <div className="flex items-center gap-4 text-sm text-muted-foreground">
+          <div className="flex items-center gap-1">
+            <Calendar className="w-4 h-4" />
+            <span>تاريخ الحجز: </span>
+            {new Date(order.created_at).toLocaleDateString('ar-QA', {
+              year: 'numeric',
+              month: 'short',
+              day: 'numeric'
+            })} - {new Date(order.created_at).toLocaleTimeString('ar-QA', {
+              hour: '2-digit',
+              minute: '2-digit'
+            })}
+          </div>
+          {order.events && (
+            <div className="flex items-center gap-1">
+              <MapPin className="w-4 h-4" />
+              <span>{order.events.location}</span>
+            </div>
+          )}
         </div>
       </div>
     </Card>;
