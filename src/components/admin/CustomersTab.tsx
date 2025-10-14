@@ -610,7 +610,7 @@ export const CustomersTab = () => {
                   )}
 
                   {/* Action Buttons */}
-                  <div className="flex gap-2 mt-auto pt-3">
+                  <div className="flex gap-2 mt-auto pt-4 border-t border-border/30">
                     <Button
                       size="sm"
                       variant="outline"
