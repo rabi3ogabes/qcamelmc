@@ -28,6 +28,14 @@ interface CartItem {
   eventId: string;
 }
 
+interface TicketHolderInput {
+  name: string;
+  nationality: string;
+  idNumber: string;
+  phone: string;
+  ticketType: string;
+}
+
 const AdminPOS = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -43,7 +51,9 @@ const AdminPOS = () => {
   const [customerEmail, setCustomerEmail] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
   const [customerNationality, setCustomerNationality] = useState("");
+  const [customerIdNumber, setCustomerIdNumber] = useState("");
   const [showAllNationalities, setShowAllNationalities] = useState(false);
+  const [ticketHolders, setTicketHolders] = useState<TicketHolderInput[]>([]);
 
   useEffect(() => {
     fetchTickets();
@@ -345,7 +355,7 @@ const AdminPOS = () => {
               <h1 className="text-2xl font-bold">نقاط البيع</h1>
             )}
           </button>
-          <h2 className="text-xl font-semibold">بيع تذكرة</h2>
+          <h2 className="text-xl font-semibold bg-yellow-400 px-4 py-2 rounded">بيع تذكرة</h2>
         </div>
       </header>
 
