@@ -504,55 +504,95 @@ export const CustomersTab = () => {
           <p className="text-muted-foreground font-lusail">لا يوجد عملاء مع حجوزات</p>
         </Card>
       ) : (
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-          {filteredCustomers.map((customer) => (
-            <Card
-              key={customer.id}
-              className="p-4 hover:shadow-lg transition-shadow cursor-pointer"
-              onClick={() => setSelectedCustomer(customer)}
-            >
-              <div className="flex flex-col items-center text-center space-y-3 relative">
-                <Button
-                  size="icon"
-                  variant="ghost"
-                  onClick={(e) => handleDeleteCustomer(customer.id, e)}
-                  className="absolute top-0 right-0 h-7 w-7 text-destructive hover:text-destructive hover:bg-destructive/10"
-                  title="حذف العميل وجميع حجوزاته"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </Button>
-                <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
-                  <User className="w-8 h-8 text-primary" />
-                </div>
-                <div>
-                  <h3 className="font-bold font-lusail text-sm">{customer.name}</h3>
-                  <p className="text-xs text-muted-foreground font-lusail mt-1">
-                    {customer.phone}
-                  </p>
-                </div>
-                <Badge variant="secondary" className="font-lusail text-xs">
-                  {customer.orders.length} {customer.orders.length === 1 ? "حجز" : "حجوزات"}
-                </Badge>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={(e) => sendTicketToWhatsApp(customer, e)}
-                  disabled={sendingTicket === customer.id}
-                  className="w-full"
-                  title="إرسال التذكرة عبر n8n"
-                >
-                  {sendingTicket === customer.id ? (
-                    <span className="animate-spin">⏳</span>
-                  ) : (
-                    <>
-                      <Ticket className="w-3.5 h-3.5 ml-1" />
-                      <span className="text-xs">إرسال التذكرة</span>
-                    </>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          {filteredCustomers.map((customer) => {
+            // Collect all ticket holders from all orders
+            const allTickets = customer.orders.flatMap(order => 
+              order.ticket_holders?.map(holder => ({
+                name: holder.name,
+                ticketType: holder.ticket_type,
+                orderRef: order.booking_reference
+              })) || []
+            );
+
+            return (
+              <Card
+                key={customer.id}
+                className="p-4 hover:shadow-lg transition-shadow cursor-pointer"
+                onClick={() => setSelectedCustomer(customer)}
+              >
+                <div className="flex flex-col space-y-3 relative">
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    onClick={(e) => handleDeleteCustomer(customer.id, e)}
+                    className="absolute top-0 left-0 h-7 w-7 text-destructive hover:text-destructive hover:bg-destructive/10 z-10"
+                    title="حذف العميل وجميع حجوزاته"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
+                  
+                  {/* Customer Header */}
+                  <div className="flex items-center gap-3 pr-8">
+                    <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                      <User className="w-6 h-6 text-primary" />
+                    </div>
+                    <div className="flex-1 text-right">
+                      <h3 className="font-bold font-lusail text-sm">{customer.name}</h3>
+                      <p className="text-xs text-muted-foreground font-lusail">
+                        {customer.phone}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Tickets List */}
+                  {allTickets.length > 0 && (
+                    <div className="bg-muted/30 rounded-lg p-3 space-y-2">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Ticket className="w-4 h-4 text-primary" />
+                        <span className="text-xs font-semibold font-lusail">التذاكر:</span>
+                      </div>
+                      <div className="space-y-2 max-h-40 overflow-y-auto">
+                        {allTickets.map((ticket, idx) => (
+                          <div
+                            key={idx}
+                            className="bg-background/50 rounded p-2 text-right"
+                          >
+                            <div className="flex items-center justify-between gap-2">
+                              <Badge variant="outline" className="text-xs flex-shrink-0">
+                                {ticket.ticketType.toUpperCase()}
+                              </Badge>
+                              <span className="text-xs font-medium font-lusail truncate">
+                                {ticket.name}
+                              </span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
                   )}
-                </Button>
-              </div>
-            </Card>
-          ))}
+
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={(e) => sendTicketToWhatsApp(customer, e)}
+                    disabled={sendingTicket === customer.id}
+                    className="w-full"
+                    title="إرسال التذكرة عبر n8n"
+                  >
+                    {sendingTicket === customer.id ? (
+                      <span className="animate-spin">⏳</span>
+                    ) : (
+                      <>
+                        <Ticket className="w-3.5 h-3.5 ml-1" />
+                        <span className="text-xs">إرسال التذكرة</span>
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </Card>
+            );
+          })}
         </div>
       )}
 
