@@ -3,26 +3,13 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { CheckCircle, MapPin, Calendar, Eye, QrCode, Loader2, XCircle } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import QRCodeLib from "qrcode";
-
 interface TicketHolder {
   id: string;
   name: string;
@@ -32,7 +19,6 @@ interface TicketHolder {
   qr_code: string | null;
   is_present: boolean | null;
 }
-
 interface Order {
   id: string;
   booking_reference: string;
@@ -42,20 +28,23 @@ interface Order {
   quantity: number;
   total_amount: number;
   created_at: string;
-  customers: { 
-    name: string; 
-    email: string; 
+  customers: {
+    name: string;
+    email: string;
     phone: string;
   };
 }
-
 interface OrdersTabProps {
   orders: Order[];
   onRefresh: () => void;
 }
-
-export const OrdersTab = ({ orders, onRefresh }: OrdersTabProps) => {
-  const { t } = useTranslation();
+export const OrdersTab = ({
+  orders,
+  onRefresh
+}: OrdersTabProps) => {
+  const {
+    t
+  } = useTranslation();
   const [activeTab, setActiveTab] = useState("all");
   const [selectedOrder, setSelectedOrder] = useState<string | null>(null);
   const [ticketHolders, setTicketHolders] = useState<TicketHolder[]>([]);
@@ -75,25 +64,23 @@ export const OrdersTab = ({ orders, onRefresh }: OrdersTabProps) => {
           width: 800,
           margin: 2,
           errorCorrectionLevel: 'H'
-        })
-          .then(url => setQrCodeImage(url))
-          .catch(err => {
-            console.error('Error generating QR code:', err);
-            toast.error('Failed to generate QR code');
-          });
+        }).then(url => setQrCodeImage(url)).catch(err => {
+          console.error('Error generating QR code:', err);
+          toast.error('Failed to generate QR code');
+        });
       }
     } else {
       setQrCodeImage(null);
     }
   }, [selectedHolder]);
-
   const generateMissingQrCodes = async () => {
     setGeneratingQrCodes(true);
     try {
-      const { data, error } = await supabase.functions.invoke('backfill-qr-codes');
-      
+      const {
+        data,
+        error
+      } = await supabase.functions.invoke('backfill-qr-codes');
       if (error) throw error;
-      
       toast.success(`${data.updated} QR codes generated successfully!`);
       onRefresh();
     } catch (error) {
@@ -103,15 +90,13 @@ export const OrdersTab = ({ orders, onRefresh }: OrdersTabProps) => {
       setGeneratingQrCodes(false);
     }
   };
-
   const viewOrderDetails = async (orderId: string) => {
     setSelectedOrder(orderId);
     try {
-      const { data, error } = await supabase
-        .from("ticket_holders")
-        .select("*")
-        .eq("order_id", orderId);
-
+      const {
+        data,
+        error
+      } = await supabase.from("ticket_holders").select("*").eq("order_id", orderId);
       if (error) throw error;
       console.log("Ticket holders data:", data);
       setTicketHolders(data || []);
@@ -120,14 +105,13 @@ export const OrdersTab = ({ orders, onRefresh }: OrdersTabProps) => {
       toast.error(t("failedToLoad"));
     }
   };
-
   const confirmPayment = async (orderId: string) => {
     try {
-      const { error } = await supabase
-        .from("orders")
-        .update({ payment_status: "confirmed" })
-        .eq("id", orderId);
-
+      const {
+        error
+      } = await supabase.from("orders").update({
+        payment_status: "confirmed"
+      }).eq("id", orderId);
       if (error) throw error;
       toast.success(t("paymentConfirmed"));
       onRefresh();
@@ -135,7 +119,6 @@ export const OrdersTab = ({ orders, onRefresh }: OrdersTabProps) => {
       toast.error(t("failedToLoad"));
     }
   };
-
   const filterOrders = (status: string) => {
     if (status === "all") return orders;
     if (status === "success") return orders.filter(o => o.payment_status === "confirmed");
@@ -143,9 +126,11 @@ export const OrdersTab = ({ orders, onRefresh }: OrdersTabProps) => {
     if (status === "pending") return orders.filter(o => o.payment_status === "pending");
     return orders;
   };
-
-  const OrderCard = ({ order }: { order: Order }) => (
-    <Card className="p-6 hover:shadow-lg transition-shadow">
+  const OrderCard = ({
+    order
+  }: {
+    order: Order;
+  }) => <Card className="p-6 hover:shadow-lg transition-shadow">
       <div className="grid md:grid-cols-6 gap-4 items-center">
         <div>
           <p className="text-sm text-muted-foreground mb-1">{t("reference")}</p>
@@ -162,9 +147,7 @@ export const OrdersTab = ({ orders, onRefresh }: OrdersTabProps) => {
         <div>
           <p className="text-sm text-muted-foreground mb-1">{t("ticket")}</p>
           <p className="font-semibold capitalize">
-            {order.ticket_type === "vip" ? t("vipAccess") : 
-             order.ticket_type === "normal" ? t("generalAdmission") : 
-             t("parking")} × {order.quantity}
+            {order.ticket_type === "vip" ? t("vipAccess") : order.ticket_type === "normal" ? t("generalAdmission") : t("parking")} × {order.quantity}
           </p>
           <p className="text-sm font-semibold text-primary">{order.total_amount.toFixed(2)} {t("qar")}</p>
         </div>
@@ -176,36 +159,20 @@ export const OrdersTab = ({ orders, onRefresh }: OrdersTabProps) => {
         
         <div>
           <p className="text-sm text-muted-foreground mb-1">{t("status")}</p>
-          <Badge 
-            variant={
-              order.payment_status === "confirmed" ? "default" : 
-              order.payment_status === "failed" ? "destructive" : 
-              "secondary"
-            }
-            className="font-lusail"
-          >
-            {order.payment_status === "confirmed" ? t("confirmed") :
-             order.payment_status === "failed" ? t("failed") :
-             t("pending")}
+          <Badge variant={order.payment_status === "confirmed" ? "default" : order.payment_status === "failed" ? "destructive" : "secondary"} className="font-lusail">
+            {order.payment_status === "confirmed" ? t("confirmed") : order.payment_status === "failed" ? t("failed") : t("pending")}
           </Badge>
         </div>
         
         <div className="flex flex-col gap-2">
-          <Button 
-            size="sm" 
-            variant="outline" 
-            onClick={() => viewOrderDetails(order.id)} 
-            className="font-lusail flex items-center justify-center gap-2"
-          >
+          <Button size="sm" variant="outline" onClick={() => viewOrderDetails(order.id)} className="font-lusail flex items-center justify-center gap-2">
             {t("viewDetails")}
             <Eye className="w-4 h-4" />
           </Button>
-          {order.payment_status === "pending" && (
-            <Button size="sm" onClick={() => confirmPayment(order.id)} className="font-lusail flex items-center justify-center gap-2">
+          {order.payment_status === "pending" && <Button size="sm" onClick={() => confirmPayment(order.id)} className="font-lusail flex items-center justify-center gap-2">
               {t("confirmPayment")}
               <CheckCircle className="w-4 h-4" />
-            </Button>
-          )}
+            </Button>}
         </div>
       </div>
       
@@ -213,52 +180,40 @@ export const OrdersTab = ({ orders, onRefresh }: OrdersTabProps) => {
         <div className="flex items-center gap-1">
           <Calendar className="w-4 h-4" />
           {new Date(order.created_at).toLocaleDateString('en-US', {
-            year: 'numeric',
-            month: 'short',
-            day: 'numeric',
-            timeZone: 'Asia/Qatar'
-          })} - {new Date(order.created_at).toLocaleTimeString('en-US', {
-            hour: '2-digit',
-            minute: '2-digit',
-            timeZone: 'Asia/Qatar'
-          })} (Qatar Time)
+          year: 'numeric',
+          month: 'short',
+          day: 'numeric',
+          timeZone: 'Asia/Qatar'
+        })} - {new Date(order.created_at).toLocaleTimeString('en-US', {
+          hour: '2-digit',
+          minute: '2-digit',
+          timeZone: 'Asia/Qatar'
+        })} (Qatar Time)
         </div>
         <div className="flex items-center gap-1">
           <MapPin className="w-4 h-4" />
           <span>قطر</span>
         </div>
       </div>
-    </Card>
-  );
-
+    </Card>;
   const filteredOrders = filterOrders(activeTab);
   const stats = {
     total: orders.length,
     success: orders.filter(o => o.payment_status === "confirmed").length,
     failed: orders.filter(o => o.payment_status === "failed").length,
-    pending: orders.filter(o => o.payment_status === "pending").length,
+    pending: orders.filter(o => o.payment_status === "pending").length
   };
-
-  return (
-    <div className="space-y-6">
+  return <div className="space-y-6">
       {/* Generate QR Codes Button */}
       <div className="flex justify-end">
-        <Button 
-          onClick={generateMissingQrCodes} 
-          disabled={generatingQrCodes}
-          className="font-lusail"
-        >
-          {generatingQrCodes ? (
-            <>
+        <Button onClick={generateMissingQrCodes} disabled={generatingQrCodes} className="font-lusail">
+          {generatingQrCodes ? <>
               <Loader2 className="w-4 h-4 mr-2 animate-spin" />
               Generating QR Codes...
-            </>
-          ) : (
-            <>
+            </> : <>
               <QrCode className="w-4 h-4 mr-2" />
               Generate Missing QR Codes
-            </>
-          )}
+            </>}
         </Button>
       </div>
 
@@ -292,13 +247,9 @@ export const OrdersTab = ({ orders, onRefresh }: OrdersTabProps) => {
         </TabsList>
         
         <TabsContent value={activeTab} className="space-y-4 mt-6">
-          {filteredOrders.length === 0 ? (
-            <Card className="p-12 text-center">
+          {filteredOrders.length === 0 ? <Card className="p-12 text-center">
               <p className="text-muted-foreground font-lusail">{t("noOrders")}</p>
-            </Card>
-          ) : (
-            filteredOrders.map((order) => <OrderCard key={order.id} order={order} />)
-          )}
+            </Card> : filteredOrders.map(order => <OrderCard key={order.id} order={order} />)}
         </TabsContent>
       </Tabs>
 
@@ -309,8 +260,7 @@ export const OrdersTab = ({ orders, onRefresh }: OrdersTabProps) => {
             <DialogTitle className="font-lusail text-2xl">{t("ticketHoldersTitle")}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
-            {ticketHolders.length > 0 ? (
-              <Table>
+            {ticketHolders.length > 0 ? <Table>
                 <TableHeader>
                   <TableRow>
                     <TableHead className="text-right font-lusail">#</TableHead>
@@ -322,8 +272,7 @@ export const OrdersTab = ({ orders, onRefresh }: OrdersTabProps) => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {ticketHolders.map((holder, index) => (
-                    <TableRow key={holder.id}>
+                  {ticketHolders.map((holder, index) => <TableRow key={holder.id}>
                       <TableCell className="font-medium">{index + 1}</TableCell>
                       <TableCell className="font-medium">{holder.name}</TableCell>
                       <TableCell>{holder.phone}</TableCell>
@@ -335,41 +284,23 @@ export const OrdersTab = ({ orders, onRefresh }: OrdersTabProps) => {
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-2">
-                          {holder.qr_code ? (
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              onClick={() => setSelectedHolder(holder)}
-                              className="h-8 w-8 p-0"
-                              title="View QR Code"
-                            >
+                          {holder.qr_code ? <Button size="sm" variant="ghost" onClick={() => setSelectedHolder(holder)} className="h-8 w-8 p-0" title="View QR Code">
                               <QrCode className="h-5 w-5" />
-                            </Button>
-                          ) : (
-                            <span className="text-xs text-muted-foreground">No QR</span>
-                          )}
-                          {holder.is_present ? (
-                            <div className="flex items-center gap-1 text-green-600">
+                            </Button> : <span className="text-xs text-muted-foreground">No QR</span>}
+                          {holder.is_present ? <div className="flex items-center gap-1 text-green-600">
                               <CheckCircle className="w-4 h-4" />
                               <span className="text-xs font-medium">حاضر</span>
-                            </div>
-                          ) : (
-                            <div className="flex items-center gap-1 text-muted-foreground">
+                            </div> : <div className="flex items-center gap-1 text-muted-foreground">
                               <XCircle className="w-4 h-4" />
-                              <span className="text-xs">غائب</span>
-                            </div>
-                          )}
+                              <span className="text-xs">this غائب</span>
+                            </div>}
                         </div>
                       </TableCell>
-                    </TableRow>
-                  ))}
+                    </TableRow>)}
                 </TableBody>
-              </Table>
-            ) : (
-              <p className="text-center text-muted-foreground py-8 font-lusail">
+              </Table> : <p className="text-center text-muted-foreground py-8 font-lusail">
                 {t("noTicketHolders")}
-              </p>
-            )}
+              </p>}
           </div>
         </DialogContent>
       </Dialog>
@@ -381,27 +312,18 @@ export const OrdersTab = ({ orders, onRefresh }: OrdersTabProps) => {
             <DialogTitle className="font-lusail text-2xl">QR Code</DialogTitle>
           </DialogHeader>
           <div className="flex flex-col items-center justify-center p-4 gap-4">
-            {qrCodeImage ? (
-              <>
-                <img 
-                  src={qrCodeImage} 
-                  alt="Ticket QR Code" 
-                  className="w-[800px] h-[800px] object-contain"
-                />
+            {qrCodeImage ? <>
+                <img src={qrCodeImage} alt="Ticket QR Code" className="w-[800px] h-[800px] object-contain" />
                 <div className="text-center">
                   <p className="text-2xl font-bold font-lusail">{selectedHolder?.name}</p>
                   <p className="text-lg text-muted-foreground">{selectedHolder?.phone}</p>
                   <p className="text-sm text-muted-foreground capitalize">{selectedHolder?.ticket_type}</p>
                 </div>
-              </>
-            ) : (
-              <div className="w-[800px] h-[800px] flex items-center justify-center">
+              </> : <div className="w-[800px] h-[800px] flex items-center justify-center">
                 <Loader2 className="w-12 h-12 animate-spin" />
-              </div>
-            )}
+              </div>}
           </div>
         </DialogContent>
       </Dialog>
-    </div>
-  );
+    </div>;
 };
