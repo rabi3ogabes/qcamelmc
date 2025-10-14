@@ -482,7 +482,7 @@ const Checkout = () => {
           ) : (
             <h1 className="text-lg sm:text-xl md:text-2xl font-bold">فعاليات قطر</h1>
           )}
-          <Button variant="ghost" onClick={() => navigate("/")} className="text-xs sm:text-sm">
+          <Button variant="ghost" onClick={() => navigate("/")} className="text-xs sm:text-sm text-white hover:text-white">
             {t('backToHome') || 'العودة للرئيسية'}
           </Button>
         </div>
