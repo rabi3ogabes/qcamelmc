@@ -39,15 +39,38 @@ const TicketViewer = () => {
   const [ticketHolders, setTicketHolders] = useState<TicketHolder[]>([]);
   const [qrCodeImages, setQrCodeImages] = useState<Record<string, string>>({});
   const [generatingQR, setGeneratingQR] = useState<string | null>(null);
+  const [logoUrl, setLogoUrl] = useState<string | null>(null);
+  const [headerBgColor, setHeaderBgColor] = useState<string>("hsl(var(--card) / 0.5)");
 
   useEffect(() => {
     if (bookingRef) {
       fetchTickets();
+      fetchSettings();
     } else {
       toast.error("رقم الحجز مفقود");
       navigate("/admin/dashboard");
     }
   }, [bookingRef]);
+
+  const fetchSettings = async () => {
+    const { data, error } = await supabase
+      .from("settings")
+      .select("logo_url, header_bg_color")
+      .maybeSingle();
+
+    if (error) {
+      console.error("Error fetching settings:", error);
+      return;
+    }
+
+    if (data?.logo_url) {
+      setLogoUrl(data.logo_url);
+    }
+    
+    if (data?.header_bg_color) {
+      setHeaderBgColor(data.header_bg_color);
+    }
+  };
 
   // Real-time subscription for ticket holders updates
   useEffect(() => {
@@ -436,19 +459,26 @@ const TicketViewer = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background py-8 px-4 font-lusail" dir="rtl">
-      <div className="max-w-6xl mx-auto">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-8">
-          <Button
-            variant="ghost"
-            onClick={() => navigate("/admin/dashboard")}
-            className="gap-2"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            رجوع
-          </Button>
+    <div className="min-h-screen bg-background font-lusail" dir="rtl">
+      {/* Header */}
+      <header className="border-b backdrop-blur-sm sticky top-0 z-10" style={{ backgroundColor: headerBgColor }}>
+        <div className="container mx-auto px-4 py-4 flex justify-between items-center">
+          <button onClick={() => navigate("/admin/dashboard")} className="focus:outline-none hover:opacity-80 transition-opacity">
+            {logoUrl ? (
+              <img src={logoUrl} alt="Logo" className="h-12 object-contain" />
+            ) : (
+              <h1 className="text-2xl font-bold">عرض وطباعة التذاكر</h1>
+            )}
+          </button>
           <div className="flex items-center gap-4">
+            <Button
+              variant="ghost"
+              onClick={() => navigate("/admin/dashboard")}
+              className="gap-2"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              رجوع
+            </Button>
             <Button
               variant="outline"
               onClick={regenerateQRCodes}
@@ -458,9 +488,12 @@ const TicketViewer = () => {
               <QrCodeIcon className="w-4 h-4" />
               إعادة إنشاء جميع رموز QR
             </Button>
-            <h1 className="text-3xl font-bold">عرض وطباعة التذاكر</h1>
           </div>
         </div>
+      </header>
+
+      <div className="py-8 px-4">
+      <div className="max-w-6xl mx-auto">
 
         {/* Order Summary */}
         <Card className="mb-6">
@@ -562,6 +595,7 @@ const TicketViewer = () => {
             </Card>
           ))}
         </div>
+      </div>
       </div>
     </div>
   );
