@@ -497,6 +497,25 @@ const TicketViewer = () => {
       <div className="py-8 px-4">
       <div className="max-w-6xl mx-auto">
 
+        {/* Important Notice */}
+        <Card className="mb-6 border-amber-500 bg-amber-50">
+          <CardContent className="pt-6">
+            <div className="flex items-start gap-4">
+              <div className="text-amber-600 text-3xl">⚠️</div>
+              <div>
+                <h3 className="font-bold text-lg mb-2 text-amber-900">تنبيه هام</h3>
+                <p className="text-amber-800 mb-2">
+                  إذا كانت التذاكر المطبوعة القديمة تحتوي فقط على الرقم المرجعي للحجز (مثل: QTR-AVB5MGKO)، 
+                  يجب <strong>إعادة تحميل وطباعة التذاكر الجديدة</strong> التي تحتوي على رموز QR فردية لكل تذكرة (مثل: QTR-AVB5MGKO-TKT01).
+                </p>
+                <p className="text-amber-700 text-sm">
+                  كل تذكرة يجب أن يكون لها رمز QR فريد خاص بها لتسجيل الحضور بشكل صحيح.
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Order Summary */}
         <Card className="mb-6">
           <CardHeader>
