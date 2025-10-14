@@ -169,7 +169,12 @@ const AdminPOS = () => {
   };
 
   const removeFromCart = (ticketId: string) => {
-    setCart(cart.filter(item => item.ticketId !== ticketId));
+    const item = cart.find((item) => item.ticketId === ticketId);
+    if (!item) return;
+
+    setCart(cart.filter(cartItem => cartItem.ticketId !== ticketId));
+    // Remove all ticket holders of this type
+    setTicketHolders(ticketHolders.filter(h => h.ticketType !== item.ticketType));
   };
 
   const updateCartItemQuantity = (ticketId: string, newQuantity: number) => {
@@ -197,11 +202,44 @@ const AdminPOS = () => {
       return;
     }
 
-    setCart(cart.map(item =>
-      item.ticketId === ticketId
-        ? { ...item, quantity: newQuantity }
-        : item
+    const currentQuantity = item.quantity;
+    const difference = newQuantity - currentQuantity;
+
+    setCart(cart.map(cartItem =>
+      cartItem.ticketId === ticketId
+        ? { ...cartItem, quantity: newQuantity }
+        : cartItem
     ));
+
+    // Adjust ticket holders
+    if (difference > 0) {
+      // Add more holders
+      const newHolders = Array(difference).fill(null).map(() => ({
+        name: "",
+        nationality: "",
+        idNumber: "",
+        phone: "",
+        ticketType: item.ticketType
+      }));
+      setTicketHolders([...ticketHolders, ...newHolders]);
+    } else if (difference < 0) {
+      // Remove holders
+      const holdersOfType = ticketHolders
+        .map((h, i) => ({ ...h, index: i }))
+        .filter(h => h.ticketType === item.ticketType);
+      
+      const indicesToRemove = holdersOfType
+        .slice(difference)
+        .map(h => h.index);
+      
+      setTicketHolders(ticketHolders.filter((_, i) => !indicesToRemove.includes(i)));
+    }
+  };
+
+  const updateTicketHolder = (index: number, field: keyof TicketHolderInput, value: string) => {
+    const updated = [...ticketHolders];
+    updated[index] = { ...updated[index], [field]: value };
+    setTicketHolders(updated);
   };
 
   const totalAmount = cart.reduce((total, item) => total + (item.price * item.quantity), 0);
@@ -267,6 +305,27 @@ const AdminPOS = () => {
       return;
     }
 
+    // Validate all ticket holders have required info
+    const totalTickets = cart.reduce((sum, item) => sum + item.quantity, 0);
+    if (ticketHolders.length !== totalTickets) {
+      toast({
+        title: "خطأ",
+        description: "يرجى ملء معلومات جميع حاملي التذاكر",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const incompleteHolders = ticketHolders.some(h => !h.name || !h.nationality || !h.idNumber);
+    if (incompleteHolders) {
+      toast({
+        title: "خطأ",
+        description: "يرجى ملء الاسم والجنسية ورقم الهوية لجميع حاملي التذاكر",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setProcessing(true);
 
     try {
@@ -284,23 +343,65 @@ const AdminPOS = () => {
 
       if (customerError) throw customerError;
 
-      // Create orders for each cart item
-      const orders = cart.map(item => ({
-        customer_id: customerData.id,
-        event_id: item.eventId,
-        ticket_type: item.ticketType as "vip" | "normal" | "parking",
-        quantity: item.quantity,
-        total_amount: item.price * item.quantity,
-        payment_method: "cash_pos" as const,
-        payment_status: "confirmed" as const,
-        booking_reference: `POS-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-      }));
-
-      const { error: orderError } = await supabase
+      // Create a single order with all tickets
+      const totalAmount = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
+      const bookingRef = `POS-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+      
+      const { data: orderData, error: orderError } = await supabase
         .from("orders")
-        .insert(orders);
+        .insert({
+          customer_id: customerData.id,
+          event_id: cart[0].eventId,
+          ticket_type: cart[0].ticketType as "vip" | "normal" | "parking",
+          quantity: cart.reduce((sum, item) => sum + item.quantity, 0),
+          total_amount: totalAmount,
+          payment_method: "cash_pos" as const,
+          payment_status: "confirmed" as const,
+          booking_reference: bookingRef,
+        })
+        .select()
+        .single();
 
       if (orderError) throw orderError;
+
+      // Create ticket holders with QR codes
+      const holdersToInsert = await Promise.all(ticketHolders.map(async (holder, index) => {
+        const ticketRef = `${bookingRef}-TKT${(index + 1).toString().padStart(2, '0')}`;
+        
+        // Generate QR code and upload to storage
+        try {
+          const { data: qrData, error: qrError } = await supabase.functions.invoke('generate-qr-code', {
+            body: { text: ticketRef, filename: ticketRef }
+          });
+
+          return {
+            order_id: orderData.id,
+            name: holder.name,
+            phone: holder.phone || customerPhone,
+            nationality: holder.nationality,
+            ticket_type: holder.ticketType,
+            qr_code: qrData?.url || ticketRef,
+            id_number: holder.idNumber
+          };
+        } catch (error) {
+          console.error('QR generation failed:', error);
+          return {
+            order_id: orderData.id,
+            name: holder.name,
+            phone: holder.phone || customerPhone,
+            nationality: holder.nationality,
+            ticket_type: holder.ticketType,
+            qr_code: ticketRef,
+            id_number: holder.idNumber
+          };
+        }
+      }));
+
+      const { error: holdersError } = await supabase
+        .from("ticket_holders")
+        .insert(holdersToInsert);
+
+      if (holdersError) throw holdersError;
 
       // Update ticket sold quantities
       for (const item of cart) {
@@ -324,10 +425,12 @@ const AdminPOS = () => {
 
       // Reset form
       setCart([]);
+      setTicketHolders([]);
       setCustomerName("");
       setCustomerEmail("");
       setCustomerPhone("");
       setCustomerNationality("");
+      setCustomerIdNumber("");
       setShowAllNationalities(false);
       
       fetchTickets();
@@ -446,6 +549,69 @@ const AdminPOS = () => {
                         <span>{totalAmount} ريال</span>
                       </div>
                     </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Ticket Holders Details */}
+              {ticketHolders.length > 0 && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle>معلومات حاملي التذاكر ({ticketHolders.length} تذاكر)</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-6">
+                    {ticketHolders.map((holder, index) => (
+                      <div key={index} className="p-4 border rounded-lg space-y-3 bg-muted/50">
+                        <h4 className="font-bold text-primary">
+                          التذكرة #{index + 1} - {getTicketTypeName(holder.ticketType)}
+                        </h4>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                          <div>
+                            <Label htmlFor={`holder-name-${index}`}>الاسم *</Label>
+                            <Input
+                              id={`holder-name-${index}`}
+                              value={holder.name}
+                              onChange={(e) => updateTicketHolder(index, 'name', e.target.value)}
+                              placeholder="اسم حامل التذكرة"
+                              required
+                            />
+                          </div>
+                          <div>
+                            <Label htmlFor={`holder-nationality-${index}`}>الجنسية *</Label>
+                            <Select
+                              value={holder.nationality}
+                              onValueChange={(value) => updateTicketHolder(index, 'nationality', value)}
+                            >
+                              <SelectTrigger id={`holder-nationality-${index}`}>
+                                <SelectValue placeholder="اختر الجنسية" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {gulfNationalities.map((nat) => (
+                                  <SelectItem key={nat.name} value={nat.name}>
+                                    {nat.flag} {nat.name}
+                                  </SelectItem>
+                                ))}
+                                {otherNationalities.map((nat) => (
+                                  <SelectItem key={nat.name} value={nat.name}>
+                                    {nat.flag} {nat.name}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div>
+                            <Label htmlFor={`holder-id-${index}`}>رقم الهوية *</Label>
+                            <Input
+                              id={`holder-id-${index}`}
+                              value={holder.idNumber}
+                              onChange={(e) => updateTicketHolder(index, 'idNumber', e.target.value)}
+                              placeholder="رقم الهوية"
+                              required
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    ))}
                   </CardContent>
                 </Card>
               )}
