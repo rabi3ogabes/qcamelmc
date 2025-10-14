@@ -1,11 +1,12 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { CheckCircle, MapPin, Calendar, Eye, QrCode, Loader2, XCircle } from "lucide-react";
+import { CheckCircle, MapPin, Calendar, Eye, QrCode, Loader2, XCircle, Printer } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -45,6 +46,7 @@ export const OrdersTab = ({
   const {
     t
   } = useTranslation();
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("all");
   const [selectedOrder, setSelectedOrder] = useState<string | null>(null);
   const [ticketHolders, setTicketHolders] = useState<TicketHolder[]>([]);
@@ -201,6 +203,10 @@ export const OrdersTab = ({
         </div>
         
         <div className="flex flex-col gap-2">
+          <Button size="sm" variant="outline" onClick={() => navigate(`/admin/tickets?ref=${order.booking_reference}`)} className="font-lusail flex items-center justify-center gap-2">
+            <Printer className="w-4 h-4" />
+            عرض التذاكر
+          </Button>
           <Button size="sm" variant="outline" onClick={() => viewOrderDetails(order.id)} className="font-lusail flex items-center justify-center gap-2">
             {t("viewDetails")}
             <Eye className="w-4 h-4" />

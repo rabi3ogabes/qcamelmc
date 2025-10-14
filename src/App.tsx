@@ -16,6 +16,7 @@ import AdminDashboard from "./pages/AdminDashboard";
 import LiveBookings from "./pages/LiveBookings";
 import QRScanner from "./pages/QRScanner";
 import AdminPOS from "./pages/AdminPOS";
+import TicketViewer from "./pages/TicketViewer";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -39,6 +40,7 @@ const App = () => (
             <Route path="/admin/dashboard" element={<AdminDashboard />} />
             <Route path="/admin/qr-scanner" element={<QRScanner />} />
             <Route path="/admin/pos" element={<AdminPOS />} />
+            <Route path="/admin/tickets" element={<TicketViewer />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
