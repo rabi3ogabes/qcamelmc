@@ -12,6 +12,19 @@ import { toast } from "sonner";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 
+interface TicketHolder {
+  id: string;
+  name: string;
+  phone: string;
+  nationality: string;
+  ticket_type: string;
+  qr_code: string;
+  id_number?: string;
+  is_present: boolean;
+  confirmed_at?: string;
+  order_id: string;
+}
+
 interface Booking {
   id: string;
   booking_reference: string;
@@ -32,11 +45,13 @@ interface Booking {
     title: string;
     event_date: string;
   };
+  ticket_holders?: TicketHolder[];
 }
 
 const LiveBookings = () => {
   const { t } = useTranslation();
   const [bookings, setBookings] = useState<Booking[]>([]);
+  const [ticketHolders, setTicketHolders] = useState<TicketHolder[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [viewType, setViewType] = useState<"cards" | "table">("cards");
@@ -47,7 +62,9 @@ const LiveBookings = () => {
     total: 0,
     confirmed: 0,
     present: 0,
-    totalTickets: 0
+    totalTickets: 0,
+    totalTicketHolders: 0,
+    presentTicketHolders: 0
   });
 
   useEffect(() => {
@@ -111,7 +128,7 @@ const LiveBookings = () => {
           *,
           customers(name, email, phone, id_number, nationality),
           events(title, event_date),
-          ticket_holders(id, is_present)
+          ticket_holders(*)
         `)
         .gte("created_at", startOfDay.toISOString())
         .lte("created_at", endOfDay.toISOString())
@@ -119,18 +136,19 @@ const LiveBookings = () => {
 
       if (error) throw error;
 
-      // Calculate presence based on ticket holders
-      const bookingsWithPresence = (data || []).map(order => {
-        const holders = order.ticket_holders || [];
-        const hasPresent = holders.some((h: any) => h.is_present === true);
-        return {
-          ...order,
-          is_present: hasPresent || order.is_present
-        };
+      // Extract all ticket holders from all bookings
+      const allTicketHolders: TicketHolder[] = [];
+      (data || []).forEach(order => {
+        if (order.ticket_holders) {
+          order.ticket_holders.forEach((holder: any) => {
+            allTicketHolders.push(holder);
+          });
+        }
       });
 
-      setBookings(bookingsWithPresence);
-      calculateStats(bookingsWithPresence);
+      setBookings(data || []);
+      setTicketHolders(allTicketHolders);
+      calculateStats(data || [], allTicketHolders);
     } catch (error) {
       console.error("Error fetching bookings:", error);
       toast.error(t("failedToLoad"));
@@ -180,13 +198,18 @@ const LiveBookings = () => {
     };
   };
 
-  const calculateStats = (bookingsData: Booking[]) => {
+  const calculateStats = (bookingsData: Booking[], ticketHoldersData: TicketHolder[]) => {
     const total = bookingsData.length;
     const confirmed = bookingsData.filter(b => b.payment_status === 'confirmed').length;
-    const present = bookingsData.filter(b => b.is_present === true).length;
+    const present = bookingsData.filter(b => {
+      const holders = b.ticket_holders || [];
+      return holders.some((h: any) => h.is_present === true);
+    }).length;
     const totalTickets = bookingsData.reduce((sum, b) => sum + b.quantity, 0);
+    const totalTicketHolders = ticketHoldersData.length;
+    const presentTicketHolders = ticketHoldersData.filter(h => h.is_present).length;
 
-    setStats({ total, confirmed, present, totalTickets });
+    setStats({ total, confirmed, present, totalTickets, totalTicketHolders, presentTicketHolders });
   };
 
   const togglePresence = async (bookingId: string, currentStatus: boolean | null | undefined) => {
@@ -317,8 +340,8 @@ const LiveBookings = () => {
             <div className="flex items-center gap-3">
               <Users className="w-8 h-8 text-purple-600" />
               <div>
-                <p className="text-sm text-muted-foreground">{t("totalTickets")}</p>
-                <p className="text-2xl font-bold text-purple-600">{stats.totalTickets}</p>
+                <p className="text-sm text-muted-foreground">إجمالي حاملي التذاكر</p>
+                <p className="text-2xl font-bold text-purple-600">{stats.totalTicketHolders}</p>
               </div>
             </div>
           </Card>
@@ -327,164 +350,163 @@ const LiveBookings = () => {
             <div className="flex items-center gap-3">
               <CheckCircle className="w-8 h-8 text-orange-600" />
               <div>
-                <p className="text-sm text-muted-foreground">{t("presentAttendees")}</p>
-                <p className="text-2xl font-bold text-orange-600">{stats.present}</p>
+                <p className="text-sm text-muted-foreground">الحاضرون (حاملو التذاكر)</p>
+                <p className="text-2xl font-bold text-orange-600">{stats.presentTicketHolders}</p>
               </div>
             </div>
           </Card>
         </div>
 
-        {/* Bookings Display */}
+        {/* Ticket Holders Display */}
         {viewType === "cards" ? (
-          /* Cards View */
+          /* Cards View - Individual Ticket Holders */
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
-            {bookings.length === 0 ? (
+            {ticketHolders.length === 0 ? (
               <Card className="col-span-full p-12">
                 <p className="text-center text-muted-foreground font-lusail">{t("noBookingsForDate")}</p>
               </Card>
             ) : (
-              bookings.map((booking) => (
-                <Card key={booking.id} className="p-4 hover:shadow-xl transition-shadow shadow-md">
+              ticketHolders.map((holder) => (
+                <Card key={holder.id} className="p-4 hover:shadow-xl transition-shadow shadow-md">
                   <div className="flex flex-col gap-3">
-                    {/* Name and Flag - Top Row */}
+                    {/* QR Code - Top */}
+                    <div className="text-center py-2 bg-primary/5 rounded-lg border border-primary/20">
+                      <p className="font-mono text-sm font-bold text-primary">{holder.qr_code}</p>
+                    </div>
+
+                    {/* Name and Flag */}
                     <div className="flex items-center justify-between gap-2">
                       <div className="flex items-center gap-2">
                         <User className="w-4 h-4 text-primary flex-shrink-0" />
-                        <span className="font-semibold text-sm truncate">{booking.customers.name}</span>
+                        <span className="font-semibold text-sm truncate">{holder.name}</span>
                       </div>
-                      {booking.customers.nationality && (
+                      {holder.nationality && (
                         <div className="flex items-center gap-2">
-                          <span className="text-lg">{booking.customers.nationality === 'قطر' ? '🇶🇦' : '🌍'}</span>
-                          <span className="text-sm">{booking.customers.nationality}</span>
+                          <span className="text-lg">{holder.nationality === 'قطر' ? '🇶🇦' : '🌍'}</span>
+                          <span className="text-xs">{holder.nationality}</span>
                         </div>
                       )}
                     </div>
 
-                    {/* Phone and ID Number - Same Line */}
+                    {/* Phone and ID Number */}
                     <div className="flex items-center justify-between gap-2">
                       <div className="flex items-center gap-2">
                         <Phone className="w-4 h-4 text-primary flex-shrink-0" />
-                        <span className="text-sm truncate">{booking.customers.phone}</span>
+                        <span className="text-sm truncate">{holder.phone}</span>
                       </div>
-                      {booking.customers.id_number && (
+                      {holder.id_number && (
                         <div className="flex items-center gap-2">
                           <Hash className="w-4 h-4 text-primary flex-shrink-0" />
-                          <span className="text-sm truncate">{booking.customers.id_number}</span>
+                          <span className="text-sm truncate">{holder.id_number}</span>
                         </div>
                       )}
                     </div>
 
-                    {/* Payment Status and Attendance - Same Line */}
+                    {/* Ticket Type and Attendance */}
                     <div className="flex items-center justify-between gap-2">
-                      {/* Payment Status */}
-                      <div className="flex items-center gap-2">
-                        <CreditCard className="w-4 h-4 text-primary flex-shrink-0" />
-                        <Badge 
-                          variant={booking.payment_status === "confirmed" ? "default" : booking.payment_status === "failed" ? "destructive" : "secondary"}
-                          className="text-xs"
-                        >
-                          {booking.payment_status === "confirmed" ? t("confirmed") :
-                           booking.payment_status === "failed" ? t("failed") :
-                           t("pending")}
-                        </Badge>
-                      </div>
+                      {/* Ticket Type */}
+                      <Badge variant="outline" className="text-xs">
+                        {holder.ticket_type.toUpperCase()}
+                      </Badge>
 
                       {/* Attendance */}
                       <div className="flex items-center gap-2">
-                        {booking.is_present ? (
+                        {holder.is_present ? (
                           <>
                             <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0" />
                             <Badge className="bg-green-500 text-xs">
-                              {t("present")}
+                              حاضر ✓
                             </Badge>
                           </>
                         ) : (
                           <>
                             <XCircle className="w-4 h-4 text-muted-foreground flex-shrink-0" />
                             <Badge variant="secondary" className="text-xs">
-                              {t("absent")}
+                              غير حاضر
                             </Badge>
                           </>
                         )}
                       </div>
                     </div>
+
+                    {/* Confirmed At */}
+                    {holder.confirmed_at && (
+                      <div className="text-xs text-muted-foreground text-center">
+                        تم التأكيد: {new Date(holder.confirmed_at).toLocaleString('ar-QA', { 
+                          dateStyle: 'short', 
+                          timeStyle: 'short' 
+                        })}
+                      </div>
+                    )}
                   </div>
                 </Card>
               ))
             )}
           </div>
         ) : (
-          /* Table View */
+          /* Table View - Individual Ticket Holders */
           <Card className="overflow-hidden">
             <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="text-right font-lusail">{t("reference")}</TableHead>
-                    <TableHead className="text-right font-lusail">{t("customer")}</TableHead>
-                    <TableHead className="text-right font-lusail">{t("event")}</TableHead>
-                    <TableHead className="text-right font-lusail">{t("ticketType")}</TableHead>
-                    <TableHead className="text-right font-lusail">{t("quantity")}</TableHead>
-                    <TableHead className="text-right font-lusail">{t("amount")}</TableHead>
-                    <TableHead className="text-right font-lusail">{t("status")}</TableHead>
-                    <TableHead className="text-right font-lusail">{t("attendance")}</TableHead>
+                    <TableHead className="text-right font-lusail">رمز QR</TableHead>
+                    <TableHead className="text-right font-lusail">الاسم</TableHead>
+                    <TableHead className="text-right font-lusail">الهاتف</TableHead>
+                    <TableHead className="text-right font-lusail">الجنسية</TableHead>
+                    <TableHead className="text-right font-lusail">رقم الهوية</TableHead>
+                    <TableHead className="text-right font-lusail">نوع التذكرة</TableHead>
+                    <TableHead className="text-right font-lusail">الحضور</TableHead>
+                    <TableHead className="text-right font-lusail">وقت التأكيد</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {bookings.length === 0 ? (
+                  {ticketHolders.length === 0 ? (
                     <TableRow>
                       <TableCell colSpan={8} className="text-center py-12">
                         <p className="text-muted-foreground font-lusail">{t("noBookingsForDate")}</p>
                       </TableCell>
                     </TableRow>
                   ) : (
-                    bookings.map((booking) => (
-                      <TableRow key={booking.id}>
-                        <TableCell className="font-mono font-semibold">{booking.booking_reference}</TableCell>
+                    ticketHolders.map((holder) => (
+                      <TableRow key={holder.id} className={holder.is_present ? 'bg-green-50 dark:bg-green-950/20' : ''}>
+                        <TableCell className="font-mono font-semibold text-primary">{holder.qr_code}</TableCell>
+                        <TableCell className="font-semibold">{holder.name}</TableCell>
+                        <TableCell className="font-mono">{holder.phone}</TableCell>
                         <TableCell>
-                          <div>
-                            <p className="font-semibold">{booking.customers.name}</p>
-                            <p className="text-xs text-muted-foreground">{booking.customers.phone}</p>
-                            {booking.customers.nationality && (
-                              <p className="text-xs text-muted-foreground">
-                                {booking.customers.nationality === 'قطر' ? '🇶🇦' : '🌍'} {booking.customers.nationality}
-                              </p>
-                            )}
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <p className="font-semibold">{booking.events?.title || 'N/A'}</p>
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant="outline" className="capitalize">
-                            {booking.ticket_type === "vip" ? t("vipAccess") : 
-                             booking.ticket_type === "normal" ? t("generalAdmission") : 
-                             t("parking")}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="font-semibold">{booking.quantity}</TableCell>
-                        <TableCell className="font-semibold">{booking.total_amount.toFixed(2)} {t("qar")}</TableCell>
-                        <TableCell>
-                          <Badge 
-                            variant={booking.payment_status === "confirmed" ? "default" : booking.payment_status === "failed" ? "destructive" : "secondary"}
-                          >
-                            {booking.payment_status === "confirmed" ? t("confirmed") :
-                             booking.payment_status === "failed" ? t("failed") :
-                             t("pending")}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          {booking.is_present ? (
-                            <Badge className="bg-green-500">
-                              <CheckCircle className="w-3 h-3 ml-1" />
-                              {t("present")}
-                            </Badge>
-                          ) : (
-                            <Badge variant="secondary">
-                              <XCircle className="w-3 h-3 ml-1" />
-                              {t("absent")}
-                            </Badge>
+                          {holder.nationality && (
+                            <span>
+                              {holder.nationality === 'قطر' ? '🇶🇦' : '🌍'} {holder.nationality}
+                            </span>
                           )}
+                        </TableCell>
+                        <TableCell className="font-mono">{holder.id_number || '-'}</TableCell>
+                        <TableCell>
+                          <Badge variant="outline" className="text-xs">
+                            {holder.ticket_type.toUpperCase()}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          {holder.is_present ? (
+                            <div className="flex items-center gap-2">
+                              <CheckCircle className="w-4 h-4 text-green-600" />
+                              <Badge className="bg-green-500">حاضر ✓</Badge>
+                            </div>
+                          ) : (
+                            <div className="flex items-center gap-2">
+                              <XCircle className="w-4 h-4 text-muted-foreground" />
+                              <Badge variant="secondary">غير حاضر</Badge>
+                            </div>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-sm">
+                          {holder.confirmed_at 
+                            ? new Date(holder.confirmed_at).toLocaleString('ar-QA', { 
+                                dateStyle: 'short', 
+                                timeStyle: 'short' 
+                              })
+                            : '-'
+                          }
                         </TableCell>
                       </TableRow>
                     ))
