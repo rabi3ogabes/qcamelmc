@@ -152,7 +152,7 @@ serve(async (req) => {
             }
           } as CheckInResponse),
           { 
-            status: 400, 
+            status: 200, 
             headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
           }
         );
@@ -307,7 +307,7 @@ serve(async (req) => {
           }
         } as CheckInResponse),
         { 
-          status: 400, 
+          status: 200, 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
         }
       );
