@@ -17,7 +17,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { CheckCircle, MapPin, Calendar, Eye, QrCode } from "lucide-react";
+import { CheckCircle, MapPin, Calendar, Eye, QrCode, Loader2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -58,6 +58,24 @@ export const OrdersTab = ({ orders, onRefresh }: OrdersTabProps) => {
   const [selectedOrder, setSelectedOrder] = useState<string | null>(null);
   const [ticketHolders, setTicketHolders] = useState<TicketHolder[]>([]);
   const [selectedQrCode, setSelectedQrCode] = useState<string | null>(null);
+  const [generatingQrCodes, setGeneratingQrCodes] = useState(false);
+
+  const generateMissingQrCodes = async () => {
+    setGeneratingQrCodes(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('backfill-qr-codes');
+      
+      if (error) throw error;
+      
+      toast.success(`${data.updated} QR codes generated successfully!`);
+      onRefresh();
+    } catch (error) {
+      console.error('Error generating QR codes:', error);
+      toast.error('Failed to generate QR codes');
+    } finally {
+      setGeneratingQrCodes(false);
+    }
+  };
 
   const viewOrderDetails = async (orderId: string) => {
     setSelectedOrder(orderId);
@@ -196,6 +214,27 @@ export const OrdersTab = ({ orders, onRefresh }: OrdersTabProps) => {
 
   return (
     <div className="space-y-6">
+      {/* Generate QR Codes Button */}
+      <div className="flex justify-end">
+        <Button 
+          onClick={generateMissingQrCodes} 
+          disabled={generatingQrCodes}
+          className="font-lusail"
+        >
+          {generatingQrCodes ? (
+            <>
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              Generating QR Codes...
+            </>
+          ) : (
+            <>
+              <QrCode className="w-4 h-4 mr-2" />
+              Generate Missing QR Codes
+            </>
+          )}
+        </Button>
+      </div>
+
       {/* Statistics Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card className="p-6">
