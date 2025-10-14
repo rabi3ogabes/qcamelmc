@@ -292,7 +292,7 @@ export const OrdersTab = ({
                               <span className="text-xs font-medium">حاضر</span>
                             </div> : <div className="flex items-center gap-1 text-muted-foreground">
                               <XCircle className="w-4 h-4" />
-                              <span className="text-xs">this غائب</span>
+                              <span className="text-xs">غائب</span>
                             </div>}
                         </div>
                       </TableCell>
