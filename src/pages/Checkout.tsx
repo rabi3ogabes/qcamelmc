@@ -528,6 +528,7 @@ const Checkout = () => {
                       });
                     }}
                     required
+                    dir="rtl"
                   >
                     <SelectTrigger id="nationality">
                       <SelectValue placeholder={t('nationality')} />
@@ -550,6 +551,7 @@ const Checkout = () => {
                     <Select
                       value={customerInfo.countryCode}
                       onValueChange={(value) => setCustomerInfo({ ...customerInfo, countryCode: value })}
+                      dir="rtl"
                     >
                       <SelectTrigger className="w-[90px] sm:w-[110px] md:w-[120px]">
                         <SelectValue />
@@ -630,6 +632,7 @@ const Checkout = () => {
                               setTicketHolders(updated);
                             }}
                             required
+                            dir="rtl"
                           >
                             <SelectTrigger id={`holder-nationality-${index}`}>
                               <SelectValue placeholder={t('nationality')} />
