@@ -17,7 +17,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { CheckCircle, MapPin, Calendar, Eye } from "lucide-react";
+import { CheckCircle, MapPin, Calendar, Eye, QrCode } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -28,6 +28,7 @@ interface TicketHolder {
   phone: string;
   nationality: string;
   ticket_type: string;
+  qr_code: string | null;
 }
 
 interface Order {
@@ -56,6 +57,7 @@ export const OrdersTab = ({ orders, onRefresh }: OrdersTabProps) => {
   const [activeTab, setActiveTab] = useState("all");
   const [selectedOrder, setSelectedOrder] = useState<string | null>(null);
   const [ticketHolders, setTicketHolders] = useState<TicketHolder[]>([]);
+  const [selectedQrCode, setSelectedQrCode] = useState<string | null>(null);
 
   const viewOrderDetails = async (orderId: string) => {
     setSelectedOrder(orderId);
@@ -249,6 +251,7 @@ export const OrdersTab = ({ orders, onRefresh }: OrdersTabProps) => {
                     <TableHead className="text-right font-lusail">{t("holderPhone")}</TableHead>
                     <TableHead className="text-right font-lusail">{t("holderNationality")}</TableHead>
                     <TableHead className="text-right font-lusail">{t("ticketType")}</TableHead>
+                    <TableHead className="text-right font-lusail">QR Code</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -263,6 +266,18 @@ export const OrdersTab = ({ orders, onRefresh }: OrdersTabProps) => {
                           {holder.ticket_type}
                         </Badge>
                       </TableCell>
+                      <TableCell>
+                        {holder.qr_code && (
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => setSelectedQrCode(holder.qr_code)}
+                            className="h-8 w-8 p-0"
+                          >
+                            <QrCode className="h-5 w-5" />
+                          </Button>
+                        )}
+                      </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -271,6 +286,24 @@ export const OrdersTab = ({ orders, onRefresh }: OrdersTabProps) => {
               <p className="text-center text-muted-foreground py-8 font-lusail">
                 {t("noTicketHolders")}
               </p>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* QR Code Dialog */}
+      <Dialog open={!!selectedQrCode} onOpenChange={() => setSelectedQrCode(null)}>
+        <DialogContent className="max-w-fit">
+          <DialogHeader>
+            <DialogTitle className="font-lusail text-2xl">QR Code</DialogTitle>
+          </DialogHeader>
+          <div className="flex items-center justify-center p-4">
+            {selectedQrCode && (
+              <img 
+                src={selectedQrCode} 
+                alt="Ticket QR Code" 
+                className="w-[800px] h-[800px] object-contain"
+              />
             )}
           </div>
         </DialogContent>
