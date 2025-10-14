@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -21,6 +21,7 @@ import { CheckCircle, MapPin, Calendar, Eye, QrCode } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import QRCode from "qrcode";
 
 interface TicketHolder {
   id: string;
@@ -58,6 +59,24 @@ export const OrdersTab = ({ orders, onRefresh }: OrdersTabProps) => {
   const [selectedOrder, setSelectedOrder] = useState<string | null>(null);
   const [ticketHolders, setTicketHolders] = useState<TicketHolder[]>([]);
   const [selectedQrCode, setSelectedQrCode] = useState<string | null>(null);
+  const [qrCodeImage, setQrCodeImage] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (selectedQrCode) {
+      QRCode.toDataURL(selectedQrCode, { 
+        width: 800,
+        margin: 2,
+        errorCorrectionLevel: 'H'
+      })
+        .then(url => setQrCodeImage(url))
+        .catch(err => {
+          console.error('Error generating QR code:', err);
+          toast.error('Failed to generate QR code');
+        });
+    } else {
+      setQrCodeImage(null);
+    }
+  }, [selectedQrCode]);
 
   const viewOrderDetails = async (orderId: string) => {
     setSelectedOrder(orderId);
@@ -302,9 +321,9 @@ export const OrdersTab = ({ orders, onRefresh }: OrdersTabProps) => {
             <DialogTitle className="font-lusail text-2xl">QR Code</DialogTitle>
           </DialogHeader>
           <div className="flex items-center justify-center p-4">
-            {selectedQrCode && (
+            {qrCodeImage && (
               <img 
-                src={selectedQrCode} 
+                src={qrCodeImage} 
                 alt="Ticket QR Code" 
                 className="w-[800px] h-[800px] object-contain"
               />
