@@ -116,16 +116,20 @@ const LiveBookings = () => {
 
   const fetchBookings = async () => {
     try {
-      let query = supabase
+      const { data, error } = await supabase
         .from("orders")
         .select(`
           *,
           customers(name, email, phone, id_number, nationality),
-          events(title, event_date),
+          events!inner(title, event_date),
           ticket_holders(*)
-        `);
+        `)
+        .order("created_at", { ascending: false });
 
-      // Apply date filter only if a date is selected
+      if (error) throw error;
+
+      // Filter by event date on client side if date is selected
+      let filteredData = data || [];
       if (selectedDate) {
         const startOfDay = new Date(selectedDate);
         startOfDay.setHours(0, 0, 0, 0);
@@ -133,18 +137,18 @@ const LiveBookings = () => {
         const endOfDay = new Date(selectedDate);
         endOfDay.setHours(23, 59, 59, 999);
 
-        query = query
-          .gte("created_at", startOfDay.toISOString())
-          .lte("created_at", endOfDay.toISOString());
+        filteredData = filteredData.filter((order: any) => {
+          if (!order.events?.event_date) return false;
+          const eventDate = new Date(order.events.event_date);
+          return eventDate >= startOfDay && eventDate <= endOfDay;
+        });
       }
-
-      const { data, error } = await query.order("created_at", { ascending: false });
 
       if (error) throw error;
 
-      // Extract all ticket holders from all bookings
+      // Extract all ticket holders from filtered bookings
       const allTicketHolders: TicketHolder[] = [];
-      (data || []).forEach(order => {
+      filteredData.forEach(order => {
         if (order.ticket_holders) {
           order.ticket_holders.forEach((holder: any) => {
             allTicketHolders.push(holder);
@@ -152,9 +156,9 @@ const LiveBookings = () => {
         }
       });
 
-      setBookings(data || []);
+      setBookings(filteredData);
       setTicketHolders(allTicketHolders);
-      calculateStats(data || [], allTicketHolders);
+      calculateStats(filteredData, allTicketHolders);
     } catch (error) {
       console.error("Error fetching bookings:", error);
       toast.error(t("failedToLoad"));
