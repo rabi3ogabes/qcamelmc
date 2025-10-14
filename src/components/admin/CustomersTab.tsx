@@ -40,6 +40,49 @@ interface Customer {
   }>;
 }
 
+const getCountryFlag = (nationality: string): string => {
+  const countryFlags: Record<string, string> = {
+    'qatar': '🇶🇦',
+    'saudi': '🇸🇦',
+    'saudi arabia': '🇸🇦',
+    'uae': '🇦🇪',
+    'united arab emirates': '🇦🇪',
+    'kuwait': '🇰🇼',
+    'bahrain': '🇧🇭',
+    'oman': '🇴🇲',
+    'egypt': '🇪🇬',
+    'jordan': '🇯🇴',
+    'lebanon': '🇱🇧',
+    'syria': '🇸🇾',
+    'iraq': '🇮🇶',
+    'yemen': '🇾🇪',
+    'palestine': '🇵🇸',
+    'morocco': '🇲🇦',
+    'tunisia': '🇹🇳',
+    'algeria': '🇩🇿',
+    'libya': '🇱🇾',
+    'sudan': '🇸🇩',
+    'india': '🇮🇳',
+    'pakistan': '🇵🇰',
+    'bangladesh': '🇧🇩',
+    'philippines': '🇵🇭',
+    'nepal': '🇳🇵',
+    'sri lanka': '🇱🇰',
+    'usa': '🇺🇸',
+    'uk': '🇬🇧',
+    'united kingdom': '🇬🇧',
+    'canada': '🇨🇦',
+    'australia': '🇦🇺',
+    'france': '🇫🇷',
+    'germany': '🇩🇪',
+    'italy': '🇮🇹',
+    'spain': '🇪🇸',
+  };
+  
+  const normalized = nationality.toLowerCase().trim();
+  return countryFlags[normalized] || '🌐';
+};
+
 export const CustomersTab = () => {
   const { t } = useTranslation();
   const [customers, setCustomers] = useState<Customer[]>([]);
@@ -565,7 +608,7 @@ export const CustomersTab = () => {
                           </div>
                           <div className="flex items-center justify-end gap-1 text-xs text-muted-foreground">
                             <span className="font-lusail">{mainTicket.nationality}</span>
-                            <User className="w-3 h-3" />
+                            <span className="text-base">{getCountryFlag(mainTicket.nationality)}</span>
                           </div>
                         </div>
                       </div>
@@ -600,7 +643,7 @@ export const CustomersTab = () => {
                               </div>
                               <div className="flex items-center justify-end gap-1 text-xs text-muted-foreground">
                                 <span className="font-lusail">{ticket.nationality}</span>
-                                <User className="w-3 h-3" />
+                                <span className="text-base">{getCountryFlag(ticket.nationality)}</span>
                               </div>
                             </div>
                           </div>
