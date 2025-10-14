@@ -297,7 +297,7 @@ const LiveBookings = () => {
               </Card>
             ) : (
               bookings.map((booking) => (
-                <Card key={booking.id} className="p-4 hover:shadow-lg transition-shadow">
+                <Card key={booking.id} className="p-4 hover:shadow-xl transition-shadow shadow-md">
                   <div className="flex flex-col gap-3">
                     {/* Name and Quantity - Top Row */}
                     <div className="flex items-center justify-between gap-2">
