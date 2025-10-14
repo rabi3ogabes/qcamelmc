@@ -125,10 +125,28 @@ export const CustomersTab = () => {
   const [saving, setSaving] = useState(false);
   const [qrCodes, setQrCodes] = useState<Record<string, string>>({});
   const [viewingQrCode, setViewingQrCode] = useState<{ code: string; name: string; reference: string } | null>(null);
+  const [showDeleteButton, setShowDeleteButton] = useState(false);
 
   useEffect(() => {
     fetchCustomers();
+    fetchSettings();
   }, []);
+
+  const fetchSettings = async () => {
+    const { data, error } = await supabase
+      .from("settings")
+      .select("show_delete_customer_button")
+      .maybeSingle();
+
+    if (error) {
+      console.error("Error fetching settings:", error);
+      return;
+    }
+
+    if (data?.show_delete_customer_button !== undefined) {
+      setShowDeleteButton(data.show_delete_customer_button);
+    }
+  };
 
   // Generate QR codes for selected customer's ticket holders and orders
   useEffect(() => {
@@ -748,15 +766,17 @@ export const CustomersTab = () => {
                       </>
                     )}
                   </Button>
-                  <Button
-                    size="icon"
-                    variant="ghost"
-                    onClick={(e) => handleDeleteCustomer(customer.id, e)}
-                    className="h-9 w-9 text-destructive hover:text-destructive hover:bg-destructive/10"
-                    title="حذف العميل وجميع حجوزاته"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
+                  {showDeleteButton && (
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      onClick={(e) => handleDeleteCustomer(customer.id, e)}
+                      className="h-9 w-9 text-destructive hover:text-destructive hover:bg-destructive/10"
+                      title="حذف العميل وجميع حجوزاته"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  )}
                 </div>
               </Card>
             );

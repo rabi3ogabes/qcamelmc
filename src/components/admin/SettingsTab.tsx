@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Upload, Image as ImageIcon } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
 import { useTranslation } from "react-i18next";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -24,6 +25,8 @@ export const SettingsTab = () => {
   const [loading, setLoading] = useState(false);
   const [savingPhone, setSavingPhone] = useState(false);
   const [savingSadad, setSavingSadad] = useState(false);
+  const [showDeleteButton, setShowDeleteButton] = useState(false);
+  const [savingDeleteButton, setSavingDeleteButton] = useState(false);
 
   useEffect(() => {
     fetchSettings();
@@ -32,7 +35,7 @@ export const SettingsTab = () => {
   const fetchSettings = async () => {
     const { data, error } = await supabase
       .from("settings")
-      .select("logo_url, header_bg_color, webhook_url, admin_phone, sadad_merchant_id, sadad_api_key, sadad_secret")
+      .select("logo_url, header_bg_color, webhook_url, admin_phone, sadad_merchant_id, sadad_api_key, sadad_secret, show_delete_customer_button")
       .maybeSingle();
 
     if (error) {
@@ -63,6 +66,7 @@ export const SettingsTab = () => {
     if (data?.sadad_merchant_id) setSadadMerchantId(data.sadad_merchant_id);
     if (data?.sadad_api_key) setSadadApiKey(data.sadad_api_key);
     if (data?.sadad_secret) setSadadSecret(data.sadad_secret);
+    if (data?.show_delete_customer_button !== undefined) setShowDeleteButton(data.show_delete_customer_button);
   };
 
   const handleSaveLogo = async () => {
@@ -175,6 +179,41 @@ export const SettingsTab = () => {
       toast.error("فشل في حفظ إعدادات سداد");
     } finally {
       setSavingSadad(false);
+    }
+  };
+
+  const handleToggleDeleteButton = async () => {
+    setSavingDeleteButton(true);
+    try {
+      const { data: settings } = await supabase
+        .from("settings")
+        .select("id")
+        .maybeSingle();
+
+      const newValue = !showDeleteButton;
+
+      if (settings) {
+        const { error } = await supabase
+          .from("settings")
+          .update({ show_delete_customer_button: newValue })
+          .eq("id", settings.id);
+
+        if (error) throw error;
+      } else {
+        const { error } = await supabase
+          .from("settings")
+          .insert({ show_delete_customer_button: newValue });
+
+        if (error) throw error;
+      }
+
+      setShowDeleteButton(newValue);
+      toast.success(t("savedSuccessfully"));
+    } catch (error) {
+      console.error("Error saving delete button setting:", error);
+      toast.error("فشل في حفظ الإعداد");
+    } finally {
+      setSavingDeleteButton(false);
     }
   };
 
@@ -331,6 +370,26 @@ export const SettingsTab = () => {
           <Button onClick={handleSaveAdminPhone} disabled={savingPhone} className="font-lusail">
             {savingPhone ? t("loading") : t("save")}
           </Button>
+        </div>
+      </Card>
+
+      {/* Delete Customer Button Visibility */}
+      <Card className="p-6">
+        <h3 className="text-lg font-semibold mb-4 font-lusail">إعدادات الحذف</h3>
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="space-y-1">
+              <Label className="font-lusail">إظهار زر حذف العميل</Label>
+              <p className="text-xs text-muted-foreground">
+                عند التفعيل، سيظهر زر حذف العملاء في صفحة العملاء
+              </p>
+            </div>
+            <Switch
+              checked={showDeleteButton}
+              onCheckedChange={handleToggleDeleteButton}
+              disabled={savingDeleteButton}
+            />
+          </div>
         </div>
       </Card>
     </div>
