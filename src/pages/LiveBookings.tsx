@@ -250,6 +250,12 @@ const LiveBookings = () => {
               bookings.map((booking) => (
                 <Card key={booking.id} className="p-4 hover:shadow-lg transition-shadow">
                   <div className="flex flex-col gap-3">
+                    {/* Quantity - Top Left */}
+                    <div className="flex items-center gap-2">
+                      <Users className="w-4 h-4 text-primary flex-shrink-0" />
+                      <span className="text-sm font-semibold">{booking.quantity}</span>
+                    </div>
+
                     {/* Name with icon */}
                     <div className="flex items-center gap-2">
                       <User className="w-4 h-4 text-primary flex-shrink-0" />
@@ -305,12 +311,6 @@ const LiveBookings = () => {
                           <Badge variant="outline" className="text-xs">{t("notMarked")}</Badge>
                         </>
                       )}
-                    </div>
-
-                    {/* Quantity */}
-                    <div className="flex items-center gap-2">
-                      <Users className="w-4 h-4 text-primary flex-shrink-0" />
-                      <span className="text-sm font-semibold">{booking.quantity}</span>
                     </div>
 
                     {/* Action Button */}
