@@ -53,7 +53,7 @@ const LiveBookings = () => {
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [ticketHolders, setTicketHolders] = useState<TicketHolder[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
   const [viewType, setViewType] = useState<"cards" | "table">("cards");
   const [logoUrl, setLogoUrl] = useState<string>("");
   const [headerBgColor, setHeaderBgColor] = useState<string>("hsl(var(--card) / 0.5)");
@@ -116,23 +116,29 @@ const LiveBookings = () => {
 
   const fetchBookings = async () => {
     try {
-      const startOfDay = new Date(selectedDate);
-      startOfDay.setHours(0, 0, 0, 0);
-      
-      const endOfDay = new Date(selectedDate);
-      endOfDay.setHours(23, 59, 59, 999);
-
-      const { data, error } = await supabase
+      let query = supabase
         .from("orders")
         .select(`
           *,
           customers(name, email, phone, id_number, nationality),
           events(title, event_date),
           ticket_holders(*)
-        `)
-        .gte("created_at", startOfDay.toISOString())
-        .lte("created_at", endOfDay.toISOString())
-        .order("created_at", { ascending: false });
+        `);
+
+      // Apply date filter only if a date is selected
+      if (selectedDate) {
+        const startOfDay = new Date(selectedDate);
+        startOfDay.setHours(0, 0, 0, 0);
+        
+        const endOfDay = new Date(selectedDate);
+        endOfDay.setHours(23, 59, 59, 999);
+
+        query = query
+          .gte("created_at", startOfDay.toISOString())
+          .lte("created_at", endOfDay.toISOString());
+      }
+
+      const { data, error } = await query.order("created_at", { ascending: false });
 
       if (error) throw error;
 
@@ -291,29 +297,41 @@ const LiveBookings = () => {
         {/* Date Selector and Stats */}
         <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-8">
           <Card className="p-6">
-            <Popover>
-              <PopoverTrigger asChild>
+            <div className="flex flex-col gap-2">
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className={cn(
+                      "w-full justify-start text-right font-lusail",
+                      !selectedDate && "text-muted-foreground"
+                    )}
+                  >
+                    <CalendarIcon className="ml-2 h-4 w-4" />
+                    {selectedDate ? format(selectedDate, "PPP") : "اختر تاريخ محدد"}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={selectedDate}
+                    onSelect={setSelectedDate}
+                    initialFocus
+                    className={cn("p-3 pointer-events-auto")}
+                  />
+                </PopoverContent>
+              </Popover>
+              {selectedDate && (
                 <Button
-                  variant="outline"
-                  className={cn(
-                    "w-full justify-start text-right font-lusail",
-                    !selectedDate && "text-muted-foreground"
-                  )}
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setSelectedDate(undefined)}
+                  className="font-lusail text-xs"
                 >
-                  <CalendarIcon className="ml-2 h-4 w-4" />
-                  {selectedDate ? format(selectedDate, "PPP") : t("selectDate")}
+                  عرض الكل
                 </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
-                <Calendar
-                  mode="single"
-                  selected={selectedDate}
-                  onSelect={(date) => date && setSelectedDate(date)}
-                  initialFocus
-                  className={cn("p-3 pointer-events-auto")}
-                />
-              </PopoverContent>
-            </Popover>
+              )}
+            </div>
           </Card>
 
           <Card className="p-6 bg-blue-50 dark:bg-blue-950">
