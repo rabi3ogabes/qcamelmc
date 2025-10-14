@@ -251,16 +251,16 @@ const LiveBookings = () => {
               bookings.map((booking) => (
                 <Card key={booking.id} className="p-4 hover:shadow-lg transition-shadow">
                   <div className="flex flex-col gap-3">
-                    {/* Quantity - Top Left */}
-                    <div className="flex items-center gap-2 justify-end">
-                      <Users className="w-4 h-4 text-primary flex-shrink-0" />
-                      <span className="text-sm font-semibold">{booking.quantity}</span>
-                    </div>
-
-                    {/* Name with icon */}
-                    <div className="flex items-center gap-2">
-                      <User className="w-4 h-4 text-primary flex-shrink-0" />
-                      <span className="font-semibold text-sm truncate">{booking.customers.name}</span>
+                    {/* Name and Quantity - Top Row */}
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2">
+                        <User className="w-4 h-4 text-primary flex-shrink-0" />
+                        <span className="font-semibold text-sm truncate">{booking.customers.name}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Users className="w-4 h-4 text-primary flex-shrink-0" />
+                        <span className="text-sm font-semibold">{booking.quantity}</span>
+                      </div>
                     </div>
 
                     {/* Phone with icon */}
