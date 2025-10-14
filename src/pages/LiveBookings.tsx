@@ -131,20 +131,16 @@ const LiveBookings = () => {
       // Filter by event date on client side if date is selected
       let filteredData = data || [];
       if (selectedDate) {
-        const startOfDay = new Date(selectedDate);
-        startOfDay.setHours(0, 0, 0, 0);
+        // Format selected date as YYYY-MM-DD for comparison
+        const selectedDateStr = format(selectedDate, 'yyyy-MM-dd');
         
-        const endOfDay = new Date(selectedDate);
-        endOfDay.setHours(23, 59, 59, 999);
-
         filteredData = filteredData.filter((order: any) => {
           if (!order.events?.event_date) return false;
-          const eventDate = new Date(order.events.event_date);
-          return eventDate >= startOfDay && eventDate <= endOfDay;
+          // Extract just the date part from event_date
+          const eventDateStr = order.events.event_date.split('T')[0];
+          return eventDateStr === selectedDateStr;
         });
       }
-
-      if (error) throw error;
 
       // Extract all ticket holders from filtered bookings
       const allTicketHolders: TicketHolder[] = [];
