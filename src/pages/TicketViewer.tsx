@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ArrowLeft, Download, Loader2, QrCode as QrCodeIcon } from "lucide-react";
 import { toast } from "sonner";
 import QRCodeLib from "qrcode";
@@ -41,6 +42,7 @@ const TicketViewer = () => {
   const [generatingQR, setGeneratingQR] = useState<string | null>(null);
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
   const [headerBgColor, setHeaderBgColor] = useState<string>("hsl(var(--card) / 0.5)");
+  const [selectedQR, setSelectedQR] = useState<{ image: string; holder: TicketHolder } | null>(null);
 
   useEffect(() => {
     if (bookingRef) {
@@ -547,7 +549,8 @@ const TicketViewer = () => {
                     <img 
                       src={qrCodeImages[holder.id]} 
                       alt={`QR Code ${holder.qr_code}`}
-                      className="w-48 h-48 border-2 border-primary rounded-lg p-2"
+                      className="w-48 h-48 border-2 border-primary rounded-lg p-2 cursor-pointer hover:opacity-80 transition-opacity"
+                      onClick={() => setSelectedQR({ image: qrCodeImages[holder.id], holder })}
                     />
                   ) : (
                     <div className="w-48 h-48 bg-muted rounded-lg flex items-center justify-center">
@@ -595,6 +598,29 @@ const TicketViewer = () => {
             </Card>
           ))}
         </div>
+
+        {/* Maximized QR Code Dialog */}
+        <Dialog open={!!selectedQR} onOpenChange={() => setSelectedQR(null)}>
+          <DialogContent className="max-w-fit">
+            <DialogHeader>
+              <DialogTitle className="font-lusail text-2xl text-center">رمز QR</DialogTitle>
+            </DialogHeader>
+            {selectedQR && (
+              <div className="flex flex-col items-center justify-center p-4 gap-4">
+                <img 
+                  src={selectedQR.image} 
+                  alt="Maximized QR Code" 
+                  className="w-[500px] h-[500px] object-contain border-4 border-primary rounded-lg p-4 bg-white" 
+                />
+                <div className="text-center">
+                  <p className="text-xl font-bold font-lusail">{selectedQR.holder.name}</p>
+                  <p className="text-lg text-muted-foreground font-mono">{selectedQR.holder.qr_code}</p>
+                  <p className="text-sm text-muted-foreground capitalize mt-2">{selectedQR.holder.ticket_type}</p>
+                </div>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
       </div>
       </div>
     </div>
