@@ -608,36 +608,36 @@ export const CustomersTab = () => {
                       </div>
                     </div>
                   )}
+                </div>
 
-                  {/* Action Buttons */}
-                  <div className="flex gap-2 mt-auto pt-4 border-t border-border/30">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={(e) => sendTicketToWhatsApp(customer, e)}
-                      disabled={sendingTicket === customer.id}
-                      className="flex-1"
-                      title="إرسال التذكرة عبر n8n"
-                    >
-                      {sendingTicket === customer.id ? (
-                        <span className="animate-spin">⏳</span>
-                      ) : (
-                        <>
-                          <Ticket className="w-3.5 h-3.5 ml-1" />
-                          <span className="text-xs">إرسال التذكرة</span>
-                        </>
-                      )}
-                    </Button>
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      onClick={(e) => handleDeleteCustomer(customer.id, e)}
-                      className="h-9 w-9 text-destructive hover:text-destructive hover:bg-destructive/10"
-                      title="حذف العميل وجميع حجوزاته"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  </div>
+                {/* Action Buttons - Outside the flex-1 container */}
+                <div className="flex gap-2 pt-4 border-t border-border/30 mt-4">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={(e) => sendTicketToWhatsApp(customer, e)}
+                    disabled={sendingTicket === customer.id}
+                    className="flex-1"
+                    title="إرسال التذكرة عبر n8n"
+                  >
+                    {sendingTicket === customer.id ? (
+                      <span className="animate-spin">⏳</span>
+                    ) : (
+                      <>
+                        <Ticket className="w-3.5 h-3.5 ml-1" />
+                        <span className="text-xs">إرسال التذكرة</span>
+                      </>
+                    )}
+                  </Button>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    onClick={(e) => handleDeleteCustomer(customer.id, e)}
+                    className="h-9 w-9 text-destructive hover:text-destructive hover:bg-destructive/10"
+                    title="حذف العميل وجميع حجوزاته"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
                 </div>
               </Card>
             );
