@@ -302,7 +302,7 @@ const TicketSelection = () => {
         </Card>
 
         <div className="text-center mt-4 sm:mt-6">
-          <Button variant="ghost" onClick={() => navigate("/")}>
+          <Button variant="ghost" onClick={() => navigate("/")} className="bg-yellow-500 hover:bg-yellow-600 text-black">
             {t('backToEvent')}
           </Button>
         </div>
