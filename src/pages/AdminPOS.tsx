@@ -252,6 +252,34 @@ const AdminPOS = () => {
     setTicketHolders(updated);
   };
 
+  const deleteTicketHolder = (index: number) => {
+    const holder = ticketHolders[index];
+    
+    // Remove the holder from the array
+    const updatedHolders = ticketHolders.filter((_, i) => i !== index);
+    setTicketHolders(updatedHolders);
+
+    // Update the cart - decrease quantity for this ticket type
+    const cartItem = cart.find(item => item.ticketType === holder.ticketType);
+    if (cartItem) {
+      const newQuantity = cartItem.quantity - 1;
+      if (newQuantity <= 0) {
+        setCart(cart.filter(item => item.ticketId !== cartItem.ticketId));
+      } else {
+        setCart(cart.map(item =>
+          item.ticketId === cartItem.ticketId
+            ? { ...item, quantity: newQuantity }
+            : item
+        ));
+      }
+    }
+
+    toast({
+      title: "تم الحذف",
+      description: "تم حذف بيانات حامل التذكرة",
+    });
+  };
+
   const totalAmount = cart.reduce((total, item) => total + (item.price * item.quantity), 0);
 
   const gulfNationalities = [
@@ -572,9 +600,20 @@ const AdminPOS = () => {
                   <CardContent className="space-y-6">
                     {ticketHolders.map((holder, index) => (
                       <div key={index} className="p-4 border rounded-lg space-y-3 bg-muted/50">
-                        <h4 className="font-bold text-primary">
-                          التذكرة #{index + 1} - {getTicketTypeName(holder.ticketType)}
-                        </h4>
+                        <div className="flex justify-between items-center">
+                          <h4 className="font-bold text-primary">
+                            التذكرة #{index + 1} - {getTicketTypeName(holder.ticketType)}
+                          </h4>
+                          <Button
+                            type="button"
+                            variant="destructive"
+                            size="icon"
+                            className="h-8 w-8"
+                            onClick={() => deleteTicketHolder(index)}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                           <div>
                             <Label htmlFor={`holder-name-${index}`}>الاسم *</Label>
