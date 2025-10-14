@@ -358,16 +358,6 @@ const LiveBookings = () => {
                         )}
                       </div>
                     </div>
-
-                    {/* Action Button */}
-                    <Button
-                      size="sm"
-                      variant={booking.is_present ? "outline" : "default"}
-                      onClick={() => togglePresence(booking.id, booking.is_present)}
-                      className="w-full font-lusail mt-2"
-                    >
-                      {booking.is_present ? t("markAbsent") : t("markPresent")}
-                    </Button>
                   </div>
                 </Card>
               ))
@@ -388,13 +378,12 @@ const LiveBookings = () => {
                     <TableHead className="text-right font-lusail">{t("amount")}</TableHead>
                     <TableHead className="text-right font-lusail">{t("status")}</TableHead>
                     <TableHead className="text-right font-lusail">{t("attendance")}</TableHead>
-                    <TableHead className="text-right font-lusail">{t("actions")}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {bookings.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={9} className="text-center py-12">
+                      <TableCell colSpan={8} className="text-center py-12">
                         <p className="text-muted-foreground font-lusail">{t("noBookingsForDate")}</p>
                       </TableCell>
                     </TableRow>
@@ -441,16 +430,6 @@ const LiveBookings = () => {
                               {t("absent")}
                             </Badge>
                           )}
-                        </TableCell>
-                        <TableCell>
-                          <Button
-                            size="sm"
-                            variant={booking.is_present ? "outline" : "default"}
-                            onClick={() => togglePresence(booking.id, booking.is_present)}
-                            className="font-lusail"
-                          >
-                            {booking.is_present ? t("markAbsent") : t("markPresent")}
-                          </Button>
                         </TableCell>
                       </TableRow>
                     ))
