@@ -354,7 +354,7 @@ const LiveBookings = () => {
                         ) : (
                           <>
                             <XCircle className="w-4 h-4 text-muted-foreground flex-shrink-0" />
-                            <Badge variant="outline" className="text-xs">{t("notMarked")}</Badge>
+                            <Badge variant="outline" className="text-xs">غائب او حاضر</Badge>
                           </>
                         )}
                       </div>
@@ -442,7 +442,7 @@ const LiveBookings = () => {
                               {t("absent")}
                             </Badge>
                           ) : (
-                            <Badge variant="outline">{t("notMarked")}</Badge>
+                            <Badge variant="outline">غائب او حاضر</Badge>
                           )}
                         </TableCell>
                         <TableCell>
