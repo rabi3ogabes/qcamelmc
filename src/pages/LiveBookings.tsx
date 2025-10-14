@@ -252,7 +252,7 @@ const LiveBookings = () => {
                 <Card key={booking.id} className="p-4 hover:shadow-lg transition-shadow">
                   <div className="flex flex-col gap-3">
                     {/* Quantity - Top Left */}
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 justify-end">
                       <Users className="w-4 h-4 text-primary flex-shrink-0" />
                       <span className="text-sm font-semibold">{booking.quantity}</span>
                     </div>
