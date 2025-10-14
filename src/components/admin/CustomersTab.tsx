@@ -219,7 +219,17 @@ export const CustomersTab = () => {
     (customer) =>
       customer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       customer.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      customer.phone.includes(searchTerm)
+      customer.phone.includes(searchTerm) ||
+      // Search by order booking reference
+      customer.orders.some(order => 
+        order.booking_reference.toLowerCase().includes(searchTerm.toLowerCase())
+      ) ||
+      // Search by ticket holder QR code
+      customer.orders.some(order => 
+        order.ticket_holders?.some(holder => 
+          holder.qr_code?.toLowerCase().includes(searchTerm.toLowerCase())
+        )
+      )
   );
 
   const sendInvoiceToWhatsApp = async (customer: Customer, orderId: string, e: React.MouseEvent) => {
@@ -562,7 +572,7 @@ export const CustomersTab = () => {
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold font-lusail">العملاء والحجوزات</h2>
         <Input
-          placeholder="بحث بالاسم أو الهاتف..."
+          placeholder="بحث بالاسم، الهاتف، أو رمز التذكرة..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           className="max-w-sm font-lusail"
