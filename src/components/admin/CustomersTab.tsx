@@ -506,11 +506,13 @@ export const CustomersTab = () => {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 auto-rows-fr">
           {filteredCustomers.map((customer) => {
-            // Collect all ticket holders from all orders
+            // Collect all ticket holders from all orders with their details
             const allTickets = customer.orders.flatMap(order => 
               order.ticket_holders?.map(holder => ({
                 name: holder.name,
                 ticketType: holder.ticket_type,
+                phone: holder.phone,
+                nationality: holder.nationality,
                 orderRef: order.booking_reference
               })) || []
             );
@@ -550,12 +552,22 @@ export const CustomersTab = () => {
                             className="bg-background border border-border/50 rounded-lg p-3 text-right shadow-sm"
                           >
                             <div className="flex flex-col gap-2">
-                              <span className="text-xs font-medium font-lusail">
-                                {ticket.name}
-                              </span>
-                              <Badge variant="outline" className="text-xs w-fit mr-auto">
-                                {ticket.ticketType.toUpperCase()}
-                              </Badge>
+                              <div className="flex items-center justify-between">
+                                <Badge variant="outline" className="text-xs">
+                                  {ticket.ticketType.toUpperCase()}
+                                </Badge>
+                                <span className="text-xs font-medium font-lusail">
+                                  {ticket.name}
+                                </span>
+                              </div>
+                              <div className="flex items-center justify-end gap-1 text-xs text-muted-foreground">
+                                <span className="font-lusail">{ticket.phone}</span>
+                                <Phone className="w-3 h-3" />
+                              </div>
+                              <div className="flex items-center justify-end gap-1 text-xs text-muted-foreground">
+                                <span className="font-lusail">{ticket.nationality}</span>
+                                <User className="w-3 h-3" />
+                              </div>
                             </div>
                           </div>
                         ))}
