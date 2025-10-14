@@ -40,6 +40,7 @@ const LiveBookings = () => {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [viewType, setViewType] = useState<"cards" | "table">("cards");
   const [logoUrl, setLogoUrl] = useState<string>("");
+  const [headerBgColor, setHeaderBgColor] = useState<string>("hsl(var(--card) / 0.5)");
   const [stats, setStats] = useState({
     total: 0,
     confirmed: 0,
@@ -58,12 +59,17 @@ const LiveBookings = () => {
     try {
       const { data, error } = await supabase
         .from("settings")
-        .select("logo_url")
-        .single();
+        .select("logo_url, header_bg_color")
+        .maybeSingle();
 
       if (error) throw error;
+      
       if (data?.logo_url) {
         setLogoUrl(data.logo_url);
+      }
+      
+      if (data?.header_bg_color) {
+        setHeaderBgColor(data.header_bg_color);
       }
     } catch (error) {
       console.error("Error fetching settings:", error);
@@ -168,16 +174,14 @@ const LiveBookings = () => {
   return (
     <div className="min-h-screen bg-background font-lusail" dir="rtl">
       {/* Header with Logo */}
-      <header className="bg-card border-b sticky top-0 z-50 shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
+      <header className="border-b backdrop-blur-sm sticky top-0 z-50" style={{ backgroundColor: headerBgColor }}>
+        <div className="container mx-auto px-4 py-4 flex justify-between items-center">
           <div className="flex items-center gap-4">
-            {logoUrl && (
+            {logoUrl ? (
               <img src={logoUrl} alt="Logo" className="h-12 object-contain" />
-            )}
-            <div>
+            ) : (
               <h1 className="text-2xl font-bold">{t("liveBookings")}</h1>
-              <p className="text-sm text-muted-foreground">{t("trackBookingsRealtime")}</p>
-            </div>
+            )}
           </div>
           <div className="flex gap-2">
             <Button
@@ -211,7 +215,7 @@ const LiveBookings = () => {
         </div>
       </header>
 
-      <div className="max-w-7xl mx-auto py-8 px-4">
+      <div className="container mx-auto py-8 px-4">
 
         {/* Date Selector and Stats */}
         <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-8">
