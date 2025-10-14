@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { CalendarIcon, CheckCircle, XCircle, Users, LayoutGrid, Table as TableIcon, User, Phone, CreditCard, Hash } from "lucide-react";
+import { CalendarIcon, CheckCircle, XCircle, Users, LayoutGrid, Table as TableIcon, User, Phone, CreditCard, Hash, Maximize } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -39,6 +39,7 @@ const LiveBookings = () => {
   const [loading, setLoading] = useState(true);
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [viewType, setViewType] = useState<"cards" | "table">("cards");
+  const [logoUrl, setLogoUrl] = useState<string>("");
   const [stats, setStats] = useState({
     total: 0,
     confirmed: 0,
@@ -48,9 +49,34 @@ const LiveBookings = () => {
 
   useEffect(() => {
     fetchBookings();
+    fetchSettings();
     const cleanup = setupRealtimeSubscription();
     return cleanup;
   }, [selectedDate]);
+
+  const fetchSettings = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("settings")
+        .select("logo_url")
+        .single();
+
+      if (error) throw error;
+      if (data?.logo_url) {
+        setLogoUrl(data.logo_url);
+      }
+    } catch (error) {
+      console.error("Error fetching settings:", error);
+    }
+  };
+
+  const toggleFullscreen = () => {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen();
+    } else {
+      document.exitFullscreen();
+    }
+  };
 
   const fetchBookings = async () => {
     try {
@@ -140,15 +166,29 @@ const LiveBookings = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background py-8 px-4 font-lusail" dir="rtl">
-      <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="mb-8 flex justify-between items-center">
-          <div>
-            <h1 className="text-4xl font-bold mb-2">{t("liveBookings")}</h1>
-            <p className="text-muted-foreground">{t("trackBookingsRealtime")}</p>
+    <div className="min-h-screen bg-background font-lusail" dir="rtl">
+      {/* Header with Logo */}
+      <header className="bg-card border-b sticky top-0 z-50 shadow-sm">
+        <div className="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
+          <div className="flex items-center gap-4">
+            {logoUrl && (
+              <img src={logoUrl} alt="Logo" className="h-12 object-contain" />
+            )}
+            <div>
+              <h1 className="text-2xl font-bold">{t("liveBookings")}</h1>
+              <p className="text-sm text-muted-foreground">{t("trackBookingsRealtime")}</p>
+            </div>
           </div>
           <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={toggleFullscreen}
+              className="font-lusail"
+            >
+              <Maximize className="w-4 h-4 ml-2" />
+              ملء الشاشة
+            </Button>
             <Button
               variant={viewType === "cards" ? "default" : "outline"}
               size="sm"
@@ -169,6 +209,9 @@ const LiveBookings = () => {
             </Button>
           </div>
         </div>
+      </header>
+
+      <div className="max-w-7xl mx-auto py-8 px-4">
 
         {/* Date Selector and Stats */}
         <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-8">
