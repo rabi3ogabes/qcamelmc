@@ -129,6 +129,7 @@ const LiveBookings = () => {
       if (error) throw error;
 
       console.log("Raw data from Supabase:", data);
+      console.log("First order ticket_holders:", data?.[0]?.ticket_holders);
 
       // Filter by event date on client side if date is selected
       let filteredData = data || [];
@@ -140,17 +141,17 @@ const LiveBookings = () => {
           if (!order.events?.event_date) return false;
           // Extract just the date part from event_date
           const eventDateStr = order.events.event_date.split('T')[0];
-          const matches = eventDateStr === selectedDateStr;
-          console.log(`Order ${order.booking_reference}: event_date=${eventDateStr}, selected=${selectedDateStr}, matches=${matches}`);
-          return matches;
+          return eventDateStr === selectedDateStr;
         });
       }
 
       console.log("Filtered data:", filteredData);
+      console.log("First filtered order:", filteredData[0]);
 
       // Extract all ticket holders from filtered bookings
       const allTicketHolders: TicketHolder[] = [];
       filteredData.forEach(order => {
+        console.log(`Order ${order.booking_reference} ticket_holders:`, order.ticket_holders);
         if (order.ticket_holders && Array.isArray(order.ticket_holders)) {
           order.ticket_holders.forEach((holder: any) => {
             allTicketHolders.push(holder);
@@ -158,6 +159,7 @@ const LiveBookings = () => {
         }
       });
 
+      console.log("Total ticket holders extracted:", allTicketHolders.length);
       console.log("Ticket holders:", allTicketHolders);
 
       setBookings(filteredData);
