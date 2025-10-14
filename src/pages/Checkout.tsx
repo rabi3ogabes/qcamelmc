@@ -358,20 +358,43 @@ const Checkout = () => {
 
       if (orderError) throw orderError;
 
-      // Generate ticket holders
+      // Generate ticket holders with QR codes
       const fullCustomerPhone = `${customerInfo.countryCode} ${customerInfo.phone}`;
-      const holdersToInsert = ticketHolders.map((holder, index) => {
+      const holdersToInsert = await Promise.all(ticketHolders.map(async (holder, index) => {
         const ticketRef = `${bookingRef}-TKT${(index + 1).toString().padStart(2, '0')}`;
-        return {
-          order_id: order.id,
-          name: holder.name,
-          phone: holder.phone || fullCustomerPhone,
-          nationality: holder.nationality,
-          ticket_type: holder.ticketType,
-          qr_code: ticketRef,
-          id_number: holder.idNumber
-        };
-      });
+        
+        // Generate QR code and upload to storage
+        try {
+          const { data: qrData, error: qrError } = await supabase.functions.invoke('generate-qr-code', {
+            body: { text: ticketRef, filename: ticketRef }
+          });
+
+          if (qrError) {
+            console.error('QR generation error:', qrError);
+          }
+
+          return {
+            order_id: order.id,
+            name: holder.name,
+            phone: holder.phone || fullCustomerPhone,
+            nationality: holder.nationality,
+            ticket_type: holder.ticketType,
+            qr_code: qrData?.url || ticketRef,
+            id_number: holder.idNumber
+          };
+        } catch (error) {
+          console.error('QR generation failed:', error);
+          return {
+            order_id: order.id,
+            name: holder.name,
+            phone: holder.phone || fullCustomerPhone,
+            nationality: holder.nationality,
+            ticket_type: holder.ticketType,
+            qr_code: ticketRef,
+            id_number: holder.idNumber
+          };
+        }
+      }));
 
       const { error: holdersError } = await supabase
         .from("ticket_holders")
