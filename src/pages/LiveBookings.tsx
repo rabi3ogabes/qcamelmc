@@ -174,7 +174,7 @@ const LiveBookings = () => {
   return (
     <div className="min-h-screen bg-background font-lusail" dir="rtl">
       {/* Header with Logo */}
-      <header className="border-b backdrop-blur-sm sticky top-0 z-50" style={{ backgroundColor: headerBgColor }}>
+      <header className="border-b backdrop-blur-sm sticky top-0 z-10" style={{ backgroundColor: headerBgColor }}>
         <div className="container mx-auto px-4 py-4 flex justify-between items-center">
           <div className="flex items-center gap-4">
             {logoUrl ? (
