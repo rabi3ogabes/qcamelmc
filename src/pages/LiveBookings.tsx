@@ -299,20 +299,28 @@ const LiveBookings = () => {
               bookings.map((booking) => (
                 <Card key={booking.id} className="p-4 hover:shadow-xl transition-shadow shadow-md">
                   <div className="flex flex-col gap-3">
-                    {/* Name and Quantity - Top Row */}
+                    {/* Name and Flag - Top Row */}
                     <div className="flex items-center justify-between gap-2">
                       <div className="flex items-center gap-2">
                         <User className="w-4 h-4 text-primary flex-shrink-0" />
                         <span className="font-semibold text-sm truncate">{booking.customers.name}</span>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <Users className="w-4 h-4 text-primary flex-shrink-0" />
-                        <span className="text-sm font-semibold">{booking.quantity}</span>
-                      </div>
+                      {booking.customers.nationality && (
+                        <div className="flex items-center gap-2">
+                          <span className="text-lg">{booking.customers.nationality === 'قطر' ? '🇶🇦' : '🌍'}</span>
+                          <span className="text-sm">{booking.customers.nationality}</span>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Quantity */}
+                    <div className="flex items-center gap-2">
+                      <Users className="w-4 h-4 text-primary flex-shrink-0" />
+                      <span className="text-sm font-semibold">{booking.quantity}</span>
                     </div>
 
                     {/* Phone and ID Number - Same Line */}
-                    <div className="flex items-center gap-2 flex-wrap">
+                    <div className="flex items-center justify-between gap-2">
                       <div className="flex items-center gap-2">
                         <Phone className="w-4 h-4 text-primary flex-shrink-0" />
                         <span className="text-sm truncate">{booking.customers.phone}</span>
@@ -324,14 +332,6 @@ const LiveBookings = () => {
                         </div>
                       )}
                     </div>
-
-                    {/* Nationality with flag */}
-                    {booking.customers.nationality && (
-                      <div className="flex items-center gap-2">
-                        <span className="text-lg">{booking.customers.nationality === 'قطر' ? '🇶🇦' : '🌍'}</span>
-                        <span className="text-sm">{booking.customers.nationality}</span>
-                      </div>
-                    )}
 
                     {/* Payment Status and Attendance - Same Line */}
                     <div className="flex items-center justify-between gap-2">
