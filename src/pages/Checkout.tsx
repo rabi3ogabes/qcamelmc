@@ -186,12 +186,24 @@ const Checkout = () => {
         nationality: customerInfo.nationality,
         idNumber: customerInfo.idNumber
       };
-      // Apply main user's nationality to all other ticket holders
+      // Apply main user's nationality and country code to all other ticket holders
+      const countryCode = customerInfo.countryCode;
       for (let i = 1; i < updated.length; i++) {
-        updated[i] = {
-          ...updated[i],
-          nationality: customerInfo.nationality
-        };
+        // Only update nationality and phone prefix if not already set
+        if (!updated[i].nationality) {
+          updated[i] = {
+            ...updated[i],
+            nationality: customerInfo.nationality,
+            phone: countryCode // Set initial phone with country code
+          };
+        } else if (!updated[i].phone) {
+          // If nationality is set but phone is empty, use appropriate country code
+          const holderCountryCode = COUNTRY_CODES[updated[i].nationality] || "+974";
+          updated[i] = {
+            ...updated[i],
+            phone: holderCountryCode
+          };
+        }
       }
       setTicketHolders(updated);
     }
@@ -294,12 +306,9 @@ const Checkout = () => {
       return;
     }
 
-    // Validate all ticket holders
+    // Validate all ticket holders - all must have complete information
     const allHoldersFilled = ticketHolders.every((holder, index) => {
-      if (index === 0) {
-        return holder.name && holder.phone && holder.nationality && holder.idNumber;
-      }
-      return holder.name && holder.nationality && holder.idNumber;
+      return holder.name && holder.phone && holder.nationality && holder.idNumber;
     });
     
     if (!allHoldersFilled) {
@@ -358,8 +367,7 @@ const Checkout = () => {
 
       if (orderError) throw orderError;
 
-      // Generate ticket holders with QR codes
-      const fullCustomerPhone = `${customerInfo.countryCode} ${customerInfo.phone}`;
+      // Generate ticket holders with unique QR codes for each ticket
       const holdersToInsert = await Promise.all(ticketHolders.map(async (holder, index) => {
         const ticketRef = `${bookingRef}-TKT${(index + 1).toString().padStart(2, '0')}`;
         
@@ -376,7 +384,7 @@ const Checkout = () => {
           return {
             order_id: order.id,
             name: holder.name,
-            phone: holder.phone || fullCustomerPhone,
+            phone: holder.phone,
             nationality: holder.nationality,
             ticket_type: holder.ticketType,
             qr_code: qrData?.url || ticketRef,
@@ -387,7 +395,7 @@ const Checkout = () => {
           return {
             order_id: order.id,
             name: holder.name,
-            phone: holder.phone || fullCustomerPhone,
+            phone: holder.phone,
             nationality: holder.nationality,
             ticket_type: holder.ticketType,
             qr_code: ticketRef,
@@ -528,7 +536,15 @@ const Checkout = () => {
           {/* Customer Information */}
           <div className="lg:col-span-2 space-y-4 sm:space-y-6">
             <Card className="p-4 sm:p-5 md:p-6">
-              <h2 className="text-xl sm:text-2xl font-semibold mb-4 sm:mb-6">{t('customerInfo')} - التذكرة الرئيسية</h2>
+              <div className="mb-4 sm:mb-6">
+                <h2 className="text-xl sm:text-2xl font-semibold mb-2 flex items-center gap-2">
+                  <span className="w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-sm">1</span>
+                  {t('customerInfo')} - التذكرة الرئيسية
+                </h2>
+                <p className="text-sm text-muted-foreground">
+                  هذه المعلومات للتذكرة الرئيسية وستحصل على QR Code خاص بها
+                </p>
+              </div>
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
                   <Label htmlFor="name">{t('fullName')} *</Label>
@@ -626,17 +642,28 @@ const Checkout = () => {
             {/* Ticket Holders Information - Only show if more than 1 ticket */}
             {ticketHolders.length > 1 && (
               <Card className="p-4 sm:p-5 md:p-6">
-                <h2 className="text-xl sm:text-2xl font-semibold mb-4 sm:mb-6">تفاصيل التذاكر الإضافية</h2>
+                <div className="mb-4 sm:mb-6">
+                  <h2 className="text-xl sm:text-2xl font-semibold mb-2">التذاكر الإضافية</h2>
+                  <p className="text-sm text-muted-foreground">
+                    كل تذكرة ستحصل على QR Code فريد خاص بها. يرجى إدخال معلومات كاملة لكل حامل تذكرة.
+                  </p>
+                </div>
                 <div className="space-y-4 sm:space-y-6">
                   {ticketHolders.map((holder, index) => {
                     // Skip rendering the first ticket holder since info is from customer
                     if (index === 0) return null;
                     
                     return (
-                      <div key={index} className="p-3 sm:p-4 border rounded-lg space-y-3 sm:space-y-4">
-                        <h3 className="font-semibold text-base sm:text-lg">
-                          {t('ticket')} #{index + 1} - {holder.ticketType.toUpperCase()}
-                        </h3>
+                      <div key={index} className="p-3 sm:p-4 border-2 border-primary/20 rounded-lg space-y-3 sm:space-y-4 bg-primary/5">
+                        <div className="flex items-center justify-between mb-2">
+                          <h3 className="font-semibold text-base sm:text-lg flex items-center gap-2">
+                            <span className="w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-sm">
+                              {index + 1}
+                            </span>
+                            تذكرة #{index + 1} - {holder.ticketType.toUpperCase()}
+                          </h3>
+                          <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded">QR Code مستقل</span>
+                        </div>
                         <div className="grid sm:grid-cols-2 gap-3 sm:gap-4">
                           <div>
                             <Label htmlFor={`holder-name-${index}`}>{t('fullName')} *</Label>
@@ -691,6 +718,20 @@ const Checkout = () => {
                               onChange={(e) => updateTicketHolder(index, 'idNumber', e.target.value)}
                               required
                               placeholder="رقم الهوية"
+                            />
+                          </div>
+                          <div>
+                            <Label htmlFor={`holder-phone-${index}`}>{t('phone')} *</Label>
+                            <Input
+                              id={`holder-phone-${index}`}
+                              type="tel"
+                              value={holder.phone.replace(/^\+\d+\s*/, "")}
+                              onChange={(e) => {
+                                const countryCode = COUNTRY_CODES[holder.nationality] || "+974";
+                                updateTicketHolder(index, 'phone', `${countryCode} ${e.target.value}`);
+                              }}
+                              required
+                              placeholder={t('phone')}
                             />
                           </div>
                         </div>
