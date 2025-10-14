@@ -58,19 +58,19 @@ export const OrdersTab = ({ orders, onRefresh }: OrdersTabProps) => {
   const [activeTab, setActiveTab] = useState("all");
   const [selectedOrder, setSelectedOrder] = useState<string | null>(null);
   const [ticketHolders, setTicketHolders] = useState<TicketHolder[]>([]);
-  const [selectedQrCode, setSelectedQrCode] = useState<string | null>(null);
+  const [selectedHolder, setSelectedHolder] = useState<TicketHolder | null>(null);
   const [qrCodeImage, setQrCodeImage] = useState<string | null>(null);
   const [generatingQrCodes, setGeneratingQrCodes] = useState(false);
 
-  // Generate QR code image when selectedQrCode changes
+  // Generate QR code image when selectedHolder changes
   useEffect(() => {
-    if (selectedQrCode) {
+    if (selectedHolder?.qr_code) {
       // Check if it's already a URL
-      if (selectedQrCode.startsWith('http')) {
-        setQrCodeImage(selectedQrCode);
+      if (selectedHolder.qr_code.startsWith('http')) {
+        setQrCodeImage(selectedHolder.qr_code);
       } else {
         // Generate QR code from text
-        QRCodeLib.toDataURL(selectedQrCode, {
+        QRCodeLib.toDataURL(selectedHolder.qr_code, {
           width: 800,
           margin: 2,
           errorCorrectionLevel: 'H'
@@ -84,7 +84,7 @@ export const OrdersTab = ({ orders, onRefresh }: OrdersTabProps) => {
     } else {
       setQrCodeImage(null);
     }
-  }, [selectedQrCode]);
+  }, [selectedHolder]);
 
   const generateMissingQrCodes = async () => {
     setGeneratingQrCodes(true);
@@ -337,7 +337,7 @@ export const OrdersTab = ({ orders, onRefresh }: OrdersTabProps) => {
                           <Button
                             size="sm"
                             variant="ghost"
-                            onClick={() => setSelectedQrCode(holder.qr_code)}
+                            onClick={() => setSelectedHolder(holder)}
                             className="h-8 w-8 p-0"
                             title="View QR Code"
                           >
@@ -361,18 +361,25 @@ export const OrdersTab = ({ orders, onRefresh }: OrdersTabProps) => {
       </Dialog>
 
       {/* QR Code Dialog */}
-      <Dialog open={!!selectedQrCode} onOpenChange={() => setSelectedQrCode(null)}>
+      <Dialog open={!!selectedHolder} onOpenChange={() => setSelectedHolder(null)}>
         <DialogContent className="max-w-fit">
           <DialogHeader>
             <DialogTitle className="font-lusail text-2xl">QR Code</DialogTitle>
           </DialogHeader>
-          <div className="flex items-center justify-center p-4">
+          <div className="flex flex-col items-center justify-center p-4 gap-4">
             {qrCodeImage ? (
-              <img 
-                src={qrCodeImage} 
-                alt="Ticket QR Code" 
-                className="w-[800px] h-[800px] object-contain"
-              />
+              <>
+                <img 
+                  src={qrCodeImage} 
+                  alt="Ticket QR Code" 
+                  className="w-[800px] h-[800px] object-contain"
+                />
+                <div className="text-center">
+                  <p className="text-2xl font-bold font-lusail">{selectedHolder?.name}</p>
+                  <p className="text-lg text-muted-foreground">{selectedHolder?.phone}</p>
+                  <p className="text-sm text-muted-foreground capitalize">{selectedHolder?.ticket_type}</p>
+                </div>
+              </>
             ) : (
               <div className="w-[800px] h-[800px] flex items-center justify-center">
                 <Loader2 className="w-12 h-12 animate-spin" />
