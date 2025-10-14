@@ -522,18 +522,9 @@ export const CustomersTab = () => {
                 onClick={() => setSelectedCustomer(customer)}
               >
                 <div className="flex flex-col space-y-3 relative">
-                  <Button
-                    size="icon"
-                    variant="ghost"
-                    onClick={(e) => handleDeleteCustomer(customer.id, e)}
-                    className="absolute bottom-2 left-1/2 -translate-x-1/2 h-7 w-7 text-destructive hover:text-destructive hover:bg-destructive/10 z-10"
-                    title="حذف العميل وجميع حجوزاته"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
                   
                   {/* Customer Header */}
-                  <div className="flex items-center gap-3 pr-8">
+                  <div className="flex items-center gap-3">
                     <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
                       <User className="w-6 h-6 text-primary" />
                     </div>
@@ -572,23 +563,35 @@ export const CustomersTab = () => {
                     </div>
                   )}
 
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={(e) => sendTicketToWhatsApp(customer, e)}
-                    disabled={sendingTicket === customer.id}
-                    className="w-full"
-                    title="إرسال التذكرة عبر n8n"
-                  >
-                    {sendingTicket === customer.id ? (
-                      <span className="animate-spin">⏳</span>
-                    ) : (
-                      <>
-                        <Ticket className="w-3.5 h-3.5 ml-1" />
-                        <span className="text-xs">إرسال التذكرة</span>
-                      </>
-                    )}
-                  </Button>
+                  {/* Action Buttons */}
+                  <div className="flex gap-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={(e) => sendTicketToWhatsApp(customer, e)}
+                      disabled={sendingTicket === customer.id}
+                      className="flex-1"
+                      title="إرسال التذكرة عبر n8n"
+                    >
+                      {sendingTicket === customer.id ? (
+                        <span className="animate-spin">⏳</span>
+                      ) : (
+                        <>
+                          <Ticket className="w-3.5 h-3.5 ml-1" />
+                          <span className="text-xs">إرسال التذكرة</span>
+                        </>
+                      )}
+                    </Button>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      onClick={(e) => handleDeleteCustomer(customer.id, e)}
+                      className="h-9 w-9 text-destructive hover:text-destructive hover:bg-destructive/10"
+                      title="حذف العميل وجميع حجوزاته"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
                 </div>
               </Card>
             );
