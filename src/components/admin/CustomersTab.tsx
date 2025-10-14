@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useTranslation } from "react-i18next";
-import { User, Phone, Mail, Ticket, Calendar, Send, MessageCircle, Edit, QrCode, Trash2 } from "lucide-react";
+import { User, Phone, Mail, Ticket, Calendar, Send, MessageCircle, Edit, QrCode, Trash2, UserX } from "lucide-react";
 import { toast } from "sonner";
 import QRCode from "qrcode";
 import {
@@ -31,11 +31,13 @@ interface Customer {
     created_at: string;
     qr_code?: string;
     ticket_holders: Array<{
+      id: string;
       name: string;
       phone: string;
       nationality: string;
       ticket_type: string;
       qr_code?: string;
+      is_present: boolean;
     }>;
   }>;
 }
@@ -190,11 +192,13 @@ export const CustomersTab = () => {
             created_at,
             qr_code,
             ticket_holders (
+              id,
               name,
               phone,
               nationality,
               ticket_type,
-              qr_code
+              qr_code,
+              is_present
             )
           )
         `)
@@ -505,6 +509,41 @@ export const CustomersTab = () => {
       toast.error("فشل تحديث بيانات العميل");
     } finally {
       setSaving(false);
+    }
+  };
+
+  const toggleTicketPresence = async (ticketHolderId: string, currentStatus: boolean) => {
+    try {
+      const { error } = await supabase
+        .from("ticket_holders")
+        .update({ is_present: !currentStatus })
+        .eq("id", ticketHolderId);
+
+      if (error) throw error;
+
+      toast.success(
+        !currentStatus ? "تم تحديد الحضور" : "تم إلغاء تحديد الحضور"
+      );
+      fetchCustomers();
+      
+      // Update selected customer if it's the same one
+      if (selectedCustomer) {
+        const updatedCustomer = {
+          ...selectedCustomer,
+          orders: selectedCustomer.orders.map(order => ({
+            ...order,
+            ticket_holders: order.ticket_holders?.map(holder =>
+              holder.id === ticketHolderId
+                ? { ...holder, is_present: !currentStatus }
+                : holder
+            ) || []
+          }))
+        };
+        setSelectedCustomer(updatedCustomer);
+      }
+    } catch (error) {
+      console.error("Error toggling ticket presence:", error);
+      toast.error("فشل تحديث حالة الحضور");
     }
   };
 
@@ -844,7 +883,14 @@ export const CustomersTab = () => {
                                 <div className="flex justify-between items-start gap-4">
                                   <div className="flex-1">
                                     <div className="flex justify-between items-center mb-2">
-                                      <span className="font-medium">{holder.name}</span>
+                                      <div className="flex items-center gap-2">
+                                        <span className="font-medium">{holder.name}</span>
+                                        {holder.is_present && (
+                                          <Badge variant="default" className="text-xs bg-green-500">
+                                            حاضر
+                                          </Badge>
+                                        )}
+                                      </div>
                                       <Badge variant="outline" className="text-xs">
                                         {holder.ticket_type.toUpperCase()}
                                       </Badge>
@@ -858,16 +904,29 @@ export const CustomersTab = () => {
                                       </div>
                                     )}
                                   </div>
-                                  {holder.qr_code && qrCodes[holder.qr_code] && (
-                                    <Button
-                                      size="sm"
-                                      variant="outline"
-                                      onClick={() => setViewingQrCode({ code: qrCodes[holder.qr_code], name: holder.name, reference: holder.qr_code })}
-                                      className="flex-shrink-0"
-                                    >
-                                      <QrCode className="w-4 h-4" />
-                                    </Button>
-                                  )}
+                                  <div className="flex flex-col gap-2">
+                                    {holder.qr_code && qrCodes[holder.qr_code] && (
+                                      <Button
+                                        size="sm"
+                                        variant="outline"
+                                        onClick={() => setViewingQrCode({ code: qrCodes[holder.qr_code], name: holder.name, reference: holder.qr_code })}
+                                        className="flex-shrink-0"
+                                      >
+                                        <QrCode className="w-4 h-4" />
+                                      </Button>
+                                    )}
+                                    {holder.is_present && (
+                                      <Button
+                                        size="sm"
+                                        variant="destructive"
+                                        onClick={() => toggleTicketPresence(holder.id, holder.is_present)}
+                                        className="flex-shrink-0"
+                                        title="إلغاء تحديد الحضور"
+                                      >
+                                        <UserX className="w-4 h-4" />
+                                      </Button>
+                                    )}
+                                  </div>
                                 </div>
                               </div>
                             ))}
