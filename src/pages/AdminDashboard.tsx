@@ -115,7 +115,7 @@ const AdminDashboard = () => {
           <div className="text-center py-12">{t("loading")}</div>
         ) : (
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid w-full grid-cols-6 mb-8">
+            <TabsList className="grid w-full grid-cols-5 mb-8">
               <TabsTrigger value="orders" className="flex items-center gap-2">
                 <ShoppingCart className="w-4 h-4" />
                 {t("orders")}
@@ -131,10 +131,6 @@ const AdminDashboard = () => {
               <TabsTrigger value="tickets" className="flex items-center gap-2">
                 <Ticket className="w-4 h-4" />
                 {t("tickets")}
-              </TabsTrigger>
-              <TabsTrigger value="popups" className="flex items-center gap-2">
-                <Image className="w-4 h-4" />
-                {t("popupBanners")}
               </TabsTrigger>
               <TabsTrigger value="settings" className="flex items-center gap-2">
                 <Settings className="w-4 h-4" />
@@ -194,12 +190,26 @@ const AdminDashboard = () => {
               <TicketsTab />
             </TabsContent>
 
-            <TabsContent value="popups">
-              <PopupBannersTab />
-            </TabsContent>
-
             <TabsContent value="settings">
-              <SettingsTab />
+              <Tabs defaultValue="general" className="w-full">
+                <TabsList className="grid w-full grid-cols-2 mb-6">
+                  <TabsTrigger value="general" className="font-lusail">
+                    الإعدادات العامة
+                  </TabsTrigger>
+                  <TabsTrigger value="popups" className="flex items-center gap-2 font-lusail">
+                    <Image className="w-4 h-4" />
+                    إعلانات البوب أب
+                  </TabsTrigger>
+                </TabsList>
+
+                <TabsContent value="general">
+                  <SettingsTab />
+                </TabsContent>
+
+                <TabsContent value="popups">
+                  <PopupBannersTab />
+                </TabsContent>
+              </Tabs>
             </TabsContent>
           </Tabs>
         )}
