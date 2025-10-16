@@ -628,7 +628,7 @@ export const CustomersTab = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
+      <div className="flex flex-row-reverse justify-between items-center">
         <h2 className="text-2xl font-bold font-lusail">العملاء والحجوزات</h2>
         <Input
           placeholder="بحث بالاسم، الهاتف، أو رمز التذكرة..."
