@@ -62,6 +62,7 @@ export const OrdersTab = ({
   const [generatingQrCodes, setGeneratingQrCodes] = useState(false);
   const [orderToDelete, setOrderToDelete] = useState<string | null>(null);
   const [showDeleteButton, setShowDeleteButton] = useState(false);
+  const [showGenerateQrButton, setShowGenerateQrButton] = useState(false);
 
   // Generate QR code image when selectedHolder changes
   useEffect(() => {
@@ -93,12 +94,13 @@ export const OrdersTab = ({
     try {
       const { data, error } = await supabase
         .from("settings")
-        .select("show_delete_customer_button")
+        .select("show_delete_customer_button, show_generate_qr_button")
         .single();
 
       if (error) throw error;
       if (data) {
         setShowDeleteButton(data.show_delete_customer_button || false);
+        setShowGenerateQrButton(data.show_generate_qr_button || false);
       }
     } catch (error) {
       console.error("Error fetching settings:", error);
@@ -322,17 +324,19 @@ export const OrdersTab = ({
   };
   return <div className="space-y-6">
       {/* Generate QR Codes Button */}
-      <div className="flex justify-end">
-        <Button onClick={generateMissingQrCodes} disabled={generatingQrCodes} className="font-lusail">
-          {generatingQrCodes ? <>
-              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              Generating QR Codes...
-            </> : <>
-              <QrCode className="w-4 h-4 mr-2" />
-              Generate Missing QR Codes
-            </>}
-        </Button>
-      </div>
+      {showGenerateQrButton && (
+        <div className="flex justify-end">
+          <Button onClick={generateMissingQrCodes} disabled={generatingQrCodes} className="font-lusail">
+            {generatingQrCodes ? <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                Generating QR Codes...
+              </> : <>
+                <QrCode className="w-4 h-4 mr-2" />
+                Generate Missing QR Codes
+              </>}
+          </Button>
+        </div>
+      )}
 
       {/* Statistics Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">

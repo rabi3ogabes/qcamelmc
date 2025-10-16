@@ -27,6 +27,8 @@ export const SettingsTab = () => {
   const [savingSadad, setSavingSadad] = useState(false);
   const [showDeleteButton, setShowDeleteButton] = useState(false);
   const [savingDeleteButton, setSavingDeleteButton] = useState(false);
+  const [showGenerateQrButton, setShowGenerateQrButton] = useState(false);
+  const [savingGenerateQrButton, setSavingGenerateQrButton] = useState(false);
 
   useEffect(() => {
     fetchSettings();
@@ -35,7 +37,7 @@ export const SettingsTab = () => {
   const fetchSettings = async () => {
     const { data, error } = await supabase
       .from("settings")
-      .select("logo_url, header_bg_color, webhook_url, admin_phone, sadad_merchant_id, sadad_api_key, sadad_secret, show_delete_customer_button")
+      .select("logo_url, header_bg_color, webhook_url, admin_phone, sadad_merchant_id, sadad_api_key, sadad_secret, show_delete_customer_button, show_generate_qr_button")
       .maybeSingle();
 
     if (error) {
@@ -67,6 +69,7 @@ export const SettingsTab = () => {
     if (data?.sadad_api_key) setSadadApiKey(data.sadad_api_key);
     if (data?.sadad_secret) setSadadSecret(data.sadad_secret);
     if (data?.show_delete_customer_button !== undefined) setShowDeleteButton(data.show_delete_customer_button);
+    if (data?.show_generate_qr_button !== undefined) setShowGenerateQrButton(data.show_generate_qr_button);
   };
 
   const handleSaveLogo = async () => {
@@ -214,6 +217,39 @@ export const SettingsTab = () => {
       toast.error("فشل في حفظ الإعداد");
     } finally {
       setSavingDeleteButton(false);
+    }
+  };
+
+  const handleToggleGenerateQrButton = async (newValue: boolean) => {
+    setSavingGenerateQrButton(true);
+    try {
+      const { data: settings } = await supabase
+        .from("settings")
+        .select("id")
+        .maybeSingle();
+
+      if (settings) {
+        const { error } = await supabase
+          .from("settings")
+          .update({ show_generate_qr_button: newValue })
+          .eq("id", settings.id);
+
+        if (error) throw error;
+      } else {
+        const { error } = await supabase
+          .from("settings")
+          .insert({ show_generate_qr_button: newValue });
+
+        if (error) throw error;
+      }
+
+      setShowGenerateQrButton(newValue);
+      toast.success(t("savedSuccessfully"));
+    } catch (error) {
+      console.error("Error saving generate QR button setting:", error);
+      toast.error("فشل في حفظ الإعداد");
+    } finally {
+      setSavingGenerateQrButton(false);
     }
   };
 
@@ -375,7 +411,7 @@ export const SettingsTab = () => {
 
       {/* Delete Customer Button Visibility */}
       <Card className="p-6">
-        <h3 className="text-lg font-semibold mb-4 font-lusail">إعدادات الحذف</h3>
+        <h3 className="text-lg font-semibold mb-4 font-lusail">إعدادات الأزرار</h3>
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <div className="space-y-1">
@@ -388,6 +424,19 @@ export const SettingsTab = () => {
               checked={showDeleteButton}
               onCheckedChange={handleToggleDeleteButton}
               disabled={savingDeleteButton}
+            />
+          </div>
+          <div className="flex items-center justify-between pt-4 border-t">
+            <div className="space-y-1">
+              <Label className="font-lusail">إظهار زر إنشاء رموز QR</Label>
+              <p className="text-xs text-muted-foreground">
+                عند التفعيل، سيظهر زر إنشاء رموز QR في صفحة الطلبات
+              </p>
+            </div>
+            <Switch
+              checked={showGenerateQrButton}
+              onCheckedChange={handleToggleGenerateQrButton}
+              disabled={savingGenerateQrButton}
             />
           </div>
         </div>
