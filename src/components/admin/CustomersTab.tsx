@@ -38,6 +38,7 @@ interface Customer {
       ticket_type: string;
       qr_code?: string;
       is_present: boolean;
+      id_number?: string;
     }>;
   }>;
 }
@@ -650,7 +651,8 @@ export const CustomersTab = () => {
                 ticketType: holder.ticket_type,
                 phone: holder.phone,
                 nationality: holder.nationality,
-                orderRef: order.booking_reference
+                orderRef: order.booking_reference,
+                idNumber: holder.id_number
               })) || []
             );
 
@@ -705,7 +707,10 @@ export const CustomersTab = () => {
                               <span className="text-lg leading-none">{getCountryFlag(mainTicket.nationality)}</span>
                             </div>
                           </div>
-                          <div className="flex items-center justify-end text-xs text-muted-foreground">
+                          <div className="flex items-center justify-between text-xs text-muted-foreground">
+                            {mainTicket.idNumber && (
+                              <span className="font-lusail">ID: {mainTicket.idNumber}</span>
+                            )}
                             <div className="flex items-center gap-1">
                               <span className="font-lusail">{mainTicket.phone}</span>
                               <Phone className="w-3 h-3" />
@@ -741,7 +746,10 @@ export const CustomersTab = () => {
                                   <span className="text-lg leading-none">{getCountryFlag(ticket.nationality)}</span>
                                 </div>
                               </div>
-                              <div className="flex items-center justify-end text-xs text-muted-foreground">
+                              <div className="flex items-center justify-between text-xs text-muted-foreground">
+                                {ticket.idNumber && (
+                                  <span className="font-lusail">ID: {ticket.idNumber}</span>
+                                )}
                                 <div className="flex items-center gap-1">
                                   <span className="font-lusail">{ticket.phone}</span>
                                   <Phone className="w-3 h-3" />
