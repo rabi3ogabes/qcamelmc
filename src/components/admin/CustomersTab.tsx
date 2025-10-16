@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useTranslation } from "react-i18next";
-import { User, Phone, Mail, Ticket, Calendar, Send, MessageCircle, Edit, QrCode, Trash2, UserX } from "lucide-react";
+import { User, Phone, Mail, Ticket, Calendar, Send, MessageCircle, Edit, QrCode, Trash2, UserX, CreditCard } from "lucide-react";
 import { toast } from "sonner";
 import QRCode from "qrcode";
 import {
@@ -710,7 +710,10 @@ export const CustomersTab = () => {
                           </div>
                           <div className="flex items-center justify-between text-xs text-muted-foreground">
                             {mainTicket.idNumber && (
-                              <span className="font-lusail">ID: {mainTicket.idNumber}</span>
+                              <div className="flex items-center gap-1">
+                                <CreditCard className="w-3 h-3" />
+                                <span className="font-lusail">{mainTicket.idNumber}</span>
+                              </div>
                             )}
                             <div className="flex items-center gap-1">
                               <span className="font-lusail">{mainTicket.phone}</span>
@@ -749,7 +752,10 @@ export const CustomersTab = () => {
                               </div>
                               <div className="flex items-center justify-between text-xs text-muted-foreground">
                                 {ticket.idNumber && (
-                                  <span className="font-lusail">ID: {ticket.idNumber}</span>
+                                  <div className="flex items-center gap-1">
+                                    <CreditCard className="w-3 h-3" />
+                                    <span className="font-lusail">{ticket.idNumber}</span>
+                                  </div>
                                 )}
                                 <div className="flex items-center gap-1">
                                   <span className="font-lusail">{ticket.phone}</span>
