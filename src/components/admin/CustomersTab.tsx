@@ -445,6 +445,7 @@ export const CustomersTab = () => {
         name: holder.name,
         phone: formatPhoneNumber(holder.phone),
         nationality: holder.nationality,
+        id_number: holder.id_number,
         ticket_type: holder.ticket_type,
         qr_code: holder.qr_code,
         qr_code_image: holder.qr_code_image // Public URL to .jpg image
