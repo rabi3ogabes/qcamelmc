@@ -5,8 +5,9 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { CheckCircle, MapPin, Calendar, Eye, QrCode, Loader2, XCircle, Printer } from "lucide-react";
+import { CheckCircle, MapPin, Calendar, Eye, QrCode, Loader2, XCircle, Printer, Trash2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -59,6 +60,7 @@ export const OrdersTab = ({
   const [selectedHolder, setSelectedHolder] = useState<TicketHolder | null>(null);
   const [qrCodeImage, setQrCodeImage] = useState<string | null>(null);
   const [generatingQrCodes, setGeneratingQrCodes] = useState(false);
+  const [orderToDelete, setOrderToDelete] = useState<string | null>(null);
 
   // Generate QR code image when selectedHolder changes
   useEffect(() => {
@@ -163,6 +165,35 @@ export const OrdersTab = ({
       toast.error(t("failedToLoad"));
     }
   };
+
+  const deleteOrder = async () => {
+    if (!orderToDelete) return;
+    
+    try {
+      // First delete ticket holders
+      const { error: ticketError } = await supabase
+        .from("ticket_holders")
+        .delete()
+        .eq("order_id", orderToDelete);
+      
+      if (ticketError) throw ticketError;
+
+      // Then delete the order
+      const { error: orderError } = await supabase
+        .from("orders")
+        .delete()
+        .eq("id", orderToDelete);
+      
+      if (orderError) throw orderError;
+
+      toast.success("تم حذف الطلب والتذاكر بنجاح");
+      setOrderToDelete(null);
+      onRefresh();
+    } catch (error) {
+      console.error("Error deleting order:", error);
+      toast.error("فشل حذف الطلب");
+    }
+  };
   const filterOrders = (status: string) => {
     if (status === "all") return orders;
     if (status === "success") return orders.filter(o => o.payment_status === "confirmed");
@@ -221,6 +252,10 @@ export const OrdersTab = ({
               {t("confirmPayment")}
               <CheckCircle className="w-4 h-4" />
             </Button>}
+          <Button size="sm" variant="destructive" onClick={() => setOrderToDelete(order.id)} className="font-lusail flex items-center justify-center gap-2">
+            حذف
+            <Trash2 className="w-4 h-4" />
+          </Button>
         </div>
       </div>
       
@@ -381,5 +416,23 @@ export const OrdersTab = ({
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={!!orderToDelete} onOpenChange={() => setOrderToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="font-lusail">تأكيد الحذف</AlertDialogTitle>
+            <AlertDialogDescription className="font-lusail">
+              هل أنت متأكد من حذف هذا الطلب؟ سيتم حذف جميع التذاكر المرتبطة به. هذا الإجراء لا يمكن التراجع عنه.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="font-lusail">إلغاء</AlertDialogCancel>
+            <AlertDialogAction onClick={deleteOrder} className="font-lusail bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              حذف
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>;
 };
