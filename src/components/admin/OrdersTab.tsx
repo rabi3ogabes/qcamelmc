@@ -61,6 +61,7 @@ export const OrdersTab = ({
   const [qrCodeImage, setQrCodeImage] = useState<string | null>(null);
   const [generatingQrCodes, setGeneratingQrCodes] = useState(false);
   const [orderToDelete, setOrderToDelete] = useState<string | null>(null);
+  const [showDeleteButton, setShowDeleteButton] = useState(false);
 
   // Generate QR code image when selectedHolder changes
   useEffect(() => {
@@ -83,6 +84,26 @@ export const OrdersTab = ({
       setQrCodeImage(null);
     }
   }, [selectedHolder]);
+
+  useEffect(() => {
+    fetchSettings();
+  }, []);
+
+  const fetchSettings = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("settings")
+        .select("show_delete_customer_button")
+        .single();
+
+      if (error) throw error;
+      if (data) {
+        setShowDeleteButton(data.show_delete_customer_button || false);
+      }
+    } catch (error) {
+      console.error("Error fetching settings:", error);
+    }
+  };
 
   // Real-time subscription for ticket holders updates
   useEffect(() => {
@@ -252,10 +273,15 @@ export const OrdersTab = ({
               {t("confirmPayment")}
               <CheckCircle className="w-4 h-4" />
             </Button>}
-          <Button size="sm" variant="destructive" onClick={() => setOrderToDelete(order.id)} className="font-lusail flex items-center justify-center gap-2">
-            حذف
-            <Trash2 className="w-4 h-4" />
-          </Button>
+          {showDeleteButton && (
+            <Button 
+              size="icon" 
+              variant="destructive" 
+              onClick={() => setOrderToDelete(order.id)}
+            >
+              <Trash2 className="w-4 h-4" />
+            </Button>
+          )}
         </div>
       </div>
       
