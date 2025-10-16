@@ -740,8 +740,7 @@ export const CustomersTab = () => {
                                   <span className="text-lg leading-none">{getCountryFlag(ticket.nationality)}</span>
                                 </div>
                               </div>
-                              <div className="flex items-center justify-between text-xs text-muted-foreground">
-                                <span className="font-lusail">{ticket.nationality}</span>
+                              <div className="flex items-center justify-end text-xs text-muted-foreground">
                                 <div className="flex items-center gap-1">
                                   <span className="font-lusail">{ticket.phone}</span>
                                   <Phone className="w-3 h-3" />
