@@ -217,7 +217,8 @@ export const CustomersTab = () => {
               nationality,
               ticket_type,
               qr_code,
-              is_present
+              is_present,
+              id_number
             )
           )
         `)
