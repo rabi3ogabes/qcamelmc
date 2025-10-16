@@ -698,17 +698,18 @@ export const CustomersTab = () => {
                             <Badge variant="outline" className="text-xs">
                               {mainTicket.ticketType.toUpperCase()}
                             </Badge>
-                            <span className="text-xs font-medium font-lusail">
-                              {mainTicket.name}
-                            </span>
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs font-medium font-lusail">
+                                {mainTicket.name}
+                              </span>
+                              <span className="text-lg leading-none">{getCountryFlag(mainTicket.nationality)}</span>
+                            </div>
                           </div>
-                          <div className="flex items-center justify-end gap-1 text-xs text-muted-foreground">
-                            <span className="font-lusail">{mainTicket.phone}</span>
-                            <Phone className="w-3 h-3" />
-                          </div>
-                          <div className="flex items-center justify-end gap-2 text-xs text-muted-foreground">
-                            <span className="font-lusail">{mainTicket.nationality}</span>
-                            <span className="text-lg leading-none">{getCountryFlag(mainTicket.nationality)}</span>
+                          <div className="flex items-center justify-end text-xs text-muted-foreground">
+                            <div className="flex items-center gap-1">
+                              <span className="font-lusail">{mainTicket.phone}</span>
+                              <Phone className="w-3 h-3" />
+                            </div>
                           </div>
                         </div>
                       </div>
