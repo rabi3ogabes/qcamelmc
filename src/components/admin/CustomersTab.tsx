@@ -371,6 +371,18 @@ export const CustomersTab = () => {
         return;
       }
 
+      // Fetch ticket prices
+      const { data: tickets, error: ticketsError } = await supabase
+        .from("tickets")
+        .select("type, price");
+
+      if (ticketsError) throw ticketsError;
+
+      // Create a map of ticket type to price
+      const ticketPrices = new Map(
+        tickets?.map((ticket) => [ticket.type, ticket.price]) || []
+      );
+
       // Generate QR codes for ticket holders with 500x500 size and upload to storage
       const holdersWithQrImages = await Promise.all(
         (latestOrder.ticket_holders || []).map(async (holder: any) => {
@@ -447,6 +459,7 @@ export const CustomersTab = () => {
         nationality: holder.nationality,
         id_number: holder.id_number,
         ticket_type: holder.ticket_type,
+        ticket_price: ticketPrices.get(holder.ticket_type) || 0,
         qr_code: holder.qr_code,
         qr_code_image: holder.qr_code_image // Public URL to .jpg image
       }));
