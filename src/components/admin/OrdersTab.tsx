@@ -275,15 +275,6 @@ export const OrdersTab = ({
               {t("confirmPayment")}
               <CheckCircle className="w-4 h-4" />
             </Button>}
-          {showDeleteButton && (
-            <Button 
-              size="icon" 
-              variant="destructive" 
-              onClick={() => setOrderToDelete(order.id)}
-            >
-              <Trash2 className="w-4 h-4" />
-            </Button>
-          )}
         </div>
       </div>
       
@@ -300,17 +291,29 @@ export const OrdersTab = ({
             </span>
           </div>
         )}
-        <div className="flex items-center gap-4 text-sm text-muted-foreground">
-          <div className="flex items-center gap-1">
-            <Calendar className="w-4 h-4" />
-            <span>تاريخ الحجز: </span>
-            {format(new Date(order.created_at), 'dd/MM/yyyy - HH:mm')}
-          </div>
-          {order.events && (
+        <div className="flex items-center justify-between gap-4 text-sm text-muted-foreground">
+          <div className="flex items-center gap-4">
             <div className="flex items-center gap-1">
-              <MapPin className="w-4 h-4" />
-              <span>{order.events.location}</span>
+              <Calendar className="w-4 h-4" />
+              <span>تاريخ الحجز: </span>
+              {format(new Date(order.created_at), 'dd/MM/yyyy - HH:mm')}
             </div>
+            {order.events && (
+              <div className="flex items-center gap-1">
+                <MapPin className="w-4 h-4" />
+                <span>{order.events.location}</span>
+              </div>
+            )}
+          </div>
+          {showDeleteButton && (
+            <Button 
+              size="icon" 
+              variant="destructive" 
+              onClick={() => setOrderToDelete(order.id)}
+              className="h-8 w-8"
+            >
+              <Trash2 className="w-4 h-4" />
+            </Button>
           )}
         </div>
       </div>
