@@ -671,6 +671,12 @@ export const CustomersTab = () => {
                     <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
                       <User className="w-6 h-6 text-primary" />
                     </div>
+                    {mainTicket && (
+                      <div className="flex-1 text-center">
+                        <p className="text-xs text-muted-foreground font-lusail mb-1">رمز التذكرة:</p>
+                        <p className="text-xs font-bold font-mono text-primary">{mainTicket.orderRef}</p>
+                      </div>
+                    )}
                     <div className="flex-1 text-right">
                       <h3 className="font-bold font-lusail text-sm">{customer.name}</h3>
                       <p className="text-xs text-muted-foreground font-lusail">
