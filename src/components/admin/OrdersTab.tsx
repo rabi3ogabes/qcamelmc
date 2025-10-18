@@ -192,6 +192,22 @@ export const OrdersTab = ({
   const togglePaymentStatus = async (orderId: string, currentStatus: string) => {
     try {
       const newStatus = currentStatus === "confirmed" ? "pending" : "confirmed";
+      
+      // Fetch full order details before updating
+      const { data: orderData, error: fetchError } = await supabase
+        .from("orders")
+        .select(`
+          *,
+          customers(*),
+          events(*),
+          ticket_holders(*)
+        `)
+        .eq("id", orderId)
+        .single();
+      
+      if (fetchError) throw fetchError;
+      
+      // Update the order status
       const { error } = await supabase
         .from("orders")
         .update({ payment_status: newStatus })
@@ -199,7 +215,32 @@ export const OrdersTab = ({
       
       if (error) throw error;
       
-      toast.success(newStatus === "confirmed" ? "تم تأكيد الحجز" : "تم إلغاء تأكيد الحجز");
+      // Send to webhook with updated status
+      try {
+        const webhookData = {
+          ...orderData,
+          payment_status: newStatus,
+          action: newStatus === "confirmed" ? "payment_confirmed" : "payment_unconfirmed",
+          timestamp: new Date().toISOString()
+        };
+        
+        console.log('Sending order data to webhook:', webhookData);
+        
+        const { data: webhookResponse, error: webhookError } = await supabase.functions.invoke('send-to-webhook', {
+          body: webhookData
+        });
+        
+        if (webhookError) {
+          console.error('Webhook error:', webhookError);
+        } else {
+          console.log('Webhook response:', webhookResponse);
+        }
+      } catch (webhookError) {
+        console.error('Error sending to webhook:', webhookError);
+        // Don't fail the whole operation if webhook fails
+      }
+      
+      toast.success(newStatus === "confirmed" ? "تم تأكيد الحجز وإرساله للنظام" : "تم إلغاء تأكيد الحجز");
       onRefresh();
     } catch (error) {
       console.error("Error toggling payment status:", error);
