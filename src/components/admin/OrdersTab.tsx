@@ -190,7 +190,12 @@ export const OrdersTab = ({
   };
 
   const deleteOrder = async () => {
-    if (!orderToDelete) return;
+    if (!orderToDelete) {
+      console.error("No order selected for deletion");
+      return;
+    }
+    
+    console.log("Deleting order:", orderToDelete);
     
     try {
       // First delete ticket holders
@@ -199,7 +204,10 @@ export const OrdersTab = ({
         .delete()
         .eq("order_id", orderToDelete);
       
-      if (ticketError) throw ticketError;
+      if (ticketError) {
+        console.error("Error deleting ticket holders:", ticketError);
+        throw ticketError;
+      }
 
       // Then delete the order
       const { error: orderError } = await supabase
@@ -207,14 +215,19 @@ export const OrdersTab = ({
         .delete()
         .eq("id", orderToDelete);
       
-      if (orderError) throw orderError;
+      if (orderError) {
+        console.error("Error deleting order:", orderError);
+        throw orderError;
+      }
 
+      console.log("Order deleted successfully");
       toast.success("تم حذف الطلب والتذاكر بنجاح");
       setOrderToDelete(null);
       onRefresh();
     } catch (error) {
       console.error("Error deleting order:", error);
       toast.error("فشل حذف الطلب");
+      setOrderToDelete(null);
     }
   };
   const filterOrders = (status: string) => {
@@ -309,8 +322,13 @@ export const OrdersTab = ({
             <Button 
               size="icon" 
               variant="destructive" 
-              onClick={() => setOrderToDelete(order.id)}
+              onClick={(e) => {
+                e.stopPropagation();
+                console.log("Delete button clicked for order:", order.id);
+                setOrderToDelete(order.id);
+              }}
               className="h-8 w-8"
+              title="حذف الطلب"
             >
               <Trash2 className="w-4 h-4" />
             </Button>
