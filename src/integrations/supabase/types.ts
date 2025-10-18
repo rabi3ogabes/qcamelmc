@@ -34,6 +34,7 @@ export type Database = {
       }
       customers: {
         Row: {
+          country_code: string | null
           created_at: string | null
           email: string
           id: string
@@ -43,6 +44,7 @@ export type Database = {
           phone: string
         }
         Insert: {
+          country_code?: string | null
           created_at?: string | null
           email: string
           id?: string
@@ -52,6 +54,7 @@ export type Database = {
           phone: string
         }
         Update: {
+          country_code?: string | null
           created_at?: string | null
           email?: string
           id?: string
@@ -249,6 +252,7 @@ export type Database = {
         Row: {
           confirmed_at: string | null
           confirmed_by: string | null
+          country_code: string | null
           created_at: string | null
           id: string
           id_number: string | null
@@ -263,6 +267,7 @@ export type Database = {
         Insert: {
           confirmed_at?: string | null
           confirmed_by?: string | null
+          country_code?: string | null
           created_at?: string | null
           id?: string
           id_number?: string | null
@@ -277,6 +282,7 @@ export type Database = {
         Update: {
           confirmed_at?: string | null
           confirmed_by?: string | null
+          country_code?: string | null
           created_at?: string | null
           id?: string
           id_number?: string | null
