@@ -528,7 +528,7 @@ const TicketViewer = () => {
         event_location: orderDetails?.event_location,
         holder: {
           name: holder.name,
-          phone: holder.phone,
+          phone: holder.phone.replace(/^\+/, ''),
           nationality: holder.nationality,
           id_number: holder.id_number,
           ticket_type: holder.ticket_type,
