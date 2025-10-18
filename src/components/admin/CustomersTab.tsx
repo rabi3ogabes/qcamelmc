@@ -514,6 +514,7 @@ export const CustomersTab = () => {
 
     setSaving(true);
     try {
+      // Update customer
       const { error } = await supabase
         .from("customers")
         .update({
@@ -524,6 +525,31 @@ export const CustomersTab = () => {
         .eq("id", editingCustomer.id);
 
       if (error) throw error;
+
+      // Update ticket holders phone for all orders of this customer
+      const { data: orders } = await supabase
+        .from("orders")
+        .select("id")
+        .eq("customer_id", editingCustomer.id);
+
+      if (orders && orders.length > 0) {
+        const orderIds = orders.map(o => o.id);
+        
+        // Format phone with country code
+        const formattedPhone = editForm.phone.startsWith('+') 
+          ? editForm.phone 
+          : `+974 ${editForm.phone}`;
+        
+        // Update all ticket holders for these orders
+        const { error: ticketHoldersError } = await supabase
+          .from("ticket_holders")
+          .update({ phone: formattedPhone })
+          .in("order_id", orderIds);
+
+        if (ticketHoldersError) {
+          console.error("Error updating ticket holders:", ticketHoldersError);
+        }
+      }
 
       toast.success("تم تحديث بيانات العميل بنجاح");
       setEditingCustomer(null);
