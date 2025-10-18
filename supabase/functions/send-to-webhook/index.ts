@@ -44,17 +44,25 @@ Deno.serve(async (req) => {
       body: JSON.stringify(ticketData),
     });
 
+    const responseText = await webhookResponse.text();
+    console.log('Webhook response status:', webhookResponse.status);
+    console.log('Webhook response:', responseText);
+
     if (!webhookResponse.ok) {
-      const errorText = await webhookResponse.text();
-      console.error('Webhook error response:', errorText);
+      console.error('Webhook error response:', responseText);
+      
+      // Return error with details for better error handling in the client
       return new Response(
-        JSON.stringify({ error: 'Failed to send to webhook', details: errorText }),
-        { status: webhookResponse.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        JSON.stringify({ 
+          error: 'Failed to send to webhook', 
+          details: responseText,
+          status: webhookResponse.status
+        }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    const responseData = await webhookResponse.text();
-    console.log('Webhook success response:', responseData);
+    console.log('Webhook success');
 
     return new Response(
       JSON.stringify({ success: true, message: 'Ticket sent successfully' }),

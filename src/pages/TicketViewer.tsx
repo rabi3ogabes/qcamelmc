@@ -547,17 +547,30 @@ const TicketViewer = () => {
         body: ticketData
       });
 
+      // Check for errors
       if (webhookError) {
-        throw new Error(webhookError.message || "فشل إرسال البيانات إلى الويب هوك");
+        console.error("Webhook error:", webhookError);
+        throw new Error(webhookError.message || "فشل الاتصال بالويب هوك");
       }
 
-      const response = { ok: true };
-
-      if (!response.ok) {
-        throw new Error("فشل إرسال البيانات إلى الويب هوك");
+      // Check if the response indicates an error
+      if (data && data.error) {
+        console.error("Webhook response error:", data);
+        
+        // Check if it's an n8n webhook not activated error
+        if (data.details && data.details.includes('not registered')) {
+          throw new Error("الويب هوك غير مفعل في n8n. يرجى تفعيل الـ workflow أولاً");
+        }
+        
+        throw new Error(data.error || "فشل إرسال البيانات إلى الويب هوك");
       }
 
-      toast.success(`تم إرسال التذكرة إلى ${holder.phone}`);
+      // Success
+      if (data && data.success) {
+        toast.success(`تم إرسال التذكرة إلى ${holder.phone}`);
+      } else {
+        throw new Error("استجابة غير متوقعة من الويب هوك");
+      }
     } catch (error) {
       console.error("Error sending ticket:", error);
       toast.error("فشل إرسال التذكرة");
