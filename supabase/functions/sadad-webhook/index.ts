@@ -97,6 +97,7 @@ Deno.serve(async (req) => {
           const formattedHolders = (order.ticket_holders || []).map((holder: any) => ({
             name: holder.name,
             phone: holder.phone?.replace(/\s+/g, ''),
+            country_code: holder.country_code?.replace('+', ''),
             nationality: holder.nationality,
             id_number: holder.id_number,
             ticket_type: holder.ticket_type,
