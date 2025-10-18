@@ -191,9 +191,15 @@ export const OrdersTab = ({
 
   const togglePaymentStatus = async (orderId: string, currentStatus: string) => {
     try {
+      console.log('=== Starting togglePaymentStatus ===');
+      console.log('Order ID:', orderId);
+      console.log('Current Status:', currentStatus);
+      
       const newStatus = currentStatus === "confirmed" ? "pending" : "confirmed";
+      console.log('New Status:', newStatus);
       
       // Fetch full order details before updating
+      console.log('Fetching order data...');
       const { data: orderData, error: fetchError } = await supabase
         .from("orders")
         .select(`
@@ -205,15 +211,26 @@ export const OrdersTab = ({
         .eq("id", orderId)
         .single();
       
-      if (fetchError) throw fetchError;
+      if (fetchError) {
+        console.error('Error fetching order data:', fetchError);
+        throw fetchError;
+      }
+      
+      console.log('Order data fetched:', orderData);
       
       // Update the order status
+      console.log('Updating order status...');
       const { error } = await supabase
         .from("orders")
         .update({ payment_status: newStatus })
         .eq("id", orderId);
       
-      if (error) throw error;
+      if (error) {
+        console.error('Error updating order:', error);
+        throw error;
+      }
+      
+      console.log('Order status updated successfully');
       
       // Send to webhook with updated status
       try {
@@ -224,27 +241,31 @@ export const OrdersTab = ({
           timestamp: new Date().toISOString()
         };
         
-        console.log('Sending order data to webhook:', webhookData);
+        console.log('=== Preparing webhook data ===');
+        console.log('Webhook data:', JSON.stringify(webhookData, null, 2));
         
+        console.log('Invoking send-to-webhook function...');
         const { data: webhookResponse, error: webhookError } = await supabase.functions.invoke('send-to-webhook', {
           body: webhookData
         });
         
         if (webhookError) {
           console.error('Webhook error:', webhookError);
+          toast.error('تم تحديث الحالة لكن فشل الإرسال للنظام: ' + webhookError.message);
         } else {
           console.log('Webhook response:', webhookResponse);
+          toast.success(newStatus === "confirmed" ? "تم تأكيد الحجز وإرساله للنظام ✓" : "تم إلغاء تأكيد الحجز");
         }
-      } catch (webhookError) {
+      } catch (webhookError: any) {
         console.error('Error sending to webhook:', webhookError);
-        // Don't fail the whole operation if webhook fails
+        toast.error('تم تحديث الحالة لكن فشل الإرسال للنظام');
       }
       
-      toast.success(newStatus === "confirmed" ? "تم تأكيد الحجز وإرساله للنظام" : "تم إلغاء تأكيد الحجز");
+      console.log('=== Finished togglePaymentStatus ===');
       onRefresh();
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error toggling payment status:", error);
-      toast.error("فشل في تغيير حالة الحجز");
+      toast.error("فشل في تغيير حالة الحجز: " + (error?.message || 'خطأ غير معروف'));
     }
   };
 
