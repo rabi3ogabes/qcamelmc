@@ -477,6 +477,40 @@ const TicketViewer = () => {
         return;
       }
 
+      // Convert QR code data URL to blob and upload to storage
+      let qrCodeImageUrl = "";
+      const qrDataUrl = qrCodeImages[holder.id];
+      
+      if (qrDataUrl) {
+        try {
+          // Convert data URL to blob
+          const response = await fetch(qrDataUrl);
+          const blob = await response.blob();
+          
+          // Upload to storage
+          const fileName = `${holder.qr_code}.png`;
+          const { data: uploadData, error: uploadError } = await supabase.storage
+            .from("qr-codes")
+            .upload(fileName, blob, {
+              contentType: "image/png",
+              upsert: true,
+            });
+
+          if (uploadError) throw uploadError;
+
+          // Get public URL
+          const { data: urlData } = supabase.storage
+            .from("qr-codes")
+            .getPublicUrl(fileName);
+
+          qrCodeImageUrl = urlData.publicUrl;
+        } catch (error) {
+          console.error("Error uploading QR code:", error);
+          toast.error("فشل رفع رمز QR");
+          return;
+        }
+      }
+
       // Fetch ticket price
       const { data: tickets } = await supabase
         .from("tickets")
@@ -500,7 +534,7 @@ const TicketViewer = () => {
           ticket_type: holder.ticket_type,
           ticket_price: ticketPrices.get(holder.ticket_type as string) || 0,
           qr_code: holder.qr_code,
-          qr_code_image: qrCodeImages[holder.id], // QR code data URL
+          qr_code_image: qrCodeImageUrl, // Public URL to PNG image
           is_present: holder.is_present
         },
         timestamp: new Date().toISOString()
