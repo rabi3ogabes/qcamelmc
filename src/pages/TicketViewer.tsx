@@ -500,6 +500,7 @@ const TicketViewer = () => {
           ticket_type: holder.ticket_type,
           ticket_price: ticketPrices.get(holder.ticket_type as string) || 0,
           qr_code: holder.qr_code,
+          qr_code_image: qrCodeImages[holder.id], // QR code data URL
           is_present: holder.is_present
         },
         timestamp: new Date().toISOString()
