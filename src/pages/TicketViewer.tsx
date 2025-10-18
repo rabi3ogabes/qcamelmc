@@ -641,10 +641,10 @@ const TicketViewer = () => {
                 <p className="text-sm text-muted-foreground">اسم الفعالية</p>
                 <p className="font-semibold">{orderDetails.event_title}</p>
               </div>
-              <div>
-                <p className="text-sm text-muted-foreground">عدد التذاكر</p>
-                <p className="font-semibold">{ticketHolders.length} تذكرة</p>
-              </div>
+            </div>
+            <div className="mt-4 pt-4 border-t">
+              <p className="text-sm text-muted-foreground">عدد التذاكر</p>
+              <p className="font-semibold">{ticketHolders.length} تذكرة</p>
             </div>
             <Button onClick={downloadAllTickets} className="w-full mt-4" size="lg">
               <Download className="w-4 h-4 ml-2" />
