@@ -16,64 +16,158 @@ Deno.serve(async (req) => {
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
+    console.log('=== Send to Webhook Function Started ===');
+
     // Get webhook URL from settings
     const { data: settings, error: settingsError } = await supabase
       .from('settings')
       .select('webhook_url')
       .single();
 
-    if (settingsError || !settings?.webhook_url) {
-      console.error('Error fetching webhook URL:', settingsError);
+    if (settingsError) {
+      console.error('Error fetching webhook URL from settings:', settingsError);
       return new Response(
-        JSON.stringify({ error: 'Webhook URL not configured' }),
+        JSON.stringify({ 
+          error: 'Failed to fetch webhook settings',
+          details: settingsError.message 
+        }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
+    }
+
+    if (!settings?.webhook_url) {
+      console.error('Webhook URL is not configured in settings');
+      return new Response(
+        JSON.stringify({ 
+          error: 'Webhook URL not configured',
+          hint: 'Please configure the webhook URL in admin settings'
+        }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const webhookUrl = settings.webhook_url;
+    console.log('Webhook URL from settings:', webhookUrl);
+
+    // Check if it's a test webhook
+    if (webhookUrl.includes('webhook-test')) {
+      console.warn('⚠️ WARNING: Using test webhook URL. For production, use a production webhook (workflow must be ACTIVATED in n8n)');
     }
 
     // Get the ticket data from request body
     const ticketData = await req.json();
     
-    console.log('Sending ticket data to webhook:', ticketData);
+    console.log('=== Ticket Data to Send ===');
+    console.log('Booking Reference:', ticketData.booking_reference);
+    console.log('Customer Name:', ticketData.customers?.name);
+    console.log('Event Title:', ticketData.events?.title);
+    console.log('Payment Status:', ticketData.payment_status);
+    console.log('Action:', ticketData.action);
+    console.log('Number of Ticket Holders:', ticketData.ticket_holders?.length);
+    console.log('Full payload:', JSON.stringify(ticketData, null, 2));
 
-    // Forward the request to n8n webhook
-    const webhookResponse = await fetch(settings.webhook_url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(ticketData),
-    });
+    // Forward the request to n8n webhook with timeout
+    console.log('Sending POST request to webhook...');
+    
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
 
-    const responseText = await webhookResponse.text();
-    console.log('Webhook response status:', webhookResponse.status);
-    console.log('Webhook response:', responseText);
+    try {
+      const webhookResponse = await fetch(webhookUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(ticketData),
+        signal: controller.signal,
+      });
 
-    if (!webhookResponse.ok) {
-      console.error('Webhook error response:', responseText);
-      
-      // Return error with details for better error handling in the client
+      clearTimeout(timeoutId);
+
+      console.log('Webhook response status:', webhookResponse.status);
+      console.log('Webhook response headers:', Object.fromEntries(webhookResponse.headers));
+
+      const responseText = await webhookResponse.text();
+      console.log('Webhook response body:', responseText);
+
+      if (!webhookResponse.ok) {
+        console.error('❌ Webhook returned error status:', webhookResponse.status);
+        
+        // Parse error details if possible
+        let errorDetails;
+        try {
+          errorDetails = JSON.parse(responseText);
+        } catch {
+          errorDetails = responseText;
+        }
+
+        // Check for specific n8n errors
+        if (webhookResponse.status === 404) {
+          console.error('❌ 404 Error: Webhook not found or not active');
+          console.error('This usually means:');
+          console.error('1. The workflow in n8n is not ACTIVATED (just executed in test mode)');
+          console.error('2. The webhook URL is incorrect');
+          console.error('3. For test webhooks: You need to click "Execute Workflow" in n8n before each call');
+          console.error('');
+          console.error('SOLUTION: In n8n, ACTIVATE the workflow (toggle at top) instead of just testing it');
+          
+          return new Response(
+            JSON.stringify({ 
+              error: 'Webhook not found or inactive',
+              details: errorDetails,
+              status: 404,
+              solution: 'Please ACTIVATE the workflow in n8n (not just test mode). Click the toggle at the top of the workflow to activate it permanently.'
+            }),
+            { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+        
+        return new Response(
+          JSON.stringify({ 
+            error: 'Webhook returned error', 
+            details: errorDetails,
+            status: webhookResponse.status
+          }),
+          { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      console.log('✅ Webhook call successful');
+
       return new Response(
         JSON.stringify({ 
-          error: 'Failed to send to webhook', 
-          details: responseText,
-          status: webhookResponse.status
+          success: true, 
+          message: 'Data sent to webhook successfully',
+          response: responseText 
         }),
         { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
+
+    } catch (fetchError: any) {
+      clearTimeout(timeoutId);
+      
+      if (fetchError.name === 'AbortError') {
+        console.error('❌ Webhook request timed out after 10 seconds');
+        return new Response(
+          JSON.stringify({ 
+            error: 'Webhook request timed out',
+            details: 'The webhook did not respond within 10 seconds'
+          }),
+          { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      
+      throw fetchError;
     }
 
-    console.log('Webhook success');
-
-    return new Response(
-      JSON.stringify({ success: true, message: 'Ticket sent successfully' }),
-      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
-
   } catch (error) {
-    console.error('Error in send-to-webhook function:', error);
+    console.error('❌ Error in send-to-webhook function:', error);
     const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
     return new Response(
-      JSON.stringify({ error: errorMessage }),
+      JSON.stringify({ 
+        error: errorMessage,
+        stack: error instanceof Error ? error.stack : undefined
+      }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
