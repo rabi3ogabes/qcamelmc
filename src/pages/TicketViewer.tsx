@@ -542,14 +542,16 @@ const TicketViewer = () => {
         timestamp: new Date().toISOString()
       };
 
-      // Send to webhook
-      const response = await fetch(settings.webhook_url, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(ticketData),
+      // Send to webhook via edge function
+      const { data, error: webhookError } = await supabase.functions.invoke('send-to-webhook', {
+        body: ticketData
       });
+
+      if (webhookError) {
+        throw new Error(webhookError.message || "فشل إرسال البيانات إلى الويب هوك");
+      }
+
+      const response = { ok: true };
 
       if (!response.ok) {
         throw new Error("فشل إرسال البيانات إلى الويب هوك");
