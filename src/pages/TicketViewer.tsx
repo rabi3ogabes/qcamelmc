@@ -634,6 +634,10 @@ const TicketViewer = () => {
                 <p className="font-semibold">{orderDetails.customer_name}</p>
               </div>
               <div>
+                <p className="text-sm text-muted-foreground">رقم الهاتف</p>
+                <p className="font-semibold">{orderDetails.customer_phone}</p>
+              </div>
+              <div>
                 <p className="text-sm text-muted-foreground">اسم الفعالية</p>
                 <p className="font-semibold">{orderDetails.event_title}</p>
               </div>
