@@ -189,6 +189,24 @@ export const OrdersTab = ({
     }
   };
 
+  const togglePaymentStatus = async (orderId: string, currentStatus: string) => {
+    try {
+      const newStatus = currentStatus === "confirmed" ? "pending" : "confirmed";
+      const { error } = await supabase
+        .from("orders")
+        .update({ payment_status: newStatus })
+        .eq("id", orderId);
+      
+      if (error) throw error;
+      
+      toast.success(newStatus === "confirmed" ? "تم تأكيد الحجز" : "تم إلغاء تأكيد الحجز");
+      onRefresh();
+    } catch (error) {
+      console.error("Error toggling payment status:", error);
+      toast.error("فشل في تغيير حالة الحجز");
+    }
+  };
+
   const deleteOrder = async () => {
     if (!orderToDelete) {
       console.error("No order selected for deletion");
@@ -284,10 +302,24 @@ export const OrdersTab = ({
             {t("viewDetails")}
             <Eye className="w-4 h-4" />
           </Button>
-          {order.payment_status === "pending" && <Button size="sm" onClick={() => confirmPayment(order.id)} className="font-lusail flex items-center justify-center gap-2">
-              {t("confirmPayment")}
-              <CheckCircle className="w-4 h-4" />
-            </Button>}
+          <Button 
+            size="sm" 
+            variant={order.payment_status === "confirmed" ? "destructive" : "default"}
+            onClick={() => togglePaymentStatus(order.id, order.payment_status)} 
+            className="font-lusail flex items-center justify-center gap-2"
+          >
+            {order.payment_status === "confirmed" ? (
+              <>
+                <XCircle className="w-4 h-4" />
+                إلغاء التأكيد
+              </>
+            ) : (
+              <>
+                <CheckCircle className="w-4 h-4" />
+                {t("confirmPayment")}
+              </>
+            )}
+          </Button>
         </div>
       </div>
       
