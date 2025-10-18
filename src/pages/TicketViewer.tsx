@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { ArrowLeft, Download, Loader2, QrCode as QrCodeIcon } from "lucide-react";
+import { ArrowLeft, Download, Loader2, QrCode as QrCodeIcon, Send } from "lucide-react";
 import { toast } from "sonner";
 import QRCodeLib from "qrcode";
 
@@ -40,6 +40,7 @@ const TicketViewer = () => {
   const [ticketHolders, setTicketHolders] = useState<TicketHolder[]>([]);
   const [qrCodeImages, setQrCodeImages] = useState<Record<string, string>>({});
   const [generatingQR, setGeneratingQR] = useState<string | null>(null);
+  const [sendingTicket, setSendingTicket] = useState<string | null>(null);
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
   const [headerBgColor, setHeaderBgColor] = useState<string>("hsl(var(--card) / 0.5)");
   const [selectedQR, setSelectedQR] = useState<{ image: string; holder: TicketHolder } | null>(null);
@@ -460,6 +461,72 @@ const TicketViewer = () => {
     }
   };
 
+  const sendTicketToWhatsApp = async (holder: TicketHolder) => {
+    setSendingTicket(holder.id);
+    try {
+      // Fetch webhook URL from settings
+      const { data: settings, error: settingsError } = await supabase
+        .from("settings")
+        .select("webhook_url")
+        .maybeSingle();
+
+      if (settingsError) throw settingsError;
+
+      if (!settings?.webhook_url) {
+        toast.error("لم يتم تكوين رابط الويب هوك");
+        return;
+      }
+
+      // Fetch ticket price
+      const { data: tickets } = await supabase
+        .from("tickets")
+        .select("type, price");
+
+      const ticketPrices = new Map<string, number>(
+        tickets?.map((ticket) => [ticket.type as string, ticket.price as number]) || []
+      );
+
+      // Prepare ticket data with all details
+      const ticketData = {
+        booking_reference: orderDetails?.booking_reference,
+        event_title: orderDetails?.event_title,
+        event_date: orderDetails?.event_date,
+        event_location: orderDetails?.event_location,
+        holder: {
+          name: holder.name,
+          phone: holder.phone,
+          nationality: holder.nationality,
+          id_number: holder.id_number,
+          ticket_type: holder.ticket_type,
+          ticket_price: ticketPrices.get(holder.ticket_type as string) || 0,
+          qr_code: holder.qr_code,
+          is_present: holder.is_present
+        },
+        timestamp: new Date().toISOString()
+      };
+
+      // Send to webhook
+      const response = await fetch(settings.webhook_url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(ticketData),
+      });
+
+      if (!response.ok) {
+        throw new Error("فشل إرسال البيانات إلى الويب هوك");
+      }
+
+      toast.success(`تم إرسال التذكرة إلى ${holder.phone}`);
+    } catch (error) {
+      console.error("Error sending ticket:", error);
+      toast.error("فشل إرسال التذكرة");
+    } finally {
+      setSendingTicket(null);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background font-lusail" dir="rtl">
       {/* Header */}
@@ -594,25 +661,45 @@ const TicketViewer = () => {
                   </div>
                 </div>
 
-                {/* Download Button */}
-                <Button 
-                  onClick={() => downloadTicket(holder)}
-                  disabled={generatingQR === holder.id}
-                  className="w-full"
-                  variant="outline"
-                >
-                  {generatingQR === holder.id ? (
-                    <>
-                      <Loader2 className="w-4 h-4 ml-2 animate-spin" />
-                      جاري الإنشاء...
-                    </>
-                  ) : (
-                    <>
-                      <QrCodeIcon className="w-4 h-4 ml-2" />
-                      عرض وطباعة
-                    </>
-                  )}
-                </Button>
+                {/* Action Buttons */}
+                <div className="flex gap-2">
+                  <Button 
+                    onClick={() => downloadTicket(holder)}
+                    disabled={generatingQR === holder.id}
+                    className="flex-1"
+                    variant="outline"
+                  >
+                    {generatingQR === holder.id ? (
+                      <>
+                        <Loader2 className="w-4 h-4 ml-2 animate-spin" />
+                        جاري الإنشاء...
+                      </>
+                    ) : (
+                      <>
+                        <QrCodeIcon className="w-4 h-4 ml-2" />
+                        عرض وطباعة
+                      </>
+                    )}
+                  </Button>
+                  <Button 
+                    onClick={() => sendTicketToWhatsApp(holder)}
+                    disabled={sendingTicket === holder.id}
+                    className="flex-1"
+                    variant="default"
+                  >
+                    {sendingTicket === holder.id ? (
+                      <>
+                        <Loader2 className="w-4 h-4 ml-2 animate-spin" />
+                        جاري الإرسال...
+                      </>
+                    ) : (
+                      <>
+                        <Send className="w-4 h-4 ml-2" />
+                        إرسال للواتساب
+                      </>
+                    )}
+                  </Button>
+                </div>
               </CardContent>
             </Card>
           ))}
