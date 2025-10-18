@@ -635,7 +635,7 @@ const TicketViewer = () => {
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">رقم الهاتف</p>
-                <p className="font-semibold">{orderDetails.customer_phone}</p>
+                <p className="font-semibold">{orderDetails.customer_phone?.replace(/\s+/g, '')}</p>
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">اسم الفعالية</p>
