@@ -12,6 +12,7 @@ interface TicketHolder {
   id: string;
   name: string;
   phone: string;
+  country_code?: string;
   nationality: string;
   ticket_type: string;
   qr_code: string;
@@ -529,6 +530,7 @@ const TicketViewer = () => {
         holder: {
           name: holder.name,
           phone: holder.phone.replace(/^\+/, ''),
+          country_code: holder.country_code?.replace('+', '') || '974',
           nationality: holder.nationality,
           id_number: holder.id_number,
           ticket_type: holder.ticket_type,
