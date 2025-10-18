@@ -529,7 +529,7 @@ const TicketViewer = () => {
         event_location: orderDetails?.event_location,
         holder: {
           name: holder.name,
-          phone: holder.phone.replace(/^\+/, '').replace(/^974/, ''),
+          phone: holder.phone.replace(/^\+\d+\s*/, '').trim(),
           country_code: holder.country_code?.replace('+', '') || '974',
           nationality: holder.nationality,
           id_number: holder.id_number,
@@ -542,20 +542,35 @@ const TicketViewer = () => {
         timestamp: new Date().toISOString()
       };
 
-      // Send to webhook
-      const response = await fetch(settings.webhook_url, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(ticketData),
+      // Send to webhook via edge function
+      const { data, error: webhookError } = await supabase.functions.invoke('send-to-webhook', {
+        body: ticketData
       });
 
-      if (!response.ok) {
-        throw new Error("فشل إرسال البيانات إلى الويب هوك");
+      // Check for errors
+      if (webhookError) {
+        console.error("Webhook error:", webhookError);
+        throw new Error(webhookError.message || "فشل الاتصال بالويب هوك");
       }
 
-      toast.success(`تم إرسال التذكرة إلى ${holder.phone}`);
+      // Check if the response indicates an error
+      if (data && data.error) {
+        console.error("Webhook response error:", data);
+        
+        // Check if it's an n8n webhook not activated error
+        if (data.details && data.details.includes('not registered')) {
+          throw new Error("الويب هوك غير مفعل في n8n. يرجى تفعيل الـ workflow أولاً");
+        }
+        
+        throw new Error(data.error || "فشل إرسال البيانات إلى الويب هوك");
+      }
+
+      // Success
+      if (data && data.success) {
+        toast.success(`تم إرسال التذكرة إلى ${holder.phone}`);
+      } else {
+        throw new Error("استجابة غير متوقعة من الويب هوك");
+      }
     } catch (error) {
       console.error("Error sending ticket:", error);
       toast.error("فشل إرسال التذكرة");
