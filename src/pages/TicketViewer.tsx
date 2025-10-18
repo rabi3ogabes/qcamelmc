@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { ArrowLeft, Download, Loader2, QrCode as QrCodeIcon, Send } from "lucide-react";
+import { ArrowLeft, Download, Loader2, QrCode as QrCodeIcon, Send, Ticket } from "lucide-react";
 import { toast } from "sonner";
 import QRCodeLib from "qrcode";
 
@@ -642,9 +642,12 @@ const TicketViewer = () => {
                 <p className="font-semibold">{orderDetails.event_title}</p>
               </div>
             </div>
-            <div className="mt-4 pt-4 border-t">
-              <p className="text-sm text-muted-foreground">عدد التذاكر</p>
-              <p className="font-semibold">{ticketHolders.length} تذكرة</p>
+            <div className="mt-4 pt-4 border-t flex items-start gap-3">
+              <Ticket className="w-5 h-5 text-primary mt-1" />
+              <div className="flex-1">
+                <p className="text-sm text-muted-foreground">عدد التذاكر</p>
+                <p className="font-semibold">{ticketHolders.length} تذكرة</p>
+              </div>
             </div>
             <Button onClick={downloadAllTickets} className="w-full mt-4" size="lg">
               <Download className="w-4 h-4 ml-2" />
