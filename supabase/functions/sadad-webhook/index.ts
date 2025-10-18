@@ -70,28 +70,57 @@ Deno.serve(async (req) => {
 
     if (settings?.webhook_url) {
       try {
-        // Get order details to send to n8n
+        // Get order details with ticket holders to send to n8n
         const { data: order } = await supabase
           .from('orders')
           .select(`
             *,
             customers (*),
-            events (*)
+            events (*),
+            ticket_holders (*)
           `)
           .eq('booking_reference', ORDER_ID)
           .single()
 
+        // Fetch ticket prices
+        const { data: tickets } = await supabase
+          .from('tickets')
+          .select('type, price')
+
+        // Create a map of ticket type to price
+        const ticketPrices = new Map(
+          tickets?.map((ticket) => [ticket.type, ticket.price]) || []
+        )
+
         if (order) {
+          // Format ticket holders with prices
+          const formattedHolders = (order.ticket_holders || []).map((holder: any) => ({
+            name: holder.name,
+            phone: holder.phone,
+            nationality: holder.nationality,
+            id_number: holder.id_number,
+            ticket_type: holder.ticket_type,
+            ticket_price: ticketPrices.get(holder.ticket_type) || 0,
+            qr_code: holder.qr_code,
+            is_present: holder.is_present
+          }))
+
           await fetch(settings.webhook_url, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-              order,
+              order: {
+                ...order,
+                ticket_holders: formattedHolders
+              },
+              customer: order.customers,
+              event: order.events,
+              payment_status: paymentStatus,
               sadad_response: webhookData,
               timestamp: new Date().toISOString()
             })
           })
-          console.log('n8n webhook called successfully')
+          console.log('n8n webhook called successfully with ticket holders data')
         }
       } catch (webhookError) {
         console.error('Error calling n8n webhook:', webhookError)
