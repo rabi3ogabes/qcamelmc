@@ -573,7 +573,8 @@ const TicketViewer = () => {
       }
     } catch (error) {
       console.error("Error sending ticket:", error);
-      toast.error("فشل إرسال التذكرة");
+      const errorMessage = error instanceof Error ? error.message : "فشل إرسال التذكرة";
+      toast.error(errorMessage);
     } finally {
       setSendingTicket(null);
     }
