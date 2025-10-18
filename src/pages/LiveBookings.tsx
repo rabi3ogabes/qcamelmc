@@ -341,20 +341,21 @@ const LiveBookings = () => {
       <div className="container mx-auto py-8 px-4">
 
         {/* Date Selector and Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-8">
-          <Card className="p-6">
+        <div className="grid grid-cols-5 gap-3 mb-8">
+          <Card className="p-3">
             <div className="flex flex-col gap-2">
               <Popover>
                 <PopoverTrigger asChild>
                   <Button
                     variant="outline"
+                    size="sm"
                     className={cn(
-                      "w-full justify-start text-right font-lusail",
+                      "w-full justify-start text-right font-lusail text-xs h-8",
                       !selectedDate && "text-muted-foreground"
                     )}
                   >
-                    <CalendarIcon className="ml-2 h-4 w-4" />
-                    {selectedDate ? format(selectedDate, "PPP") : "اختر تاريخ محدد"}
+                    <CalendarIcon className="ml-1 h-3 w-3" />
+                    {selectedDate ? format(selectedDate, "dd/MM") : "تاريخ"}
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0" align="start">
@@ -372,7 +373,7 @@ const LiveBookings = () => {
                   variant="ghost"
                   size="sm"
                   onClick={() => setSelectedDate(undefined)}
-                  className="font-lusail text-xs"
+                  className="font-lusail text-[10px] h-6 py-0"
                 >
                   عرض الكل
                 </Button>
@@ -380,42 +381,42 @@ const LiveBookings = () => {
             </div>
           </Card>
 
-          <Card className="p-6 bg-blue-50 dark:bg-blue-950">
-            <div className="flex items-center gap-3">
-              <Users className="w-8 h-8 text-blue-600" />
+          <Card className="p-3 bg-blue-50 dark:bg-blue-950">
+            <div className="flex items-center gap-2">
+              <Users className="w-5 h-5 text-blue-600 flex-shrink-0" />
               <div>
-                <p className="text-sm text-muted-foreground">{t("totalBookings")}</p>
-                <p className="text-2xl font-bold">{stats.total}</p>
+                <p className="text-[10px] text-muted-foreground leading-tight">{t("totalBookings")}</p>
+                <p className="text-lg font-bold">{stats.total}</p>
               </div>
             </div>
           </Card>
 
-          <Card className="p-6 bg-green-50 dark:bg-green-950">
-            <div className="flex items-center gap-3">
-              <CheckCircle className="w-8 h-8 text-green-600" />
+          <Card className="p-3 bg-green-50 dark:bg-green-950">
+            <div className="flex items-center gap-2">
+              <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0" />
               <div>
-                <p className="text-sm text-muted-foreground">{t("confirmedBookings")}</p>
-                <p className="text-2xl font-bold text-green-600">{stats.confirmed}</p>
+                <p className="text-[10px] text-muted-foreground leading-tight">{t("confirmedBookings")}</p>
+                <p className="text-lg font-bold text-green-600">{stats.confirmed}</p>
               </div>
             </div>
           </Card>
 
-          <Card className="p-6 bg-purple-50 dark:bg-purple-950">
-            <div className="flex items-center gap-3">
-              <Users className="w-8 h-8 text-purple-600" />
+          <Card className="p-3 bg-purple-50 dark:bg-purple-950">
+            <div className="flex items-center gap-2">
+              <Users className="w-5 h-5 text-purple-600 flex-shrink-0" />
               <div>
-                <p className="text-sm text-muted-foreground">إجمالي حاملي التذاكر</p>
-                <p className="text-2xl font-bold text-purple-600">{stats.totalTicketHolders}</p>
+                <p className="text-[10px] text-muted-foreground leading-tight">إجمالي حاملي التذاكر</p>
+                <p className="text-lg font-bold text-purple-600">{stats.totalTicketHolders}</p>
               </div>
             </div>
           </Card>
 
-          <Card className="p-6 bg-orange-50 dark:bg-orange-950">
-            <div className="flex items-center gap-3">
-              <CheckCircle className="w-8 h-8 text-orange-600" />
+          <Card className="p-3 bg-orange-50 dark:bg-orange-950">
+            <div className="flex items-center gap-2">
+              <CheckCircle className="w-5 h-5 text-orange-600 flex-shrink-0" />
               <div>
-                <p className="text-sm text-muted-foreground">الحاضرون (حاملو التذاكر)</p>
-                <p className="text-2xl font-bold text-orange-600">{stats.presentTicketHolders}</p>
+                <p className="text-[10px] text-muted-foreground leading-tight">الحاضرون (حاملو التذاكر)</p>
+                <p className="text-lg font-bold text-orange-600">{stats.presentTicketHolders}</p>
               </div>
             </div>
           </Card>
