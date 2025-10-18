@@ -529,7 +529,7 @@ const TicketViewer = () => {
         event_location: orderDetails?.event_location,
         holder: {
           name: holder.name,
-          phone: holder.phone.replace(/^\+/, ''),
+          phone: holder.phone.replace(/^\+/, '').replace(/^974/, ''),
           country_code: holder.country_code?.replace('+', '') || '974',
           nationality: holder.nationality,
           id_number: holder.id_number,
