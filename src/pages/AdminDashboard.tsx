@@ -39,6 +39,27 @@ const AdminDashboard = () => {
     checkAuth();
     fetchOrders();
     fetchSettings();
+
+    // Subscribe to real-time order changes
+    const channel = supabase
+      .channel('orders-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'orders'
+        },
+        () => {
+          console.log('Order changed, refreshing...');
+          fetchOrders();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   const fetchSettings = async () => {
