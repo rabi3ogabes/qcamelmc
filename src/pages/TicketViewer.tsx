@@ -584,7 +584,7 @@ const TicketViewer = () => {
     <div className="min-h-screen bg-background font-lusail" dir="rtl">
       {/* Header */}
       <header className="border-b backdrop-blur-sm sticky top-0 z-10" style={{ backgroundColor: headerBgColor }}>
-        <div className="container mx-auto px-4 py-4 flex justify-between items-center">
+        <div className="container mx-auto px-4 py-4 flex flex-col items-center gap-4">
           <button onClick={() => navigate("/admin/dashboard")} className="focus:outline-none hover:opacity-80 transition-opacity">
             {logoUrl ? (
               <img src={logoUrl} alt="Logo" className="h-12 object-contain" />
