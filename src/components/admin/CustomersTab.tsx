@@ -732,6 +732,7 @@ export const CustomersTab = () => {
       const ticketData = {
         booking_reference: orderRef,
         event_title: selectedCustomer?.orders[0] ? "Event" : "",
+        ticket_count: 1,
         holder: {
           name: holder.name,
           phone: holder.phone.replace(/^\+\d+\s*/, '').trim(),
