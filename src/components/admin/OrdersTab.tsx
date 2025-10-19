@@ -261,6 +261,16 @@ export const OrdersTab = ({
         } else {
           console.log('Ticket holders updated with confirmation details');
         }
+        
+        // Generate QR code images for all ticket holders
+        console.log('Generating QR code images...');
+        const { data: qrResponse, error: qrError } = await supabase.functions.invoke('backfill-qr-codes');
+        
+        if (qrError) {
+          console.error('Error generating QR codes:', qrError);
+        } else {
+          console.log('QR codes generated:', qrResponse);
+        }
       } else {
         // Clear ticket holders confirmation when changing to pending
         const { error: ticketHoldersError } = await supabase
