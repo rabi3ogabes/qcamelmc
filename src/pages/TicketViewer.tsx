@@ -785,7 +785,7 @@ const TicketViewer = () => {
                 />
                 <div className="text-center">
                   <p className="text-xl font-bold font-lusail">{selectedQR.holder.name}</p>
-                  <p className="text-lg text-muted-foreground font-mono">{selectedQR.holder.qr_code}</p>
+                  <p className="text-lg text-muted-foreground font-mono">{selectedQR.holder.phone}</p>
                   <p className="text-sm text-muted-foreground capitalize mt-2">{selectedQR.holder.ticket_type}</p>
                 </div>
               </div>
