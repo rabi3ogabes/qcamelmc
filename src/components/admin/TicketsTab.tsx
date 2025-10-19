@@ -15,6 +15,11 @@ interface TicketType {
   available_quantity: number;
   sold_quantity: number;
   event_id: string;
+  events?: {
+    title: string;
+    event_date: string;
+    location: string;
+  };
 }
 
 interface DailyBooking {
@@ -41,7 +46,7 @@ export const TicketsTab = () => {
     try {
       const { data, error } = await supabase
         .from("tickets")
-        .select("*")
+        .select("*, events(title, event_date, location)")
         .order("price", { ascending: false });
 
       if (error) throw error;
@@ -178,6 +183,21 @@ export const TicketsTab = () => {
           
           return (
             <Card key={ticket.id} className="p-6 hover:shadow-lg transition-shadow">
+              {ticket.events && (
+                <div className="mb-4 pb-4 border-b">
+                  <h4 className="font-bold text-base font-lusail mb-1">{ticket.events.title}</h4>
+                  <p className="text-sm text-muted-foreground font-lusail">
+                    {new Date(ticket.events.event_date).toLocaleDateString("ar-QA", {
+                      year: "numeric",
+                      month: "long",
+                      day: "numeric",
+                    })}
+                  </p>
+                  <p className="text-xs text-muted-foreground font-lusail mt-1">
+                    {ticket.events.location}
+                  </p>
+                </div>
+              )}
               <div className="flex items-start justify-between mb-4">
                 <div className="flex items-center gap-3">
                   <div className="p-3 bg-primary/10 rounded-lg">
