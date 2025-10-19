@@ -246,14 +246,58 @@ export const OrdersTab = ({
       
       console.log('Order status updated successfully with confirmed_at and confirmed_by');
       
+      // Also update ticket_holders with the same confirmation details
+      if (newStatus === "confirmed") {
+        const { error: ticketHoldersError } = await supabase
+          .from("ticket_holders")
+          .update({
+            confirmed_at: updateData.confirmed_at,
+            confirmed_by: updateData.confirmed_by
+          })
+          .eq("order_id", orderId);
+        
+        if (ticketHoldersError) {
+          console.error('Error updating ticket holders:', ticketHoldersError);
+        } else {
+          console.log('Ticket holders updated with confirmation details');
+        }
+      } else {
+        // Clear ticket holders confirmation when changing to pending
+        const { error: ticketHoldersError } = await supabase
+          .from("ticket_holders")
+          .update({
+            confirmed_at: null,
+            confirmed_by: null
+          })
+          .eq("order_id", orderId);
+        
+        if (ticketHoldersError) {
+          console.error('Error clearing ticket holders confirmation:', ticketHoldersError);
+        }
+      }
+      
       // Send to webhook with updated status
       if (newStatus === "confirmed") {
         try {
+          // Re-fetch order data with updated ticket_holders
+          const { data: updatedOrderData, error: refetchError } = await supabase
+            .from("orders")
+            .select(`
+              *,
+              customers (*),
+              events (*),
+              ticket_holders (*)
+            `)
+            .eq("id", orderId)
+            .single();
+          
+          if (refetchError) {
+            console.error('Error re-fetching order:', refetchError);
+            throw refetchError;
+          }
+          
           const webhookData = {
-            ...orderData,
-            payment_status: newStatus,
-            confirmed_at: updateData.confirmed_at,
-            confirmed_by: updateData.confirmed_by,
+            ...updatedOrderData,
             action: "payment_confirmed",
             timestamp: new Date().toISOString()
           };
