@@ -34,6 +34,7 @@ interface Customer {
       id: string;
       name: string;
       phone: string;
+      country_code?: string;
       nationality: string;
       ticket_type: string;
       qr_code?: string;
@@ -127,6 +128,8 @@ export const CustomersTab = () => {
   const [qrCodes, setQrCodes] = useState<Record<string, string>>({});
   const [viewingQrCode, setViewingQrCode] = useState<{ code: string; name: string; reference: string } | null>(null);
   const [showDeleteButton, setShowDeleteButton] = useState(false);
+  const [editingTicketHolder, setEditingTicketHolder] = useState<string | null>(null);
+  const [ticketHolderEditForm, setTicketHolderEditForm] = useState({ phone: "", country_code: "" });
 
   useEffect(() => {
     fetchCustomers();
@@ -214,6 +217,7 @@ export const CustomersTab = () => {
               id,
               name,
               phone,
+              country_code,
               nationality,
               ticket_type,
               qr_code,
@@ -607,6 +611,56 @@ export const CustomersTab = () => {
     }
   };
 
+  const handleEditTicketHolder = (holder: any) => {
+    setEditingTicketHolder(holder.id);
+    setTicketHolderEditForm({
+      phone: holder.phone.replace(/^\+\d+\s*/, '').trim(),
+      country_code: holder.country_code || '+974',
+    });
+  };
+
+  const handleSaveTicketHolder = async () => {
+    if (!editingTicketHolder) return;
+
+    setSaving(true);
+    try {
+      const { error } = await supabase
+        .from("ticket_holders")
+        .update({
+          phone: ticketHolderEditForm.phone,
+          country_code: ticketHolderEditForm.country_code,
+        })
+        .eq("id", editingTicketHolder);
+
+      if (error) throw error;
+
+      toast.success("تم تحديث بيانات حامل التذكرة بنجاح");
+      setEditingTicketHolder(null);
+      fetchCustomers();
+      
+      // Update selected customer if it's the same one
+      if (selectedCustomer) {
+        const updatedCustomer = {
+          ...selectedCustomer,
+          orders: selectedCustomer.orders.map(order => ({
+            ...order,
+            ticket_holders: order.ticket_holders?.map(holder =>
+              holder.id === editingTicketHolder
+                ? { ...holder, phone: ticketHolderEditForm.phone, country_code: ticketHolderEditForm.country_code }
+                : holder
+            ) || []
+          }))
+        };
+        setSelectedCustomer(updatedCustomer);
+      }
+    } catch (error) {
+      console.error("Error updating ticket holder:", error);
+      toast.error("فشل تحديث بيانات حامل التذكرة");
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const handleDeleteCustomer = async (customerId: string, e: React.MouseEvent) => {
     e.stopPropagation();
     
@@ -963,8 +1017,9 @@ export const CustomersTab = () => {
                                 key={idx}
                                 className="bg-muted/30 rounded p-4 text-sm font-lusail"
                               >
-                                <div className="flex justify-between items-start gap-4">
-                                  <div className="flex-1">
+                                {editingTicketHolder === holder.id ? (
+                                  // Edit Mode
+                                  <div className="space-y-3">
                                     <div className="flex justify-between items-center mb-2">
                                       <div className="flex items-center gap-2">
                                         <span className="font-medium">{holder.name}</span>
@@ -978,39 +1033,104 @@ export const CustomersTab = () => {
                                         {holder.ticket_type.toUpperCase()}
                                       </Badge>
                                     </div>
-                                    <div className="text-xs text-muted-foreground">
-                                      {holder.phone} • {holder.nationality}
-                                    </div>
-                                    {holder.qr_code && (
-                                      <div className="text-xs text-muted-foreground mt-1 font-mono">
-                                        {holder.qr_code}
+                                    <div className="grid grid-cols-2 gap-2">
+                                      <div>
+                                        <label className="text-xs font-medium block mb-1">كود الدولة</label>
+                                        <Input
+                                          value={ticketHolderEditForm.country_code}
+                                          onChange={(e) => setTicketHolderEditForm({ ...ticketHolderEditForm, country_code: e.target.value })}
+                                          placeholder="+974"
+                                          className="h-8 text-xs"
+                                        />
                                       </div>
-                                    )}
-                                  </div>
-                                  <div className="flex flex-col gap-2">
-                                    {holder.qr_code && qrCodes[holder.qr_code] && (
+                                      <div>
+                                        <label className="text-xs font-medium block mb-1">رقم الهاتف</label>
+                                        <Input
+                                          value={ticketHolderEditForm.phone}
+                                          onChange={(e) => setTicketHolderEditForm({ ...ticketHolderEditForm, phone: e.target.value })}
+                                          placeholder="XXXX XXXX"
+                                          className="h-8 text-xs"
+                                        />
+                                      </div>
+                                    </div>
+                                    <div className="flex justify-end gap-2">
                                       <Button
                                         size="sm"
                                         variant="outline"
-                                        onClick={() => setViewingQrCode({ code: qrCodes[holder.qr_code], name: holder.name, reference: holder.qr_code })}
-                                        className="flex-shrink-0"
+                                        onClick={() => setEditingTicketHolder(null)}
+                                        disabled={saving}
                                       >
-                                        <QrCode className="w-4 h-4" />
+                                        إلغاء
                                       </Button>
-                                    )}
-                                    {holder.is_present && (
                                       <Button
                                         size="sm"
-                                        variant="destructive"
-                                        onClick={() => toggleTicketPresence(holder.id, holder.is_present)}
-                                        className="flex-shrink-0"
-                                        title="إلغاء تحديد الحضور"
+                                        onClick={handleSaveTicketHolder}
+                                        disabled={saving}
                                       >
-                                        <UserX className="w-4 h-4" />
+                                        {saving ? "جاري الحفظ..." : "حفظ"}
                                       </Button>
-                                    )}
+                                    </div>
                                   </div>
-                                </div>
+                                ) : (
+                                  // View Mode
+                                  <div className="flex justify-between items-start gap-4">
+                                    <div className="flex-1">
+                                      <div className="flex justify-between items-center mb-2">
+                                        <div className="flex items-center gap-2">
+                                          <span className="font-medium">{holder.name}</span>
+                                          {holder.is_present && (
+                                            <Badge variant="default" className="text-xs bg-green-500">
+                                              حاضر
+                                            </Badge>
+                                          )}
+                                        </div>
+                                        <Badge variant="outline" className="text-xs">
+                                          {holder.ticket_type.toUpperCase()}
+                                        </Badge>
+                                      </div>
+                                      <div className="text-xs text-muted-foreground">
+                                        {holder.country_code || '+974'} {holder.phone} • {holder.nationality}
+                                      </div>
+                                      {holder.qr_code && (
+                                        <div className="text-xs text-muted-foreground mt-1 font-mono">
+                                          {holder.qr_code}
+                                        </div>
+                                      )}
+                                    </div>
+                                    <div className="flex flex-col gap-2">
+                                      <Button
+                                        size="sm"
+                                        variant="outline"
+                                        onClick={() => handleEditTicketHolder(holder)}
+                                        className="flex-shrink-0"
+                                        title="تعديل رقم الهاتف"
+                                      >
+                                        <Edit className="w-4 h-4" />
+                                      </Button>
+                                      {holder.qr_code && qrCodes[holder.qr_code] && (
+                                        <Button
+                                          size="sm"
+                                          variant="outline"
+                                          onClick={() => setViewingQrCode({ code: qrCodes[holder.qr_code], name: holder.name, reference: holder.qr_code })}
+                                          className="flex-shrink-0"
+                                        >
+                                          <QrCode className="w-4 h-4" />
+                                        </Button>
+                                      )}
+                                      {holder.is_present && (
+                                        <Button
+                                          size="sm"
+                                          variant="destructive"
+                                          onClick={() => toggleTicketPresence(holder.id, holder.is_present)}
+                                          className="flex-shrink-0"
+                                          title="إلغاء تحديد الحضور"
+                                        >
+                                          <UserX className="w-4 h-4" />
+                                        </Button>
+                                      )}
+                                    </div>
+                                  </div>
+                                )}
                               </div>
                             ))}
                           </div>
