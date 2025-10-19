@@ -23,6 +23,7 @@ interface Event {
   location: string;
   is_active: boolean;
   image_url: string | null;
+  tickets_sold?: number;
 }
 
 export const EventsTab = () => {
@@ -45,7 +46,26 @@ export const EventsTab = () => {
         .order("event_date", { ascending: false });
 
       if (error) throw error;
-      setEvents(data || []);
+      
+      // Fetch ticket counts for each event
+      const eventsWithTicketCounts = await Promise.all(
+        (data || []).map(async (event) => {
+          const { data: ordersData } = await supabase
+            .from("orders")
+            .select("quantity")
+            .eq("event_id", event.id)
+            .eq("payment_status", "confirmed");
+          
+          const ticketsSold = ordersData?.reduce((sum, order) => sum + order.quantity, 0) || 0;
+          
+          return {
+            ...event,
+            tickets_sold: ticketsSold
+          };
+        })
+      );
+      
+      setEvents(eventsWithTicketCounts);
     } catch (error) {
       toast.error(t("failedToLoad"));
     } finally {
@@ -162,6 +182,14 @@ export const EventsTab = () => {
                   <MapPin className="w-4 h-4 text-muted-foreground" />
                   <span className="font-lusail">{event.location}</span>
                 </div>
+                {event.tickets_sold !== undefined && (
+                  <div className="flex items-center justify-between p-2 bg-primary/5 rounded-lg mt-3">
+                    <span className="text-sm font-medium font-lusail">التذاكر المباعة:</span>
+                    <Badge variant="secondary" className="font-lusail text-base font-bold">
+                      {event.tickets_sold}
+                    </Badge>
+                  </div>
+                )}
               </div>
               
               <div className="flex flex-col gap-3">
