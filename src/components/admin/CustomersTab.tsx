@@ -1262,20 +1262,22 @@ export const CustomersTab = () => {
                                       >
                                         <Edit className="w-4 h-4" />
                                       </Button>
-                                      <Button
-                                        size="sm"
-                                        variant="default"
-                                        onClick={() => sendSingleTicketToWhatsApp(holder, order.booking_reference)}
-                                        disabled={sendingSingleTicket === holder.id}
-                                        className="flex-shrink-0"
-                                        title="إرسال التذكرة للواتساب"
-                                      >
-                                        {sendingSingleTicket === holder.id ? (
-                                          <span className="animate-spin">⏳</span>
-                                        ) : (
-                                          <Send className="w-4 h-4" />
-                                        )}
-                                      </Button>
+                                      {order.payment_status !== "pending" && (
+                                        <Button
+                                          size="sm"
+                                          variant="default"
+                                          onClick={() => sendSingleTicketToWhatsApp(holder, order.booking_reference)}
+                                          disabled={sendingSingleTicket === holder.id}
+                                          className="flex-shrink-0"
+                                          title="إرسال التذكرة للواتساب"
+                                        >
+                                          {sendingSingleTicket === holder.id ? (
+                                            <span className="animate-spin">⏳</span>
+                                          ) : (
+                                            <Send className="w-4 h-4" />
+                                          )}
+                                        </Button>
+                                      )}
                                       {holder.is_present && (
                                         <Button
                                           size="sm"
