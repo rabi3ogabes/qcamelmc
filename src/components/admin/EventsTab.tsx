@@ -23,7 +23,7 @@ interface Event {
   location: string;
   is_active: boolean;
   image_url: string | null;
-  tickets_sold?: number;
+  tickets_sold?: { type: string; count: number }[];
 }
 
 export const EventsTab = () => {
@@ -47,16 +47,30 @@ export const EventsTab = () => {
 
       if (error) throw error;
       
-      // Fetch ticket counts for each event
+      // Fetch ticket counts by type for each event
       const eventsWithTicketCounts = await Promise.all(
         (data || []).map(async (event) => {
           const { data: ordersData } = await supabase
             .from("orders")
-            .select("quantity")
+            .select("ticket_type, quantity")
             .eq("event_id", event.id)
             .eq("payment_status", "confirmed");
           
-          const ticketsSold = ordersData?.reduce((sum, order) => sum + order.quantity, 0) || 0;
+          // Group by ticket type and sum quantities
+          const ticketsByType = (ordersData || []).reduce((acc: any, order) => {
+            const type = order.ticket_type;
+            if (!acc[type]) {
+              acc[type] = 0;
+            }
+            acc[type] += order.quantity;
+            return acc;
+          }, {});
+          
+          // Convert to array format
+          const ticketsSold = Object.entries(ticketsByType).map(([type, count]) => ({
+            type,
+            count: count as number
+          }));
           
           return {
             ...event,
@@ -182,12 +196,23 @@ export const EventsTab = () => {
                   <MapPin className="w-4 h-4 text-muted-foreground" />
                   <span className="font-lusail">{event.location}</span>
                 </div>
-                {event.tickets_sold !== undefined && (
-                  <div className="flex items-center justify-between p-2 bg-primary/5 rounded-lg mt-3">
-                    <span className="text-sm font-medium font-lusail">التذاكر المباعة:</span>
-                    <Badge variant="secondary" className="font-lusail text-base font-bold">
-                      {event.tickets_sold}
-                    </Badge>
+                {event.tickets_sold && event.tickets_sold.length > 0 && (
+                  <div className="p-3 bg-primary/5 rounded-lg mt-3 space-y-2">
+                    <span className="text-sm font-bold font-lusail block mb-2">التذاكر المباعة:</span>
+                    {event.tickets_sold.map((ticket) => (
+                      <div key={ticket.type} className="flex items-center justify-between">
+                        <span className="text-sm font-medium font-lusail capitalize">{ticket.type}:</span>
+                        <Badge variant="secondary" className="font-lusail font-bold">
+                          {ticket.count}
+                        </Badge>
+                      </div>
+                    ))}
+                    <div className="flex items-center justify-between pt-2 border-t border-border">
+                      <span className="text-sm font-bold font-lusail">المجموع:</span>
+                      <Badge className="font-lusail font-bold">
+                        {event.tickets_sold.reduce((sum, t) => sum + t.count, 0)}
+                      </Badge>
+                    </div>
                   </div>
                 )}
               </div>
