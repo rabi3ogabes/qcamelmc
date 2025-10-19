@@ -252,6 +252,8 @@ export const OrdersTab = ({
           const webhookData = {
             ...orderData,
             payment_status: newStatus,
+            confirmed_at: updateData.confirmed_at,
+            confirmed_by: updateData.confirmed_by,
             action: "payment_confirmed",
             timestamp: new Date().toISOString()
           };
