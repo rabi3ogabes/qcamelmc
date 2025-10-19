@@ -23,7 +23,7 @@ interface Event {
   location: string;
   is_active: boolean;
   image_url: string | null;
-  tickets_sold?: { type: string; count: number }[];
+  tickets_sold?: { type: string; count: number; max: number }[];
 }
 
 export const EventsTab = () => {
@@ -50,6 +50,13 @@ export const EventsTab = () => {
       // Fetch ticket counts by type for each event
       const eventsWithTicketCounts = await Promise.all(
         (data || []).map(async (event) => {
+          // Fetch tickets data (max capacity)
+          const { data: ticketsData } = await supabase
+            .from("tickets")
+            .select("type, available_quantity")
+            .eq("event_id", event.id);
+          
+          // Fetch orders data (sold tickets)
           const { data: ordersData } = await supabase
             .from("orders")
             .select("ticket_type, quantity")
@@ -66,10 +73,11 @@ export const EventsTab = () => {
             return acc;
           }, {});
           
-          // Convert to array format
-          const ticketsSold = Object.entries(ticketsByType).map(([type, count]) => ({
-            type,
-            count: count as number
+          // Combine tickets data with sold counts
+          const ticketsSold = (ticketsData || []).map((ticket) => ({
+            type: ticket.type,
+            count: ticketsByType[ticket.type] || 0,
+            max: ticket.available_quantity
           }));
           
           return {
@@ -198,19 +206,19 @@ export const EventsTab = () => {
                 </div>
                 {event.tickets_sold && event.tickets_sold.length > 0 && (
                   <div className="p-3 bg-primary/5 rounded-lg mt-3 space-y-2">
-                    <span className="text-sm font-bold font-lusail block mb-2">التذاكر المباعة:</span>
+                    <span className="text-sm font-bold font-lusail block mb-2">التذاكر:</span>
                     {event.tickets_sold.map((ticket) => (
                       <div key={ticket.type} className="flex items-center justify-between">
                         <span className="text-sm font-medium font-lusail capitalize">{ticket.type}:</span>
                         <Badge variant="secondary" className="font-lusail font-bold">
-                          {ticket.count}
+                          {ticket.count} / {ticket.max}
                         </Badge>
                       </div>
                     ))}
                     <div className="flex items-center justify-between pt-2 border-t border-border">
                       <span className="text-sm font-bold font-lusail">المجموع:</span>
                       <Badge className="font-lusail font-bold">
-                        {event.tickets_sold.reduce((sum, t) => sum + t.count, 0)}
+                        {event.tickets_sold.reduce((sum, t) => sum + t.count, 0)} / {event.tickets_sold.reduce((sum, t) => sum + t.max, 0)}
                       </Badge>
                     </div>
                   </div>
