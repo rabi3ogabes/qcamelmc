@@ -262,14 +262,18 @@ export const OrdersTab = ({
           console.log('Ticket holders updated with confirmation details');
         }
         
-        // Generate QR code images for all ticket holders
+        // Generate QR code images for all ticket holders and WAIT for completion
         console.log('Generating QR code images...');
         const { data: qrResponse, error: qrError } = await supabase.functions.invoke('backfill-qr-codes');
         
         if (qrError) {
           console.error('Error generating QR codes:', qrError);
+          toast.error('تم التأكيد لكن فشل توليد رموز QR');
         } else {
-          console.log('QR codes generated:', qrResponse);
+          console.log('QR codes generated successfully:', qrResponse);
+          
+          // Wait a moment for database to update
+          await new Promise(resolve => setTimeout(resolve, 1000));
         }
       } else {
         // Clear ticket holders confirmation when changing to pending
