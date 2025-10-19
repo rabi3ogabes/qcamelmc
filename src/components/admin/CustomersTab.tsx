@@ -854,15 +854,15 @@ export const CustomersTab = () => {
     }
   };
 
-  const handleCancelOrder = async (order: any, e: React.MouseEvent) => {
+  const handleReturnTicket = async (order: any, e: React.MouseEvent) => {
     e.stopPropagation();
     
-    if (!confirm(`هل أنت متأكد من إلغاء هذا الطلب ${order.booking_reference}؟ سيتم استرجاع التذاكر للبيع مرة أخرى.`)) {
+    if (!confirm(`هل أنت متأكد من إرجاع التذكرة للطلب ${order.booking_reference}؟ سيتم إعادة التذكرة للبيع مرة أخرى.`)) {
       return;
     }
 
     try {
-      // First, get the event_id and ticket_type from the order to restore availability
+      // Get the event_id and ticket_type from the order to restore availability
       const { data: orderData, error: orderFetchError } = await supabase
         .from("orders")
         .select("event_id, ticket_type, quantity")
@@ -892,41 +892,30 @@ export const CustomersTab = () => {
 
       if (ticketUpdateError) throw ticketUpdateError;
 
-      // Delete ticket holders for this order
-      const { error: ticketHoldersError } = await supabase
-        .from("ticket_holders")
-        .delete()
-        .eq("order_id", order.id);
-
-      if (ticketHoldersError) throw ticketHoldersError;
-
-      // Delete the order
-      const { error: orderDeleteError } = await supabase
+      // Mark order as cancelled (ticket returned) instead of deleting
+      const { error: orderUpdateError } = await supabase
         .from("orders")
-        .delete()
+        .update({ payment_status: 'cancelled' })
         .eq("id", order.id);
 
-      if (orderDeleteError) throw orderDeleteError;
+      if (orderUpdateError) throw orderUpdateError;
 
-      toast.success("تم إلغاء الطلب واستعادة التذاكر للبيع مرة أخرى");
+      toast.success("تم إرجاع التذكرة وإعادتها للبيع بنجاح");
       fetchCustomers();
       
       // Update selected customer if needed
       if (selectedCustomer) {
-        const updatedOrders = selectedCustomer.orders.filter(o => o.id !== order.id);
-        if (updatedOrders.length === 0) {
-          // No more orders, close dialog
-          setSelectedCustomer(null);
-        } else {
-          setSelectedCustomer({
-            ...selectedCustomer,
-            orders: updatedOrders
-          });
-        }
+        const updatedOrders = selectedCustomer.orders.map(o => 
+          o.id === order.id ? { ...o, payment_status: 'cancelled' } : o
+        );
+        setSelectedCustomer({
+          ...selectedCustomer,
+          orders: updatedOrders
+        });
       }
     } catch (error) {
-      console.error("Error canceling order:", error);
-      toast.error("فشل إلغاء الطلب. يرجى المحاولة مرة أخرى");
+      console.error("Error returning ticket:", error);
+      toast.error("فشل إرجاع التذكرة. يرجى المحاولة مرة أخرى");
     }
   };
 
@@ -1185,11 +1174,11 @@ export const CustomersTab = () => {
                             <Button
                               size="sm"
                               variant="destructive"
-                              onClick={(e) => handleCancelOrder(order, e)}
-                              title="إلغاء الطلب واستعادة التذاكر"
+                              onClick={(e) => handleReturnTicket(order, e)}
+                              title="إرجاع التذكرة وإعادتها للبيع"
                             >
                               <Trash2 className="w-4 h-4 ml-1" />
-                              <span>إلغاء الطلب</span>
+                              <span>إرجاع التذكرة</span>
                             </Button>
                             <Button
                               size="sm"
