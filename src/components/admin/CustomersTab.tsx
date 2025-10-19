@@ -854,6 +854,82 @@ export const CustomersTab = () => {
     }
   };
 
+  const handleCancelOrder = async (order: any, e: React.MouseEvent) => {
+    e.stopPropagation();
+    
+    if (!confirm(`هل أنت متأكد من إلغاء هذا الطلب ${order.booking_reference}؟ سيتم استرجاع التذاكر للبيع مرة أخرى.`)) {
+      return;
+    }
+
+    try {
+      // First, get the event_id and ticket_type from the order to restore availability
+      const { data: orderData, error: orderFetchError } = await supabase
+        .from("orders")
+        .select("event_id, ticket_type, quantity")
+        .eq("id", order.id)
+        .single();
+
+      if (orderFetchError) throw orderFetchError;
+
+      // Restore ticket availability
+      const { data: ticketData, error: ticketFetchError } = await supabase
+        .from("tickets")
+        .select("available_quantity, sold_quantity")
+        .eq("event_id", orderData.event_id)
+        .eq("type", orderData.ticket_type)
+        .single();
+
+      if (ticketFetchError) throw ticketFetchError;
+
+      const { error: ticketUpdateError } = await supabase
+        .from("tickets")
+        .update({
+          available_quantity: ticketData.available_quantity + orderData.quantity,
+          sold_quantity: Math.max(0, ticketData.sold_quantity - orderData.quantity)
+        })
+        .eq("event_id", orderData.event_id)
+        .eq("type", orderData.ticket_type);
+
+      if (ticketUpdateError) throw ticketUpdateError;
+
+      // Delete ticket holders for this order
+      const { error: ticketHoldersError } = await supabase
+        .from("ticket_holders")
+        .delete()
+        .eq("order_id", order.id);
+
+      if (ticketHoldersError) throw ticketHoldersError;
+
+      // Delete the order
+      const { error: orderDeleteError } = await supabase
+        .from("orders")
+        .delete()
+        .eq("id", order.id);
+
+      if (orderDeleteError) throw orderDeleteError;
+
+      toast.success("تم إلغاء الطلب واستعادة التذاكر للبيع مرة أخرى");
+      fetchCustomers();
+      
+      // Update selected customer if needed
+      if (selectedCustomer) {
+        const updatedOrders = selectedCustomer.orders.filter(o => o.id !== order.id);
+        if (updatedOrders.length === 0) {
+          // No more orders, close dialog
+          setSelectedCustomer(null);
+        } else {
+          setSelectedCustomer({
+            ...selectedCustomer,
+            orders: updatedOrders
+          });
+        }
+      }
+    } catch (error) {
+      console.error("Error canceling order:", error);
+      toast.error("فشل إلغاء الطلب. يرجى المحاولة مرة أخرى");
+    }
+  };
+
   if (loading) {
     return <div className="text-center py-12 font-lusail">{t("loading")}</div>;
   }
@@ -1081,44 +1157,53 @@ export const CustomersTab = () => {
                 <h3 className="font-bold text-lg font-lusail">الحجوزات</h3>
                 {selectedCustomer.orders.map((order) => (
                   <Card key={order.id} className="p-4">
-                    <div className="space-y-3">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <Calendar className="w-4 h-4 text-primary" />
-                          <span className="font-semibold font-lusail">
-                            {order.booking_reference}
-                          </span>
-                          <Badge
-                            variant={
-                              order.payment_status === "confirmed"
-                                ? "default"
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <Calendar className="w-4 h-4 text-primary" />
+                            <span className="font-semibold font-lusail">
+                              {order.booking_reference}
+                            </span>
+                            <Badge
+                              variant={
+                                order.payment_status === "confirmed"
+                                  ? "default"
+                                  : order.payment_status === "pending"
+                                  ? "secondary"
+                                  : "destructive"
+                              }
+                              className="font-lusail"
+                            >
+                              {order.payment_status === "confirmed"
+                                ? "مؤكد"
                                 : order.payment_status === "pending"
-                                ? "secondary"
-                                : "destructive"
-                            }
-                            className="font-lusail"
-                          >
-                            {order.payment_status === "confirmed"
-                              ? "مؤكد"
-                              : order.payment_status === "pending"
-                              ? "قيد الانتظار"
-                              : "ملغي"}
-                          </Badge>
-                        </div>
-                        <div className="flex items-center gap-3">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={(e) => sendInvoiceToWhatsApp(selectedCustomer, order.id, e)}
-                            disabled={sendingInvoice === order.id}
-                            title="إرسال الفاتورة عبر واتساب"
-                          >
-                            {sendingInvoice === order.id ? (
-                              <span className="animate-spin">⏳</span>
-                            ) : (
-                              <MessageCircle className="w-4 h-4 text-green-600" />
-                            )}
-                          </Button>
+                                ? "قيد الانتظار"
+                                : "ملغي"}
+                            </Badge>
+                          </div>
+                          <div className="flex items-center gap-3">
+                            <Button
+                              size="sm"
+                              variant="destructive"
+                              onClick={(e) => handleCancelOrder(order, e)}
+                              title="إلغاء الطلب واستعادة التذاكر"
+                            >
+                              <Trash2 className="w-4 h-4 ml-1" />
+                              <span>إلغاء الطلب</span>
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={(e) => sendInvoiceToWhatsApp(selectedCustomer, order.id, e)}
+                              disabled={sendingInvoice === order.id}
+                              title="إرسال الفاتورة عبر واتساب"
+                            >
+                              {sendingInvoice === order.id ? (
+                                <span className="animate-spin">⏳</span>
+                              ) : (
+                                <MessageCircle className="w-4 h-4 text-green-600" />
+                              )}
+                            </Button>
                           {order.qr_code && qrCodes[order.qr_code] && (
                             <div className="flex-shrink-0 bg-white p-2 rounded">
                               <img
