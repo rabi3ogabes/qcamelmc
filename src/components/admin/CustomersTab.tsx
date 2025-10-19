@@ -130,6 +130,7 @@ export const CustomersTab = () => {
   const [showDeleteButton, setShowDeleteButton] = useState(false);
   const [editingTicketHolder, setEditingTicketHolder] = useState<string | null>(null);
   const [ticketHolderEditForm, setTicketHolderEditForm] = useState({ phone: "", country_code: "" });
+  const [sendingSingleTicket, setSendingSingleTicket] = useState<string | null>(null);
 
   useEffect(() => {
     fetchCustomers();
@@ -661,6 +662,123 @@ export const CustomersTab = () => {
     }
   };
 
+  const sendSingleTicketToWhatsApp = async (holder: any, orderRef: string) => {
+    setSendingSingleTicket(holder.id);
+    try {
+      // Fetch webhook URL from settings
+      const { data: settings, error: settingsError } = await supabase
+        .from("settings")
+        .select("webhook_url")
+        .maybeSingle();
+
+      if (settingsError) throw settingsError;
+
+      if (!settings?.webhook_url) {
+        toast.error("لم يتم تكوين رابط الويب هوك");
+        return;
+      }
+
+      // Convert QR code data URL to blob and upload to storage
+      let qrCodeImageUrl = "";
+      const qrDataUrl = qrCodes[holder.qr_code];
+      
+      if (qrDataUrl) {
+        try {
+          // Convert data URL to blob
+          const response = await fetch(qrDataUrl);
+          const blob = await response.blob();
+          
+          // Upload to storage
+          const fileName = `${holder.qr_code}.png`;
+          const { data: uploadData, error: uploadError } = await supabase.storage
+            .from("qr-codes")
+            .upload(fileName, blob, {
+              contentType: "image/png",
+              upsert: true,
+            });
+
+          if (uploadError) throw uploadError;
+
+          // Get public URL
+          const { data: urlData } = supabase.storage
+            .from("qr-codes")
+            .getPublicUrl(fileName);
+
+          qrCodeImageUrl = urlData.publicUrl;
+        } catch (error) {
+          console.error("Error uploading QR code:", error);
+          toast.error("فشل رفع رمز QR");
+          return;
+        }
+      }
+
+      // Fetch ticket price
+      const { data: tickets } = await supabase
+        .from("tickets")
+        .select("type, price");
+
+      const ticketPrices = new Map<string, number>(
+        tickets?.map((ticket) => [ticket.type as string, ticket.price as number]) || []
+      );
+
+      // Get order details
+      const order = selectedCustomer?.orders.find(o => o.booking_reference === orderRef);
+      if (!order) {
+        toast.error("لم يتم العثور على الطلب");
+        return;
+      }
+
+      // Prepare ticket data
+      const ticketData = {
+        booking_reference: orderRef,
+        event_title: selectedCustomer?.orders[0] ? "Event" : "",
+        holder: {
+          name: holder.name,
+          phone: holder.phone.replace(/^\+\d+\s*/, '').trim(),
+          country_code: holder.country_code?.replace('+', '') || '974',
+          nationality: holder.nationality,
+          id_number: holder.id_number,
+          ticket_type: holder.ticket_type,
+          ticket_price: ticketPrices.get(holder.ticket_type as string) || 0,
+          qr_code: holder.qr_code,
+          qr_code_image: qrCodeImageUrl,
+          is_present: holder.is_present
+        },
+        timestamp: new Date().toISOString()
+      };
+
+      // Send to webhook via edge function
+      const { data, error: webhookError } = await supabase.functions.invoke('send-to-webhook', {
+        body: ticketData
+      });
+
+      if (webhookError) {
+        console.error("Webhook error:", webhookError);
+        throw new Error(webhookError.message || "فشل الاتصال بالويب هوك");
+      }
+
+      if (data && data.error) {
+        console.error("Webhook response error:", data);
+        if (data.details && data.details.includes('not registered')) {
+          throw new Error("الويب هوك غير مفعل في n8n. يرجى تفعيل الـ workflow أولاً");
+        }
+        throw new Error(data.error || "فشل إرسال البيانات إلى الويب هوك");
+      }
+
+      if (data && data.success) {
+        toast.success(`تم إرسال التذكرة إلى ${holder.phone}`);
+      } else {
+        throw new Error("استجابة غير متوقعة من الويب هوك");
+      }
+    } catch (error) {
+      console.error("Error sending ticket:", error);
+      const errorMessage = error instanceof Error ? error.message : "فشل إرسال التذكرة";
+      toast.error(errorMessage);
+    } finally {
+      setSendingSingleTicket(null);
+    }
+  };
+
   const handleDeleteCustomer = async (customerId: string, e: React.MouseEvent) => {
     e.stopPropagation();
     
@@ -1106,6 +1224,20 @@ export const CustomersTab = () => {
                                         title="تعديل رقم الهاتف"
                                       >
                                         <Edit className="w-4 h-4" />
+                                      </Button>
+                                      <Button
+                                        size="sm"
+                                        variant="default"
+                                        onClick={() => sendSingleTicketToWhatsApp(holder, order.booking_reference)}
+                                        disabled={sendingSingleTicket === holder.id}
+                                        className="flex-shrink-0"
+                                        title="إرسال التذكرة للواتساب"
+                                      >
+                                        {sendingSingleTicket === holder.id ? (
+                                          <span className="animate-spin">⏳</span>
+                                        ) : (
+                                          <Send className="w-4 h-4" />
+                                        )}
                                       </Button>
                                       {holder.qr_code && qrCodes[holder.qr_code] && (
                                         <Button
