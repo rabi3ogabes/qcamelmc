@@ -338,7 +338,7 @@ const LiveBookings = () => {
         </div>
       </header>
 
-      <div className="w-full py-8 px-[10%]">
+      <div className="w-full py-8 px-[5%]">
 
         {/* Date Selector and Stats */}
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 mb-8">
