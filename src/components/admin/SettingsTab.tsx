@@ -112,6 +112,79 @@ export const SettingsTab = () => {
     }
   };
 
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.match(/image\/(png|jpeg|jpg)/)) {
+      toast.error("يرجى اختيار صورة PNG أو JPG");
+      return;
+    }
+
+    // Validate file size (5MB max)
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("حجم الصورة يجب أن يكون أقل من 5 ميغابايت");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      // Create a unique filename
+      const fileExt = file.name.split('.').pop();
+      const fileName = `logo-${Date.now()}.${fileExt}`;
+      const filePath = `logos/${fileName}`;
+
+      // Upload to Supabase storage
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('qr-codes')
+        .upload(filePath, file, {
+          cacheControl: '3600',
+          upsert: true
+        });
+
+      if (uploadError) throw uploadError;
+
+      // Get public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('qr-codes')
+        .getPublicUrl(filePath);
+
+      // Update settings with new logo URL
+      const { data: settings } = await supabase
+        .from("settings")
+        .select("id")
+        .single();
+
+      if (settings) {
+        const { error } = await supabase
+          .from("settings")
+          .update({ logo_url: publicUrl })
+          .eq("id", settings.id);
+
+        if (error) throw error;
+      } else {
+        const { error } = await supabase
+          .from("settings")
+          .insert({ logo_url: publicUrl });
+
+        if (error) throw error;
+      }
+
+      setLogoUrl(publicUrl);
+      setNewLogoUrl(publicUrl);
+      toast.success("تم تحميل الشعار بنجاح");
+      
+      // Clear the input
+      e.target.value = '';
+    } catch (error) {
+      console.error("Error uploading logo:", error);
+      toast.error("فشل في تحميل الصورة");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleSaveAdminPhone = async () => {
     setSavingPhone(true);
     try {
@@ -283,6 +356,22 @@ export const SettingsTab = () => {
                 onChange={(e) => setNewLogoUrl(e.target.value)}
                 className="font-lusail" 
               />
+            </div>
+          </div>
+          
+          <div>
+            <Label htmlFor="logo-file" className="font-lusail">أو تحميل صورة (PNG/JPG)</Label>
+            <div className="mt-2">
+              <Input 
+                id="logo-file" 
+                type="file" 
+                accept="image/png,image/jpeg,image/jpg"
+                onChange={handleLogoUpload}
+                className="font-lusail cursor-pointer" 
+              />
+              <p className="text-xs text-muted-foreground mt-1 font-lusail">
+                اختر صورة PNG أو JPG (حد أقصى 5 ميغابايت)
+              </p>
             </div>
           </div>
           
