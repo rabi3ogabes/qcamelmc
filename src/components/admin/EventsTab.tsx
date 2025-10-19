@@ -206,20 +206,49 @@ export const EventsTab = () => {
                 </div>
                 {event.tickets_sold && event.tickets_sold.length > 0 && (
                   <div className="p-3 bg-primary/5 rounded-lg mt-3 space-y-2">
-                    <span className="text-sm font-bold font-lusail block mb-2">التذاكر:</span>
-                    {event.tickets_sold.map((ticket) => (
-                      <div key={ticket.type} className="flex items-center justify-between">
-                        <span className="text-sm font-medium font-lusail capitalize">{ticket.type}:</span>
-                        <Badge variant="secondary" className="font-lusail font-bold">
-                          {ticket.count} / {ticket.max}
+                    <span className="text-sm font-bold font-lusail block mb-2">سعة التذاكر:</span>
+                    {event.tickets_sold.map((ticket) => {
+                      const percentage = ticket.max > 0 ? (ticket.count / ticket.max) * 100 : 0;
+                      const isHighDemand = percentage > 80;
+                      const isMediumDemand = percentage > 50 && percentage <= 80;
+                      
+                      return (
+                        <div key={ticket.type} className="space-y-1">
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm font-medium font-lusail capitalize">{ticket.type}</span>
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs text-muted-foreground font-lusail">
+                                {ticket.count} مباع / {ticket.max} كحد أقصى
+                              </span>
+                              <Badge 
+                                variant={isHighDemand ? "destructive" : isMediumDemand ? "default" : "secondary"} 
+                                className="font-lusail font-bold"
+                              >
+                                {percentage.toFixed(0)}%
+                              </Badge>
+                            </div>
+                          </div>
+                          <div className="w-full bg-secondary rounded-full h-2">
+                            <div 
+                              className={`h-2 rounded-full transition-all ${
+                                isHighDemand ? 'bg-destructive' : isMediumDemand ? 'bg-primary' : 'bg-green-500'
+                              }`}
+                              style={{ width: `${Math.min(percentage, 100)}%` }}
+                            />
+                          </div>
+                        </div>
+                      );
+                    })}
+                    <div className="flex items-center justify-between pt-2 border-t border-border">
+                      <span className="text-sm font-bold font-lusail">الإجمالي:</span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-muted-foreground font-lusail">
+                          {event.tickets_sold.reduce((sum, t) => sum + t.count, 0)} مباع / {event.tickets_sold.reduce((sum, t) => sum + t.max, 0)} إجمالي
+                        </span>
+                        <Badge className="font-lusail font-bold">
+                          {((event.tickets_sold.reduce((sum, t) => sum + t.count, 0) / event.tickets_sold.reduce((sum, t) => sum + t.max, 0)) * 100).toFixed(0)}%
                         </Badge>
                       </div>
-                    ))}
-                    <div className="flex items-center justify-between pt-2 border-t border-border">
-                      <span className="text-sm font-bold font-lusail">المجموع:</span>
-                      <Badge className="font-lusail font-bold">
-                        {event.tickets_sold.reduce((sum, t) => sum + t.count, 0)} / {event.tickets_sold.reduce((sum, t) => sum + t.max, 0)}
-                      </Badge>
                     </div>
                   </div>
                 )}
