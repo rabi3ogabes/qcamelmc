@@ -59,11 +59,19 @@ Deno.serve(async (req) => {
     
     console.log('=== Ticket Data to Send ===');
     console.log('Booking Reference:', ticketData.booking_reference);
+    console.log('Event Location:', ticketData.event_location);
+    console.log('Event Date:', ticketData.event_date);
+    console.log('Event Title:', ticketData.event_title);
+    console.log('Ticket Count:', ticketData.ticket_count);
     console.log('Customer Name:', ticketData.customers?.name);
-    console.log('Event Title:', ticketData.events?.title);
     console.log('Payment Status:', ticketData.payment_status);
     console.log('Action:', ticketData.action);
     console.log('Number of Ticket Holders:', ticketData.ticket_holders?.length);
+    console.log('Holder Info:', ticketData.holder ? {
+      name: ticketData.holder.name,
+      phone: ticketData.holder.phone,
+      ticket_type: ticketData.holder.ticket_type
+    } : 'No holder data');
     console.log('Full payload:', JSON.stringify(ticketData, null, 2));
 
     // Forward the request to n8n webhook with timeout
