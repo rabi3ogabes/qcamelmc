@@ -187,7 +187,7 @@ export const TicketsTab = () => {
                 <div className="mb-4 pb-4 border-b">
                   <h4 className="font-bold text-base font-lusail mb-1">{ticket.events.title}</h4>
                   <p className="text-sm text-muted-foreground font-lusail">
-                    {new Date(ticket.events.event_date).toLocaleDateString("ar-QA", {
+                    {new Date(ticket.events.event_date).toLocaleDateString("en-US", {
                       year: "numeric",
                       month: "long",
                       day: "numeric",
