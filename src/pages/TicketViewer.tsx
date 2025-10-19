@@ -680,7 +680,12 @@ const TicketViewer = () => {
             <Card key={holder.id} className="overflow-hidden">
               <CardHeader className="bg-primary/5">
                 <CardTitle className="flex items-center justify-between text-lg">
-                  <span className="font-mono">{holder.qr_code}</span>
+                  <span className="font-mono">
+                    {holder.qr_code?.includes('http') 
+                      ? holder.qr_code.split('/').pop()?.replace('.png', '').replace('.jpg', '')
+                      : holder.qr_code
+                    }
+                  </span>
                   {holder.is_present && (
                     <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded">
                       حاضر ✓
