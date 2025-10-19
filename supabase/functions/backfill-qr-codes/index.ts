@@ -1,7 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1';
-import QRCode from 'https://esm.sh/qrcode@1.5.3';
-import { encode } from "https://deno.land/std@0.168.0/encoding/base64.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -49,17 +47,17 @@ serve(async (req) => {
       console.log(`Generating QR for: ${qrText}`);
 
       try {
-        // Generate QR code as data URL
-        const qrDataUrl = await QRCode.toDataURL(qrText, {
-          width: 800,
-          margin: 2,
-          errorCorrectionLevel: 'H',
-          type: 'image/png'
-        });
-
-        // Convert data URL to buffer
-        const base64Data = qrDataUrl.split(',')[1];
-        const qrBuffer = Uint8Array.from(atob(base64Data), c => c.charCodeAt(0));
+        // Generate QR code using API
+        const qrApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=800x800&data=${encodeURIComponent(qrText)}&format=png`;
+        
+        console.log(`Fetching QR from API: ${qrApiUrl}`);
+        const qrResponse = await fetch(qrApiUrl);
+        
+        if (!qrResponse.ok) {
+          throw new Error(`QR API returned ${qrResponse.status}`);
+        }
+        
+        const qrBuffer = new Uint8Array(await qrResponse.arrayBuffer());
 
         // Upload to storage
         const { data: uploadData, error: uploadError } = await supabase.storage
