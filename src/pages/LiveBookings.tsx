@@ -434,17 +434,6 @@ const LiveBookings = () => {
               ticketHolders.map((holder) => (
                 <Card key={holder.id} className="p-4 hover:shadow-xl transition-shadow shadow-md">
                   <div className="flex flex-col gap-3">
-                    {/* QR Code - Top */}
-                    <div className="text-center py-2 bg-primary/5 rounded-lg border border-primary/20">
-                      {holder.qr_code && (
-                        <img 
-                          src={holder.qr_code} 
-                          alt="QR Code" 
-                          className="mx-auto w-32 h-32 object-contain"
-                        />
-                      )}
-                    </div>
-
                     {/* Name and Flag */}
                     <div className="flex items-center justify-between gap-2">
                       <div className="flex items-center gap-2">
@@ -518,7 +507,6 @@ const LiveBookings = () => {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="text-right font-lusail">رمز QR</TableHead>
                     <TableHead className="text-right font-lusail">الاسم</TableHead>
                     <TableHead className="text-right font-lusail">الهاتف</TableHead>
                     <TableHead className="text-right font-lusail">الجنسية</TableHead>
@@ -531,14 +519,13 @@ const LiveBookings = () => {
                 <TableBody>
                   {ticketHolders.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={8} className="text-center py-12">
+                      <TableCell colSpan={7} className="text-center py-12">
                         <p className="text-muted-foreground font-lusail">{t("noBookingsForDate")}</p>
                       </TableCell>
                     </TableRow>
                   ) : (
                     ticketHolders.map((holder) => (
                       <TableRow key={holder.id} className={holder.is_present ? 'bg-green-50 dark:bg-green-950/20' : ''}>
-                        <TableCell className="font-mono font-semibold text-primary">{holder.qr_code}</TableCell>
                         <TableCell className="font-semibold">{holder.name}</TableCell>
                         <TableCell className="font-mono">{holder.phone}</TableCell>
                         <TableCell>
