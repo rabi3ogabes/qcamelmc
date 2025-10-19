@@ -1206,8 +1206,30 @@ export const CustomersTab = () => {
                                           {holder.ticket_type.toUpperCase()}
                                         </Badge>
                                       </div>
-                                      <div className="text-xs text-muted-foreground">
-                                        {holder.country_code || '+974'} {holder.phone} • {holder.nationality}
+                                      <div className="text-xs text-muted-foreground space-y-1">
+                                        <div>{holder.country_code || '+974'} {holder.phone} • {holder.nationality}</div>
+                                        {holder.id_number && (
+                                          <div className="flex items-center gap-1">
+                                            <CreditCard className="w-3 h-3" />
+                                            <span>{holder.id_number}</span>
+                                          </div>
+                                        )}
+                                        <div className="flex items-center gap-2 mt-2">
+                                          <span className="font-medium">حالة التأكيد:</span>
+                                          {order.payment_status === "confirmed" ? (
+                                            <Badge variant="default" className="text-xs bg-green-600">
+                                              ✓ مؤكد
+                                            </Badge>
+                                          ) : order.payment_status === "pending" ? (
+                                            <Badge variant="secondary" className="text-xs">
+                                              ⏳ قيد الانتظار
+                                            </Badge>
+                                          ) : (
+                                            <Badge variant="destructive" className="text-xs">
+                                              ✗ ملغي
+                                            </Badge>
+                                          )}
+                                        </div>
                                       </div>
                                       {holder.qr_code && (
                                         <div className="text-xs text-muted-foreground mt-1 font-mono">
@@ -1239,16 +1261,6 @@ export const CustomersTab = () => {
                                           <Send className="w-4 h-4" />
                                         )}
                                       </Button>
-                                      {holder.qr_code && qrCodes[holder.qr_code] && (
-                                        <Button
-                                          size="sm"
-                                          variant="outline"
-                                          onClick={() => setViewingQrCode({ code: qrCodes[holder.qr_code], name: holder.name, reference: holder.qr_code })}
-                                          className="flex-shrink-0"
-                                        >
-                                          <QrCode className="w-4 h-4" />
-                                        </Button>
-                                      )}
                                       {holder.is_present && (
                                         <Button
                                           size="sm"
