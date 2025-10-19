@@ -436,7 +436,13 @@ const LiveBookings = () => {
                   <div className="flex flex-col gap-3">
                     {/* QR Code - Top */}
                     <div className="text-center py-2 bg-primary/5 rounded-lg border border-primary/20">
-                      <p className="font-mono text-sm font-bold text-primary">{holder.qr_code}</p>
+                      {holder.qr_code && (
+                        <img 
+                          src={holder.qr_code} 
+                          alt="QR Code" 
+                          className="mx-auto w-32 h-32 object-contain"
+                        />
+                      )}
                     </div>
 
                     {/* Name and Flag */}
