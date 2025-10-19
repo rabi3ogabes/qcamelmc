@@ -34,18 +34,43 @@ export const EditEventDialog = ({ event, open, onOpenChange, onEventUpdated }: E
     event_date: "",
     location: "",
     image_url: "",
+    vip_quantity: "",
+    vip_price: "",
+    normal_quantity: "",
+    normal_price: "",
+    parking_quantity: "",
+    parking_price: "",
   });
 
   useEffect(() => {
-    if (event) {
-      setFormData({
-        title: event.title,
-        description: event.description || "",
-        event_date: event.event_date.slice(0, 16), // Format for datetime-local
-        location: event.location,
-        image_url: event.image_url || "",
-      });
-    }
+    const fetchTickets = async () => {
+      if (event) {
+        const { data: tickets } = await supabase
+          .from("tickets")
+          .select("*")
+          .eq("event_id", event.id);
+
+        const vipTicket = tickets?.find(t => t.type === "vip");
+        const normalTicket = tickets?.find(t => t.type === "normal");
+        const parkingTicket = tickets?.find(t => t.type === "parking");
+
+        setFormData({
+          title: event.title,
+          description: event.description || "",
+          event_date: event.event_date.slice(0, 16),
+          location: event.location,
+          image_url: event.image_url || "",
+          vip_quantity: vipTicket?.available_quantity.toString() || "",
+          vip_price: vipTicket?.price.toString() || "",
+          normal_quantity: normalTicket?.available_quantity.toString() || "",
+          normal_price: normalTicket?.price.toString() || "",
+          parking_quantity: parkingTicket?.available_quantity.toString() || "",
+          parking_price: parkingTicket?.price.toString() || "",
+        });
+      }
+    };
+    
+    fetchTickets();
   }, [event]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -67,6 +92,52 @@ export const EditEventDialog = ({ event, open, onOpenChange, onEventUpdated }: E
         .eq("id", event.id);
 
       if (error) throw error;
+
+      // Get existing tickets
+      const { data: existingTickets } = await supabase
+        .from("tickets")
+        .select("*")
+        .eq("event_id", event.id);
+
+      const ticketTypes: Array<{ type: "vip" | "normal" | "parking"; quantity: string; price: string }> = [
+        { type: "vip", quantity: formData.vip_quantity, price: formData.vip_price },
+        { type: "normal", quantity: formData.normal_quantity, price: formData.normal_price },
+        { type: "parking", quantity: formData.parking_quantity, price: formData.parking_price },
+      ];
+
+      for (const ticket of ticketTypes) {
+        const existing = existingTickets?.find(t => t.type === ticket.type);
+        
+        if (ticket.quantity && ticket.price) {
+          if (existing) {
+            // Update existing ticket
+            await supabase
+              .from("tickets")
+              .update({
+                available_quantity: parseInt(ticket.quantity),
+                price: parseFloat(ticket.price),
+              })
+              .eq("id", existing.id);
+          } else {
+            // Insert new ticket
+            await supabase
+              .from("tickets")
+              .insert({
+                event_id: event.id,
+                type: ticket.type,
+                available_quantity: parseInt(ticket.quantity),
+                price: parseFloat(ticket.price),
+                sold_quantity: 0,
+              });
+          }
+        } else if (existing) {
+          // Delete ticket if both quantity and price are empty
+          await supabase
+            .from("tickets")
+            .delete()
+            .eq("id", existing.id);
+        }
+      }
 
       toast.success(t("savedSuccessfully"));
       onOpenChange(false);
@@ -144,6 +215,94 @@ export const EditEventDialog = ({ event, open, onOpenChange, onEventUpdated }: E
                 placeholder="https://example.com/image.jpg"
                 className="font-lusail"
               />
+            </div>
+
+            <div className="space-y-3 pt-4 border-t">
+              <Label className="font-lusail text-lg font-bold">أنواع التذاكر والأسعار</Label>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="vip_quantity" className="font-lusail">عدد تذاكر VIP</Label>
+                  <Input
+                    id="vip_quantity"
+                    type="number"
+                    min="0"
+                    value={formData.vip_quantity}
+                    onChange={(e) => setFormData({ ...formData, vip_quantity: e.target.value })}
+                    placeholder="100"
+                    className="font-lusail"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="vip_price" className="font-lusail">سعر VIP (ريال)</Label>
+                  <Input
+                    id="vip_price"
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={formData.vip_price}
+                    onChange={(e) => setFormData({ ...formData, vip_price: e.target.value })}
+                    placeholder="200"
+                    className="font-lusail"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="normal_quantity" className="font-lusail">عدد تذاكر عادية</Label>
+                  <Input
+                    id="normal_quantity"
+                    type="number"
+                    min="0"
+                    value={formData.normal_quantity}
+                    onChange={(e) => setFormData({ ...formData, normal_quantity: e.target.value })}
+                    placeholder="500"
+                    className="font-lusail"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="normal_price" className="font-lusail">سعر عادية (ريال)</Label>
+                  <Input
+                    id="normal_price"
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={formData.normal_price}
+                    onChange={(e) => setFormData({ ...formData, normal_price: e.target.value })}
+                    placeholder="150"
+                    className="font-lusail"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="parking_quantity" className="font-lusail">عدد تذاكر مواقف</Label>
+                  <Input
+                    id="parking_quantity"
+                    type="number"
+                    min="0"
+                    value={formData.parking_quantity}
+                    onChange={(e) => setFormData({ ...formData, parking_quantity: e.target.value })}
+                    placeholder="200"
+                    className="font-lusail"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="parking_price" className="font-lusail">سعر مواقف (ريال)</Label>
+                  <Input
+                    id="parking_price"
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={formData.parking_price}
+                    onChange={(e) => setFormData({ ...formData, parking_price: e.target.value })}
+                    placeholder="1"
+                    className="font-lusail"
+                  />
+                </div>
+              </div>
             </div>
           </div>
 

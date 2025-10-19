@@ -23,6 +23,12 @@ export const CreateEventDialog = ({ onEventCreated }: CreateEventDialogProps) =>
     event_date: "",
     location: "",
     image_url: "",
+    vip_quantity: "",
+    vip_price: "",
+    normal_quantity: "",
+    normal_price: "",
+    parking_quantity: "",
+    parking_price: "",
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -45,6 +51,53 @@ export const CreateEventDialog = ({ onEventCreated }: CreateEventDialogProps) =>
 
       if (eventError) throw eventError;
 
+      // Create tickets for the event
+      const ticketsToInsert: Array<{
+        event_id: string;
+        type: "vip" | "normal" | "parking";
+        price: number;
+        available_quantity: number;
+        sold_quantity: number;
+      }> = [];
+      
+      if (formData.vip_quantity && formData.vip_price) {
+        ticketsToInsert.push({
+          event_id: event.id,
+          type: "vip",
+          price: parseFloat(formData.vip_price),
+          available_quantity: parseInt(formData.vip_quantity),
+          sold_quantity: 0,
+        });
+      }
+      
+      if (formData.normal_quantity && formData.normal_price) {
+        ticketsToInsert.push({
+          event_id: event.id,
+          type: "normal",
+          price: parseFloat(formData.normal_price),
+          available_quantity: parseInt(formData.normal_quantity),
+          sold_quantity: 0,
+        });
+      }
+      
+      if (formData.parking_quantity && formData.parking_price) {
+        ticketsToInsert.push({
+          event_id: event.id,
+          type: "parking",
+          price: parseFloat(formData.parking_price),
+          available_quantity: parseInt(formData.parking_quantity),
+          sold_quantity: 0,
+        });
+      }
+
+      if (ticketsToInsert.length > 0) {
+        const { error: ticketsError } = await supabase
+          .from("tickets")
+          .insert(ticketsToInsert);
+
+        if (ticketsError) throw ticketsError;
+      }
+
       toast.success(t("savedSuccessfully"));
       setOpen(false);
       setFormData({
@@ -53,6 +106,12 @@ export const CreateEventDialog = ({ onEventCreated }: CreateEventDialogProps) =>
         event_date: "",
         location: "",
         image_url: "",
+        vip_quantity: "",
+        vip_price: "",
+        normal_quantity: "",
+        normal_price: "",
+        parking_quantity: "",
+        parking_price: "",
       });
       onEventCreated();
     } catch (error) {
@@ -134,6 +193,94 @@ export const CreateEventDialog = ({ onEventCreated }: CreateEventDialogProps) =>
                 placeholder="https://example.com/image.jpg"
                 className="font-lusail"
               />
+            </div>
+
+            <div className="space-y-3 pt-4 border-t">
+              <Label className="font-lusail text-lg font-bold">أنواع التذاكر والأسعار</Label>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="vip_quantity" className="font-lusail">عدد تذاكر VIP</Label>
+                  <Input
+                    id="vip_quantity"
+                    type="number"
+                    min="0"
+                    value={formData.vip_quantity}
+                    onChange={(e) => setFormData({ ...formData, vip_quantity: e.target.value })}
+                    placeholder="100"
+                    className="font-lusail"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="vip_price" className="font-lusail">سعر VIP (ريال)</Label>
+                  <Input
+                    id="vip_price"
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={formData.vip_price}
+                    onChange={(e) => setFormData({ ...formData, vip_price: e.target.value })}
+                    placeholder="200"
+                    className="font-lusail"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="normal_quantity" className="font-lusail">عدد تذاكر عادية</Label>
+                  <Input
+                    id="normal_quantity"
+                    type="number"
+                    min="0"
+                    value={formData.normal_quantity}
+                    onChange={(e) => setFormData({ ...formData, normal_quantity: e.target.value })}
+                    placeholder="500"
+                    className="font-lusail"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="normal_price" className="font-lusail">سعر عادية (ريال)</Label>
+                  <Input
+                    id="normal_price"
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={formData.normal_price}
+                    onChange={(e) => setFormData({ ...formData, normal_price: e.target.value })}
+                    placeholder="150"
+                    className="font-lusail"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="parking_quantity" className="font-lusail">عدد تذاكر مواقف</Label>
+                  <Input
+                    id="parking_quantity"
+                    type="number"
+                    min="0"
+                    value={formData.parking_quantity}
+                    onChange={(e) => setFormData({ ...formData, parking_quantity: e.target.value })}
+                    placeholder="200"
+                    className="font-lusail"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="parking_price" className="font-lusail">سعر مواقف (ريال)</Label>
+                  <Input
+                    id="parking_price"
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={formData.parking_price}
+                    onChange={(e) => setFormData({ ...formData, parking_price: e.target.value })}
+                    placeholder="1"
+                    className="font-lusail"
+                  />
+                </div>
+              </div>
             </div>
           </div>
 
