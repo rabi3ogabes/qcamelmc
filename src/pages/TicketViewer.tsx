@@ -594,9 +594,8 @@ const TicketViewer = () => {
           </button>
           <div className="flex items-center gap-4">
             <Button
-              variant="ghost"
               onClick={() => navigate("/admin/dashboard")}
-              className="gap-2"
+              className="gap-2 bg-yellow-500 hover:bg-yellow-600 text-white"
             >
               <ArrowLeft className="w-4 h-4" />
               رجوع
