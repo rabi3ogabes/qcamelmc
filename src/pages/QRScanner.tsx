@@ -504,22 +504,24 @@ const QRScanner = () => {
             </h1>
           </div>
           
-          {/* Mode Toggle */}
-          <div className="flex gap-2">
+          {/* Mode Toggle Buttons */}
+          <div className="flex justify-center gap-4">
             <Button
-              variant={scanMode === 'confirm' ? 'default' : 'outline'}
+              variant={scanMode === 'confirm' ? 'default' : 'secondary'}
               onClick={() => setScanMode('confirm')}
-              className="flex-1"
+              size="lg"
+              className="min-w-[180px]"
             >
-              <CheckCircle2 className="w-4 h-4 ml-2" />
+              <CheckCircle2 className="w-5 h-5 ml-2" />
               تأكيد الحضور
             </Button>
             <Button
-              variant={scanMode === 'unconfirm' ? 'default' : 'outline'}
+              variant={scanMode === 'unconfirm' ? 'destructive' : 'secondary'}
               onClick={() => setScanMode('unconfirm')}
-              className="flex-1"
+              size="lg"
+              className="min-w-[180px]"
             >
-              <XCircle className="w-4 h-4 ml-2" />
+              <XCircle className="w-5 h-5 ml-2" />
               إلغاء التأكيد
             </Button>
           </div>
