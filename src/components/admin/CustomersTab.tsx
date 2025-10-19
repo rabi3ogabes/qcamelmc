@@ -32,6 +32,7 @@ interface Customer {
     qr_code?: string;
     event_location?: string;
     event_date?: string;
+    event_title?: string;
     ticket_holders: Array<{
       id: string;
       name: string;
@@ -217,6 +218,7 @@ export const CustomersTab = () => {
             created_at,
             qr_code,
             events (
+              title,
               location,
               event_date
             ),
@@ -244,6 +246,7 @@ export const CustomersTab = () => {
         ...customer,
         orders: customer.orders.map((order: any) => ({
           ...order,
+          event_title: order.events?.title || "",
           event_location: order.events?.location || "",
           event_date: order.events?.event_date || "",
         }))
@@ -744,7 +747,7 @@ export const CustomersTab = () => {
       // Prepare ticket data
       const ticketData = {
         booking_reference: orderRef,
-        event_title: selectedCustomer?.orders[0] ? "Event" : "",
+        event_title: order.event_title || "",
         event_location: order.event_location || "",
         event_date: order.event_date || "",
         ticket_count: 1,
