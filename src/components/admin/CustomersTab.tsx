@@ -30,6 +30,8 @@ interface Customer {
     payment_status: string;
     created_at: string;
     qr_code?: string;
+    event_location?: string;
+    event_date?: string;
     ticket_holders: Array<{
       id: string;
       name: string;
@@ -214,6 +216,10 @@ export const CustomersTab = () => {
             payment_status,
             created_at,
             qr_code,
+            events (
+              location,
+              event_date
+            ),
             ticket_holders (
               id,
               name,
@@ -231,10 +237,17 @@ export const CustomersTab = () => {
 
       if (error) throw error;
 
-      // Filter out customers with no orders
+      // Filter out customers with no orders and flatten event data
       const customersWithOrders = (data || []).filter(
         (customer) => customer.orders && customer.orders.length > 0
-      );
+      ).map(customer => ({
+        ...customer,
+        orders: customer.orders.map((order: any) => ({
+          ...order,
+          event_location: order.events?.location || "",
+          event_date: order.events?.event_date || "",
+        }))
+      }));
 
       setCustomers(customersWithOrders);
     } catch (error) {
@@ -732,6 +745,8 @@ export const CustomersTab = () => {
       const ticketData = {
         booking_reference: orderRef,
         event_title: selectedCustomer?.orders[0] ? "Event" : "",
+        event_location: order.event_location || "",
+        event_date: order.event_date || "",
         ticket_count: 1,
         holder: {
           name: holder.name,
