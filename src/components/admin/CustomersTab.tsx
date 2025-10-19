@@ -775,7 +775,8 @@ export const CustomersTab = () => {
 
       if (data && data.error) {
         console.error("Webhook response error:", data);
-        if (data.details && data.details.includes('not registered')) {
+        const detailsMessage = typeof data.details === 'object' ? data.details.message : data.details;
+        if (detailsMessage && detailsMessage.includes('not registered')) {
           throw new Error("الويب هوك غير مفعل في n8n. يرجى تفعيل الـ workflow أولاً");
         }
         throw new Error(data.error || "فشل إرسال البيانات إلى الويب هوك");
