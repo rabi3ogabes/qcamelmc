@@ -1231,11 +1231,6 @@ export const CustomersTab = () => {
                                           )}
                                         </div>
                                       </div>
-                                      {holder.qr_code && (
-                                        <div className="text-xs text-muted-foreground mt-1 font-mono">
-                                          {holder.qr_code}
-                                        </div>
-                                      )}
                                     </div>
                                     <div className="flex flex-col gap-2">
                                       <Button
