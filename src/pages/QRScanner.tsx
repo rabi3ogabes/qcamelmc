@@ -50,6 +50,7 @@ const QRScanner = () => {
   const [cameraStarting, setCameraStarting] = useState(false);
   const [availableTickets, setAvailableTickets] = useState<TicketHolder[]>([]);
   const [selectedTicketId, setSelectedTicketId] = useState<string | null>(null);
+  const [scanMode, setScanMode] = useState<'confirm' | 'unconfirm'>('confirm');
   const scannerRef = useRef<Html5Qrcode | null>(null);
   const isScanning = useRef(false);
 
@@ -378,6 +379,74 @@ const QRScanner = () => {
     }
   };
 
+  const handleUnconfirmPresence = async () => {
+    if (!ticketInfo) return;
+    
+    // If we have multiple tickets available, user must select one first
+    if (availableTickets.length > 0 && !selectedTicketId) {
+      toast.error('الرجاء اختيار التذكرة المراد إلغاء تأكيدها');
+      return;
+    }
+    
+    setProcessing(true);
+    try {
+      // Use the selected ticket's QR code, or the ticket info's QR code if it's a specific ticket
+      const qrCode = selectedTicketId 
+        ? availableTickets.find(t => t.id === selectedTicketId)?.qr_code
+        : ticketInfo.ticket_holder_qr_code;
+      
+      if (!qrCode) {
+        toast.error('خطأ: لم يتم العثور على رمز QR');
+        return;
+      }
+
+      // Update the ticket_holder to mark as not present
+      const { error } = await supabase
+        .from('ticket_holders')
+        .update({ 
+          is_present: false,
+          confirmed_at: null,
+          confirmed_by: null
+        })
+        .eq('qr_code', qrCode);
+
+      if (error) throw error;
+
+      // Update the ticket info to show it's been unconfirmed
+      if (availableTickets.length > 0 && selectedTicketId) {
+        const unconfirmedTicket = availableTickets.find(t => t.id === selectedTicketId);
+        if (unconfirmedTicket) {
+          setTicketInfo({
+            ...ticketInfo,
+            ticket_holder_name: unconfirmedTicket.name,
+            ticket_holder_phone: unconfirmedTicket.phone,
+            ticket_holder_nationality: unconfirmedTicket.nationality,
+            ticket_holder_id_number: unconfirmedTicket.id_number,
+            ticket_holder_qr_code: unconfirmedTicket.qr_code,
+            is_present: false,
+            confirmed_at: undefined,
+          });
+        }
+      } else {
+        setTicketInfo({
+          ...ticketInfo,
+          is_present: false,
+          confirmed_at: undefined,
+        });
+      }
+      
+      setAvailableTickets([]);
+      setSelectedTicketId(null);
+      setScanResult('success');
+      toast.success('✅ تم إلغاء تأكيد الحضور بنجاح');
+    } catch (err: any) {
+      console.error('Unconfirmation error:', err);
+      toast.error(err.message || 'حدث خطأ أثناء إلغاء تأكيد الحضور');
+    } finally {
+      setProcessing(false);
+    }
+  };
+
   const onScanSuccess = async (decodedText: string) => {
     if (processing) return;
     console.log("QR Code scanned:", decodedText);
@@ -420,18 +489,40 @@ const QRScanner = () => {
     <div className="min-h-screen bg-background py-8 px-4 font-lusail" dir="rtl">
       <div className="max-w-2xl mx-auto">
         {/* Header */}
-        <div className="flex items-center gap-4 mb-8">
-          <Button
-            variant="ghost"
-            onClick={() => navigate("/admin/dashboard")}
-            className="gap-2"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            {t('back') || 'رجوع'}
-          </Button>
-          <h1 className="text-3xl font-bold">
-            {t('scanTicket') || 'مسح التذكرة'}
-          </h1>
+        <div className="flex flex-col gap-4 mb-8">
+          <div className="flex items-center gap-4">
+            <Button
+              variant="ghost"
+              onClick={() => navigate("/admin/dashboard")}
+              className="gap-2"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              {t('back') || 'رجوع'}
+            </Button>
+            <h1 className="text-3xl font-bold">
+              {t('scanTicket') || 'مسح التذكرة'}
+            </h1>
+          </div>
+          
+          {/* Mode Toggle */}
+          <div className="flex gap-2">
+            <Button
+              variant={scanMode === 'confirm' ? 'default' : 'outline'}
+              onClick={() => setScanMode('confirm')}
+              className="flex-1"
+            >
+              <CheckCircle2 className="w-4 h-4 ml-2" />
+              تأكيد الحضور
+            </Button>
+            <Button
+              variant={scanMode === 'unconfirm' ? 'default' : 'outline'}
+              onClick={() => setScanMode('unconfirm')}
+              className="flex-1"
+            >
+              <XCircle className="w-4 h-4 ml-2" />
+              إلغاء التأكيد
+            </Button>
+          </div>
         </div>
 
         {/* Scanner */}
@@ -672,8 +763,8 @@ const QRScanner = () => {
                   <span>{ticketInfo.customer_name}</span>
                 </div>
                 
-                {/* Confirm Presence Button */}
-                {!ticketInfo.is_present && ticketInfo.payment_status === 'confirmed' && (
+                 {/* Confirm Presence Button */}
+                {scanMode === 'confirm' && !ticketInfo.is_present && ticketInfo.payment_status === 'confirmed' && (
                   <div className="pt-4">
                     <Button 
                       onClick={handleConfirmPresence}
@@ -690,6 +781,30 @@ const QRScanner = () => {
                         <>
                           <CheckCircle2 className="w-5 h-5 ml-2" />
                           ✓ تأكيد الحضور
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                )}
+                
+                {/* Unconfirm Presence Button */}
+                {scanMode === 'unconfirm' && ticketInfo.is_present && (
+                  <div className="pt-4">
+                    <Button 
+                      onClick={handleUnconfirmPresence}
+                      disabled={processing}
+                      className="w-full bg-red-600 hover:bg-red-700 text-white"
+                      size="lg"
+                    >
+                      {processing ? (
+                        <>
+                          <Loader2 className="w-5 h-5 ml-2 animate-spin" />
+                          جاري إلغاء التأكيد...
+                        </>
+                      ) : (
+                        <>
+                          <XCircle className="w-5 h-5 ml-2" />
+                          ✗ إلغاء تأكيد الحضور
                         </>
                       )}
                     </Button>
