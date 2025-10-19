@@ -218,11 +218,25 @@ export const OrdersTab = ({
       
       console.log('Order data fetched successfully');
       
-      // Update the order status
+      // Get current admin user ID
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      // Update the order status with confirmed_at and confirmed_by
       console.log('Updating order status...');
+      const updateData: any = { payment_status: newStatus };
+      
+      if (newStatus === "confirmed") {
+        updateData.confirmed_at = new Date().toISOString();
+        updateData.confirmed_by = user?.id || null;
+      } else {
+        // Clear confirmation fields when changing to pending
+        updateData.confirmed_at = null;
+        updateData.confirmed_by = null;
+      }
+      
       const { error } = await supabase
         .from("orders")
-        .update({ payment_status: newStatus })
+        .update(updateData)
         .eq("id", orderId);
       
       if (error) {
@@ -230,7 +244,7 @@ export const OrdersTab = ({
         throw error;
       }
       
-      console.log('Order status updated successfully');
+      console.log('Order status updated successfully with confirmed_at and confirmed_by');
       
       // Send to webhook with updated status
       if (newStatus === "confirmed") {
