@@ -425,7 +425,7 @@ const LiveBookings = () => {
         {/* Ticket Holders Display */}
         {viewType === "cards" ? (
           /* Cards View - Individual Ticket Holders */
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-3">
             {ticketHolders.length === 0 ? (
               <Card className="col-span-full p-12">
                 <p className="text-center text-muted-foreground font-lusail">{t("noBookingsForDate")}</p>
