@@ -774,7 +774,13 @@ const TicketViewer = () => {
         <Dialog open={!!selectedQR} onOpenChange={() => setSelectedQR(null)}>
           <DialogContent className="max-w-fit">
             <DialogHeader>
-              <DialogTitle className="font-lusail text-2xl text-center">رمز QR</DialogTitle>
+              <DialogTitle className="font-lusail text-2xl text-center">
+                {selectedQR && (
+                  selectedQR.holder.qr_code?.includes('http') 
+                    ? selectedQR.holder.qr_code.split('/').pop()?.replace('.png', '').replace('.jpg', '')
+                    : selectedQR.holder.qr_code
+                )}
+              </DialogTitle>
             </DialogHeader>
             {selectedQR && (
               <div className="flex flex-col items-center justify-center p-4 gap-4">
