@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { ArrowLeft, CheckCircle2, XCircle, Loader2, Search, Camera, AlertCircle } from "lucide-react";
+import { ArrowLeft, CheckCircle2, XCircle, Loader2, Search, Camera, AlertCircle, LogOut } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 
@@ -51,15 +51,38 @@ const QRScanner = () => {
   const [availableTickets, setAvailableTickets] = useState<TicketHolder[]>([]);
   const [selectedTicketId, setSelectedTicketId] = useState<string | null>(null);
   const [scanMode, setScanMode] = useState<'confirm' | 'unconfirm'>('confirm');
+  const [logoUrl, setLogoUrl] = useState<string | null>(null);
+  const [headerBgColor, setHeaderBgColor] = useState<string>("hsl(var(--card) / 0.5)");
   const scannerRef = useRef<Html5Qrcode | null>(null);
   const isScanning = useRef(false);
 
   useEffect(() => {
     checkAuth();
+    fetchSettings();
     return () => {
       stopScanner();
     };
   }, []);
+
+  const fetchSettings = async () => {
+    const { data, error } = await supabase
+      .from("settings")
+      .select("logo_url, header_bg_color")
+      .maybeSingle();
+
+    if (error) {
+      console.error("Error fetching settings:", error);
+      return;
+    }
+
+    if (data?.logo_url) {
+      setLogoUrl(data.logo_url);
+    }
+    
+    if (data?.header_bg_color) {
+      setHeaderBgColor(data.header_bg_color);
+    }
+  };
 
   const stopScanner = async () => {
     if (scannerRef.current && isScanning.current) {
@@ -78,6 +101,11 @@ const QRScanner = () => {
     if (!session) {
       navigate("/admin/login");
     }
+  };
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    navigate("/admin/login");
   };
 
   const startScanner = async () => {
@@ -486,51 +514,51 @@ const QRScanner = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background py-8 px-4 font-lusail" dir="rtl">
-      <div className="max-w-2xl mx-auto">
-        {/* Header */}
-        <div className="flex flex-col gap-4 mb-8">
-          <div className="flex items-center gap-4">
-            <Button
-              variant="ghost"
-              onClick={() => navigate("/admin/dashboard")}
-              className="gap-2"
-            >
-              <ArrowLeft className="w-4 h-4" />
-              {t('back') || 'رجوع'}
-            </Button>
-            <h1 className="text-3xl font-bold">
-              {t('scanTicket') || 'مسح التذكرة'}
-            </h1>
-          </div>
-          
-          {/* Mode Toggle Buttons */}
-          <div className="flex justify-center gap-4">
-            <Button
-              variant={scanMode === 'confirm' ? 'default' : 'secondary'}
-              onClick={() => setScanMode('confirm')}
-              size="lg"
-              className="min-w-[180px]"
-            >
-              <CheckCircle2 className="w-5 h-5 ml-2" />
-              تأكيد الحضور
-            </Button>
-            <Button
-              variant={scanMode === 'unconfirm' ? 'destructive' : 'secondary'}
-              onClick={() => setScanMode('unconfirm')}
-              size="lg"
-              className="min-w-[180px]"
-            >
-              <XCircle className="w-5 h-5 ml-2" />
-              إلغاء التأكيد
-            </Button>
-          </div>
+    <div className="min-h-screen bg-background font-lusail" dir="rtl">
+      {/* Header */}
+      <header className="border-b backdrop-blur-sm sticky top-0 z-10" style={{ backgroundColor: headerBgColor }}>
+        <div className="container mx-auto px-4 py-3 sm:py-4 flex justify-between items-center">
+          <button onClick={() => navigate("/admin/dashboard")} className="focus:outline-none hover:opacity-80 transition-opacity">
+            {logoUrl ? (
+              <img src={logoUrl} alt="Logo" className="h-10 sm:h-12 object-contain" />
+            ) : (
+              <h1 className="text-xl sm:text-2xl font-bold">{t('scanTicket') || 'مسح التذكرة'}</h1>
+            )}
+          </button>
+          <Button variant="outline" onClick={handleLogout} size="sm" className="sm:size-default">
+            <LogOut className="w-4 h-4 ml-2" />
+            <span className="hidden sm:inline">{t("logout")}</span>
+          </Button>
+        </div>
+      </header>
+
+      <div className="max-w-4xl mx-auto py-4 sm:py-6 lg:py-8 px-4">
+        {/* Mode Toggle Buttons */}
+        <div className="flex justify-center gap-2 sm:gap-4 mb-6">
+          <Button
+            variant={scanMode === 'confirm' ? 'default' : 'secondary'}
+            onClick={() => setScanMode('confirm')}
+            size="sm"
+            className="flex-1 sm:flex-none sm:min-w-[180px]"
+          >
+            <CheckCircle2 className="w-4 h-4 sm:w-5 sm:h-5 ml-2" />
+            <span className="text-sm sm:text-base">تأكيد الحضور</span>
+          </Button>
+          <Button
+            variant={scanMode === 'unconfirm' ? 'destructive' : 'secondary'}
+            onClick={() => setScanMode('unconfirm')}
+            size="sm"
+            className="flex-1 sm:flex-none sm:min-w-[180px]"
+          >
+            <XCircle className="w-4 h-4 sm:w-5 sm:h-5 ml-2" />
+            <span className="text-sm sm:text-base">إلغاء التأكيد</span>
+          </Button>
         </div>
 
         {/* Scanner */}
-        <Card className="mb-6">
+        <Card className="mb-4 sm:mb-6">
           <CardHeader>
-            <CardTitle className="text-center">{t('scanTicket') || 'مسح التذكرة'}</CardTitle>
+            <CardTitle className="text-center text-lg sm:text-xl">{t('scanTicket') || 'مسح التذكرة'}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             {/* Camera Controls */}
@@ -579,6 +607,7 @@ const QRScanner = () => {
                 variant={showManualSearch ? "default" : "outline"}
                 onClick={() => setShowManualSearch(!showManualSearch)}
                 size="sm"
+                className="text-xs sm:text-sm"
               >
                 <Search className="w-4 h-4 ml-2" />
                 {showManualSearch ? "إخفاء البحث اليدوي" : "بحث يدوي"}
@@ -615,27 +644,13 @@ const QRScanner = () => {
             {/* QR Scanner Container */}
             <div 
               id="qr-reader" 
-              className="w-full min-h-[300px] rounded-lg overflow-hidden bg-muted/30"
+              className="w-full min-h-[250px] sm:min-h-[300px] rounded-lg overflow-hidden bg-muted/30"
             ></div>
             
             {processing && (
-              <div className="flex items-center justify-center gap-2 mt-4">
-                <Loader2 className="w-6 h-6 animate-spin" />
+              <div className="flex items-center justify-center gap-2 mt-4 text-sm sm:text-base">
+                <Loader2 className="w-5 h-5 sm:w-6 sm:h-6 animate-spin" />
                 <span>{t('processing') || 'جاري المعالجة...'}</span>
-              </div>
-            )}
-
-            {!scanning && !ticketInfo && !cameraStarting && (
-              <div className="text-center space-y-2 text-sm text-muted-foreground">
-                <p>اضغط على زر "تشغيل الكاميرا" للبدء</p>
-                <p className="text-xs">أو استخدم البحث اليدوي</p>
-              </div>
-            )}
-
-            {scanning && (
-              <div className="text-center space-y-2 text-sm text-muted-foreground">
-                <p>وجه الكاميرا نحو QR Code للمسح التلقائي</p>
-                <p className="text-xs">يعمل على الجوال والكمبيوتر 📱💻</p>
               </div>
             )}
           </CardContent>
@@ -643,7 +658,7 @@ const QRScanner = () => {
 
         {/* Result Display */}
         {ticketInfo && (
-          <Card className={`mb-6 border-2 ${
+          <Card className={`mb-4 sm:mb-6 border-2 ${
             scanResult === 'success' && ticketInfo.payment_status === 'confirmed'
               ? 'border-green-500 bg-green-50 dark:bg-green-950/20' 
               : scanResult === 'success' && ticketInfo.payment_status !== 'confirmed'
@@ -651,7 +666,7 @@ const QRScanner = () => {
               : 'border-red-500 bg-red-50 dark:bg-red-950/20'
           }`}>
             <CardHeader>
-              <CardTitle className={`flex items-center justify-center gap-3 text-2xl ${
+              <CardTitle className={`flex items-center justify-center gap-2 sm:gap-3 text-lg sm:text-2xl ${
                 scanResult === 'success' && ticketInfo.payment_status === 'confirmed'
                   ? 'text-green-700 dark:text-green-400' 
                   : scanResult === 'success' && ticketInfo.payment_status !== 'confirmed'
@@ -660,18 +675,18 @@ const QRScanner = () => {
               }`}>
                 {scanResult === 'success' && ticketInfo.payment_status === 'confirmed' ? (
                   <>
-                    <CheckCircle2 className="w-8 h-8" />
-                    ✅ تم التحقق من التذكرة
+                    <CheckCircle2 className="w-6 h-6 sm:w-8 sm:h-8" />
+                    <span className="text-base sm:text-2xl">✅ تم التحقق من التذكرة</span>
                   </>
                 ) : scanResult === 'success' && ticketInfo.payment_status !== 'confirmed' ? (
                   <>
-                    <CheckCircle2 className="w-8 h-8" />
-                    ⚠️ معلومات التذكرة (الدفع معلق)
+                    <CheckCircle2 className="w-6 h-6 sm:w-8 sm:h-8" />
+                    <span className="text-base sm:text-2xl">⚠️ معلومات التذكرة (الدفع معلق)</span>
                   </>
                 ) : (
                   <>
-                    <XCircle className="w-8 h-8" />
-                    ❌ تذكرة غير صالحة
+                    <XCircle className="w-6 h-6 sm:w-8 sm:h-8" />
+                    <span className="text-base sm:text-2xl">❌ تذكرة غير صالحة</span>
                   </>
                 )}
               </CardTitle>
@@ -679,8 +694,8 @@ const QRScanner = () => {
             <CardContent>
               {/* Ticket Selection for Booking Reference */}
               {availableTickets.length > 0 && (
-                <div className="mb-6 p-4 bg-blue-50 dark:bg-blue-950/20 rounded-lg border-2 border-blue-300">
-                  <h3 className="font-bold text-lg mb-3 text-blue-900 dark:text-blue-100">
+                <div className="mb-4 sm:mb-6 p-3 sm:p-4 bg-blue-50 dark:bg-blue-950/20 rounded-lg border-2 border-blue-300">
+                  <h3 className="font-bold text-base sm:text-lg mb-3 text-blue-900 dark:text-blue-100">
                     اختر التذكرة المراد تأكيدها ({availableTickets.length} تذكرة):
                   </h3>
                   <div className="space-y-2">
@@ -688,7 +703,7 @@ const QRScanner = () => {
                       <button
                         key={ticket.id}
                         onClick={() => setSelectedTicketId(ticket.id)}
-                        className={`w-full p-3 rounded-lg border-2 text-right transition-all ${
+                        className={`w-full p-2 sm:p-3 rounded-lg border-2 text-right transition-all ${
                           selectedTicketId === ticket.id
                             ? 'border-primary bg-primary/10 shadow-md'
                             : 'border-border bg-card hover:border-primary/50'
@@ -699,18 +714,18 @@ const QRScanner = () => {
                         }`}
                         disabled={ticket.is_present}
                       >
-                        <div className="flex justify-between items-start">
-                          <div className="flex-1">
-                            <div className="font-bold text-lg">{ticket.name}</div>
-                            <div className="text-sm text-muted-foreground font-mono">{ticket.qr_code}</div>
-                            <div className="text-sm mt-1">
-                              <span className="font-semibold">الهاتف:</span> {ticket.phone}
+                        <div className="flex justify-between items-start gap-2">
+                          <div className="flex-1 min-w-0">
+                            <div className="font-bold text-sm sm:text-lg truncate">{ticket.name}</div>
+                            <div className="text-xs sm:text-sm text-muted-foreground font-mono truncate">{ticket.qr_code}</div>
+                            <div className="text-xs sm:text-sm mt-1">
+                              <span className="font-semibold">الهاتف:</span> <span className="truncate inline-block max-w-[150px] sm:max-w-none">{ticket.phone}</span>
                             </div>
-                            <div className="text-sm">
+                            <div className="text-xs sm:text-sm">
                               <span className="font-semibold">النوع:</span> {ticket.ticket_type.toUpperCase()}
                             </div>
                           </div>
-                          <div>
+                          <div className="flex-shrink-0">
                             {ticket.is_present ? (
                               <span className="text-green-600 font-bold text-sm">✅ حاضر</span>
                             ) : selectedTicketId === ticket.id ? (
@@ -726,43 +741,43 @@ const QRScanner = () => {
                 </div>
               )}
 
-              <div className="space-y-3">
-                <div className="flex justify-between items-center py-2 border-b">
-                  <span className="font-semibold">{t('bookingReference') || 'رقم الحجز'}:</span>
-                  <span className="font-mono text-lg">{ticketInfo.booking_reference}</span>
+              <div className="space-y-2 sm:space-y-3">
+                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center py-2 border-b gap-1">
+                  <span className="font-semibold text-sm sm:text-base">{t('bookingReference') || 'رقم الحجز'}:</span>
+                  <span className="font-mono text-sm sm:text-lg break-all">{ticketInfo.booking_reference}</span>
                 </div>
                 
                 {ticketInfo.ticket_holder_name && (
-                  <div className="flex justify-between items-center py-2 border-b">
-                    <span className="font-semibold">اسم حامل التذكرة:</span>
-                    <span className="font-bold text-lg">{ticketInfo.ticket_holder_name}</span>
+                  <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center py-2 border-b gap-1">
+                    <span className="font-semibold text-sm sm:text-base">اسم حامل التذكرة:</span>
+                    <span className="font-bold text-sm sm:text-lg">{ticketInfo.ticket_holder_name}</span>
                   </div>
                 )}
                 
                 {ticketInfo.ticket_holder_phone && (
-                  <div className="flex justify-between items-center py-2 border-b">
-                    <span className="font-semibold">رقم الهاتف:</span>
-                    <span className="font-mono">{ticketInfo.ticket_holder_phone}</span>
+                  <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center py-2 border-b gap-1">
+                    <span className="font-semibold text-sm sm:text-base">رقم الهاتف:</span>
+                    <span className="font-mono text-sm sm:text-base">{ticketInfo.ticket_holder_phone}</span>
                   </div>
                 )}
                 
                 {ticketInfo.ticket_holder_nationality && (
-                  <div className="flex justify-between items-center py-2 border-b">
-                    <span className="font-semibold">الجنسية:</span>
-                    <span>{ticketInfo.ticket_holder_nationality}</span>
+                  <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center py-2 border-b gap-1">
+                    <span className="font-semibold text-sm sm:text-base">الجنسية:</span>
+                    <span className="text-sm sm:text-base">{ticketInfo.ticket_holder_nationality}</span>
                   </div>
                 )}
                 
                 {ticketInfo.ticket_holder_id_number && (
-                  <div className="flex justify-between items-center py-2 border-b">
-                    <span className="font-semibold">رقم الهوية:</span>
-                    <span className="font-mono">{ticketInfo.ticket_holder_id_number}</span>
+                  <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center py-2 border-b gap-1">
+                    <span className="font-semibold text-sm sm:text-base">رقم الهوية:</span>
+                    <span className="font-mono text-sm sm:text-base">{ticketInfo.ticket_holder_id_number}</span>
                   </div>
                 )}
                 
-                <div className="flex justify-between items-center py-2 border-b">
-                  <span className="font-semibold">{t('customerName') || 'اسم العميل'}:</span>
-                  <span>{ticketInfo.customer_name}</span>
+                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center py-2 border-b gap-1">
+                  <span className="font-semibold text-sm sm:text-base">{t('customerName') || 'اسم العميل'}:</span>
+                  <span className="text-sm sm:text-base">{ticketInfo.customer_name}</span>
                 </div>
                 
                  {/* Confirm Presence Button */}
@@ -812,21 +827,21 @@ const QRScanner = () => {
                     </Button>
                   </div>
                 )}
-                <div className="flex justify-between items-center py-2 border-b">
-                  <span className="font-semibold">اسم الحدث:</span>
-                  <span>{ticketInfo.event_title}</span>
+                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center py-2 border-b gap-1">
+                  <span className="font-semibold text-sm sm:text-base">اسم الحدث:</span>
+                  <span className="text-sm sm:text-base">{ticketInfo.event_title}</span>
                 </div>
-                <div className="flex justify-between items-center py-2 border-b">
-                  <span className="font-semibold">{t('ticketType') || 'نوع التذكرة'}:</span>
-                  <span className="uppercase font-bold">{ticketInfo.ticket_type}</span>
+                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center py-2 border-b gap-1">
+                  <span className="font-semibold text-sm sm:text-base">{t('ticketType') || 'نوع التذكرة'}:</span>
+                  <span className="uppercase font-bold text-sm sm:text-base">{ticketInfo.ticket_type}</span>
                 </div>
-                <div className="flex justify-between items-center py-2 border-b">
-                  <span className="font-semibold">{t('quantity') || 'الكمية'}:</span>
-                  <span className="text-lg">{ticketInfo.quantity}</span>
+                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center py-2 border-b gap-1">
+                  <span className="font-semibold text-sm sm:text-base">{t('quantity') || 'الكمية'}:</span>
+                  <span className="text-base sm:text-lg">{ticketInfo.quantity}</span>
                 </div>
-                <div className="flex justify-between items-center py-2 border-b">
-                  <span className="font-semibold">{t('paymentStatus') || 'حالة الدفع'}:</span>
-                  <span className={`font-semibold ${
+                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center py-2 border-b gap-1">
+                  <span className="font-semibold text-sm sm:text-base">{t('paymentStatus') || 'حالة الدفع'}:</span>
+                  <span className={`font-semibold text-sm sm:text-base ${
                     ticketInfo.payment_status === 'confirmed'
                       ? 'text-green-600 dark:text-green-400' 
                       : 'text-orange-600 dark:text-orange-400'
@@ -838,11 +853,11 @@ const QRScanner = () => {
                 </div>
                 
                 {ticketInfo.payment_status !== 'confirmed' && (
-                  <div className="pt-3 mt-3 border-t-2 border-yellow-400 bg-yellow-100 dark:bg-yellow-900/30 p-4 rounded-lg">
-                    <p className="text-yellow-800 dark:text-yellow-300 font-bold text-center text-lg">
+                  <div className="pt-3 mt-3 border-t-2 border-yellow-400 bg-yellow-100 dark:bg-yellow-900/30 p-3 sm:p-4 rounded-lg">
+                    <p className="text-yellow-800 dark:text-yellow-300 font-bold text-center text-sm sm:text-lg">
                       ⚠️ تحذير: الدفع غير مؤكد - لا يمكن تسجيل الدخول
                     </p>
-                    <p className="text-yellow-700 dark:text-yellow-400 text-center text-sm mt-2">
+                    <p className="text-yellow-700 dark:text-yellow-400 text-center text-xs sm:text-sm mt-2">
                       يرجى تأكيد الدفع قبل السماح بالدخول
                     </p>
                   </div>
@@ -850,7 +865,7 @@ const QRScanner = () => {
                 
                 {ticketInfo.is_present && scanResult === 'error' && (
                   <div className="pt-3 mt-3 border-t-2 border-red-400">
-                    <p className="text-red-700 dark:text-red-400 font-bold text-center text-lg">
+                    <p className="text-red-700 dark:text-red-400 font-bold text-center text-sm sm:text-lg">
                       ⚠️ {t('alreadyCheckedIn') || 'تم تسجيل الدخول مسبقاً'}
                     </p>
                   </div>
