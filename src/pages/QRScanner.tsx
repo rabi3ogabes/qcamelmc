@@ -894,24 +894,6 @@ const QRScanner = () => {
           </Card>
         )}
 
-        {/* Instructions */}
-        {!ticketInfo && (
-          <Card className="bg-blue-50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-800">
-            <CardHeader>
-              <CardTitle className="text-blue-900 dark:text-blue-400 text-lg">
-                {t('instructions') || 'التعليمات'}
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ul className="space-y-2 text-blue-800 dark:text-blue-300">
-                <li>📷 {t('scanInstruction1') || 'وجه الكاميرا نحو رمز QR'}</li>
-                <li>✨ {t('scanInstruction2') || 'تأكد من وضوح الرمز'}</li>
-                <li>⚡ {t('scanInstruction3') || 'سيتم التحقق من التذكرة تلقائياً'}</li>
-                <li>🔍 يمكنك استخدام البحث اليدوي إذا لم تعمل الكاميرا</li>
-              </ul>
-            </CardContent>
-          </Card>
-        )}
       </div>
     </div>
   );
