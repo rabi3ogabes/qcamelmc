@@ -172,25 +172,15 @@ const EventHome = () => {
                           </div>
                         </div>
                         
-                        {event.start_time && (
+                        {(event.start_time || event.end_time) && (
                           <div className="flex items-start gap-3">
                             <Calendar className="w-5 h-5 text-primary mt-1" />
                             <div>
-                              <p className="font-semibold">وقت البداية</p>
+                              <p className="font-semibold">التوقيت</p>
                               <p className="text-sm text-muted-foreground">
-                                {formatTime12Hour(event.start_time)}
-                              </p>
-                            </div>
-                          </div>
-                        )}
-                        
-                        {event.end_time && (
-                          <div className="flex items-start gap-3">
-                            <Calendar className="w-5 h-5 text-primary mt-1" />
-                            <div>
-                              <p className="font-semibold">وقت النهاية</p>
-                              <p className="text-sm text-muted-foreground">
-                                {formatTime12Hour(event.end_time)}
+                                {event.start_time && `وقت البداية: ${formatTime12Hour(event.start_time)}`}
+                                {event.start_time && event.end_time && " | "}
+                                {event.end_time && `وقت النهاية: ${formatTime12Hour(event.end_time)}`}
                               </p>
                             </div>
                           </div>
