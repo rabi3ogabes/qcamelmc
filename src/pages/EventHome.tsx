@@ -30,6 +30,15 @@ const EventHome = () => {
   const [headerBgColor, setHeaderBgColor] = useState<string>("hsl(var(--card) / 0.5)");
   const navigate = useNavigate();
 
+  const formatTime12Hour = (time24: string) => {
+    const [hours, minutes] = time24.split(':');
+    const hour = parseInt(hours);
+    const isPM = hour >= 12;
+    const hour12 = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
+    const paddedHour = hour12.toString().padStart(2, '0');
+    return `${paddedHour}:${minutes} ${isPM ? 'م' : 'ص'}`;
+  };
+
   useEffect(() => {
     fetchEvents();
     fetchSettings();
@@ -169,9 +178,9 @@ const EventHome = () => {
                             <div>
                               <p className="font-semibold">التوقيت</p>
                               <p className="text-sm text-muted-foreground">
-                                {event.start_time && `وقت البداية: ${event.start_time.slice(0, 5)}`}
+                                {event.start_time && `وقت البداية: ${formatTime12Hour(event.start_time)}`}
                                 {event.start_time && event.end_time && " - "}
-                                {event.end_time && `وقت النهاية: ${event.end_time.slice(0, 5)}`}
+                                {event.end_time && `وقت النهاية: ${formatTime12Hour(event.end_time)}`}
                               </p>
                             </div>
                           </div>
