@@ -16,6 +16,7 @@ interface Event {
   location: string;
   image_url: string | null;
   is_active: boolean;
+  display_order?: number;
 }
 
 interface EditEventDialogProps {
@@ -34,6 +35,7 @@ export const EditEventDialog = ({ event, open, onOpenChange, onEventUpdated }: E
     event_date: "",
     location: "",
     image_url: "",
+    display_order: "0",
     vip_quantity: "",
     vip_price: "",
     normal_quantity: "",
@@ -60,6 +62,7 @@ export const EditEventDialog = ({ event, open, onOpenChange, onEventUpdated }: E
           event_date: event.event_date.slice(0, 16),
           location: event.location,
           image_url: event.image_url || "",
+          display_order: event.display_order?.toString() || "0",
           vip_quantity: vipTicket?.available_quantity.toString() || "",
           vip_price: vipTicket?.price.toString() || "",
           normal_quantity: normalTicket?.available_quantity.toString() || "",
@@ -88,6 +91,7 @@ export const EditEventDialog = ({ event, open, onOpenChange, onEventUpdated }: E
           event_date: formData.event_date,
           location: formData.location,
           image_url: formData.image_url || null,
+          display_order: parseInt(formData.display_order) || 0,
         })
         .eq("id", event.id);
 
@@ -215,6 +219,21 @@ export const EditEventDialog = ({ event, open, onOpenChange, onEventUpdated }: E
                 placeholder="https://example.com/image.jpg"
                 className="font-lusail"
               />
+            </div>
+
+            <div>
+              <Label htmlFor="display_order" className="font-lusail">ترتيب العرض (الأقل يظهر أولاً)</Label>
+              <Input
+                id="display_order"
+                type="number"
+                value={formData.display_order}
+                onChange={(e) => setFormData({ ...formData, display_order: e.target.value })}
+                placeholder="0"
+                className="font-lusail"
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                استخدم الأرقام لترتيب الفعاليات (0، 1، 2، الخ...)
+              </p>
             </div>
 
             <div className="space-y-3 pt-4 border-t">

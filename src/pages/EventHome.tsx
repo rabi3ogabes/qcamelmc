@@ -63,6 +63,7 @@ const EventHome = () => {
         .from("events")
         .select("*")
         .eq("is_active", true)
+        .order("display_order", { ascending: true })
         .order("event_date", { ascending: true }); // Nearest date first (top right in RTL)
 
       if (error) throw error;

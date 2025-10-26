@@ -23,6 +23,7 @@ export const CreateEventDialog = ({ onEventCreated }: CreateEventDialogProps) =>
     event_date: "",
     location: "",
     image_url: "",
+    display_order: "0",
     vip_quantity: "",
     vip_price: "",
     normal_quantity: "",
@@ -44,6 +45,7 @@ export const CreateEventDialog = ({ onEventCreated }: CreateEventDialogProps) =>
           event_date: formData.event_date,
           location: formData.location,
           image_url: formData.image_url || null,
+          display_order: parseInt(formData.display_order) || 0,
           is_active: true,
         })
         .select()
@@ -120,6 +122,7 @@ export const CreateEventDialog = ({ onEventCreated }: CreateEventDialogProps) =>
         event_date: "",
         location: "",
         image_url: "",
+        display_order: "0",
         vip_quantity: "",
         vip_price: "",
         normal_quantity: "",
@@ -207,6 +210,21 @@ export const CreateEventDialog = ({ onEventCreated }: CreateEventDialogProps) =>
                 placeholder="https://example.com/image.jpg"
                 className="font-lusail"
               />
+            </div>
+
+            <div>
+              <Label htmlFor="display_order" className="font-lusail">ترتيب العرض (الأقل يظهر أولاً)</Label>
+              <Input
+                id="display_order"
+                type="number"
+                value={formData.display_order}
+                onChange={(e) => setFormData({ ...formData, display_order: e.target.value })}
+                placeholder="0"
+                className="font-lusail"
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                استخدم الأرقام لترتيب الفعاليات (0، 1، 2، الخ...)
+              </p>
             </div>
 
             <div className="space-y-3 pt-4 border-t">

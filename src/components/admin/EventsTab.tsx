@@ -23,6 +23,7 @@ interface Event {
   location: string;
   is_active: boolean;
   image_url: string | null;
+  display_order?: number;
   tickets_sold?: { type: string; count: number; max: number }[];
 }
 
@@ -43,6 +44,7 @@ export const EventsTab = () => {
       const { data, error } = await supabase
         .from("events")
         .select("*")
+        .order("display_order", { ascending: true })
         .order("event_date", { ascending: true });
 
       if (error) throw error;
@@ -179,7 +181,12 @@ export const EventsTab = () => {
             )}
             <div className="p-6">
               <div className="flex justify-between items-start mb-3">
-                <h3 className="text-xl font-bold font-lusail">{event.title}</h3>
+                <div className="flex items-center gap-2">
+                  <Badge variant="outline" className="font-lusail">
+                    #{event.display_order || 0}
+                  </Badge>
+                  <h3 className="text-xl font-bold font-lusail">{event.title}</h3>
+                </div>
                 <Badge variant={event.is_active ? "default" : "secondary"} className="font-lusail">
                   {event.is_active ? t("active") : t("inactive")}
                 </Badge>
