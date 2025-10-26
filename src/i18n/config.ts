@@ -152,7 +152,7 @@ const resources = {
       "loadingEvents": "جاري التحميل...",
       "noActiveEvents": "لا توجد فعاليات نشطة",
       "bookTicketsNow": "احجز التذاكر الآن",
-      "eventDateTime": "تاريخ ووقت الفعالية",
+      "eventDateTime": "تاريخ الفعالية",
       "readyToJoin": "جاهز للانضمام إلينا؟",
       "secureYourSpot": "احجز مكانك في هذا الاحتفال الذي لا يُنسى. اختر من بين تذاكر VIP أو العادية أو مواقف السيارات.",
       "selectYourTickets": "اختر تذاكرك",
