@@ -133,7 +133,7 @@ const EventHome = () => {
             <div className="max-w-7xl mx-auto">
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                 {events.map((event) => (
-                  <Card key={event.id} className="overflow-hidden hover:shadow-2xl transition-shadow">
+                <Card key={event.id} className="overflow-hidden hover:shadow-2xl transition-shadow flex flex-col">
                     {event.image_url && (
                       <div className="relative h-64 overflow-hidden">
                         <img 
@@ -144,11 +144,11 @@ const EventHome = () => {
                       </div>
                     )}
                     
-                    <div className="p-8">
+                    <div className="p-8 flex-1">
                       <h2 className="text-3xl font-bold mb-4 text-center">{event.title}</h2>
                       <p className="text-muted-foreground mb-6 line-clamp-3">{event.description}</p>
                       
-                      <div className="space-y-4 mb-6">
+                      <div className="space-y-4">
                         <div className="flex items-start gap-3">
                           <Calendar className="w-5 h-5 text-primary mt-1" />
                           <div>
@@ -167,7 +167,9 @@ const EventHome = () => {
                           </div>
                         </div>
                       </div>
-                      
+                    </div>
+                    
+                    <div className="p-6 pt-0">
                       <Button 
                         className="w-full"
                         size="lg"
