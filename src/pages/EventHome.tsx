@@ -63,6 +63,7 @@ const EventHome = () => {
         .from("events")
         .select("*")
         .eq("is_active", true)
+        .gte("event_date", new Date().toISOString())
         .order("display_order", { ascending: true })
         .order("event_date", { ascending: true }); // Nearest date first (top right in RTL)
 
