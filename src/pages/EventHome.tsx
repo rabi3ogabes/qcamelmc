@@ -172,6 +172,30 @@ const EventHome = () => {
                           </div>
                         </div>
                         
+                        {event.start_time && (
+                          <div className="flex items-start gap-3">
+                            <Calendar className="w-5 h-5 text-primary mt-1" />
+                            <div>
+                              <p className="font-semibold">وقت البداية</p>
+                              <p className="text-sm text-muted-foreground">
+                                {formatTime12Hour(event.start_time)}
+                              </p>
+                            </div>
+                          </div>
+                        )}
+                        
+                        {event.end_time && (
+                          <div className="flex items-start gap-3">
+                            <Calendar className="w-5 h-5 text-primary mt-1" />
+                            <div>
+                              <p className="font-semibold">وقت النهاية</p>
+                              <p className="text-sm text-muted-foreground">
+                                {formatTime12Hour(event.end_time)}
+                              </p>
+                            </div>
+                          </div>
+                        )}
+                        
                         <div className="flex items-start gap-3">
                           <MapPin className="w-5 h-5 text-primary mt-1" />
                           <div>
