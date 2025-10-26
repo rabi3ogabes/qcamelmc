@@ -17,6 +17,8 @@ interface Event {
   event_date: string;
   location: string;
   image_url: string | null;
+  start_time: string | null;
+  end_time: string | null;
 }
 
 const EventHome = () => {
@@ -160,6 +162,20 @@ const EventHome = () => {
                             </p>
                           </div>
                         </div>
+                        
+                        {(event.start_time || event.end_time) && (
+                          <div className="flex items-start gap-3">
+                            <Calendar className="w-5 h-5 text-primary mt-1" />
+                            <div>
+                              <p className="font-semibold">التوقيت</p>
+                              <p className="text-sm text-muted-foreground">
+                                {event.start_time && `وقت البداية: ${event.start_time}`}
+                                {event.start_time && event.end_time && " - "}
+                                {event.end_time && `وقت النهاية: ${event.end_time}`}
+                              </p>
+                            </div>
+                          </div>
+                        )}
                         
                         <div className="flex items-start gap-3">
                           <MapPin className="w-5 h-5 text-primary mt-1" />
