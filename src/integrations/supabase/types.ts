@@ -218,6 +218,7 @@ export type Database = {
           created_at: string | null
           header_bg_color: string | null
           hero_image_url: string | null
+          hero_text: string | null
           id: string
           logo_url: string | null
           sadad_api_key: string | null
@@ -233,6 +234,7 @@ export type Database = {
           created_at?: string | null
           header_bg_color?: string | null
           hero_image_url?: string | null
+          hero_text?: string | null
           id?: string
           logo_url?: string | null
           sadad_api_key?: string | null
@@ -248,6 +250,7 @@ export type Database = {
           created_at?: string | null
           header_bg_color?: string | null
           hero_image_url?: string | null
+          hero_text?: string | null
           id?: string
           logo_url?: string | null
           sadad_api_key?: string | null

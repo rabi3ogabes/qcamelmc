@@ -28,6 +28,7 @@ const EventHome = () => {
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
   const [heroImageUrl, setHeroImageUrl] = useState<string | null>(null);
   const [headerBgColor, setHeaderBgColor] = useState<string>("hsl(var(--card) / 0.5)");
+  const [heroText, setHeroText] = useState<string>("");
   const navigate = useNavigate();
 
   const formatTime12Hour = (time24: string) => {
@@ -47,7 +48,7 @@ const EventHome = () => {
   const fetchSettings = async () => {
     const { data, error } = await supabase
       .from("settings")
-      .select("logo_url, hero_image_url, header_bg_color")
+      .select("logo_url, hero_image_url, header_bg_color, hero_text")
       .maybeSingle();
 
     if (error) {
@@ -65,6 +66,10 @@ const EventHome = () => {
     
     if (data?.header_bg_color) {
       setHeaderBgColor(data.header_bg_color);
+    }
+
+    if (data?.hero_text) {
+      setHeroText(data.hero_text);
     }
   };
 
@@ -137,7 +142,13 @@ const EventHome = () => {
             </div>
             
             <div className="relative h-full flex items-center justify-center px-4">
-              {/* Hero text hidden */}
+              {heroText && (
+                <div className="text-center z-10">
+                  <h1 className="text-4xl md:text-6xl font-bold text-white mb-4 drop-shadow-lg whitespace-pre-line">
+                    {heroText}
+                  </h1>
+                </div>
+              )}
             </div>
           </div>
 

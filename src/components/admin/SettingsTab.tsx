@@ -17,6 +17,8 @@ export const SettingsTab = () => {
   const [newHeroImageUrl, setNewHeroImageUrl] = useState("");
   const [headerBgColor, setHeaderBgColor] = useState("hsl(var(--card) / 0.5)");
   const [newHeaderBgColor, setNewHeaderBgColor] = useState("hsl(var(--card) / 0.5)");
+  const [heroText, setHeroText] = useState("");
+  const [newHeroText, setNewHeroText] = useState("");
   const [webhookUrl, setWebhookUrl] = useState("");
   const [newWebhookUrl, setNewWebhookUrl] = useState("");
   const [adminPhone, setAdminPhone] = useState("");
@@ -39,7 +41,7 @@ export const SettingsTab = () => {
   const fetchSettings = async () => {
     const { data, error } = await supabase
       .from("settings")
-      .select("logo_url, hero_image_url, header_bg_color, webhook_url, admin_phone, sadad_merchant_id, sadad_api_key, sadad_secret, show_delete_customer_button, show_generate_qr_button")
+      .select("logo_url, hero_image_url, header_bg_color, hero_text, webhook_url, admin_phone, sadad_merchant_id, sadad_api_key, sadad_secret, show_delete_customer_button, show_generate_qr_button")
       .maybeSingle();
 
     if (error) {
@@ -60,6 +62,11 @@ export const SettingsTab = () => {
     if (data?.header_bg_color) {
       setHeaderBgColor(data.header_bg_color);
       setNewHeaderBgColor(data.header_bg_color);
+    }
+
+    if (data?.hero_text) {
+      setHeroText(data.hero_text);
+      setNewHeroText(data.hero_text);
     }
 
     if (data?.webhook_url) {
@@ -98,7 +105,8 @@ export const SettingsTab = () => {
           .update({ 
             logo_url: newLogoUrl, 
             hero_image_url: newHeroImageUrl,
-            header_bg_color: newHeaderBgColor, 
+            header_bg_color: newHeaderBgColor,
+            hero_text: newHeroText,
             webhook_url: newWebhookUrl 
           })
           .eq("id", settings.id);
@@ -110,7 +118,8 @@ export const SettingsTab = () => {
           .insert({ 
             logo_url: newLogoUrl, 
             hero_image_url: newHeroImageUrl,
-            header_bg_color: newHeaderBgColor, 
+            header_bg_color: newHeaderBgColor,
+            hero_text: newHeroText,
             webhook_url: newWebhookUrl 
           });
 
@@ -120,6 +129,7 @@ export const SettingsTab = () => {
       setLogoUrl(newLogoUrl);
       setHeroImageUrl(newHeroImageUrl);
       setHeaderBgColor(newHeaderBgColor);
+      setHeroText(newHeroText);
       setWebhookUrl(newWebhookUrl);
       toast.success(t("savedSuccessfully"));
     } catch (error) {
@@ -535,6 +545,23 @@ export const SettingsTab = () => {
             <p className="text-xs text-muted-foreground mt-2">
               أدخل رمز لون hex (مثال: #ffffff) أو استخدم منتقي الألوان
             </p>
+          </div>
+          
+          <div>
+            <Label htmlFor="hero-text" className="font-lusail">نص الصفحة الرئيسية</Label>
+            <div className="mt-2">
+              <textarea
+                id="hero-text"
+                placeholder="أدخل النص الذي سيظهر في صورة الخلفية"
+                value={newHeroText}
+                onChange={(e) => setNewHeroText(e.target.value)}
+                className="flex min-h-[100px] w-full rounded-md border border-input bg-background px-3 py-2 text-base ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 font-lusail"
+                rows={4}
+              />
+              <p className="text-xs text-muted-foreground mt-1 font-lusail">
+                النص الذي سيظهر في منتصف صورة الخلفية على الصفحة الرئيسية
+              </p>
+            </div>
           </div>
           
           <div>
