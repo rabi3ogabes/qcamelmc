@@ -30,7 +30,7 @@ const App = () => (
         <BrowserRouter>
           <Routes>
             <Route path="/" element={<EventHome />} />
-            <Route path="/tickets" element={<TicketSelection />} />
+            <Route path="/tickets/:eventId" element={<TicketSelection />} />
             <Route path="/checkout" element={<Checkout />} />
             <Route path="/confirmation" element={<Confirmation />} />
             <Route path="/sadad-callback" element={<SadadCallback />} />

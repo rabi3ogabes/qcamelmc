@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -8,6 +8,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { Crown, Users, Car, ArrowRight, Plus, Minus } from "lucide-react";
+import { format } from "date-fns";
+import { ar } from "date-fns/locale";
 import { PopupBanner } from "@/components/PopupBanner";
 
 interface Ticket {
@@ -16,6 +18,7 @@ interface Ticket {
   price: number;
   available_quantity: number;
   sold_quantity: number;
+  event_id: string;
 }
 
 interface TicketSelection {
@@ -25,9 +28,18 @@ interface TicketSelection {
   price: number;
 }
 
+interface Event {
+  id: string;
+  title: string;
+  event_date: string;
+  location: string;
+}
+
 const TicketSelection = () => {
   const { t } = useTranslation();
+  const { eventId } = useParams<{ eventId: string }>();
   const [tickets, setTickets] = useState<Ticket[]>([]);
+  const [event, setEvent] = useState<Event | null>(null);
   const [selections, setSelections] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
@@ -35,9 +47,12 @@ const TicketSelection = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    fetchTickets();
+    if (eventId) {
+      fetchEvent();
+      fetchTickets();
+    }
     fetchSettings();
-  }, []);
+  }, [eventId]);
 
   const fetchSettings = async () => {
     const { data, error } = await supabase
@@ -59,14 +74,44 @@ const TicketSelection = () => {
     }
   };
 
+  const fetchEvent = async () => {
+    if (!eventId) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from("events")
+        .select("id, title, event_date, location")
+        .eq("id", eventId)
+        .single();
+
+      if (error) throw error;
+      setEvent(data);
+    } catch (error) {
+      console.error("Error fetching event:", error);
+      toast.error("Failed to load event details");
+    }
+  };
+
   const fetchTickets = async () => {
+    if (!eventId) {
+      setLoading(false);
+      return;
+    }
+
     try {
       const { data, error } = await supabase
         .from("tickets")
         .select("*")
+        .eq("event_id", eventId)
         .order("price", { ascending: false });
 
       if (error) throw error;
+      
+      // Ensure we have exactly 3 ticket types
+      if (!data || data.length !== 3) {
+        toast.error("هذه الفعالية لا تحتوي على جميع أنواع التذاكر المطلوبة");
+      }
+      
       setTickets(data || []);
     } catch (error) {
       console.error("Error fetching tickets:", error);
@@ -215,8 +260,18 @@ const TicketSelection = () => {
       </header>
 
       <div className="max-w-4xl mx-auto py-6 sm:py-12 px-4">
-        <div className="text-center mb-8 sm:mb-12">
-          <h1 className="text-3xl sm:text-4xl font-bold mb-3 sm:mb-4">{t('selectTicketsTitle')}</h1>
+        {event && (
+          <div className="text-center mb-8 sm:mb-12">
+            <h1 className="text-3xl sm:text-4xl font-bold mb-3 sm:mb-4">{event.title}</h1>
+            <p className="text-sm sm:text-base text-muted-foreground mb-2">
+              {format(new Date(event.event_date), "EEEE، d MMMM، yyyy - h:mm a", { locale: ar })}
+            </p>
+            <p className="text-sm sm:text-base text-muted-foreground">{event.location}</p>
+          </div>
+        )}
+
+        <div className="text-center mb-6 sm:mb-8">
+          <h2 className="text-2xl sm:text-3xl font-bold mb-2">{t('selectTicketsTitle')}</h2>
           <p className="text-sm sm:text-base text-muted-foreground">{t('chooseQuantity')}</p>
         </div>
 

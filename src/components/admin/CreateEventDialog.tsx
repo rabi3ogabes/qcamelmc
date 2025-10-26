@@ -51,7 +51,7 @@ export const CreateEventDialog = ({ onEventCreated }: CreateEventDialogProps) =>
 
       if (eventError) throw eventError;
 
-      // Create tickets for the event
+      // Create tickets for the event - all 3 types are REQUIRED
       const ticketsToInsert: Array<{
         event_id: string;
         type: "vip" | "normal" | "parking";
@@ -60,43 +60,57 @@ export const CreateEventDialog = ({ onEventCreated }: CreateEventDialogProps) =>
         sold_quantity: number;
       }> = [];
       
-      if (formData.vip_quantity && formData.vip_price) {
-        ticketsToInsert.push({
-          event_id: event.id,
-          type: "vip",
-          price: parseFloat(formData.vip_price),
-          available_quantity: parseInt(formData.vip_quantity),
-          sold_quantity: 0,
-        });
+      // Validate that all 3 ticket types have data
+      if (!formData.vip_quantity || !formData.vip_price) {
+        toast.error("يرجى إدخال عدد وسعر تذاكر VIP");
+        setLoading(false);
+        return;
       }
       
-      if (formData.normal_quantity && formData.normal_price) {
-        ticketsToInsert.push({
-          event_id: event.id,
-          type: "normal",
-          price: parseFloat(formData.normal_price),
-          available_quantity: parseInt(formData.normal_quantity),
-          sold_quantity: 0,
-        });
+      if (!formData.normal_quantity || !formData.normal_price) {
+        toast.error("يرجى إدخال عدد وسعر التذاكر العادية");
+        setLoading(false);
+        return;
       }
       
-      if (formData.parking_quantity && formData.parking_price) {
-        ticketsToInsert.push({
-          event_id: event.id,
-          type: "parking",
-          price: parseFloat(formData.parking_price),
-          available_quantity: parseInt(formData.parking_quantity),
-          sold_quantity: 0,
-        });
+      if (!formData.parking_quantity || !formData.parking_price) {
+        toast.error("يرجى إدخال عدد وسعر تذاكر المواقف");
+        setLoading(false);
+        return;
       }
 
-      if (ticketsToInsert.length > 0) {
-        const { error: ticketsError } = await supabase
-          .from("tickets")
-          .insert(ticketsToInsert);
+      // Add VIP tickets
+      ticketsToInsert.push({
+        event_id: event.id,
+        type: "vip",
+        price: parseFloat(formData.vip_price),
+        available_quantity: parseInt(formData.vip_quantity),
+        sold_quantity: 0,
+      });
+      
+      // Add Normal tickets
+      ticketsToInsert.push({
+        event_id: event.id,
+        type: "normal",
+        price: parseFloat(formData.normal_price),
+        available_quantity: parseInt(formData.normal_quantity),
+        sold_quantity: 0,
+      });
+      
+      // Add Parking tickets
+      ticketsToInsert.push({
+        event_id: event.id,
+        type: "parking",
+        price: parseFloat(formData.parking_price),
+        available_quantity: parseInt(formData.parking_quantity),
+        sold_quantity: 0,
+      });
 
-        if (ticketsError) throw ticketsError;
-      }
+      const { error: ticketsError } = await supabase
+        .from("tickets")
+        .insert(ticketsToInsert);
+
+      if (ticketsError) throw ticketsError;
 
       toast.success(t("savedSuccessfully"));
       setOpen(false);

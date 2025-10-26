@@ -171,7 +171,7 @@ const EventHome = () => {
                       <Button 
                         className="w-full"
                         size="lg"
-                        onClick={() => navigate("/tickets")}
+                        onClick={() => navigate(`/tickets/${event.id}`)}
                       >
                         <Ticket className="w-5 h-5 ml-2" />
                         {t('bookTicketsNow')}
