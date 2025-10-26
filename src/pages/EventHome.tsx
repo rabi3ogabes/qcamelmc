@@ -132,9 +132,9 @@ const EventHome = () => {
           {/* Events Grid */}
           <div className="py-16 px-4">
             <div className="max-w-7xl mx-auto">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              <div className="flex flex-wrap justify-center gap-8">
                 {events.map((event) => (
-                <Card key={event.id} className="overflow-hidden hover:shadow-2xl transition-shadow flex flex-col">
+                <Card key={event.id} className="overflow-hidden hover:shadow-2xl transition-shadow flex flex-col w-full md:w-[calc(50%-1rem)] lg:w-[calc(33.333%-1.334rem)]">
                     {event.image_url && (
                       <div className="relative h-64 overflow-hidden">
                         <img 
