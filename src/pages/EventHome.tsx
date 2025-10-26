@@ -147,7 +147,7 @@ const EventHome = () => {
               <div className="flex flex-wrap justify-center gap-8">
                 {events.map((event) => (
                 <Card key={event.id} className="overflow-hidden hover:shadow-2xl transition-shadow flex flex-col w-full md:w-[calc(50%-1rem)] lg:w-[calc(33.333%-1.334rem)]">
-                    <div className="h-2 bg-red-600" />
+                    <div className="h-2" style={{ backgroundColor: headerBgColor }} />
                     {event.image_url && (
                       <div className="relative h-64 overflow-hidden">
                         <img 
