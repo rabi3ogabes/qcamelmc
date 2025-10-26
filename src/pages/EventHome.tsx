@@ -133,7 +133,7 @@ const EventHome = () => {
           {/* Events Grid */}
           <div className="py-16 px-4">
             <div className="max-w-7xl mx-auto">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                 {events.map((event) => (
                   <Card key={event.id} className="overflow-hidden hover:shadow-2xl transition-shadow">
                     {event.image_url && (
