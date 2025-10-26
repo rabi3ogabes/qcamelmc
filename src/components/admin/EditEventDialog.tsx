@@ -59,7 +59,7 @@ export const EditEventDialog = ({ event, open, onOpenChange, onEventUpdated }: E
         setFormData({
           title: event.title,
           description: event.description || "",
-          event_date: event.event_date.slice(0, 16),
+          event_date: event.event_date.slice(0, 10),
           location: event.location,
           image_url: event.image_url || "",
           display_order: event.display_order?.toString() || "0",
@@ -190,7 +190,7 @@ export const EditEventDialog = ({ event, open, onOpenChange, onEventUpdated }: E
                 <Label htmlFor="event_date" className="font-lusail">{t("eventDate")}</Label>
                 <Input
                   id="event_date"
-                  type="datetime-local"
+                  type="date"
                   value={formData.event_date}
                   onChange={(e) => setFormData({ ...formData, event_date: e.target.value })}
                   required
