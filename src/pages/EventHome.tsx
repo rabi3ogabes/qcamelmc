@@ -167,22 +167,10 @@ const EventHome = () => {
                           <div>
                             <p className="font-semibold">{t('eventDateTime')}</p>
                             <p className="text-sm text-muted-foreground">
-                              {format(new Date(event.event_date), "EEEE، d MMMM، yyyy - h:mm a", { locale: ar })}
+                              {format(new Date(event.event_date), "EEEE، d MMMM، yyyy", { locale: ar })}
                             </p>
                           </div>
                         </div>
-                        
-                        {event.start_time && (
-                          <div className="flex items-start gap-3">
-                            <Calendar className="w-5 h-5 text-primary mt-1" />
-                            <div>
-                              <p className="font-semibold">التوقيت</p>
-                              <p className="text-sm text-muted-foreground">
-                                {`وقت البداية: ${formatTime12Hour(event.start_time)}`}
-                              </p>
-                            </div>
-                          </div>
-                        )}
                         
                         <div className="flex items-start gap-3">
                           <MapPin className="w-5 h-5 text-primary mt-1" />
