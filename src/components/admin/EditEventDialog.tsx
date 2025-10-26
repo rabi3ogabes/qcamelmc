@@ -4,9 +4,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useTranslation } from "react-i18next";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { format } from "date-fns";
+import { CalendarIcon } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface Event {
   id: string;
@@ -29,10 +34,10 @@ interface EditEventDialogProps {
 export const EditEventDialog = ({ event, open, onOpenChange, onEventUpdated }: EditEventDialogProps) => {
   const { t } = useTranslation();
   const [loading, setLoading] = useState(false);
+  const [eventDate, setEventDate] = useState<Date | undefined>();
   const [formData, setFormData] = useState({
     title: "",
     description: "",
-    event_date: "",
     location: "",
     image_url: "",
     display_order: "0",
@@ -59,7 +64,6 @@ export const EditEventDialog = ({ event, open, onOpenChange, onEventUpdated }: E
         setFormData({
           title: event.title,
           description: event.description || "",
-          event_date: event.event_date.slice(0, 10),
           location: event.location,
           image_url: event.image_url || "",
           display_order: event.display_order?.toString() || "0",
@@ -70,6 +74,7 @@ export const EditEventDialog = ({ event, open, onOpenChange, onEventUpdated }: E
           parking_quantity: parkingTicket?.available_quantity.toString() || "",
           parking_price: parkingTicket?.price.toString() || "",
         });
+        setEventDate(new Date(event.event_date));
       }
     };
     
@@ -78,7 +83,7 @@ export const EditEventDialog = ({ event, open, onOpenChange, onEventUpdated }: E
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!event) return;
+    if (!event || !eventDate) return;
     
     setLoading(true);
 
@@ -88,7 +93,7 @@ export const EditEventDialog = ({ event, open, onOpenChange, onEventUpdated }: E
         .update({
           title: formData.title,
           description: formData.description,
-          event_date: formData.event_date,
+          event_date: eventDate.toISOString(),
           location: formData.location,
           image_url: formData.image_url || null,
           display_order: parseInt(formData.display_order) || 0,
@@ -188,14 +193,29 @@ export const EditEventDialog = ({ event, open, onOpenChange, onEventUpdated }: E
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="event_date" className="font-lusail">{t("eventDate")}</Label>
-                <Input
-                  id="event_date"
-                  type="date"
-                  value={formData.event_date}
-                  onChange={(e) => setFormData({ ...formData, event_date: e.target.value })}
-                  required
-                  className="font-lusail"
-                />
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        "w-full justify-start text-left font-lusail",
+                        !eventDate && "text-muted-foreground"
+                      )}
+                    >
+                      <CalendarIcon className="ml-2 h-4 w-4" />
+                      {eventDate ? format(eventDate, "dd/MM/yyyy") : <span>اختر التاريخ</span>}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={eventDate}
+                      onSelect={setEventDate}
+                      initialFocus
+                      className="pointer-events-auto"
+                    />
+                  </PopoverContent>
+                </Popover>
               </div>
 
               <div>
