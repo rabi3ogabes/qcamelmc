@@ -24,6 +24,8 @@ export const CreateEventDialog = ({ onEventCreated }: CreateEventDialogProps) =>
     location: "",
     image_url: "",
     display_order: "0",
+    start_time: "",
+    end_time: "",
     vip_quantity: "",
     vip_price: "",
     normal_quantity: "",
@@ -46,6 +48,8 @@ export const CreateEventDialog = ({ onEventCreated }: CreateEventDialogProps) =>
           location: formData.location,
           image_url: formData.image_url || null,
           display_order: parseInt(formData.display_order) || 0,
+          start_time: formData.start_time || null,
+          end_time: formData.end_time || null,
           is_active: true,
         })
         .select()
@@ -123,6 +127,8 @@ export const CreateEventDialog = ({ onEventCreated }: CreateEventDialogProps) =>
         location: "",
         image_url: "",
         display_order: "0",
+        start_time: "",
+        end_time: "",
         vip_quantity: "",
         vip_price: "",
         normal_quantity: "",
@@ -196,6 +202,30 @@ export const CreateEventDialog = ({ onEventCreated }: CreateEventDialogProps) =>
                   value={formData.location}
                   onChange={(e) => setFormData({ ...formData, location: e.target.value })}
                   required
+                  className="font-lusail"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="start_time" className="font-lusail">وقت البداية</Label>
+                <Input
+                  id="start_time"
+                  type="time"
+                  value={formData.start_time}
+                  onChange={(e) => setFormData({ ...formData, start_time: e.target.value })}
+                  className="font-lusail"
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="end_time" className="font-lusail">وقت النهاية</Label>
+                <Input
+                  id="end_time"
+                  type="time"
+                  value={formData.end_time}
+                  onChange={(e) => setFormData({ ...formData, end_time: e.target.value })}
                   className="font-lusail"
                 />
               </div>

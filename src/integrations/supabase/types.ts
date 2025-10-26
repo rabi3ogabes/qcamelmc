@@ -70,11 +70,13 @@ export type Database = {
           created_at: string | null
           description: string | null
           display_order: number | null
+          end_time: string | null
           event_date: string
           id: string
           image_url: string | null
           is_active: boolean | null
           location: string
+          start_time: string | null
           title: string
           updated_at: string | null
           video_url: string | null
@@ -83,11 +85,13 @@ export type Database = {
           created_at?: string | null
           description?: string | null
           display_order?: number | null
+          end_time?: string | null
           event_date: string
           id?: string
           image_url?: string | null
           is_active?: boolean | null
           location: string
+          start_time?: string | null
           title: string
           updated_at?: string | null
           video_url?: string | null
@@ -96,11 +100,13 @@ export type Database = {
           created_at?: string | null
           description?: string | null
           display_order?: number | null
+          end_time?: string | null
           event_date?: string
           id?: string
           image_url?: string | null
           is_active?: boolean | null
           location?: string
+          start_time?: string | null
           title?: string
           updated_at?: string | null
           video_url?: string | null
