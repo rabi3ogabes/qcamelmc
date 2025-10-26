@@ -169,9 +169,9 @@ const EventHome = () => {
                             <div>
                               <p className="font-semibold">التوقيت</p>
                               <p className="text-sm text-muted-foreground">
-                                {event.start_time && `وقت البداية: ${event.start_time}`}
+                                {event.start_time && `وقت البداية: ${event.start_time.slice(0, 5)}`}
                                 {event.start_time && event.end_time && " - "}
-                                {event.end_time && `وقت النهاية: ${event.end_time}`}
+                                {event.end_time && `وقت النهاية: ${event.end_time.slice(0, 5)}`}
                               </p>
                             </div>
                           </div>
