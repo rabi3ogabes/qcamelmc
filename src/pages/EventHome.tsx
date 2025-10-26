@@ -160,7 +160,7 @@ const EventHome = () => {
                     
                     <div className="p-8 flex-1">
                       <h2 className="text-3xl font-bold mb-4 text-center">{event.title}</h2>
-                      <p className="text-muted-foreground mb-6 line-clamp-3 text-center">{event.description}</p>
+                      <p className="text-foreground font-bold mb-6 line-clamp-3 text-center">{event.description}</p>
                       
                       <div className="space-y-4">
                         <div className="flex items-start gap-3">
