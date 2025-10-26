@@ -13,6 +13,8 @@ export const SettingsTab = () => {
   const { t } = useTranslation();
   const [logoUrl, setLogoUrl] = useState("");
   const [newLogoUrl, setNewLogoUrl] = useState("");
+  const [heroImageUrl, setHeroImageUrl] = useState("");
+  const [newHeroImageUrl, setNewHeroImageUrl] = useState("");
   const [headerBgColor, setHeaderBgColor] = useState("hsl(var(--card) / 0.5)");
   const [newHeaderBgColor, setNewHeaderBgColor] = useState("hsl(var(--card) / 0.5)");
   const [webhookUrl, setWebhookUrl] = useState("");
@@ -37,7 +39,7 @@ export const SettingsTab = () => {
   const fetchSettings = async () => {
     const { data, error } = await supabase
       .from("settings")
-      .select("logo_url, header_bg_color, webhook_url, admin_phone, sadad_merchant_id, sadad_api_key, sadad_secret, show_delete_customer_button, show_generate_qr_button")
+      .select("logo_url, hero_image_url, header_bg_color, webhook_url, admin_phone, sadad_merchant_id, sadad_api_key, sadad_secret, show_delete_customer_button, show_generate_qr_button")
       .maybeSingle();
 
     if (error) {
@@ -48,6 +50,11 @@ export const SettingsTab = () => {
     if (data?.logo_url) {
       setLogoUrl(data.logo_url);
       setNewLogoUrl(data.logo_url);
+    }
+
+    if (data?.hero_image_url) {
+      setHeroImageUrl(data.hero_image_url);
+      setNewHeroImageUrl(data.hero_image_url);
     }
     
     if (data?.header_bg_color) {
@@ -88,19 +95,30 @@ export const SettingsTab = () => {
       if (settings) {
         const { error } = await supabase
           .from("settings")
-          .update({ logo_url: newLogoUrl, header_bg_color: newHeaderBgColor, webhook_url: newWebhookUrl })
+          .update({ 
+            logo_url: newLogoUrl, 
+            hero_image_url: newHeroImageUrl,
+            header_bg_color: newHeaderBgColor, 
+            webhook_url: newWebhookUrl 
+          })
           .eq("id", settings.id);
 
         if (error) throw error;
       } else {
         const { error } = await supabase
           .from("settings")
-          .insert({ logo_url: newLogoUrl, header_bg_color: newHeaderBgColor, webhook_url: newWebhookUrl });
+          .insert({ 
+            logo_url: newLogoUrl, 
+            hero_image_url: newHeroImageUrl,
+            header_bg_color: newHeaderBgColor, 
+            webhook_url: newWebhookUrl 
+          });
 
         if (error) throw error;
       }
 
       setLogoUrl(newLogoUrl);
+      setHeroImageUrl(newHeroImageUrl);
       setHeaderBgColor(newHeaderBgColor);
       setWebhookUrl(newWebhookUrl);
       toast.success(t("savedSuccessfully"));
@@ -179,6 +197,79 @@ export const SettingsTab = () => {
       e.target.value = '';
     } catch (error) {
       console.error("Error uploading logo:", error);
+      toast.error("فشل في تحميل الصورة");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleHeroImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.match(/image\/(png|jpeg|jpg)/)) {
+      toast.error("يرجى اختيار صورة PNG أو JPG");
+      return;
+    }
+
+    // Validate file size (10MB max for hero images)
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error("حجم الصورة يجب أن يكون أقل من 10 ميغابايت");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      // Create a unique filename
+      const fileExt = file.name.split('.').pop();
+      const fileName = `hero-${Date.now()}.${fileExt}`;
+      const filePath = `hero-images/${fileName}`;
+
+      // Upload to Supabase storage
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('qr-codes')
+        .upload(filePath, file, {
+          cacheControl: '3600',
+          upsert: true
+        });
+
+      if (uploadError) throw uploadError;
+
+      // Get public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('qr-codes')
+        .getPublicUrl(filePath);
+
+      // Update settings with new hero image URL
+      const { data: settings } = await supabase
+        .from("settings")
+        .select("id")
+        .single();
+
+      if (settings) {
+        const { error } = await supabase
+          .from("settings")
+          .update({ hero_image_url: publicUrl })
+          .eq("id", settings.id);
+
+        if (error) throw error;
+      } else {
+        const { error } = await supabase
+          .from("settings")
+          .insert({ hero_image_url: publicUrl });
+
+        if (error) throw error;
+      }
+
+      setHeroImageUrl(publicUrl);
+      setNewHeroImageUrl(publicUrl);
+      toast.success("تم تحميل صورة الخلفية بنجاح");
+      
+      // Clear the input
+      e.target.value = '';
+    } catch (error) {
+      console.error("Error uploading hero image:", error);
       toast.error("فشل في تحميل الصورة");
     } finally {
       setLoading(false);
@@ -329,6 +420,53 @@ export const SettingsTab = () => {
   return (
     <div className="space-y-6 max-w-4xl">
       <h2 className="text-2xl font-bold font-lusail">{t("settings")}</h2>
+
+      {/* Hero Background Image */}
+      <Card className="p-6">
+        <h3 className="text-lg font-semibold mb-4 font-lusail">صورة خلفية الصفحة الرئيسية</h3>
+        <div className="space-y-4">
+          <div>
+            <Label className="font-lusail">الصورة الحالية</Label>
+            <div className="mt-2 p-8 border-2 border-dashed rounded-lg flex items-center justify-center bg-muted/50">
+              {heroImageUrl ? (
+                <img src={heroImageUrl} alt="Hero Background" className="max-h-48 object-cover rounded" />
+              ) : (
+                <ImageIcon className="w-16 h-16 text-muted-foreground" />
+              )}
+            </div>
+          </div>
+          
+          <div>
+            <Label htmlFor="hero-url" className="font-lusail">رابط صورة الخلفية</Label>
+            <div className="mt-2">
+              <Input 
+                id="hero-url" 
+                type="url" 
+                placeholder="https://example.com/hero-image.jpg"
+                value={newHeroImageUrl}
+                onChange={(e) => setNewHeroImageUrl(e.target.value)}
+                className="font-lusail" 
+              />
+            </div>
+          </div>
+          
+          <div>
+            <Label htmlFor="hero-file" className="font-lusail">أو تحميل صورة (PNG/JPG)</Label>
+            <div className="mt-2">
+              <Input 
+                id="hero-file" 
+                type="file" 
+                accept="image/png,image/jpeg,image/jpg"
+                onChange={handleHeroImageUpload}
+                className="font-lusail cursor-pointer" 
+              />
+              <p className="text-xs text-muted-foreground mt-1 font-lusail">
+                اختر صورة PNG أو JPG (حد أقصى 10 ميغابايت) - يفضل 1920x1080 بكسل
+              </p>
+            </div>
+          </div>
+        </div>
+      </Card>
 
       {/* Logo Upload */}
       <Card className="p-6">

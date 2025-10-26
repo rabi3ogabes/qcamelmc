@@ -24,6 +24,7 @@ const EventHome = () => {
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
+  const [heroImageUrl, setHeroImageUrl] = useState<string | null>(null);
   const [headerBgColor, setHeaderBgColor] = useState<string>("hsl(var(--card) / 0.5)");
   const navigate = useNavigate();
 
@@ -35,7 +36,7 @@ const EventHome = () => {
   const fetchSettings = async () => {
     const { data, error } = await supabase
       .from("settings")
-      .select("logo_url, header_bg_color")
+      .select("logo_url, hero_image_url, header_bg_color")
       .maybeSingle();
 
     if (error) {
@@ -45,6 +46,10 @@ const EventHome = () => {
 
     if (data?.logo_url) {
       setLogoUrl(data.logo_url);
+    }
+
+    if (data?.hero_image_url) {
+      setHeroImageUrl(data.hero_image_url);
     }
     
     if (data?.header_bg_color) {
@@ -113,7 +118,7 @@ const EventHome = () => {
           <div className="relative h-[70vh] overflow-hidden">
             <div 
               className="absolute inset-0 bg-cover bg-center"
-              style={{ backgroundImage: `url(${heroImage})` }}
+              style={{ backgroundImage: `url(${heroImageUrl || heroImage})` }}
             >
               <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/40 to-background" />
             </div>

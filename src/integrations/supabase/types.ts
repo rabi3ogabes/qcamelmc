@@ -208,6 +208,7 @@ export type Database = {
           admin_phone: string | null
           created_at: string | null
           header_bg_color: string | null
+          hero_image_url: string | null
           id: string
           logo_url: string | null
           sadad_api_key: string | null
@@ -222,6 +223,7 @@ export type Database = {
           admin_phone?: string | null
           created_at?: string | null
           header_bg_color?: string | null
+          hero_image_url?: string | null
           id?: string
           logo_url?: string | null
           sadad_api_key?: string | null
@@ -236,6 +238,7 @@ export type Database = {
           admin_phone?: string | null
           created_at?: string | null
           header_bg_color?: string | null
+          hero_image_url?: string | null
           id?: string
           logo_url?: string | null
           sadad_api_key?: string | null
@@ -347,18 +350,9 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      generate_booking_reference: {
-        Args: Record<PropertyKey, never>
-        Returns: string
-      }
-      generate_ticket_holder_reference: {
-        Args: Record<PropertyKey, never>
-        Returns: string
-      }
-      is_admin: {
-        Args: { user_id: string }
-        Returns: boolean
-      }
+      generate_booking_reference: { Args: never; Returns: string }
+      generate_ticket_holder_reference: { Args: never; Returns: string }
+      is_admin: { Args: { user_id: string }; Returns: boolean }
     }
     Enums: {
       payment_method: "sadad" | "cash_pos"
