@@ -336,8 +336,8 @@ const TicketSelection = () => {
           {/* Right Column - Ticket Selection */}
           <div className="space-y-4 sm:space-y-6">
           {tickets.map((ticket) => (
-            <Card key={ticket.id} className="p-4 sm:p-6 hover:shadow-lg transition-shadow">
-              <div className="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-6">
+            <Card key={ticket.id} className="p-4 sm:p-6 hover:shadow-lg transition-shadow flex flex-col min-h-[180px]">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-6 flex-1">
                 <div className="flex items-start sm:items-center gap-4 flex-1">
                   <div className="p-3 sm:p-4 bg-muted rounded-lg shrink-0">
                     {getTicketIcon(ticket.type)}
