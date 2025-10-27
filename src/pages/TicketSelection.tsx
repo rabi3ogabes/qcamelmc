@@ -284,7 +284,7 @@ const TicketSelection = () => {
 
         <div className="grid grid-cols-1 lg:grid-cols-[300px_1fr] gap-6 mb-6 sm:mb-8">
           {/* Left Column - Availability Summary */}
-          <div className="hidden">
+          <div>
             <Card className="overflow-hidden bg-gradient-to-br from-primary/5 to-secondary/5 border-primary/20 h-full">
               {/* Red Header Banner */}
               <div className="px-4 py-3 text-center" style={{ backgroundColor: headerBgColor }}>
