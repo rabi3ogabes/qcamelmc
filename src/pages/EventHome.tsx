@@ -144,7 +144,7 @@ const EventHome = () => {
             <div className="relative h-full flex items-center justify-center px-4">
               {heroText && (
                 <div className="text-center z-10">
-                  <h1 className="text-4xl md:text-6xl font-bold text-white mb-4 drop-shadow-lg whitespace-pre-line">
+                  <h1 className="text-4xl md:text-6xl font-bold text-white mb-4 mt-12 drop-shadow-lg whitespace-pre-line">
                     {heroText}
                   </h1>
                 </div>
