@@ -7,6 +7,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { ArrowLeft, Download, Loader2, QrCode as QrCodeIcon, Send, Ticket } from "lucide-react";
 import { toast } from "sonner";
 import QRCodeLib from "qrcode";
+import { Footer } from "@/components/Footer";
 
 interface TicketHolder {
   id: string;
@@ -799,6 +800,7 @@ const TicketViewer = () => {
         </Dialog>
       </div>
       </div>
+      <Footer />
     </div>
   );
 };

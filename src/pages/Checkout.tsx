@@ -10,6 +10,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { CreditCard, Banknote, Loader2, Plus, Minus } from "lucide-react";
+import { Footer } from "@/components/Footer";
 
 const ARABIC_COUNTRIES = [
   "السعودية",
@@ -848,6 +849,7 @@ const Checkout = () => {
           </div>
         </div>
       </div>
+      <Footer />
     </div>
   );
 };

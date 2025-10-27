@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { CheckCircle, Clock } from "lucide-react";
+import { Footer } from "@/components/Footer";
 
 interface Order {
   id: string;
@@ -174,6 +175,7 @@ const Confirmation = () => {
           </Button>
         </div>
       </div>
+      <Footer />
     </div>
   );
 };

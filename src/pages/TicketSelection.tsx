@@ -11,6 +11,7 @@ import { Crown, Users, Car, ArrowRight, Plus, Minus } from "lucide-react";
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
 import { PopupBanner } from "@/components/PopupBanner";
+import { Footer } from "@/components/Footer";
 
 interface Ticket {
   id: string;
@@ -362,6 +363,7 @@ const TicketSelection = () => {
           </Button>
         </div>
       </div>
+      <Footer />
     </div>
   );
 };
