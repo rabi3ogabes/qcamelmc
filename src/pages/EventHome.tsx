@@ -258,12 +258,12 @@ const EventHome = () => {
                     <img 
                       src={visaLogo} 
                       alt="Visa" 
-                      className="h-6 object-contain"
+                      className="h-6 object-contain brightness-0 invert"
                     />
                     <img 
                       src={mastercardLogo} 
                       alt="Mastercard" 
-                      className="h-6 object-contain"
+                      className="h-6 object-contain brightness-0 invert"
                     />
                     <img 
                       src={applePayLogo} 
@@ -274,7 +274,7 @@ const EventHome = () => {
                     <img 
                       src={sadadLogo} 
                       alt="Sadad Payment" 
-                      className="h-8 object-contain"
+                      className="h-8 object-contain brightness-0 invert"
                     />
                   </div>
                 </div>
