@@ -336,17 +336,21 @@ const TicketSelection = () => {
           {/* Right Column - Ticket Selection */}
           <div className="space-y-4 sm:space-y-6">
           {tickets.map((ticket) => (
-            <Card key={ticket.id} className="p-4 sm:p-6 hover:shadow-lg transition-shadow flex flex-col min-h-[180px]">
-              <div className="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-6 flex-1">
+            <Card key={ticket.id} className="overflow-hidden hover:shadow-lg transition-shadow flex flex-col min-h-[180px]">
+              {/* Header Banner */}
+              <div className="px-4 py-2" style={{ backgroundColor: headerBgColor }}>
+                <h3 className="text-base font-bold text-white text-center">
+                  {getTicketTitle(ticket.type)}
+                </h3>
+              </div>
+              
+              <div className="p-4 sm:p-6 flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-6 flex-1">
                 <div className="flex items-start sm:items-center gap-4 flex-1">
                   <div className="p-3 sm:p-4 bg-muted rounded-lg shrink-0">
                     {getTicketIcon(ticket.type)}
                   </div>
                   
                   <div className="flex-1 min-w-0">
-                    <h3 className="text-lg sm:text-xl font-semibold mb-1">
-                      {getTicketTitle(ticket.type)}
-                    </h3>
                     <p className="text-xs sm:text-sm text-muted-foreground mb-2">
                       {getTicketDescription(ticket.type)}
                     </p>
