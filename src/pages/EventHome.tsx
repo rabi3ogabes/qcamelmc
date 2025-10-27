@@ -268,7 +268,7 @@ const EventHome = () => {
                     <img 
                       src={applePayLogo} 
                       alt="Apple Pay" 
-                      className="h-6 object-contain"
+                      className="h-6 object-contain brightness-0 invert"
                     />
                     <div className="h-6 w-px bg-white/30 mx-1" />
                     <img 
