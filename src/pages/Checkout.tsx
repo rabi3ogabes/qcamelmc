@@ -302,7 +302,7 @@ const Checkout = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!customerInfo.name || !customerInfo.email || !customerInfo.phone || !customerInfo.nationality || !customerInfo.idNumber) {
+    if (!customerInfo.name || !customerInfo.phone || !customerInfo.nationality || !customerInfo.idNumber) {
       toast.error("Please fill in all customer information");
       return;
     }
