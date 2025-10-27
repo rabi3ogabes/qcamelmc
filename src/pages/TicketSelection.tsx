@@ -103,17 +103,22 @@ const TicketSelection = () => {
       const { data, error } = await supabase
         .from("tickets")
         .select("*")
-        .eq("event_id", eventId)
-        .order("price", { ascending: false });
+        .eq("event_id", eventId);
 
       if (error) throw error;
       
+      // Sort tickets in the desired order: VIP, Normal, Parking
+      const sortedData = data?.sort((a, b) => {
+        const order = { vip: 0, normal: 1, parking: 2 };
+        return order[a.type] - order[b.type];
+      });
+
       // Ensure we have exactly 3 ticket types
-      if (!data || data.length !== 3) {
+      if (!sortedData || sortedData.length !== 3) {
         toast.error("هذه الفعالية لا تحتوي على جميع أنواع التذاكر المطلوبة");
       }
       
-      setTickets(data || []);
+      setTickets(sortedData || []);
     } catch (error) {
       console.error("Error fetching tickets:", error);
       toast.error("Failed to load tickets");
@@ -336,7 +341,7 @@ const TicketSelection = () => {
           {/* Right Column - Ticket Selection */}
           <div className="space-y-4 sm:space-y-6">
           {tickets.map((ticket) => (
-            <Card key={ticket.id} className="overflow-hidden hover:shadow-lg transition-shadow flex flex-col min-h-[180px]">
+            <Card key={ticket.id} className="overflow-hidden hover:shadow-lg transition-shadow flex flex-col min-h-[220px]">
               {/* Header Banner */}
               <div className="px-4 py-2" style={{ backgroundColor: headerBgColor }}>
                 <h3 className="text-base font-bold text-white text-center">
