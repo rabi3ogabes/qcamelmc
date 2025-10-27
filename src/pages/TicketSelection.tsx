@@ -253,7 +253,7 @@ const TicketSelection = () => {
       <PopupBanner />
       
       {/* Header */}
-      <header className="border-b backdrop-blur-sm sticky top-0 z-10 bg-background" style={{ backgroundColor: headerBgColor }}>
+      <header className="backdrop-blur-sm sticky top-0 z-10 bg-background" style={{ backgroundColor: headerBgColor }}>
         <div className="container mx-auto px-4 py-4 flex justify-center items-center">
           {logoUrl && (
             <img 
