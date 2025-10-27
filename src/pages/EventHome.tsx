@@ -175,7 +175,7 @@ const EventHome = () => {
                       <p className="text-foreground font-bold mb-6 line-clamp-3 text-center">{event.description}</p>
                       
                       <div className="space-y-4">
-                        <div className="flex items-start gap-3">
+                        <div className="hidden">
                           <Calendar className="w-5 h-5 text-primary mt-1" />
                           <div>
                             <p className="font-semibold">{t('eventDateTime')}</p>
