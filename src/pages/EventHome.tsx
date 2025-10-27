@@ -9,6 +9,9 @@ import { format } from "date-fns";
 import { ar } from "date-fns/locale";
 import heroImage from "@/assets/qatar-event-hero.jpg";
 import sadadLogo from "@/assets/sadad-logo.png";
+import visaLogo from "@/assets/visa-logo.png";
+import mastercardLogo from "@/assets/mastercard-logo.png";
+import applePayLogo from "@/assets/applepay-logo.png";
 import { PopupBanner } from "@/components/PopupBanner";
 import { Shield } from "lucide-react";
 
@@ -31,6 +34,7 @@ const EventHome = () => {
   const [heroImageUrl, setHeroImageUrl] = useState<string | null>(null);
   const [headerBgColor, setHeaderBgColor] = useState<string>("hsl(var(--card) / 0.5)");
   const [heroText, setHeroText] = useState<string>("");
+  const [copyrightText, setCopyrightText] = useState<string>("جميع الحقوق محفوظة");
   const navigate = useNavigate();
 
   const formatTime12Hour = (time24: string) => {
@@ -50,7 +54,7 @@ const EventHome = () => {
   const fetchSettings = async () => {
     const { data, error } = await supabase
       .from("settings")
-      .select("logo_url, hero_image_url, header_bg_color, hero_text")
+      .select("logo_url, hero_image_url, header_bg_color, hero_text, copyright_text")
       .maybeSingle();
 
     if (error) {
@@ -72,6 +76,10 @@ const EventHome = () => {
 
     if (data?.hero_text) {
       setHeroText(data.hero_text);
+    }
+
+    if (data?.copyright_text) {
+      setCopyrightText(data.copyright_text);
     }
   };
 
@@ -232,23 +240,43 @@ const EventHome = () => {
               <div className="flex flex-col md:flex-row justify-between items-center gap-6">
                 {/* Copyright */}
                 <div className="text-center md:text-right">
-                  <p className="text-sm text-muted-foreground">
-                    © {new Date().getFullYear()} جميع الحقوق محفوظة
+                  <p className="text-sm text-white">
+                    © {new Date().getFullYear()} {copyrightText}
                   </p>
                 </div>
 
                 {/* Payment Security */}
                 <div className="flex items-center gap-4">
                   <div className="flex items-center gap-2">
-                    <Shield className="w-5 h-5 text-primary" />
-                    <span className="text-sm font-semibold">دفع آمن ومحمي</span>
+                    <Shield className="w-5 h-5 text-white" />
+                    <span className="text-sm font-semibold text-white">دفع آمن ومحمي</span>
                   </div>
-                  <div className="h-8 w-px bg-border" />
-                  <img 
-                    src={sadadLogo} 
-                    alt="Sadad Payment" 
-                    className="h-8 object-contain"
-                  />
+                  <div className="h-8 w-px bg-white/30" />
+                  
+                  {/* Payment Methods */}
+                  <div className="flex items-center gap-2">
+                    <img 
+                      src={visaLogo} 
+                      alt="Visa" 
+                      className="h-6 object-contain"
+                    />
+                    <img 
+                      src={mastercardLogo} 
+                      alt="Mastercard" 
+                      className="h-6 object-contain"
+                    />
+                    <img 
+                      src={applePayLogo} 
+                      alt="Apple Pay" 
+                      className="h-6 object-contain"
+                    />
+                    <div className="h-6 w-px bg-white/30 mx-1" />
+                    <img 
+                      src={sadadLogo} 
+                      alt="Sadad Payment" 
+                      className="h-8 object-contain"
+                    />
+                  </div>
                 </div>
               </div>
             </div>

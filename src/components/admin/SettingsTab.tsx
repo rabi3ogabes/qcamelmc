@@ -19,6 +19,8 @@ export const SettingsTab = () => {
   const [newHeaderBgColor, setNewHeaderBgColor] = useState("hsl(var(--card) / 0.5)");
   const [heroText, setHeroText] = useState("");
   const [newHeroText, setNewHeroText] = useState("");
+  const [copyrightText, setCopyrightText] = useState("");
+  const [newCopyrightText, setNewCopyrightText] = useState("");
   const [webhookUrl, setWebhookUrl] = useState("");
   const [newWebhookUrl, setNewWebhookUrl] = useState("");
   const [adminPhone, setAdminPhone] = useState("");
@@ -41,7 +43,7 @@ export const SettingsTab = () => {
   const fetchSettings = async () => {
     const { data, error } = await supabase
       .from("settings")
-      .select("logo_url, hero_image_url, header_bg_color, hero_text, webhook_url, admin_phone, sadad_merchant_id, sadad_api_key, sadad_secret, show_delete_customer_button, show_generate_qr_button")
+      .select("logo_url, hero_image_url, header_bg_color, hero_text, copyright_text, webhook_url, admin_phone, sadad_merchant_id, sadad_api_key, sadad_secret, show_delete_customer_button, show_generate_qr_button")
       .maybeSingle();
 
     if (error) {
@@ -67,6 +69,11 @@ export const SettingsTab = () => {
     if (data?.hero_text) {
       setHeroText(data.hero_text);
       setNewHeroText(data.hero_text);
+    }
+
+    if (data?.copyright_text) {
+      setCopyrightText(data.copyright_text);
+      setNewCopyrightText(data.copyright_text);
     }
 
     if (data?.webhook_url) {
@@ -107,6 +114,7 @@ export const SettingsTab = () => {
             hero_image_url: newHeroImageUrl,
             header_bg_color: newHeaderBgColor,
             hero_text: newHeroText,
+            copyright_text: newCopyrightText,
             webhook_url: newWebhookUrl 
           })
           .eq("id", settings.id);
@@ -120,6 +128,7 @@ export const SettingsTab = () => {
             hero_image_url: newHeroImageUrl,
             header_bg_color: newHeaderBgColor,
             hero_text: newHeroText,
+            copyright_text: newCopyrightText,
             webhook_url: newWebhookUrl 
           });
 
@@ -130,6 +139,7 @@ export const SettingsTab = () => {
       setHeroImageUrl(newHeroImageUrl);
       setHeaderBgColor(newHeaderBgColor);
       setHeroText(newHeroText);
+      setCopyrightText(newCopyrightText);
       setWebhookUrl(newWebhookUrl);
       toast.success(t("savedSuccessfully"));
     } catch (error) {
@@ -560,6 +570,23 @@ export const SettingsTab = () => {
               />
               <p className="text-xs text-muted-foreground mt-1 font-lusail">
                 النص الذي سيظهر في منتصف صورة الخلفية على الصفحة الرئيسية
+              </p>
+            </div>
+          </div>
+          
+          <div>
+            <Label htmlFor="copyright-text" className="font-lusail">نص حقوق الطبع</Label>
+            <div className="mt-2">
+              <Input 
+                id="copyright-text" 
+                type="text" 
+                placeholder="جميع الحقوق محفوظة"
+                value={newCopyrightText}
+                onChange={(e) => setNewCopyrightText(e.target.value)}
+                className="font-lusail" 
+              />
+              <p className="text-xs text-muted-foreground mt-1 font-lusail">
+                النص الذي سيظهر في تذييل الصفحة
               </p>
             </div>
           </div>

@@ -215,6 +215,7 @@ export type Database = {
       settings: {
         Row: {
           admin_phone: string | null
+          copyright_text: string | null
           created_at: string | null
           header_bg_color: string | null
           hero_image_url: string | null
@@ -231,6 +232,7 @@ export type Database = {
         }
         Insert: {
           admin_phone?: string | null
+          copyright_text?: string | null
           created_at?: string | null
           header_bg_color?: string | null
           hero_image_url?: string | null
@@ -247,6 +249,7 @@ export type Database = {
         }
         Update: {
           admin_phone?: string | null
+          copyright_text?: string | null
           created_at?: string | null
           header_bg_color?: string | null
           hero_image_url?: string | null
