@@ -340,7 +340,7 @@ const TicketSelection = () => {
           </div>
 
           {/* Right Column - Ticket Selection */}
-          <div className="space-y-4 sm:space-y-6">
+          <div className="space-y-4 sm:space-y-6 w-[80%] mx-auto">
           {tickets.map((ticket) => (
             <Card key={ticket.id} className="overflow-hidden hover:shadow-lg transition-shadow flex flex-col min-h-[180px]">
               {/* Header Banner */}
