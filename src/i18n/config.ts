@@ -158,7 +158,7 @@ const resources = {
       "selectYourTickets": "اختر تذاكرك",
       
       // Ticket Selection Page
-      "selectTicketsTitle": "اختر تذاكرك",
+      "selectTicketsTitle": "اختر تذكرتك",
       "chooseQuantity": "اختر الكمية لكل نوع تذكرة",
       "vipAccessTitle": "دخول VIP",
       "vipAccessDesc": "مقاعد مميزة، وصول حصري، مشروبات مجانية",
