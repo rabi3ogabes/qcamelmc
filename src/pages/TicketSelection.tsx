@@ -279,11 +279,17 @@ const TicketSelection = () => {
         <div className="grid grid-cols-1 lg:grid-cols-[300px_1fr] gap-6 mb-6 sm:mb-8">
           {/* Left Column - Availability Summary */}
           <div className="lg:sticky lg:top-24 lg:self-start">
-            <Card className="p-4 sm:p-6 bg-gradient-to-br from-primary/5 to-secondary/5 border-primary/20">
-              <h3 className="text-lg sm:text-xl font-bold mb-4 text-center">
-                التذاكر المتاحة
-              </h3>
-              <div className="space-y-3">
+            <Card className="overflow-hidden bg-gradient-to-br from-primary/5 to-secondary/5 border-primary/20 h-full">
+              {/* Red Header Banner */}
+              <div className="px-4 py-3 text-center" style={{ backgroundColor: headerBgColor }}>
+                <h3 className="text-lg sm:text-xl font-bold text-white">
+                  التذاكر المتاحة
+                </h3>
+              </div>
+              
+              {/* Content */}
+              <div className="p-4 sm:p-6">
+                <div className="space-y-3">
                 {tickets.map((ticket) => {
                   const remaining = ticket.available_quantity - ticket.sold_quantity;
                   const percentageLeft = (remaining / ticket.available_quantity) * 100;
@@ -322,6 +328,7 @@ const TicketSelection = () => {
                     </div>
                   );
                 })}
+                </div>
               </div>
             </Card>
           </div>
