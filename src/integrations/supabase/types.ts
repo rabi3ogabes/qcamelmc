@@ -326,6 +326,7 @@ export type Database = {
         Row: {
           available_quantity: number
           created_at: string | null
+          description: string | null
           event_id: string
           id: string
           price: number
@@ -335,6 +336,7 @@ export type Database = {
         Insert: {
           available_quantity: number
           created_at?: string | null
+          description?: string | null
           event_id: string
           id?: string
           price: number
@@ -344,6 +346,7 @@ export type Database = {
         Update: {
           available_quantity?: number
           created_at?: string | null
+          description?: string | null
           event_id?: string
           id?: string
           price?: number

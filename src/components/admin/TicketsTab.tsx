@@ -15,6 +15,7 @@ interface TicketType {
   available_quantity: number;
   sold_quantity: number;
   event_id: string;
+  description: string | null;
   events?: {
     title: string;
     event_date: string;

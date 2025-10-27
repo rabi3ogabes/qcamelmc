@@ -3,6 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { useTranslation } from "react-i18next";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -14,6 +15,7 @@ interface Ticket {
   available_quantity: number;
   sold_quantity: number;
   event_id: string;
+  description: string | null;
 }
 
 interface EditTicketDialogProps {
@@ -27,12 +29,14 @@ export const EditTicketDialog = ({ ticket, open, onOpenChange, onTicketUpdated }
   const { t } = useTranslation();
   const [price, setPrice] = useState("");
   const [availableQuantity, setAvailableQuantity] = useState("");
+  const [description, setDescription] = useState("");
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     if (ticket) {
       setPrice(ticket.price.toString());
       setAvailableQuantity(ticket.available_quantity.toString());
+      setDescription(ticket.description || "");
     }
   }, [ticket]);
 
@@ -46,7 +50,8 @@ export const EditTicketDialog = ({ ticket, open, onOpenChange, onTicketUpdated }
         .from("tickets")
         .update({
           price: parseFloat(price),
-          available_quantity: parseInt(availableQuantity)
+          available_quantity: parseInt(availableQuantity),
+          description: description.trim() || null
         })
         .eq("id", ticket.id);
 
@@ -116,6 +121,21 @@ export const EditTicketDialog = ({ ticket, open, onOpenChange, onTicketUpdated }
             />
             <p className="text-xs text-muted-foreground mt-1">
               تم بيع {ticket.sold_quantity} تذكرة حتى الآن
+            </p>
+          </div>
+
+          <div>
+            <Label htmlFor="description" className="font-lusail">الوصف</Label>
+            <Textarea
+              id="description"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="أدخل وصف التذكرة (اختياري)"
+              className="mt-2 font-lusail"
+              rows={3}
+            />
+            <p className="text-xs text-muted-foreground mt-1">
+              إذا لم يتم إدخال وصف، سيتم استخدام الوصف الافتراضي
             </p>
           </div>
 

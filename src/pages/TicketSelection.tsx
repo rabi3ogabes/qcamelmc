@@ -20,6 +20,7 @@ interface Ticket {
   available_quantity: number;
   sold_quantity: number;
   event_id: string;
+  description: string | null;
 }
 
 interface TicketSelection {
@@ -194,8 +195,13 @@ const TicketSelection = () => {
     }
   };
 
-  const getTicketDescription = (type: string) => {
-    switch (type) {
+  const getTicketDescription = (ticket: Ticket) => {
+    // Use custom description if available, otherwise fall back to translation
+    if (ticket.description) {
+      return ticket.description;
+    }
+    
+    switch (ticket.type) {
       case "vip":
         return t('vipAccessDesc');
       case "normal":
@@ -352,7 +358,7 @@ const TicketSelection = () => {
                   
                   <div className="flex-1 min-w-0">
                     <p className="text-xs sm:text-sm text-muted-foreground mb-2">
-                      {getTicketDescription(ticket.type)}
+                      {getTicketDescription(ticket)}
                     </p>
                     <p className="text-xs sm:text-sm text-muted-foreground">
                       {t('availableTickets')}: {ticket.available_quantity - ticket.sold_quantity}
