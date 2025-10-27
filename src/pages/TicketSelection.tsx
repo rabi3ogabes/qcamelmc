@@ -287,7 +287,7 @@ const TicketSelection = () => {
           <div>
             <Card className="overflow-hidden bg-gradient-to-br from-primary/5 to-secondary/5 border-primary/20 h-full">
               {/* Red Header Banner */}
-              <div className="px-4 py-3 text-center" style={{ backgroundColor: headerBgColor }}>
+              <div className="px-4 py-3 text-center hidden" style={{ backgroundColor: headerBgColor }}>
                 <h3 className="text-lg sm:text-xl font-bold text-white">
                   التذاكر المتاحة
                 </h3>
