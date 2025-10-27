@@ -294,7 +294,7 @@ const TicketSelection = () => {
               </div>
               
               {/* Content */}
-              <div className="p-4 sm:p-6">
+              <div className="p-4 sm:p-6 hidden">
                 <div className="space-y-3">
                 {tickets.map((ticket) => {
                   const remaining = ticket.available_quantity - ticket.sold_quantity;
