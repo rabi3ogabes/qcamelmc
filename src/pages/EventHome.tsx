@@ -8,7 +8,9 @@ import { Calendar, MapPin, Ticket, Lock, ExternalLink } from "lucide-react";
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
 import heroImage from "@/assets/qatar-event-hero.jpg";
+import sadadLogo from "@/assets/sadad-logo.png";
 import { PopupBanner } from "@/components/PopupBanner";
+import { Shield } from "lucide-react";
 
 interface Event {
   id: string;
@@ -223,6 +225,34 @@ const EventHome = () => {
               </div>
             </div>
           </div>
+
+          {/* Footer */}
+          <footer className="border-t bg-card/50 backdrop-blur-sm mt-16">
+            <div className="container mx-auto px-4 py-8">
+              <div className="flex flex-col md:flex-row justify-between items-center gap-6">
+                {/* Copyright */}
+                <div className="text-center md:text-right">
+                  <p className="text-sm text-muted-foreground">
+                    © {new Date().getFullYear()} جميع الحقوق محفوظة
+                  </p>
+                </div>
+
+                {/* Payment Security */}
+                <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-2">
+                    <Shield className="w-5 h-5 text-primary" />
+                    <span className="text-sm font-semibold">دفع آمن ومحمي</span>
+                  </div>
+                  <div className="h-8 w-px bg-border" />
+                  <img 
+                    src={sadadLogo} 
+                    alt="Sadad Payment" 
+                    className="h-8 object-contain"
+                  />
+                </div>
+              </div>
+            </div>
+          </footer>
         </>
       )}
     </div>
