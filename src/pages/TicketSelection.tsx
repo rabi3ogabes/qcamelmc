@@ -270,7 +270,7 @@ const TicketSelection = () => {
         {event && (
           <div className="text-center mb-8 sm:mb-12">
             <h1 className="text-3xl sm:text-4xl font-bold mb-3 sm:mb-4">{event.title}</h1>
-            <p className="text-sm sm:text-base text-muted-foreground mb-2">
+            <p className="text-sm sm:text-base text-muted-foreground mb-2 hidden">
               {format(new Date(event.event_date), "EEEE، d MMMM، yyyy - h:mm a", { locale: ar })}
             </p>
             <p className="text-sm sm:text-base text-muted-foreground">{event.location}</p>
