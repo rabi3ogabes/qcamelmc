@@ -227,7 +227,7 @@ const EventHome = () => {
           </div>
 
           {/* Footer */}
-          <footer className="border-t bg-card/50 backdrop-blur-sm mt-16">
+          <footer className="border-t backdrop-blur-sm mt-16" style={{ backgroundColor: headerBgColor }} dir="rtl">
             <div className="container mx-auto px-4 py-8">
               <div className="flex flex-col md:flex-row justify-between items-center gap-6">
                 {/* Copyright */}
