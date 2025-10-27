@@ -260,7 +260,7 @@ const TicketSelection = () => {
         </div>
       </header>
 
-      <div className="max-w-4xl mx-auto py-6 sm:py-12 px-4">
+      <div className="max-w-7xl mx-auto py-6 sm:py-12 px-4">
         {event && (
           <div className="text-center mb-8 sm:mb-12">
             <h1 className="text-3xl sm:text-4xl font-bold mb-3 sm:mb-4">{event.title}</h1>
@@ -276,7 +276,58 @@ const TicketSelection = () => {
           <p className="text-sm sm:text-base text-muted-foreground">{t('chooseQuantity')}</p>
         </div>
 
-        <div className="space-y-4 sm:space-y-6 mb-6 sm:mb-8">
+        <div className="grid grid-cols-1 lg:grid-cols-[300px_1fr] gap-6 mb-6 sm:mb-8">
+          {/* Left Column - Availability Summary */}
+          <div className="lg:sticky lg:top-24 lg:self-start">
+            <Card className="p-4 sm:p-6 bg-gradient-to-br from-primary/5 to-secondary/5 border-primary/20">
+              <h3 className="text-lg sm:text-xl font-bold mb-4 text-center">
+                التذاكر المتاحة
+              </h3>
+              <div className="space-y-3">
+                {tickets.map((ticket) => {
+                  const remaining = ticket.available_quantity - ticket.sold_quantity;
+                  const percentageLeft = (remaining / ticket.available_quantity) * 100;
+                  const isLow = percentageLeft < 20;
+                  
+                  return (
+                    <div key={ticket.id} className="bg-background/50 rounded-lg p-3 backdrop-blur-sm">
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-2">
+                          <div className="p-2 bg-muted rounded">
+                            {getTicketIcon(ticket.type)}
+                          </div>
+                          <span className="font-semibold text-sm">
+                            {getTicketTitle(ticket.type)}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className={`text-2xl font-bold ${isLow ? 'text-destructive' : 'text-primary'}`}>
+                          {remaining}
+                        </span>
+                        <span className="text-xs text-muted-foreground">
+                          من أصل {ticket.available_quantity}
+                        </span>
+                      </div>
+                      {isLow && remaining > 0 && (
+                        <p className="text-xs text-destructive mt-1 font-medium">
+                          ⚠ تذاكر محدودة!
+                        </p>
+                      )}
+                      {remaining === 0 && (
+                        <p className="text-xs text-destructive mt-1 font-medium">
+                          ✕ نفذت الكمية
+                        </p>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </Card>
+          </div>
+
+          {/* Right Column - Ticket Selection */}
+          <div className="space-y-4 sm:space-y-6">
           {tickets.map((ticket) => (
             <Card key={ticket.id} className="p-4 sm:p-6 hover:shadow-lg transition-shadow">
               <div className="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-6">
@@ -337,6 +388,7 @@ const TicketSelection = () => {
               </div>
             </Card>
           ))}
+          </div>
         </div>
 
         <Card className="p-4 sm:p-6 bg-primary/5 border-primary/20">
