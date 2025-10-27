@@ -282,7 +282,7 @@ const TicketSelection = () => {
           <p className="text-sm sm:text-base text-muted-foreground">{t('chooseQuantity')}</p>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-[300px_1fr] gap-6 mb-6 sm:mb-8">
+        <div className="mb-6 sm:mb-8">
           {/* Left Column - Availability Summary */}
           <div>
             <Card className="overflow-hidden bg-gradient-to-br from-primary/5 to-secondary/5 border-primary/20 h-full">
