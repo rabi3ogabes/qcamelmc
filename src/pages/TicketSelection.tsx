@@ -342,7 +342,7 @@ const TicketSelection = () => {
           {/* Right Column - Ticket Selection */}
           <div className="space-y-4 sm:space-y-6 w-[80%] mx-auto">
           {tickets.map((ticket) => (
-            <Card key={ticket.id} className="overflow-hidden hover:shadow-lg transition-shadow flex flex-col min-h-[180px] border-0">
+            <Card key={ticket.id} className="overflow-hidden shadow-md hover:shadow-lg transition-shadow flex flex-col min-h-[180px] border-0">
               {/* Header Banner */}
               <div className="px-4 py-2" style={{ backgroundColor: headerBgColor }}>
                 <h3 className="text-base font-bold text-white text-center">
