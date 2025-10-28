@@ -225,6 +225,7 @@ export type Database = {
           sadad_api_key: string | null
           sadad_merchant_id: string | null
           sadad_secret: string | null
+          sadad_website_domain: string | null
           show_delete_customer_button: boolean | null
           show_generate_qr_button: boolean | null
           updated_at: string | null
@@ -242,6 +243,7 @@ export type Database = {
           sadad_api_key?: string | null
           sadad_merchant_id?: string | null
           sadad_secret?: string | null
+          sadad_website_domain?: string | null
           show_delete_customer_button?: boolean | null
           show_generate_qr_button?: boolean | null
           updated_at?: string | null
@@ -259,6 +261,7 @@ export type Database = {
           sadad_api_key?: string | null
           sadad_merchant_id?: string | null
           sadad_secret?: string | null
+          sadad_website_domain?: string | null
           show_delete_customer_button?: boolean | null
           show_generate_qr_button?: boolean | null
           updated_at?: string | null

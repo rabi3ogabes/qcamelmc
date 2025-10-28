@@ -28,6 +28,7 @@ export const SettingsTab = () => {
   const [sadadMerchantId, setSadadMerchantId] = useState("");
   const [sadadApiKey, setSadadApiKey] = useState("");
   const [sadadSecret, setSadadSecret] = useState("");
+  const [sadadWebsiteDomain, setSadadWebsiteDomain] = useState("");
   const [loading, setLoading] = useState(false);
   const [savingPhone, setSavingPhone] = useState(false);
   const [savingSadad, setSavingSadad] = useState(false);
@@ -43,7 +44,7 @@ export const SettingsTab = () => {
   const fetchSettings = async () => {
     const { data, error } = await supabase
       .from("settings")
-      .select("logo_url, hero_image_url, header_bg_color, hero_text, copyright_text, webhook_url, admin_phone, sadad_merchant_id, sadad_api_key, sadad_secret, show_delete_customer_button, show_generate_qr_button")
+      .select("logo_url, hero_image_url, header_bg_color, hero_text, copyright_text, webhook_url, admin_phone, sadad_merchant_id, sadad_api_key, sadad_secret, sadad_website_domain, show_delete_customer_button, show_generate_qr_button")
       .maybeSingle();
 
     if (error) {
@@ -89,6 +90,7 @@ export const SettingsTab = () => {
     if (data?.sadad_merchant_id) setSadadMerchantId(data.sadad_merchant_id);
     if (data?.sadad_api_key) setSadadApiKey(data.sadad_api_key);
     if (data?.sadad_secret) setSadadSecret(data.sadad_secret);
+    if (data?.sadad_website_domain) setSadadWebsiteDomain(data.sadad_website_domain);
     if (data?.show_delete_customer_button !== undefined) setShowDeleteButton(data.show_delete_customer_button);
     if (data?.show_generate_qr_button !== undefined) setShowGenerateQrButton(data.show_generate_qr_button);
   };
@@ -343,7 +345,8 @@ export const SettingsTab = () => {
           .update({ 
             sadad_merchant_id: sadadMerchantId,
             sadad_api_key: sadadApiKey,
-            sadad_secret: sadadSecret
+            sadad_secret: sadadSecret,
+            sadad_website_domain: sadadWebsiteDomain
           })
           .eq("id", settings.id);
 
@@ -354,7 +357,8 @@ export const SettingsTab = () => {
           .insert({ 
             sadad_merchant_id: sadadMerchantId,
             sadad_api_key: sadadApiKey,
-            sadad_secret: sadadSecret
+            sadad_secret: sadadSecret,
+            sadad_website_domain: sadadWebsiteDomain
           });
 
         if (error) throw error;
@@ -655,6 +659,21 @@ export const SettingsTab = () => {
               onChange={(e) => setSadadSecret(e.target.value)}
               className="mt-2 font-lusail" 
             />
+          </div>
+          
+          <div>
+            <Label htmlFor="sadad-website-domain" className="font-lusail">النطاق المسجل (Website Domain)</Label>
+            <Input 
+              id="sadad-website-domain" 
+              type="text" 
+              placeholder="مثال: qcamelmc.org أو www.qcamelmc.org" 
+              value={sadadWebsiteDomain}
+              onChange={(e) => setSadadWebsiteDomain(e.target.value)}
+              className="mt-2 font-lusail" 
+            />
+            <p className="text-xs text-muted-foreground mt-2">
+              يجب أن يطابق النطاق المسجل في لوحة سداد تماماً عند إنشاء المفتاح السري
+            </p>
           </div>
           
           <div className="flex gap-2 pt-4">

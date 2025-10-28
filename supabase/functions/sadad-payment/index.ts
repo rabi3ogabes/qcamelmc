@@ -75,7 +75,7 @@ serve(async (req) => {
     // Fetch Sadad settings
     const { data: settings, error: settingsError } = await supabaseClient
       .from('settings')
-      .select('sadad_merchant_id, sadad_secret, webhook_url')
+      .select('sadad_merchant_id, sadad_secret, sadad_website_domain, webhook_url')
       .single();
 
     if (settingsError || !settings) {
@@ -92,8 +92,12 @@ serve(async (req) => {
     
     // Payment data - parameter names are CASE-SENSITIVE per Sadad docs
     // CRITICAL: WEBSITE must match EXACTLY what's registered in Sadad merchant panel
-    // If registered with "www", use "www". If without "www", don't use "www"
-    const websiteDomain = req.headers.get('origin')?.replace('https://', '').replace('http://', '') || 'qcamelmc.org';
+    // Use the domain from settings if available, otherwise fallback to request origin
+    const websiteDomain = settings.sadad_website_domain || 
+                          req.headers.get('origin')?.replace('https://', '').replace('http://', '') || 
+                          'qcamelmc.org';
+    
+    console.log('Using website domain for Sadad:', websiteDomain);
     
     const paymentData = {
       merchant_id: settings.sadad_merchant_id,  // lowercase per docs
