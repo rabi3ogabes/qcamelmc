@@ -4,12 +4,14 @@ import { useTranslation } from "react-i18next";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Calendar, MapPin, Ticket, Lock, ExternalLink } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Calendar, MapPin, Ticket, Lock } from "lucide-react";
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
 import heroImage from "@/assets/qatar-event-hero.jpg";
 import { PopupBanner } from "@/components/PopupBanner";
 import { Footer } from "@/components/Footer";
+import { useSettings } from "@/contexts/SettingsContext";
 
 interface Event {
   id: string;
@@ -24,12 +26,9 @@ interface Event {
 
 const EventHome = () => {
   const { t } = useTranslation();
+  const { settings } = useSettings();
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
-  const [logoUrl, setLogoUrl] = useState<string | null>(null);
-  const [heroImageUrl, setHeroImageUrl] = useState<string | null>(null);
-  const [headerBgColor, setHeaderBgColor] = useState<string>("hsl(var(--card) / 0.5)");
-  const [heroText, setHeroText] = useState<string>("");
   const navigate = useNavigate();
 
   const formatTime12Hour = (time24: string) => {
@@ -43,36 +42,7 @@ const EventHome = () => {
 
   useEffect(() => {
     fetchEvents();
-    fetchSettings();
   }, []);
-
-  const fetchSettings = async () => {
-    const { data, error } = await supabase
-      .from("settings")
-      .select("logo_url, hero_image_url, header_bg_color, hero_text")
-      .maybeSingle();
-
-    if (error) {
-      console.error("Error fetching settings:", error);
-      return;
-    }
-
-    if (data?.logo_url) {
-      setLogoUrl(data.logo_url);
-    }
-
-    if (data?.hero_image_url) {
-      setHeroImageUrl(data.hero_image_url);
-    }
-    
-    if (data?.header_bg_color) {
-      setHeaderBgColor(data.header_bg_color);
-    }
-
-    if (data?.hero_text) {
-      setHeroText(data.hero_text);
-    }
-  };
 
   const fetchEvents = async () => {
     try {
@@ -99,10 +69,10 @@ const EventHome = () => {
       <PopupBanner />
       
       {/* Header */}
-      <header className="border-b backdrop-blur-sm sticky top-0 z-10" style={{ backgroundColor: headerBgColor }}>
+      <header className="border-b backdrop-blur-sm sticky top-0 z-10" style={{ backgroundColor: settings?.header_bg_color || "hsl(var(--card) / 0.5)" }}>
         <div className="container mx-auto px-4 py-4 flex justify-between items-center">
-          {logoUrl ? (
-            <img src={logoUrl} alt="Logo" className="h-12 object-contain" />
+          {settings?.logo_url ? (
+            <img src={settings.logo_url} alt="Logo" className="h-12 object-contain" loading="lazy" />
           ) : (
             <h1 className="text-2xl font-bold">فعاليات قطر</h1>
           )}
@@ -124,8 +94,20 @@ const EventHome = () => {
       </header>
 
       {loading ? (
-        <div className="flex items-center justify-center min-h-screen">
-          <div className="animate-pulse text-lg">{t('loadingEvents')}</div>
+        <div className="py-16 px-4">
+          <div className="max-w-7xl mx-auto">
+            <Skeleton className="h-[70vh] w-full mb-16" />
+            <div className="flex flex-wrap justify-center gap-8">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="w-full md:w-[calc(50%-1rem)] lg:w-[calc(33.333%-1.334rem)]">
+                  <Skeleton className="h-64 w-full mb-4" />
+                  <Skeleton className="h-8 w-3/4 mx-auto mb-2" />
+                  <Skeleton className="h-4 w-full mb-4" />
+                  <Skeleton className="h-12 w-full" />
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       ) : events.length === 0 ? (
         <div className="flex items-center justify-center min-h-screen">
@@ -137,16 +119,16 @@ const EventHome = () => {
           <div className="relative h-[70vh] overflow-hidden">
             <div 
               className="absolute inset-0 bg-cover bg-center"
-              style={{ backgroundImage: `url(${heroImageUrl || heroImage})` }}
+              style={{ backgroundImage: `url(${settings?.hero_image_url || heroImage})` }}
             >
               <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/40 to-background" />
             </div>
             
             <div className="relative h-full flex items-center justify-center px-4">
-              {heroText && (
+              {settings?.hero_text && (
                 <div className="text-center z-10">
                   <h1 className="text-4xl md:text-6xl font-bold text-white mb-4 mt-12 drop-shadow-lg whitespace-pre-line">
-                    {heroText}
+                    {settings.hero_text}
                   </h1>
                 </div>
               )}
@@ -159,13 +141,14 @@ const EventHome = () => {
               <div className="flex flex-wrap justify-center gap-8">
                 {events.map((event) => (
                 <Card key={event.id} className="overflow-hidden hover:shadow-2xl transition-shadow flex flex-col w-full md:w-[calc(50%-1rem)] lg:w-[calc(33.333%-1.334rem)]">
-                    <div className="h-2" style={{ backgroundColor: headerBgColor }} />
+                    <div className="h-2" style={{ backgroundColor: settings?.header_bg_color || "hsl(var(--card) / 0.5)" }} />
                     {event.image_url && (
                       <div className="relative h-64 overflow-hidden">
                         <img 
                           src={event.image_url} 
                           alt={event.title}
                           className="w-full h-full object-cover"
+                          loading="lazy"
                         />
                       </div>
                     )}

@@ -1,47 +1,21 @@
-import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
 import { Shield } from "lucide-react";
 import visaLogo from "@/assets/visa-logo.png";
 import mastercardLogo from "@/assets/mastercard-logo.png";
 import applePayLogo from "@/assets/applepay-logo.png";
 import sadadLogo from "@/assets/sadad-logo.png";
+import { useSettings } from "@/contexts/SettingsContext";
 
 export const Footer = () => {
-  const [copyrightText, setCopyrightText] = useState<string>("جميع الحقوق محفوظة");
-  const [headerBgColor, setHeaderBgColor] = useState<string>("hsl(var(--card) / 0.5)");
-
-  useEffect(() => {
-    fetchSettings();
-  }, []);
-
-  const fetchSettings = async () => {
-    const { data, error } = await supabase
-      .from("settings")
-      .select("copyright_text, header_bg_color")
-      .maybeSingle();
-
-    if (error) {
-      console.error("Error fetching settings:", error);
-      return;
-    }
-
-    if (data?.copyright_text) {
-      setCopyrightText(data.copyright_text);
-    }
-
-    if (data?.header_bg_color) {
-      setHeaderBgColor(data.header_bg_color);
-    }
-  };
+  const { settings } = useSettings();
 
   return (
-    <footer className="border-t backdrop-blur-sm mt-16" style={{ backgroundColor: headerBgColor }} dir="rtl">
+    <footer className="border-t backdrop-blur-sm mt-16" style={{ backgroundColor: settings?.header_bg_color || "hsl(var(--card) / 0.5)" }} dir="rtl">
       <div className="container mx-auto px-4 py-8">
         <div className="flex flex-col md:flex-row justify-between items-center gap-6">
           {/* Copyright */}
           <div className="text-center md:text-right">
             <p className="text-sm text-white">
-              © {new Date().getFullYear()} {copyrightText}
+              © {new Date().getFullYear()} {settings?.copyright_text || "جميع الحقوق محفوظة"}
             </p>
           </div>
 
@@ -59,22 +33,26 @@ export const Footer = () => {
                 src={visaLogo} 
                 alt="Visa" 
                 className="h-8 object-contain"
+                loading="lazy"
               />
               <img 
                 src={mastercardLogo} 
                 alt="Mastercard" 
                 className="h-8 object-contain"
+                loading="lazy"
               />
               <img 
                 src={applePayLogo} 
                 alt="Apple Pay" 
                 className="h-8 object-contain"
+                loading="lazy"
               />
               <div className="h-8 w-px bg-white/30 mx-1" />
               <img 
                 src={sadadLogo} 
                 alt="Sadad Payment" 
                 className="h-8 object-contain"
+                loading="lazy"
               />
             </div>
           </div>

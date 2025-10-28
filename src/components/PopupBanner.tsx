@@ -94,6 +94,7 @@ export const PopupBanner = () => {
                 src={banner.image_url}
                 alt={banner.title}
                 className="w-full h-full object-cover"
+                loading="lazy"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
             </div>

@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { I18nextProvider } from "react-i18next";
 import { lazy, Suspense } from "react";
 import i18n from "./i18n/config";
+import { SettingsProvider } from "./contexts/SettingsContext";
 
 // Lazy load route components
 const EventHome = lazy(() => import("./pages/EventHome"));
@@ -27,29 +28,31 @@ const queryClient = new QueryClient();
 const App = () => (
   <I18nextProvider i18n={i18n}>
     <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <Suspense fallback={<div className="flex items-center justify-center min-h-screen"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div></div>}>
-            <Routes>
-              <Route path="/" element={<EventHome />} />
-              <Route path="/tickets/:eventId" element={<TicketSelection />} />
-              <Route path="/checkout" element={<Checkout />} />
-              <Route path="/confirmation" element={<Confirmation />} />
-              <Route path="/sadad-callback" element={<SadadCallback />} />
-              <Route path="/sadad-redirect" element={<SadadRedirect />} />
-              <Route path="/live-bookings" element={<LiveBookings />} />
-              <Route path="/admin/login" element={<AdminLogin />} />
-              <Route path="/admin/dashboard" element={<AdminDashboard />} />
-              <Route path="/admin/qr-scanner" element={<QRScanner />} />
-              <Route path="/admin/pos" element={<AdminPOS />} />
-              <Route path="/admin/tickets" element={<TicketViewer />} />
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </Suspense>
-        </BrowserRouter>
-      </TooltipProvider>
+      <SettingsProvider>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            <Suspense fallback={<div className="flex items-center justify-center min-h-screen"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div></div>}>
+              <Routes>
+                <Route path="/" element={<EventHome />} />
+                <Route path="/tickets/:eventId" element={<TicketSelection />} />
+                <Route path="/checkout" element={<Checkout />} />
+                <Route path="/confirmation" element={<Confirmation />} />
+                <Route path="/sadad-callback" element={<SadadCallback />} />
+                <Route path="/sadad-redirect" element={<SadadRedirect />} />
+                <Route path="/live-bookings" element={<LiveBookings />} />
+                <Route path="/admin/login" element={<AdminLogin />} />
+                <Route path="/admin/dashboard" element={<AdminDashboard />} />
+                <Route path="/admin/qr-scanner" element={<QRScanner />} />
+                <Route path="/admin/pos" element={<AdminPOS />} />
+                <Route path="/admin/tickets" element={<TicketViewer />} />
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </Suspense>
+          </BrowserRouter>
+        </TooltipProvider>
+      </SettingsProvider>
     </QueryClientProvider>
   </I18nextProvider>
 );
