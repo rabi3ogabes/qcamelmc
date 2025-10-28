@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { supabase } from "@/integrations/supabase/client";
@@ -8,8 +8,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { CreditCard, Banknote, Loader2, Plus, Minus } from "lucide-react";
+import { CreditCard, Banknote, Loader2, Plus, Minus, X } from "lucide-react";
 import { Footer } from "@/components/Footer";
 
 const ARABIC_COUNTRIES = [
@@ -113,9 +114,53 @@ const Checkout = () => {
   });
   const [ticketHolders, setTicketHolders] = useState<TicketHolder[]>([]);
   const [loading, setLoading] = useState(false);
+  const [showPaymentIframe, setShowPaymentIframe] = useState(false);
+  const [paymentFormData, setPaymentFormData] = useState<any>(null);
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
   const [headerBgColor, setHeaderBgColor] = useState<string>("hsl(var(--card) / 0.5)");
   const navigate = useNavigate();
+  const iframeRef = useRef<HTMLIFrameElement>(null);
+
+  // Listen for payment completion in iframe
+  useEffect(() => {
+    const handleMessage = (event: MessageEvent) => {
+      // Handle messages from Sadad iframe
+      if (event.data && event.data.type === 'SADAD_PAYMENT_COMPLETE') {
+        setShowPaymentIframe(false);
+        setPaymentFormData(null);
+        toast.success('تم إتمام عملية الدفع بنجاح');
+        navigate('/confirmation');
+      }
+    };
+
+    window.addEventListener('message', handleMessage);
+    return () => window.removeEventListener('message', handleMessage);
+  }, [navigate]);
+
+  // Monitor iframe for callback URL redirect
+  useEffect(() => {
+    if (!iframeRef.current || !showPaymentIframe) return;
+
+    const checkIframeUrl = setInterval(() => {
+      try {
+        const iframe = iframeRef.current;
+        if (iframe && iframe.contentWindow) {
+          const iframeUrl = iframe.contentWindow.location.href;
+          // Check if iframe redirected to callback page
+          if (iframeUrl.includes('/sadad-callback')) {
+            clearInterval(checkIframeUrl);
+            setShowPaymentIframe(false);
+            setPaymentFormData(null);
+            // Let the callback page handle the rest
+          }
+        }
+      } catch (e) {
+        // Cross-origin errors are expected, ignore them
+      }
+    }, 500);
+
+    return () => clearInterval(checkIframeUrl);
+  }, [showPaymentIframe]);
 
   useEffect(() => {
     const stored = localStorage.getItem("ticketSelection");
@@ -413,7 +458,7 @@ const Checkout = () => {
 
       if (holdersError) throw holdersError;
 
-      // If Sadad payment, redirect to Sadad gateway
+      // If Sadad payment, show embedded iframe
       if (paymentMethod === "sadad") {
         try {
           const { data: sadadData, error: sadadError } = await supabase.functions.invoke('sadad-payment', {
@@ -435,14 +480,21 @@ const Checkout = () => {
           if (sadadError) throw sadadError;
 
           if (sadadData.success && sadadData.paymentData) {
-            // Store payment data temporarily to use in a new page
-            sessionStorage.setItem('sadadPaymentData', JSON.stringify({
+            // Store payment data and show iframe modal
+            setPaymentFormData({
               paymentData: sadadData.paymentData,
               sadadUrl: sadadData.sadadUrl
-            }));
+            });
+            setShowPaymentIframe(true);
+            setLoading(false);
             
-            // Redirect to a payment redirect page that will auto-submit the form
-            window.location.href = '/sadad-redirect';
+            // Auto-submit form to iframe after it's rendered
+            setTimeout(() => {
+              const form = document.getElementById('sadad-iframe-form') as HTMLFormElement;
+              if (form) {
+                form.submit();
+              }
+            }, 500);
             return;
           }
         } catch (sadadError) {
@@ -849,6 +901,79 @@ const Checkout = () => {
           </div>
         </div>
       </div>
+      
+      {/* Sadad Payment iFrame Modal */}
+      <Dialog open={showPaymentIframe} onOpenChange={setShowPaymentIframe}>
+        <DialogContent className="max-w-7xl w-[95vw] h-[90vh] p-0 overflow-hidden">
+          <div className="relative w-full h-full">
+            {/* Close button */}
+            <Button
+              variant="ghost"
+              size="icon"
+              className="absolute top-2 right-2 z-50 bg-white/90 hover:bg-white"
+              onClick={() => {
+                setShowPaymentIframe(false);
+                setPaymentFormData(null);
+                toast.info("تم إلغاء عملية الدفع");
+              }}
+            >
+              <X className="w-4 h-4" />
+            </Button>
+            
+            {/* Loading overlay */}
+            {!paymentFormData && (
+              <div className="absolute inset-0 flex items-center justify-center bg-background">
+                <Loader2 className="w-12 h-12 animate-spin text-primary" />
+              </div>
+            )}
+            
+            {/* Payment iframe */}
+            {paymentFormData && (
+              <>
+                <iframe
+                  ref={iframeRef}
+                  name="sadad-payment-frame"
+                  className="w-full h-full border-0"
+                  title="Sadad Payment"
+                />
+                
+                {/* Hidden form to submit to iframe */}
+                <form
+                  id="sadad-iframe-form"
+                  method="POST"
+                  action={paymentFormData.sadadUrl}
+                  target="sadad-payment-frame"
+                  style={{ display: 'none' }}
+                >
+                  {Object.entries(paymentFormData.paymentData).map(([key, value]) => {
+                    if (key === 'productdetail' && Array.isArray(value)) {
+                      return value.map((product: any, index: number) =>
+                        Object.entries(product).map(([pKey, pValue]) => (
+                          <input
+                            key={`${key}-${index}-${pKey}`}
+                            type="hidden"
+                            name={`productdetail[${index}][${pKey}]`}
+                            value={String(pValue)}
+                          />
+                        ))
+                      );
+                    }
+                    return (
+                      <input
+                        key={key}
+                        type="hidden"
+                        name={key}
+                        value={String(value)}
+                      />
+                    );
+                  })}
+                </form>
+              </>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+      
       <Footer />
     </div>
   );
