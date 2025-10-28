@@ -91,21 +91,25 @@ serve(async (req) => {
     const callbackUrl = `${req.headers.get('origin')}/sadad-callback`;
     
     // Payment data - parameter names are CASE-SENSITIVE per Sadad docs
+    // CRITICAL: WEBSITE must match EXACTLY what's registered in Sadad merchant panel
+    // If registered with "www", use "www". If without "www", don't use "www"
+    const websiteDomain = req.headers.get('origin')?.replace('https://', '').replace('http://', '') || 'qcamelmc.org';
+    
     const paymentData = {
       merchant_id: settings.sadad_merchant_id,  // lowercase per docs
       ORDER_ID: orderId,                         // UPPERCASE per docs
-      WEBSITE: req.headers.get('origin')?.replace('https://', '').replace('http://', '') || 'localhost',
+      WEBSITE: websiteDomain,                    // Must match secret key registration EXACTLY
       TXN_AMOUNT: orderData.total_amount.toFixed(2),  // UPPERCASE per docs
-      CUST_ID: orderData.customer_email,
-      EMAIL: orderData.customer_email,
+      CUST_ID: orderData.customer_email || orderData.customer_phone,
+      EMAIL: orderData.customer_email || 'noemail@example.com',
       MOBILE_NO: orderData.customer_phone.replace(/[^0-9]/g, ''),
       SADAD_WEBCHECKOUT_PAGE_LANGUAGE: 'Arb',
       VERSION: '1.1',
       CALLBACK_URL: callbackUrl,
       txnDate: txnDate,
       productdetail: orderData.items.map((item: any, index: number) => ({
-        order_id: orderId,              // lowercase to match merchant_id convention
-        itemname: item.name,
+        order_id: orderId,              // lowercase per docs
+        itemname: item.name,            // 'itemname' field is REQUIRED per docs
         amount: item.price.toFixed(2),
         quantity: item.quantity.toString(),
         type: 'line_item'
