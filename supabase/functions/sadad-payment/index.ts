@@ -124,12 +124,11 @@ serve(async (req) => {
       }))
     };
 
-    // Generate checksumhash - CRITICAL: secretKey in JSON must be URL encoded per Sadad docs
-    // But the encryption key uses RAW secret + merchant ID
-    const urlEncodedSecret = encodeURIComponent(settings.sadad_secret);
+    // Generate checksumhash - CRITICAL: Use RAW secret (not URL encoded) in both JSON and encryption key
+    // Per Sadad documentation (lines 360-363 of their PHP example)
     const checksumData = {
       postData: paymentData,
-      secretKey: urlEncodedSecret  // URL encoded secret in the JSON data
+      secretKey: settings.sadad_secret  // RAW secret in JSON data (NOT URL encoded)
     };
     
     const dataString = JSON.stringify(checksumData);
