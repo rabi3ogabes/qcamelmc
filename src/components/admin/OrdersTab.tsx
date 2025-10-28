@@ -484,9 +484,6 @@ export const OrdersTab = ({
             <span className="font-medium">
               {format(new Date(order.events.event_date), 'dd/MM/yyyy')}
             </span>
-            <span className="text-muted-foreground">
-              ({format(new Date(order.events.event_date), 'HH:mm')})
-            </span>
           </div>
         )}
         <div className="flex items-center justify-between gap-4 text-sm text-muted-foreground">
