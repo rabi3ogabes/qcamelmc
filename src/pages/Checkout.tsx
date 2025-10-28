@@ -346,6 +346,13 @@ const Checkout = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    // Validate minimum amount for Sadad payment (3 QAR minimum)
+    const totalAmount = calculateTotal();
+    if (paymentMethod === "sadad" && totalAmount < 3) {
+      toast.error("الحد الأدنى للدفع عبر سداد هو 3 ريال قطري");
+      return;
+    }
+    
     if (!customerInfo.name || !customerInfo.phone || !customerInfo.nationality || !customerInfo.idNumber) {
       toast.error("Please fill in all customer information");
       return;
