@@ -126,10 +126,32 @@ const Checkout = () => {
       console.log('=== IFRAME MESSAGE RECEIVED ===');
       console.log('Event origin:', event.origin);
       console.log('Event data:', event.data);
+      console.log('Event data type:', typeof event.data);
+      
+      // Try to parse if it's a string
+      let parsedData = event.data;
+      if (typeof event.data === 'string') {
+        try {
+          parsedData = JSON.parse(event.data);
+          console.log('Parsed data:', parsedData);
+        } catch (e) {
+          console.log('Could not parse as JSON, raw string:', event.data);
+        }
+      }
+      
+      // Check for any error indicators in the data
+      const dataStr = JSON.stringify(parsedData || event.data).toLowerCase();
+      if (dataStr.includes('error') || dataStr.includes('fail') || dataStr.includes('checksum')) {
+        console.error('=== POTENTIAL ERROR DETECTED IN MESSAGE ===');
+        console.error('Full data:', parsedData || event.data);
+        console.error('=== END ERROR ===');
+        
+        toast.error('خطأ في معالجة الدفع - يرجى التحقق من إعدادات سداد');
+      }
       console.log('=== END MESSAGE ===');
       
       // Handle messages from Sadad iframe
-      if (event.data && event.data.type === 'SADAD_PAYMENT_COMPLETE') {
+      if (parsedData && parsedData.type === 'SADAD_PAYMENT_COMPLETE') {
         setShowPaymentSection(false);
         setPaymentFormData(null);
         toast.success('تم إتمام عملية الدفع بنجاح');
@@ -137,11 +159,11 @@ const Checkout = () => {
       }
       
       // Log any error messages
-      if (event.data && event.data.error) {
-        console.error('=== SADAD ERROR ===');
-        console.error('Error:', event.data.error);
-        console.error('Error Code:', event.data.errorCode);
-        console.error('Error Details:', event.data.errorDetails);
+      if (parsedData && (parsedData.error || parsedData.RESPCODE !== '1')) {
+        console.error('=== SADAD ERROR DETAILS ===');
+        console.error('Error:', parsedData.error || parsedData.RESPMSG);
+        console.error('Error Code:', parsedData.errorCode || parsedData.RESPCODE);
+        console.error('Error Details:', parsedData.errorDetails || parsedData);
         console.error('=== END ERROR ===');
       }
     };
@@ -962,12 +984,39 @@ const Checkout = () => {
                       console.log('=== SADAD IFRAME LOADED ===');
                       console.log('Payment Data Sent:', paymentFormData.paymentData);
                       console.log('Sadad URL:', paymentFormData.sadadUrl);
+                      
+                      // Try to access iframe content (will fail due to CORS, but worth trying)
+                      try {
+                        const iframeDoc = iframeRef.current?.contentDocument || iframeRef.current?.contentWindow?.document;
+                        if (iframeDoc) {
+                          console.log('✓ Iframe document accessible');
+                          console.log('Iframe title:', iframeDoc.title);
+                          
+                          const bodyText = iframeDoc.body?.textContent?.toLowerCase() || '';
+                          console.log('Body text (first 300 chars):', bodyText.substring(0, 300));
+                          
+                          // Check for error indicators
+                          if (bodyText.includes('error') || bodyText.includes('checksum') || bodyText.includes('fail')) {
+                            console.error('=== ⚠️ ERROR DETECTED IN IFRAME CONTENT ===');
+                            console.error('Full error text:', bodyText);
+                            console.error('=== END ERROR ===');
+                            toast.error('خطأ في التحقق من البيانات - يرجى مراجعة إعدادات سداد');
+                          }
+                        }
+                      } catch (e) {
+                        console.log('⚠️ Cannot access iframe content (CORS restriction)');
+                        console.log('This is normal for cross-origin iframes');
+                      }
+                      
                       console.log('=== END IFRAME LOAD ===');
                     }}
                     onError={(e) => {
-                      console.error('=== IFRAME ERROR ===');
+                      console.error('=== ❌ IFRAME LOAD ERROR ===');
                       console.error('Error event:', e);
+                      console.error('Error type:', e.type);
+                      console.error('Error target:', e.target);
                       console.error('=== END IFRAME ERROR ===');
+                      toast.error('خطأ في تحميل صفحة الدفع');
                     }}
                   />
                   
