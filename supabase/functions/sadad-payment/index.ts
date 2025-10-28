@@ -135,11 +135,18 @@ serve(async (req) => {
     const key = settings.sadad_secret + settings.sadad_merchant_id;
     const checksumhash = await getChecksumFromString(dataString, key);
 
-    console.log('Generated checksum for order:', orderId);
+    // Enhanced logging for debugging
+    console.log('=== SADAD PAYMENT REQUEST DEBUG ===');
+    console.log('Order ID:', orderId);
     console.log('Merchant ID:', settings.sadad_merchant_id);
-    console.log('Payment amount:', orderData.total_amount);
-    console.log('Checksum data string length:', dataString.length);
-    console.log('First 200 chars of data string:', dataString.substring(0, 200));
+    console.log('Website Domain:', websiteDomain);
+    console.log('Payment Amount:', orderData.total_amount.toFixed(2));
+    console.log('Secret Key (first 4 chars):', settings.sadad_secret.substring(0, 4) + '***');
+    console.log('Checksum Key (first 8 chars):', key.substring(0, 8) + '***');
+    console.log('Full Payment Data:', JSON.stringify(paymentData, null, 2));
+    console.log('Checksum Data String:', dataString);
+    console.log('Generated Checksumhash:', checksumhash);
+    console.log('=== END DEBUG ===');
 
     return new Response(
       JSON.stringify({ 

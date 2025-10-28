@@ -120,15 +120,29 @@ const Checkout = () => {
   const navigate = useNavigate();
   const iframeRef = useRef<HTMLIFrameElement>(null);
 
-  // Listen for payment completion in iframe
+  // Listen for payment completion and errors in iframe
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
+      console.log('=== IFRAME MESSAGE RECEIVED ===');
+      console.log('Event origin:', event.origin);
+      console.log('Event data:', event.data);
+      console.log('=== END MESSAGE ===');
+      
       // Handle messages from Sadad iframe
       if (event.data && event.data.type === 'SADAD_PAYMENT_COMPLETE') {
         setShowPaymentSection(false);
         setPaymentFormData(null);
         toast.success('تم إتمام عملية الدفع بنجاح');
         navigate('/confirmation');
+      }
+      
+      // Log any error messages
+      if (event.data && event.data.error) {
+        console.error('=== SADAD ERROR ===');
+        console.error('Error:', event.data.error);
+        console.error('Error Code:', event.data.errorCode);
+        console.error('Error Details:', event.data.errorDetails);
+        console.error('=== END ERROR ===');
       }
     };
 
@@ -944,6 +958,17 @@ const Checkout = () => {
                     name="sadad-payment-frame"
                     className="w-full h-full border-0"
                     title="Sadad Payment"
+                    onLoad={() => {
+                      console.log('=== SADAD IFRAME LOADED ===');
+                      console.log('Payment Data Sent:', paymentFormData.paymentData);
+                      console.log('Sadad URL:', paymentFormData.sadadUrl);
+                      console.log('=== END IFRAME LOAD ===');
+                    }}
+                    onError={(e) => {
+                      console.error('=== IFRAME ERROR ===');
+                      console.error('Error event:', e);
+                      console.error('=== END IFRAME ERROR ===');
+                    }}
                   />
                   
                   {/* Hidden form to submit to iframe */}
