@@ -8,7 +8,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { CreditCard, Banknote, Loader2, Plus, Minus, X } from "lucide-react";
 import { Footer } from "@/components/Footer";
@@ -114,7 +113,7 @@ const Checkout = () => {
   });
   const [ticketHolders, setTicketHolders] = useState<TicketHolder[]>([]);
   const [loading, setLoading] = useState(false);
-  const [showPaymentIframe, setShowPaymentIframe] = useState(false);
+  const [showPaymentSection, setShowPaymentSection] = useState(false);
   const [paymentFormData, setPaymentFormData] = useState<any>(null);
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
   const [headerBgColor, setHeaderBgColor] = useState<string>("hsl(var(--card) / 0.5)");
@@ -126,7 +125,7 @@ const Checkout = () => {
     const handleMessage = (event: MessageEvent) => {
       // Handle messages from Sadad iframe
       if (event.data && event.data.type === 'SADAD_PAYMENT_COMPLETE') {
-        setShowPaymentIframe(false);
+        setShowPaymentSection(false);
         setPaymentFormData(null);
         toast.success('تم إتمام عملية الدفع بنجاح');
         navigate('/confirmation');
@@ -139,7 +138,7 @@ const Checkout = () => {
 
   // Monitor iframe for callback URL redirect
   useEffect(() => {
-    if (!iframeRef.current || !showPaymentIframe) return;
+    if (!iframeRef.current || !showPaymentSection) return;
 
     const checkIframeUrl = setInterval(() => {
       try {
@@ -149,7 +148,7 @@ const Checkout = () => {
           // Check if iframe redirected to callback page
           if (iframeUrl.includes('/sadad-callback')) {
             clearInterval(checkIframeUrl);
-            setShowPaymentIframe(false);
+            setShowPaymentSection(false);
             setPaymentFormData(null);
             // Let the callback page handle the rest
           }
@@ -160,7 +159,7 @@ const Checkout = () => {
     }, 500);
 
     return () => clearInterval(checkIframeUrl);
-  }, [showPaymentIframe]);
+  }, [showPaymentSection]);
 
   useEffect(() => {
     const stored = localStorage.getItem("ticketSelection");
@@ -478,12 +477,12 @@ const Checkout = () => {
           if (sadadError) throw sadadError;
 
           if (sadadData.success && sadadData.paymentData) {
-            // Store payment data and show iframe modal
+            // Store payment data and show payment section on same page
             setPaymentFormData({
               paymentData: sadadData.paymentData,
               sadadUrl: sadadData.sadadUrl
             });
-            setShowPaymentIframe(true);
+            setShowPaymentSection(true);
             setLoading(false);
             
             // Auto-submit form to iframe after it's rendered
@@ -902,77 +901,81 @@ const Checkout = () => {
         </div>
       </div>
       
-      {/* Sadad Payment iFrame Modal */}
-      <Dialog open={showPaymentIframe} onOpenChange={setShowPaymentIframe}>
-        <DialogContent className="max-w-7xl w-[95vw] h-[90vh] p-0 overflow-hidden">
-          <div className="relative w-full h-full">
-            {/* Close button */}
-            <Button
-              variant="ghost"
-              size="icon"
-              className="absolute top-2 right-2 z-50 bg-white/90 hover:bg-white"
-              onClick={() => {
-                setShowPaymentIframe(false);
-                setPaymentFormData(null);
-                toast.info("تم إلغاء عملية الدفع");
-              }}
-            >
-              <X className="w-4 h-4" />
-            </Button>
+      {/* Sadad Payment Section - Embedded on Page */}
+      {showPaymentSection && (
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6">
+          <Card className="overflow-hidden">
+            <div className="bg-primary/10 p-4 border-b flex justify-between items-center">
+              <h2 className="text-xl font-bold">إتمام عملية الدفع</h2>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  setShowPaymentSection(false);
+                  setPaymentFormData(null);
+                  toast.info("تم إلغاء عملية الدفع");
+                }}
+              >
+                <X className="w-4 h-4 ml-2" />
+                إلغاء
+              </Button>
+            </div>
             
-            {/* Loading overlay */}
-            {!paymentFormData && (
-              <div className="absolute inset-0 flex items-center justify-center bg-background">
-                <Loader2 className="w-12 h-12 animate-spin text-primary" />
-              </div>
-            )}
-            
-            {/* Payment iframe */}
-            {paymentFormData && (
-              <>
-                <iframe
-                  ref={iframeRef}
-                  name="sadad-payment-frame"
-                  className="w-full h-full border-0"
-                  title="Sadad Payment"
-                />
-                
-                {/* Hidden form to submit to iframe */}
-                <form
-                  id="sadad-iframe-form"
-                  method="POST"
-                  action={paymentFormData.sadadUrl}
-                  target="sadad-payment-frame"
-                  style={{ display: 'none' }}
-                >
-                  {Object.entries(paymentFormData.paymentData).map(([key, value]) => {
-                    if (key === 'productdetail' && Array.isArray(value)) {
-                      return value.map((product: any, index: number) =>
-                        Object.entries(product).map(([pKey, pValue]) => (
-                          <input
-                            key={`${key}-${index}-${pKey}`}
-                            type="hidden"
-                            name={`productdetail[${index}][${pKey}]`}
-                            value={String(pValue)}
-                          />
-                        ))
+            <div className="relative w-full" style={{ height: '700px' }}>
+              {/* Loading overlay */}
+              {!paymentFormData && (
+                <div className="absolute inset-0 flex items-center justify-center bg-background">
+                  <Loader2 className="w-12 h-12 animate-spin text-primary" />
+                </div>
+              )}
+              
+              {/* Payment iframe */}
+              {paymentFormData && (
+                <>
+                  <iframe
+                    ref={iframeRef}
+                    name="sadad-payment-frame"
+                    className="w-full h-full border-0"
+                    title="Sadad Payment"
+                  />
+                  
+                  {/* Hidden form to submit to iframe */}
+                  <form
+                    id="sadad-iframe-form"
+                    method="POST"
+                    action={paymentFormData.sadadUrl}
+                    target="sadad-payment-frame"
+                    style={{ display: 'none' }}
+                  >
+                    {Object.entries(paymentFormData.paymentData).map(([key, value]) => {
+                      if (key === 'productdetail' && Array.isArray(value)) {
+                        return value.map((product: any, index: number) =>
+                          Object.entries(product).map(([pKey, pValue]) => (
+                            <input
+                              key={`${key}-${index}-${pKey}`}
+                              type="hidden"
+                              name={`productdetail[${index}][${pKey}]`}
+                              value={String(pValue)}
+                            />
+                          ))
+                        );
+                      }
+                      return (
+                        <input
+                          key={key}
+                          type="hidden"
+                          name={key}
+                          value={String(value)}
+                        />
                       );
-                    }
-                    return (
-                      <input
-                        key={key}
-                        type="hidden"
-                        name={key}
-                        value={String(value)}
-                      />
-                    );
-                  })}
-                </form>
-              </>
-            )}
-          </div>
-        </DialogContent>
-      </Dialog>
+                    })}
+                  </form>
+                </>
+              )}
+            </div>
+          </Card>
+        </div>
+      )}
       
       <Footer />
     </div>
