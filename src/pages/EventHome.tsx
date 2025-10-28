@@ -117,12 +117,13 @@ const EventHome = () => {
         <>
           {/* Hero Section */}
           <div className="relative h-[70vh] overflow-hidden">
-            <div 
-              className="absolute inset-0 bg-cover bg-center"
-              style={{ backgroundImage: `url(${settings?.hero_image_url || heroImage})` }}
-            >
-              <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/40 to-background" />
-            </div>
+            <img
+              src={settings?.hero_image_url || heroImage}
+              alt="Hero Image"
+              className="absolute inset-0 w-full h-full object-cover"
+              fetchPriority="high"
+            />
+            <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/40 to-background" />
             
             <div className="relative h-full flex items-center justify-center px-4">
               {settings?.hero_text && (
