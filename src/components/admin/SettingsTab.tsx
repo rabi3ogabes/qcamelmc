@@ -8,6 +8,7 @@ import { Switch } from "@/components/ui/switch";
 import { useTranslation } from "react-i18next";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { SadadDiagnostic } from "./SadadDiagnostic";
 
 export const SettingsTab = () => {
   const { t } = useTranslation();
@@ -683,6 +684,9 @@ export const SettingsTab = () => {
           </div>
         </div>
       </Card>
+
+      {/* Sadad Diagnostic Tool */}
+      <SadadDiagnostic />
 
       {/* Sadad Troubleshooting Guide */}
       <Card className="p-6 border-orange-200 bg-orange-50/50">
