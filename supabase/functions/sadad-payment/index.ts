@@ -99,11 +99,12 @@ serve(async (req) => {
     
     console.log('Using website domain for Sadad:', websiteDomain);
     
+    // Build payment data - all fields must be strings for checksum
     const paymentData = {
-      merchant_id: settings.sadad_merchant_id,  // lowercase per docs
-      ORDER_ID: orderId,                         // UPPERCASE per docs
-      WEBSITE: websiteDomain,                    // Must match secret key registration EXACTLY
-      TXN_AMOUNT: orderData.total_amount.toFixed(2),  // UPPERCASE per docs
+      merchant_id: settings.sadad_merchant_id,
+      ORDER_ID: orderId,
+      WEBSITE: websiteDomain,
+      TXN_AMOUNT: orderData.total_amount.toFixed(2),
       CUST_ID: orderData.customer_email || orderData.customer_phone,
       EMAIL: orderData.customer_email || 'noemail@example.com',
       MOBILE_NO: orderData.customer_phone.replace(/[^0-9]/g, ''),
@@ -111,20 +112,20 @@ serve(async (req) => {
       VERSION: '1.1',
       CALLBACK_URL: callbackUrl,
       txnDate: txnDate,
-      productdetail: orderData.items.map((item: any, index: number) => ({
-        order_id: orderId,              // lowercase per docs
-        itemname: item.name,            // 'itemname' field is REQUIRED per docs
+      productdetail: orderData.items.map((item: any) => ({
+        order_id: orderId,
+        itemname: item.name,
         amount: item.price.toFixed(2),
         quantity: item.quantity.toString(),
         type: 'line_item'
       }))
     };
 
-    // Generate checksumhash using the exact format from Sadad documentation
-    // Must be JSON structure with postData and secretKey
+    // Generate checksumhash - SECRET KEY MUST NOT BE URL ENCODED for checksum generation
+    // The checksum data structure must match Sadad's exact format
     const checksumData = {
       postData: paymentData,
-      secretKey: settings.sadad_secret
+      secretKey: settings.sadad_secret  // Use raw secret key, not URL encoded
     };
     
     const dataString = JSON.stringify(checksumData);
@@ -134,6 +135,8 @@ serve(async (req) => {
     console.log('Generated checksum for order:', orderId);
     console.log('Merchant ID:', settings.sadad_merchant_id);
     console.log('Payment amount:', orderData.total_amount);
+    console.log('Checksum data string length:', dataString.length);
+    console.log('First 200 chars of data string:', dataString.substring(0, 200));
 
     return new Response(
       JSON.stringify({ 
