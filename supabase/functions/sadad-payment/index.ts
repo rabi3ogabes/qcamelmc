@@ -99,7 +99,8 @@ serve(async (req) => {
     
     console.log('Using website domain for Sadad:', websiteDomain);
     
-    // Build payment data - all fields must be strings for checksum
+    // Build payment data for iFrame (Web Checkout 2.2)
+    // Note: VERSION is NOT included in Web Checkout 2.2
     const paymentData = {
       merchant_id: settings.sadad_merchant_id,
       ORDER_ID: orderId,
@@ -109,9 +110,11 @@ serve(async (req) => {
       EMAIL: orderData.customer_email || 'noemail@example.com',
       MOBILE_NO: orderData.customer_phone.replace(/[^0-9]/g, ''),
       SADAD_WEBCHECKOUT_PAGE_LANGUAGE: 'Arb',
-      VERSION: '1.1',
       CALLBACK_URL: callbackUrl,
       txnDate: txnDate,
+      // iFrame-specific parameters for Web Checkout 2.2
+      SADAD_WEBCHECKOUT_HIDE_LOADER: 'YES',
+      Showdialog: '2',  // 2 = iFrame mode
       productdetail: orderData.items.map((item: any) => ({
         order_id: orderId,
         itemname: item.name,
@@ -145,7 +148,7 @@ serve(async (req) => {
           ...paymentData,
           checksumhash
         },
-        sadadUrl: 'https://sadadqa.com/webpurchase'
+        sadadUrl: 'https://secure.sadadqa.com/webpurchasepage'  // iFrame URL for Web Checkout 2.2
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
