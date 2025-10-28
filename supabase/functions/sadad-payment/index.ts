@@ -88,16 +88,31 @@ serve(async (req) => {
 
     // Prepare payment data
     const txnDate = new Date().toISOString().replace('T', ' ').substring(0, 19);
-    const callbackUrl = `${req.headers.get('origin')}/sadad-callback`;
+    
+    // CRITICAL: CALLBACK_URL must use the actual request origin where the payment was initiated
+    // This is required for Sadad's security validation
+    const requestOrigin = req.headers.get('origin') || 'https://qcamelmc.org';
+    const callbackUrl = `${requestOrigin}/sadad-callback`;
     
     // Payment data - parameter names are CASE-SENSITIVE per Sadad docs
-    // CRITICAL: WEBSITE must match EXACTLY what's registered in Sadad merchant panel
-    // Use the domain from settings if available, otherwise fallback to request origin
-    const websiteDomain = settings.sadad_website_domain || 
-                          req.headers.get('origin')?.replace('https://', '').replace('http://', '') || 
-                          'qcamelmc.org';
+    // CRITICAL: WEBSITE must match EXACTLY what's registered in Sadad merchant panel when generating secret key
+    const websiteDomain = settings.sadad_website_domain || 'qcamelmc.org';
     
-    console.log('Using website domain for Sadad:', websiteDomain);
+    console.log('=== SADAD REQUEST CONFIGURATION ===');
+    console.log('Request Origin:', requestOrigin);
+    console.log('Website Domain (from settings):', websiteDomain);
+    console.log('Callback URL:', callbackUrl);
+    console.log('Merchant ID:', settings.sadad_merchant_id);
+    console.log('=== END CONFIGURATION ===');
+    
+    // IMPORTANT: Validate that required settings are configured correctly
+    if (!settings.sadad_merchant_id || settings.sadad_merchant_id !== '1664851') {
+      throw new Error(`Invalid Merchant ID. Expected: 1664851, Got: ${settings.sadad_merchant_id}`);
+    }
+    
+    if (!websiteDomain) {
+      throw new Error('WEBSITE domain not configured in settings.sadad_website_domain');
+    }
     
     // Build payment data for iFrame (Web Checkout 2.2)
     // Note: VERSION is NOT included in Web Checkout 2.2
@@ -142,10 +157,23 @@ serve(async (req) => {
     console.log('Website Domain:', websiteDomain);
     console.log('Payment Amount:', orderData.total_amount.toFixed(2));
     console.log('Secret Key (first 4 chars):', settings.sadad_secret.substring(0, 4) + '***');
+    console.log('Secret Key Length:', settings.sadad_secret.length);
     console.log('Checksum Key (first 8 chars):', key.substring(0, 8) + '***');
+    console.log('Checksum Key Length:', key.length);
+    console.log('Checksum Data String Length:', dataString.length);
     console.log('Full Payment Data:', JSON.stringify(paymentData, null, 2));
-    console.log('Checksum Data String:', dataString);
     console.log('Generated Checksumhash:', checksumhash);
+    console.log('Checksumhash Length:', checksumhash.length);
+    
+    // Validation warnings
+    console.log('=== VALIDATION CHECKS ===');
+    console.log('✓ Merchant ID matches:', settings.sadad_merchant_id === '1664851');
+    console.log('✓ Website domain is set:', !!websiteDomain);
+    console.log('✓ Secret key is set:', !!settings.sadad_secret && settings.sadad_secret.length > 0);
+    console.log('✓ Amount format is correct:', /^\d+\.\d{2}$/.test(orderData.total_amount.toFixed(2)));
+    console.log('⚠️  CRITICAL REMINDER: Ensure Test Mode is ENABLED in Sadad Merchant Panel → API section');
+    console.log('⚠️  CRITICAL REMINDER: Ensure Web Checkout 2.2 is ENABLED for your account');
+    console.log('⚠️  CRITICAL REMINDER: Verify the secret key was generated for domain:', websiteDomain);
     console.log('=== END DEBUG ===');
 
     return new Response(

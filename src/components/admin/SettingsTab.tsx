@@ -684,6 +684,74 @@ export const SettingsTab = () => {
         </div>
       </Card>
 
+      {/* Sadad Troubleshooting Guide */}
+      <Card className="p-6 border-orange-200 bg-orange-50/50">
+        <h3 className="text-lg font-semibold mb-4 font-lusail text-orange-900">🔍 دليل استكشاف أخطاء سداد</h3>
+        <div className="space-y-4 text-sm">
+          <div className="bg-white p-4 rounded-lg border border-orange-100">
+            <h4 className="font-bold text-red-600 mb-2">❌ خطأ: "Checksumhash did not match"</h4>
+            <p className="text-gray-700 mb-3">
+              هذا الخطأ يحدث عندما لا تتطابق بيانات الطلب مع ما هو مسجل في لوحة سداد. الأسباب الشائعة:
+            </p>
+            
+            <div className="space-y-3">
+              <div className="bg-yellow-50 p-3 rounded border border-yellow-200">
+                <p className="font-bold text-yellow-900 mb-1">1️⃣ وضع الاختبار (Test Mode) غير مفعّل</p>
+                <p className="text-yellow-800 text-xs">
+                  يجب تفعيل وضع الاختبار من: لوحة التاجر → API → Test Mode (تبديل الزر)
+                </p>
+              </div>
+              
+              <div className="bg-blue-50 p-3 rounded border border-blue-200">
+                <p className="font-bold text-blue-900 mb-1">2️⃣ النطاق (Domain) غير متطابق</p>
+                <p className="text-blue-800 text-xs mb-2">
+                  يجب أن يطابق النطاق أعلاه ما هو مسجل في لوحة سداد عند إنشاء المفتاح السري
+                </p>
+                <p className="text-blue-700 text-xs font-mono bg-blue-100 p-2 rounded">
+                  النطاق الحالي: {sadadWebsiteDomain || "غير محدد"}
+                </p>
+                <p className="text-blue-800 text-xs mt-2">
+                  ⚠️ انتبه: الفرق بين "qcamelmc.org" و "www.qcamelmc.org" مهم!
+                </p>
+              </div>
+              
+              <div className="bg-purple-50 p-3 rounded border border-purple-200">
+                <p className="font-bold text-purple-900 mb-1">3️⃣ المفتاح السري غير صحيح</p>
+                <p className="text-purple-800 text-xs">
+                  جرب إعادة توليد المفتاح السري من: لوحة التاجر → API → Generate New Test Key
+                </p>
+              </div>
+              
+              <div className="bg-green-50 p-3 rounded border border-green-200">
+                <p className="font-bold text-green-900 mb-1">4️⃣ Web Checkout 2.2 غير مفعّل</p>
+                <p className="text-green-800 text-xs">
+                  إذا لم يعمل بعد التحقق من النقاط السابقة، اتصل بدعم سداد لتفعيل Web Checkout 2.2
+                </p>
+              </div>
+            </div>
+          </div>
+          
+          <div className="bg-white p-4 rounded-lg border border-orange-100">
+            <h4 className="font-bold text-gray-800 mb-2">✅ خطوات التحقق السريع:</h4>
+            <ol className="list-decimal list-inside space-y-2 text-gray-700 text-xs">
+              <li>افتح <a href="https://webpanel.sadad.qa/authentication/login" target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">لوحة التاجر سداد</a></li>
+              <li>اذهب إلى قسم "API" من القائمة الجانبية</li>
+              <li>تأكد أن زر "Test Mode" مفعّل (أخضر)</li>
+              <li>تحقق من أن "Sadad ID" = <span className="font-mono bg-gray-100 px-2 py-1 rounded">{sadadMerchantId || "؟؟؟"}</span></li>
+              <li>انسخ المفتاح السري الموجود والصقه أعلاه (بدون مسافات)</li>
+              <li>تحقق من النطاق المسجل عند إنشاء المفتاح السري</li>
+              <li>احفظ الإعدادات وجرب الدفع مرة أخرى</li>
+            </ol>
+          </div>
+          
+          <div className="bg-gray-50 p-3 rounded border border-gray-200">
+            <p className="text-xs text-gray-600">
+              💡 <strong>نصيحة:</strong> تحقق من سجلات Edge Function للحصول على تفاصيل أكثر عن الخطأ
+            </p>
+          </div>
+        </div>
+      </Card>
+
       {/* Admin Phone Number */}
       <Card className="p-6">
         <h3 className="text-lg font-semibold mb-4 font-lusail">رقم هاتف الإدارة</h3>
