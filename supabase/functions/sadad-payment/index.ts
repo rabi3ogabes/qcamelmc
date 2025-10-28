@@ -124,15 +124,16 @@ serve(async (req) => {
       }))
     };
 
-    // Generate checksumhash - SECRET KEY MUST NOT BE URL ENCODED for checksum generation
-    // The checksum data structure must match Sadad's exact format
+    // Generate checksumhash - CRITICAL: secretKey in JSON must be URL encoded per Sadad docs
+    // But the encryption key uses RAW secret + merchant ID
+    const urlEncodedSecret = encodeURIComponent(settings.sadad_secret);
     const checksumData = {
       postData: paymentData,
-      secretKey: settings.sadad_secret  // Use raw secret key, not URL encoded
+      secretKey: urlEncodedSecret  // URL encoded secret in the JSON data
     };
     
     const dataString = JSON.stringify(checksumData);
-    const key = settings.sadad_secret + settings.sadad_merchant_id;
+    const key = settings.sadad_secret + settings.sadad_merchant_id;  // RAW secret + merchant ID for encryption
     const checksumhash = await getChecksumFromString(dataString, key);
 
     // Enhanced logging for debugging
