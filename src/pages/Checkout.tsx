@@ -413,50 +413,48 @@ const Checkout = () => {
 
       if (orderError) throw orderError;
 
-      // Generate ticket holders with unique QR codes for each ticket
-      const holdersToInsert = await Promise.all(ticketHolders.map(async (holder, index) => {
+      // Create ticket holders first without QR codes for faster processing
+      const holdersToInsert = ticketHolders.map((holder, index) => {
         const ticketRef = `${bookingRef}-TKT${(index + 1).toString().padStart(2, '0')}`;
-        
-        // Generate QR code and upload to storage
-        try {
-          const { data: qrData, error: qrError } = await supabase.functions.invoke('generate-qr-code', {
-            body: { text: ticketRef, filename: ticketRef }
-          });
+        return {
+          order_id: order.id,
+          name: holder.name,
+          phone: holder.phone,
+          country_code: '+974',
+          nationality: holder.nationality,
+          ticket_type: holder.ticketType,
+          qr_code: ticketRef, // Temporary placeholder
+          id_number: holder.idNumber
+        };
+      });
 
-          if (qrError) {
-            console.error('QR generation error:', qrError);
-          }
-
-          return {
-            order_id: order.id,
-            name: holder.name,
-            phone: holder.phone,
-            country_code: '+974',
-            nationality: holder.nationality,
-            ticket_type: holder.ticketType,
-            qr_code: qrData?.url || ticketRef,
-            id_number: holder.idNumber
-          };
-        } catch (error) {
-          console.error('QR generation failed:', error);
-          return {
-            order_id: order.id,
-            name: holder.name,
-            phone: holder.phone,
-            country_code: '+974',
-            nationality: holder.nationality,
-            ticket_type: holder.ticketType,
-            qr_code: ticketRef,
-            id_number: holder.idNumber
-          };
-        }
-      }));
-
-      const { error: holdersError } = await supabase
+      const { data: insertedHolders, error: holdersError } = await supabase
         .from("ticket_holders")
-        .insert(holdersToInsert);
+        .insert(holdersToInsert)
+        .select();
 
       if (holdersError) throw holdersError;
+
+      // Generate QR codes asynchronously in the background (non-blocking)
+      if (insertedHolders) {
+        Promise.all(insertedHolders.map(async (holder, index) => {
+          try {
+            const ticketRef = `${bookingRef}-TKT${(index + 1).toString().padStart(2, '0')}`;
+            const { data: qrData } = await supabase.functions.invoke('generate-qr-code', {
+              body: { text: ticketRef, filename: ticketRef }
+            });
+
+            if (qrData?.url) {
+              await supabase
+                .from("ticket_holders")
+                .update({ qr_code: qrData.url })
+                .eq('id', holder.id);
+            }
+          } catch (error) {
+            console.error('Background QR generation failed for ticket:', error);
+          }
+        })).catch(err => console.error('QR batch generation error:', err));
+      }
 
       // If Sadad payment, show embedded iframe
       if (paymentMethod === "sadad") {
@@ -509,36 +507,38 @@ const Checkout = () => {
       localStorage.setItem("orderIds", JSON.stringify([order.id]));
       localStorage.removeItem("ticketSelection");
 
-      // Call webhook
-      try {
-        const { data: settings } = await supabase
-          .from("settings")
-          .select("webhook_url, admin_phone")
-          .maybeSingle();
+      // Call webhook asynchronously (non-blocking)
+      (async () => {
+        try {
+          const { data: settings } = await supabase
+            .from("settings")
+            .select("webhook_url, admin_phone")
+            .maybeSingle();
 
-        if (settings?.webhook_url) {
-          const formatPhoneNumber = (phone: string | null | undefined) => {
-            if (!phone) return null;
-            const cleanPhone = phone.replace(/[\+\s]/g, '');
-            return cleanPhone.startsWith('974') ? cleanPhone : `974${cleanPhone}`;
-          };
+          if (settings?.webhook_url) {
+            const formatPhoneNumber = (phone: string | null | undefined) => {
+              if (!phone) return null;
+              const cleanPhone = phone.replace(/[\+\s]/g, '');
+              return cleanPhone.startsWith('974') ? cleanPhone : `974${cleanPhone}`;
+            };
 
-          await fetch(settings.webhook_url, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              customer: { ...customer, phone: formatPhoneNumber(customer.phone) },
-              order,
-              ticketHolders: holdersToInsert.map(h => ({ ...h, phone: formatPhoneNumber(h.phone) })),
-              bookingReference: bookingRef,
-              adminPhone: formatPhoneNumber(settings.admin_phone),
-              timestamp: new Date().toISOString(),
-            }),
-          });
+            await fetch(settings.webhook_url, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                customer: { ...customer, phone: formatPhoneNumber(customer.phone) },
+                order,
+                ticketHolders: holdersToInsert.map(h => ({ ...h, phone: formatPhoneNumber(h.phone) })),
+                bookingReference: bookingRef,
+                adminPhone: formatPhoneNumber(settings.admin_phone),
+                timestamp: new Date().toISOString(),
+              }),
+            });
+          }
+        } catch (error) {
+          console.error("Webhook call failed:", error);
         }
-      } catch (webhookError) {
-        console.error("Webhook call failed:", webhookError);
-      }
+      })();
 
       toast.success(t('bookingCreated'));
       navigate("/confirmation");
