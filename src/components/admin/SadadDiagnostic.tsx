@@ -159,9 +159,10 @@ export const SadadDiagnostic = () => {
           diagnosticResults.checks.push({
             name: "اتصال Edge Function",
             status: "passed",
-            message: "✓ Edge Function يعمل بشكل صحيح",
+            message: "✓ Edge Function يعمل بشكل صحيح (طريقة التوقيع الجديدة)",
             details: {
-              checksumLength: paymentData.paymentData?.checksumhash?.length || 0,
+              signatureLength: paymentData.paymentData?.signature?.length || 0,
+              signatureMethod: "SHA-256",
               sadadUrl: paymentData.sadadUrl
             }
           });
@@ -320,6 +321,7 @@ export const SadadDiagnostic = () => {
                   <ul className="list-disc list-inside mt-2 space-y-1 text-xs">
                     <li><strong>Test Mode غير مفعّل</strong> في لوحة سداد</li>
                     <li>Web Checkout 2.2 غير مفعّل (اتصل بدعم سداد)</li>
+                    <li>النطاق المسجل في لوحة سداد لا يطابق النطاق في الإعدادات</li>
                   </ul>
                 </div>
               </AlertDescription>

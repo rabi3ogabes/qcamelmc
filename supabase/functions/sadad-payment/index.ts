@@ -6,52 +6,32 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Checksum generation functions based on Sadad documentation
-function generateSalt(length: number): string {
-  const chars = "AbcDE123IJKLMN67QRSTUVWXYZaBCdefghijklmn123opq45rs67tuv89wxyz0FGH45OP89";
-  let salt = "";
-  for (let i = 0; i < length; i++) {
-    salt += chars.charAt(Math.floor(Math.random() * chars.length));
+// Signature generation function based on Sadad's new documentation
+// This replaces the deprecated checksumhash method
+async function generateSignature(paymentData: any, secretKey: string): Promise<string> {
+  // Exclude productdetail from signature calculation as per Sadad docs
+  const { productdetail, ...dataForSignature } = paymentData;
+  
+  // Sort parameter names alphabetically
+  const sortedKeys = Object.keys(dataForSignature).sort();
+  
+  // Build signature string: secretKey + concatenated values (no separators)
+  let signatureString = secretKey;
+  for (const key of sortedKeys) {
+    signatureString += dataForSignature[key];
   }
-  return salt;
-}
-
-async function encrypt(text: string, key: string): Promise<string> {
-  const iv = new TextEncoder().encode("@@@@&&&&####$$$$");
-  const keyData = new TextEncoder().encode(key);
   
-  const cryptoKey = await crypto.subtle.importKey(
-    "raw",
-    keyData.slice(0, 16),
-    { name: "AES-CBC", length: 128 },
-    false,
-    ["encrypt"]
-  );
-  
-  const encrypted = await crypto.subtle.encrypt(
-    { name: "AES-CBC", iv },
-    cryptoKey,
-    new TextEncoder().encode(text)
-  );
-  
-  return btoa(String.fromCharCode(...new Uint8Array(encrypted)));
-}
-
-async function getChecksumFromString(str: string, key: string): Promise<string> {
-  const salt = generateSalt(4);
-  const finalString = `${str}|${salt}`;
-  
+  // Hash with SHA-256
   const hashBuffer = await crypto.subtle.digest(
     "SHA-256",
-    new TextEncoder().encode(finalString)
+    new TextEncoder().encode(signatureString)
   );
   
+  // Convert to hex string
   const hashArray = Array.from(new Uint8Array(hashBuffer));
-  const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-  const hashString = hashHex + salt;
+  const signature = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
   
-  const checksum = await encrypt(hashString, key);
-  return checksum;
+  return signature;
 }
 
 serve(async (req) => {
@@ -135,32 +115,21 @@ serve(async (req) => {
       }))
     };
 
-    // Generate checksumhash - CRITICAL: Use JSON format per Sadad documentation
-    // Per Sadad docs (lines 359-363): JSON encode object with postData and secretKey
-    // Then pass to getChecksumFromString with key = secretKey + merchantID
-    const checksumData = {
-      postData: paymentData,
-      secretKey: settings.sadad_secret  // RAW secret in JSON data
-    };
-    
-    const dataString = JSON.stringify(checksumData);
-    const key = settings.sadad_secret + settings.sadad_merchant_id;  // RAW secret + merchant ID for encryption
-    const checksumhash = await getChecksumFromString(dataString, key);
+    // Generate signature using new Sadad method (replaces deprecated checksumhash)
+    // Method: Sort params alphabetically (exclude productdetail), concatenate values with secret key, SHA-256 hash
+    const signature = await generateSignature(paymentData, settings.sadad_secret);
 
     // Enhanced logging for debugging
-    console.log('=== SADAD PAYMENT REQUEST DEBUG ===');
+    console.log('=== SADAD PAYMENT REQUEST DEBUG (NEW SIGNATURE METHOD) ===');
     console.log('Order ID:', orderId);
     console.log('Merchant ID:', settings.sadad_merchant_id);
     console.log('Website Domain:', websiteDomain);
     console.log('Payment Amount:', orderData.total_amount.toFixed(2));
     console.log('Secret Key (first 4 chars):', settings.sadad_secret.substring(0, 4) + '***');
     console.log('Secret Key Length:', settings.sadad_secret.length);
-    console.log('Checksum Key (first 8 chars):', key.substring(0, 8) + '***');
-    console.log('Checksum Key Length:', key.length);
-    console.log('Checksum Data String Length:', dataString.length);
     console.log('Full Payment Data:', JSON.stringify(paymentData, null, 2));
-    console.log('Generated Checksumhash:', checksumhash);
-    console.log('Checksumhash Length:', checksumhash.length);
+    console.log('Generated Signature (SHA-256):', signature);
+    console.log('Signature Length:', signature.length);
     
     // Validation warnings
     console.log('=== VALIDATION CHECKS ===');
@@ -168,8 +137,9 @@ serve(async (req) => {
     console.log('✓ Website domain is set:', !!websiteDomain);
     console.log('✓ Secret key is set:', !!settings.sadad_secret && settings.sadad_secret.length > 0);
     console.log('✓ Amount format is correct:', /^\d+\.\d{2}$/.test(orderData.total_amount.toFixed(2)));
-    console.log('⚠️  CRITICAL REMINDER: Ensure Test Mode is ENABLED in Sadad Merchant Panel → API section');
-    console.log('⚠️  CRITICAL REMINDER: Verify the secret key was generated for domain:', websiteDomain);
+    console.log('✓ Using NEW Signature Method (SHA-256) - Checksumhash deprecated');
+    console.log('⚠️  CRITICAL: Ensure Test Mode is ENABLED in Sadad Merchant Panel → API section');
+    console.log('⚠️  CRITICAL: Verify the secret key was generated for domain:', websiteDomain);
     console.log('=== END DEBUG ===');
 
     return new Response(
@@ -177,7 +147,7 @@ serve(async (req) => {
         success: true,
         paymentData: {
           ...paymentData,
-          checksumhash
+          signature  // New signature parameter replaces checksumhash
         },
         sadadUrl: 'https://secure.sadadqa.com/webpurchase'  // Direct Payment API URL
       }),

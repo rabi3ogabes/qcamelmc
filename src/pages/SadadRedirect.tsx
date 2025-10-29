@@ -28,7 +28,7 @@ const SadadRedirect = () => {
         merchant_id: data.paymentData.merchant_id,
         order_id: data.paymentData.ORDER_ID,
         amount: data.paymentData.TXN_AMOUNT,
-        checksumhash: data.paymentData.checksumhash?.substring(0, 20) + '...'
+        signature: data.paymentData.signature?.substring(0, 20) + '...'
       });
       
       // Clear the session storage
@@ -188,8 +188,8 @@ const SadadRedirect = () => {
               <strong>Target URL:</strong> {sadadUrl}
             </div>
             <div className="p-2 bg-white rounded border">
-              <strong>Checksum (first 50 chars):</strong> 
-              <div className="break-all text-xs mt-1">{paymentData.checksumhash?.substring(0, 50)}...</div>
+              <strong>Signature (SHA-256):</strong> 
+              <div className="break-all text-xs mt-1">{paymentData.signature}</div>
             </div>
             <div className="p-2 bg-red-50 rounded border border-red-300 mt-3">
               <strong className="text-red-700">⚠️ إذا كنت تحصل على خطأ 404:</strong>
