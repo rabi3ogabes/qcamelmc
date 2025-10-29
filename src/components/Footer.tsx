@@ -22,7 +22,7 @@ export const Footer = () => {
 
           {/* Version */}
           <div className="text-center">
-            <p className="text-xs text-white/70">v1.72</p>
+            <p className="text-xs text-white/70">v1.73</p>
           </div>
 
           {/* Payment Security */}
