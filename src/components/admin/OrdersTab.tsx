@@ -504,21 +504,38 @@ export const OrdersTab = ({
               </div>
             )}
           </div>
-          {showDeleteButton && (
-            <Button 
-              size="icon" 
-              variant="destructive" 
-              onClick={(e) => {
-                e.stopPropagation();
-                console.log("Delete button clicked for order:", order.id);
-                setOrderToDelete(order.id);
-              }}
-              className="h-8 w-8"
-              title="حذف الطلب"
-            >
-              <Trash2 className="w-4 h-4" />
-            </Button>
-          )}
+          <div className="flex items-center gap-2">
+            {order.payment_status === "pending" && (
+              <Button 
+                size="sm"
+                variant="default"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  togglePaymentStatus(order.id, order.payment_status);
+                }}
+                className="h-8 bg-green-600 hover:bg-green-700 text-white font-lusail"
+                title="تأكيد الدفع يدوياً"
+              >
+                <CheckCircle className="w-4 h-4 mr-1" />
+                تحقق ✓
+              </Button>
+            )}
+            {showDeleteButton && (
+              <Button 
+                size="icon" 
+                variant="destructive" 
+                onClick={(e) => {
+                  e.stopPropagation();
+                  console.log("Delete button clicked for order:", order.id);
+                  setOrderToDelete(order.id);
+                }}
+                className="h-8 w-8"
+                title="حذف الطلب"
+              >
+                <Trash2 className="w-4 h-4" />
+              </Button>
+            )}
+          </div>
         </div>
       </div>
     </Card>;
