@@ -852,6 +852,7 @@ const Checkout = () => {
               <Button variant="ghost" onClick={() => navigate("/tickets")} className="w-full text-sm sm:text-base bg-yellow-500 hover:bg-yellow-600 text-black">
                 {t('backToTickets')}
               </Button>
+              <p className="text-xs text-muted-foreground mt-2">v1.0</p>
             </div>
           </div>
         </div>
