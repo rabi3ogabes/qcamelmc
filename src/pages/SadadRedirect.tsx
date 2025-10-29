@@ -92,8 +92,7 @@ const SadadRedirect = () => {
           } else {
             // Clean up blob URL after a delay
             setTimeout(() => URL.revokeObjectURL(url), 1000);
-            // Redirect back to home after opening payment
-            setTimeout(() => window.location.href = '/', 2000);
+            // Keep user on this page to see payment status
           }
         }
       }, 500);
@@ -119,9 +118,29 @@ const SadadRedirect = () => {
   return (
     <div className="min-h-screen bg-background flex items-center justify-center px-4 md:px-8 font-lusail">
       <div className="text-center space-y-4 w-full max-w-4xl">
-        <Loader2 className="w-12 h-12 md:w-16 md:h-16 animate-spin mx-auto mb-4 text-primary" />
-        <h2 className="text-xl md:text-2xl font-bold mb-2">جاري تحويلك لبوابة الدفع</h2>
-        <p className="text-sm md:text-base text-muted-foreground">سيتم فتح نافذة جديدة للدفع...</p>
+        <div className="w-12 h-12 md:w-16 md:h-16 mx-auto mb-4 rounded-full bg-green-100 flex items-center justify-center">
+          <svg className="w-6 h-6 md:w-8 md:h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+          </svg>
+        </div>
+        <h2 className="text-xl md:text-2xl font-bold mb-2 text-green-600">تم فتح نافذة الدفع</h2>
+        <p className="text-sm md:text-base text-muted-foreground">يرجى إكمال عملية الدفع في النافذة المنبثقة</p>
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-right mt-4">
+          <p className="text-sm text-blue-800 font-semibold mb-2">📝 ملاحظات هامة:</p>
+          <ul className="text-xs text-blue-700 space-y-1 list-disc list-inside">
+            <li>إذا لم تظهر النافذة، تأكد من السماح بالنوافذ المنبثقة</li>
+            <li>بعد إتمام الدفع، سيتم تحويلك تلقائياً لصفحة التأكيد</li>
+            <li>احتفظ بهذه الصفحة مفتوحة حتى إتمام الدفع</li>
+          </ul>
+        </div>
+        <div className="mt-6 space-x-2 space-x-reverse">
+          <button
+            onClick={() => window.location.href = '/'}
+            className="px-6 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
+          >
+            العودة للصفحة الرئيسية
+          </button>
+        </div>
         
         <div className="mt-8 p-3 md:p-4 bg-red-50 border border-red-200 rounded-lg text-right">
           <h3 className="font-bold text-red-800 mb-2 text-sm md:text-base">إذا ظهرت رسالة 404:</h3>
