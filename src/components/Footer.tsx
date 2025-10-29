@@ -19,6 +19,11 @@ export const Footer = () => {
             </p>
           </div>
 
+          {/* Version */}
+          <div className="text-center">
+            <p className="text-xs text-white/70">v1.1</p>
+          </div>
+
           {/* Payment Security */}
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-2">
