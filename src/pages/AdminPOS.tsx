@@ -6,10 +6,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowRight, ShoppingCart, Trash2, Plus, Minus, Maximize, Minimize } from "lucide-react";
+import { ArrowRight, ShoppingCart, Trash2, Plus, Minus, Maximize, Minimize, CalendarIcon } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useTranslation } from "react-i18next";
 import { TicketAddItem } from "@/components/admin/TicketAddItem";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { format } from "date-fns";
+import { cn } from "@/lib/utils";
 
 interface Ticket {
   id: string;
@@ -55,11 +59,18 @@ const AdminPOS = () => {
   const [showAllNationalities, setShowAllNationalities] = useState(false);
   const [ticketHolders, setTicketHolders] = useState<TicketHolderInput[]>([]);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(() => {
+    const saved = localStorage.getItem('posSelectedDate');
+    return saved ? new Date(saved) : new Date();
+  });
 
   useEffect(() => {
-    fetchTickets();
+    if (selectedDate) {
+      fetchTickets();
+      localStorage.setItem('posSelectedDate', selectedDate.toISOString());
+    }
     fetchSettings();
-  }, []);
+  }, [selectedDate]);
 
   useEffect(() => {
     const handleFullscreenChange = () => {
@@ -105,10 +116,20 @@ const AdminPOS = () => {
   };
 
   const fetchTickets = async () => {
+    if (!selectedDate) return;
+    
     try {
+      // Format the selected date to match the event_date format (YYYY-MM-DD)
+      const formattedDate = format(selectedDate, 'yyyy-MM-dd');
+      
       const { data, error } = await supabase
         .from("tickets")
-        .select("*")
+        .select(`
+          *,
+          events!inner(event_date)
+        `)
+        .gte('events.event_date', `${formattedDate}T00:00:00`)
+        .lt('events.event_date', `${formattedDate}T23:59:59`)
         .order("type");
 
       if (error) throw error;
@@ -523,6 +544,29 @@ const AdminPOS = () => {
             )}
           </button>
           <div className="flex items-center gap-4">
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  className={cn(
+                    "justify-start text-left font-normal",
+                    !selectedDate && "text-muted-foreground"
+                  )}
+                >
+                  <CalendarIcon className="ml-2 h-4 w-4" />
+                  {selectedDate ? format(selectedDate, "PPP") : <span>اختر التاريخ</span>}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar
+                  mode="single"
+                  selected={selectedDate}
+                  onSelect={setSelectedDate}
+                  initialFocus
+                  className={cn("p-3 pointer-events-auto")}
+                />
+              </PopoverContent>
+            </Popover>
             <h2 className="text-xl font-semibold bg-yellow-400 px-4 py-2 rounded">بيع تذكرة</h2>
             <Button
               variant="ghost"
