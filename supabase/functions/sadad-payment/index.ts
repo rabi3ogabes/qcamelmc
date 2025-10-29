@@ -135,28 +135,16 @@ serve(async (req) => {
       }))
     };
 
-    // Generate checksumhash - Build pipe-separated string per Sadad spec
-    // Format: merchant_id|ORDER_ID|WEBSITE|TXN_AMOUNT|CUST_ID|EMAIL|MOBILE_NO|productdetails
-    const productDetailsStr = paymentData.productdetail
-      .map((p: any) => `${p.order_id}|${p.itemname}|${p.amount}|${p.quantity}|${p.type}`)
-      .join('|');
+    // Generate checksumhash - CRITICAL: Use JSON format per Sadad documentation
+    // Per Sadad docs (lines 359-363): JSON encode object with postData and secretKey
+    // Then pass to getChecksumFromString with key = secretKey + merchantID
+    const checksumData = {
+      postData: paymentData,
+      secretKey: settings.sadad_secret  // RAW secret in JSON data
+    };
     
-    const dataString = [
-      paymentData.merchant_id,
-      paymentData.ORDER_ID,
-      paymentData.WEBSITE,
-      paymentData.TXN_AMOUNT,
-      paymentData.CUST_ID,
-      paymentData.EMAIL,
-      paymentData.MOBILE_NO,
-      paymentData.SADAD_WEBCHECKOUT_PAGE_LANGUAGE,
-      paymentData.CALLBACK_URL,
-      paymentData.txnDate,
-      productDetailsStr,
-      settings.sadad_secret
-    ].join('|');
-    
-    const key = settings.sadad_secret + settings.sadad_merchant_id;
+    const dataString = JSON.stringify(checksumData);
+    const key = settings.sadad_secret + settings.sadad_merchant_id;  // RAW secret + merchant ID for encryption
     const checksumhash = await getChecksumFromString(dataString, key);
 
     // Enhanced logging for debugging
