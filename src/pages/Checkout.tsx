@@ -81,7 +81,7 @@ const Checkout = () => {
     name: "",
     email: "",
     phone: "",
-    nationality: "",
+    nationality: "قطر",
     countryCode: "+974",
     idNumber: ""
   });
@@ -107,7 +107,7 @@ const Checkout = () => {
         holders.push({
           name: "",
           phone: "",
-          nationality: "",
+          nationality: "قطر",
           ticketType: selection.type,
           idNumber: ""
         });
@@ -199,7 +199,7 @@ const Checkout = () => {
         holders.push({
           name: "",
           phone: "",
-          nationality: "",
+          nationality: "قطر",
           ticketType: selection.type,
           idNumber: ""
         });
@@ -231,7 +231,7 @@ const Checkout = () => {
             holders.push({
               name: "",
               phone: "",
-              nationality: "",
+              nationality: "قطر",
               ticketType: selection.type,
               idNumber: ""
             });
@@ -256,7 +256,7 @@ const Checkout = () => {
           holders.push({
             name: "",
             phone: "",
-            nationality: "",
+            nationality: "قطر",
             ticketType: selection.type,
             idNumber: ""
           });
