@@ -159,11 +159,13 @@ export const SadadDiagnostic = () => {
           diagnosticResults.checks.push({
             name: "اتصال Edge Function",
             status: "passed",
-            message: "✓ Edge Function يعمل بشكل صحيح (طريقة التوقيع الجديدة)",
+            message: "✓ Edge Function يعمل بشكل صحيح (SHA-256 Signature Method)",
             details: {
               signatureLength: paymentData.paymentData?.signature?.length || 0,
-              signatureMethod: "SHA-256",
-              sadadUrl: paymentData.sadadUrl
+              signatureMethod: "SHA-256 (New Method)",
+              sadadUrl: paymentData.sadadUrl,
+              merchantId: paymentData.paymentData?.merchant_id,
+              website: paymentData.paymentData?.WEBSITE
             }
           });
           diagnosticResults.summary.passed++;
@@ -317,11 +319,12 @@ export const SadadDiagnostic = () => {
               <AlertDescription className="font-lusail">
                 <div className="font-bold text-green-800 mb-2">✅ الإعدادات تبدو صحيحة</div>
                 <div className="text-sm text-green-700">
-                  إذا استمرت المشكلة، فالسبب الأكثر احتمالاً هو:
+                  إذا استمرت المشكلة (خطأ 404)، السبب الأكثر احتمالاً:
                   <ul className="list-disc list-inside mt-2 space-y-1 text-xs">
-                    <li><strong>Test Mode غير مفعّل</strong> في لوحة سداد</li>
-                    <li>Web Checkout 2.2 غير مفعّل (اتصل بدعم سداد)</li>
-                    <li>النطاق المسجل في لوحة سداد لا يطابق النطاق في الإعدادات</li>
+                    <li><strong className="text-red-700">Test Mode غير مفعّل</strong> - الزر يجب أن يكون أخضر في لوحة سداد → API</li>
+                    <li><strong>المفتاح السري قديم</strong> - تم توليده قبل إضافة النطاق (يجب إعادة توليده)</li>
+                    <li><strong>النطاق غير متطابق</strong> - تأكد أن النطاق في الإعدادات يطابق تماماً أحد النطاقات المسجلة في لوحة سداد</li>
+                    <li>Web Checkout 2.2 غير مفعّل (نادراً - اتصل بدعم سداد إذا استمرت المشكلة)</li>
                   </ul>
                 </div>
               </AlertDescription>

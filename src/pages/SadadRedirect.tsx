@@ -148,13 +148,15 @@ const SadadRedirect = () => {
             <p className="font-semibold">السبب الأساسي: وضع الاختبار غير مفعّل في لوحة سداد</p>
             
             <div className="bg-white p-2 md:p-3 rounded border border-red-300 mt-2">
-              <p className="font-bold mb-2">خطوات الحل:</p>
+              <p className="font-bold mb-2">خطوات الحل المضمونة (بالترتيب):</p>
               <ol className="list-decimal list-inside space-y-1 text-right">
                 <li className="leading-relaxed">افتح لوحة التاجر: <a href="https://webpanel.sadad.qa/authentication/login" target="_blank" className="text-blue-600 underline break-all">webpanel.sadad.qa</a></li>
-                <li className="leading-relaxed">اذهب إلى قسم "API" من القائمة اليسرى</li>
-                <li className="leading-relaxed">فعّل زر "Test Mode" (وضع الاختبار)</li>
-                <li className="leading-relaxed">تأكد من صحة معرف التاجر والمفتاح السري</li>
-                <li className="leading-relaxed">حاول الدفع مرة أخرى</li>
+                <li className="leading-relaxed">اذهب إلى قسم <strong>"Configure API"</strong> من القائمة اليسرى</li>
+                <li className="leading-relaxed"><strong className="text-red-700">فعّل زر "Test Mode"</strong> - يجب أن يتحول للون الأخضر</li>
+                <li className="leading-relaxed">تحقق من أن النطاق (مثل: qcamelmc.org) مسجل في قسم "Register your Website domain"</li>
+                <li className="leading-relaxed"><strong>اضغط "Generate"</strong> لتوليد مفتاح سري جديد بعد التأكد من النطاق</li>
+                <li className="leading-relaxed">انسخ المفتاح السري الجديد والصقه في إعدادات التطبيق</li>
+                <li className="leading-relaxed">احفظ وحاول الدفع مرة أخرى</li>
               </ol>
             </div>
             

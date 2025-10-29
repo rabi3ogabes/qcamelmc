@@ -119,27 +119,40 @@ serve(async (req) => {
     // Method: Sort params alphabetically (exclude productdetail), concatenate values with secret key, SHA-256 hash
     const signature = await generateSignature(paymentData, settings.sadad_secret);
 
-    // Enhanced logging for debugging
-    console.log('=== SADAD PAYMENT REQUEST DEBUG (NEW SIGNATURE METHOD) ===');
+    // Enhanced logging for debugging - Based on official Sadad documentation
+    console.log('=== SADAD SIGNATURE GENERATION DEBUG (SHA-256 Method) ===');
     console.log('Order ID:', orderId);
     console.log('Merchant ID:', settings.sadad_merchant_id);
     console.log('Website Domain:', websiteDomain);
     console.log('Payment Amount:', orderData.total_amount.toFixed(2));
     console.log('Secret Key (first 4 chars):', settings.sadad_secret.substring(0, 4) + '***');
     console.log('Secret Key Length:', settings.sadad_secret.length);
-    console.log('Full Payment Data:', JSON.stringify(paymentData, null, 2));
+    
+    // Show sorted parameters for signature (excluding productdetail)
+    const { productdetail: _, ...paramsForSignature } = paymentData;
+    const sortedKeys = Object.keys(paramsForSignature).sort();
+    console.log('Sorted Parameter Keys (for signature):', sortedKeys);
+    
+    // Show signature string composition (first 100 chars)
+    let debugSignatureString = settings.sadad_secret;
+    for (const key of sortedKeys) {
+      debugSignatureString += (paramsForSignature as any)[key];
+    }
+    console.log('Signature String (first 100 chars):', debugSignatureString.substring(0, 100) + '...');
+    console.log('Signature String Total Length:', debugSignatureString.length);
     console.log('Generated Signature (SHA-256):', signature);
     console.log('Signature Length:', signature.length);
     
-    // Validation warnings
+    // Validation checks
     console.log('=== VALIDATION CHECKS ===');
-    console.log('✓ Merchant ID matches:', settings.sadad_merchant_id === '1664851');
-    console.log('✓ Website domain is set:', !!websiteDomain);
-    console.log('✓ Secret key is set:', !!settings.sadad_secret && settings.sadad_secret.length > 0);
-    console.log('✓ Amount format is correct:', /^\d+\.\d{2}$/.test(orderData.total_amount.toFixed(2)));
-    console.log('✓ Using NEW Signature Method (SHA-256) - Checksumhash deprecated');
-    console.log('⚠️  CRITICAL: Ensure Test Mode is ENABLED in Sadad Merchant Panel → API section');
-    console.log('⚠️  CRITICAL: Verify the secret key was generated for domain:', websiteDomain);
+    console.log('✓ Merchant ID:', settings.sadad_merchant_id);
+    console.log('✓ Website Domain:', websiteDomain);
+    console.log('✓ Secret Key Set:', !!settings.sadad_secret && settings.sadad_secret.length > 0);
+    console.log('✓ Amount Format:', orderData.total_amount.toFixed(2));
+    console.log('✓ Signature Method: SHA-256 (New Method - Checksumhash Deprecated)');
+    console.log('⚠️  CRITICAL: Test Mode MUST be ENABLED in Sadad Panel → API section');
+    console.log('⚠️  CRITICAL: Secret Key must be generated AFTER adding domain:', websiteDomain);
+    console.log('⚠️  CRITICAL: Domain must match EXACTLY (no www, no https://)');
     console.log('=== END DEBUG ===');
 
     return new Response(
