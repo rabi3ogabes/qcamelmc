@@ -57,12 +57,7 @@ const EventHome = () => {
 
       if (error) throw error;
       
-      // If we have an upcoming event, automatically redirect to ticket selection
-      if (data && data.length > 0) {
-        navigate(`/tickets/${data[0].id}`);
-      } else {
-        setEvents([]);
-      }
+      setEvents(data || []);
     } catch (error) {
       console.error("Error fetching events:", error);
     } finally {
