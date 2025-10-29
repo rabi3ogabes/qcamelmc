@@ -4,12 +4,13 @@ import mastercardLogo from "@/assets/mastercard-logo.png";
 import applePayLogo from "@/assets/applepay-logo.png";
 import sadadLogo from "@/assets/sadad-logo.png";
 import { useSettings } from "@/contexts/SettingsContext";
-
 export const Footer = () => {
-  const { settings } = useSettings();
-
-  return (
-    <footer className="border-t backdrop-blur-sm mt-16" style={{ backgroundColor: settings?.header_bg_color || "hsl(var(--card) / 0.5)" }} dir="rtl">
+  const {
+    settings
+  } = useSettings();
+  return <footer className="border-t backdrop-blur-sm mt-16" style={{
+    backgroundColor: settings?.header_bg_color || "hsl(var(--card) / 0.5)"
+  }} dir="rtl">
       <div className="container mx-auto px-4 py-8">
         <div className="flex flex-col md:flex-row justify-between items-center gap-6">
           {/* Copyright */}
@@ -21,7 +22,7 @@ export const Footer = () => {
 
           {/* Version */}
           <div className="text-center">
-            <p className="text-xs text-white/70">v1.1</p>
+            <p className="text-xs text-white/70">v1.2</p>
           </div>
 
           {/* Payment Security */}
@@ -34,35 +35,14 @@ export const Footer = () => {
             
             {/* Payment Methods */}
             <div className="flex items-center gap-2">
-              <img 
-                src={visaLogo} 
-                alt="Visa" 
-                className="h-8 object-contain"
-                loading="lazy"
-              />
-              <img 
-                src={mastercardLogo} 
-                alt="Mastercard" 
-                className="h-8 object-contain"
-                loading="lazy"
-              />
-              <img 
-                src={applePayLogo} 
-                alt="Apple Pay" 
-                className="h-8 object-contain"
-                loading="lazy"
-              />
+              <img src={visaLogo} alt="Visa" className="h-8 object-contain" loading="lazy" />
+              <img src={mastercardLogo} alt="Mastercard" className="h-8 object-contain" loading="lazy" />
+              <img src={applePayLogo} alt="Apple Pay" className="h-8 object-contain" loading="lazy" />
               <div className="h-8 w-px bg-white/30 mx-1" />
-              <img 
-                src={sadadLogo} 
-                alt="Sadad Payment" 
-                className="h-8 object-contain"
-                loading="lazy"
-              />
+              <img src={sadadLogo} alt="Sadad Payment" className="h-8 object-contain" loading="lazy" />
             </div>
           </div>
         </div>
       </div>
-    </footer>
-  );
+    </footer>;
 };
