@@ -17,16 +17,48 @@ const SadadCallback = () => {
   const handleCallback = async () => {
     try {
       const urlParams = new URLSearchParams(window.location.search);
-      const status = urlParams.get('status');
-      const orderId = urlParams.get('orderId');
+      
+      // Sadad sends parameters with specific field names
+      // Try different possible parameter names that Sadad might use
+      const orderId = urlParams.get('ORDERID') || 
+                     urlParams.get('ORDER_ID') || 
+                     urlParams.get('orderId');
+      const txnStatus = urlParams.get('STATUS') || 
+                       urlParams.get('RESPCODE') || 
+                       urlParams.get('status');
+      const txnId = urlParams.get('TXNID') || 
+                   urlParams.get('transactionNumber') ||
+                   urlParams.get('txnId');
 
-      console.log('Callback received:', { status, orderId });
+      console.log('Sadad callback received:', { orderId, txnStatus, txnId, allParams: Object.fromEntries(urlParams) });
 
       if (!orderId) {
-        throw new Error('No order ID received');
+        throw new Error('No order ID received from Sadad');
       }
 
-      // Check order status from database
+      // Determine if payment was successful
+      // Sadad typically uses: '1' or 'TXN_SUCCESS' for success, '0' or other codes for failure
+      const isSuccess = txnStatus === '1' || 
+                       txnStatus === 'TXN_SUCCESS' || 
+                       txnStatus === '3' ||
+                       txnStatus === 'success';
+
+      // Update order status in database
+      const { error: updateError } = await supabase
+        .from('orders')
+        .update({
+          payment_status: isSuccess ? 'confirmed' : 'cancelled',
+          payment_id: txnId || null,
+          confirmed_at: isSuccess ? new Date().toISOString() : null
+        })
+        .eq('booking_reference', orderId);
+
+      if (updateError) {
+        console.error('Error updating order:', updateError);
+        throw updateError;
+      }
+
+      // Fetch updated order data
       const { data: orderData, error: orderError } = await supabase
         .from('orders')
         .select('id, payment_status, payment_id')
@@ -35,7 +67,7 @@ const SadadCallback = () => {
 
       if (orderError) throw orderError;
 
-      if (orderData.payment_status === 'confirmed') {
+      if (isSuccess && orderData.payment_status === 'confirmed') {
         setStatus('success');
         setMessage('تم الدفع بنجاح!');
         
@@ -46,7 +78,7 @@ const SadadCallback = () => {
         }, 2000);
       } else {
         setStatus('failed');
-        setMessage('فشلت عملية الدفع');
+        setMessage('فشلت عملية الدفع. حالة المعاملة: ' + (txnStatus || 'غير معروف'));
       }
     } catch (error) {
       console.error('Error processing callback:', error);
