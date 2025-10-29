@@ -236,15 +236,19 @@ const AdminPOS = () => {
     }
 
     // Add ticket holder slots for the new tickets with default nationality "قطري"
-    // We create (quantity - 1) holders since the first ticket uses customer info
-    const newHolders = Array(Math.max(0, quantity - 1)).fill(null).map((_, index) => ({
+    // We create (quantity - 1) holders for the FIRST addition only (customer takes first ticket)
+    // For subsequent additions, we create full quantity of holders
+    const isFirstAddition = cart.length === 0;
+    const holdersToAdd = isFirstAddition ? Math.max(0, quantity - 1) : quantity;
+    
+    const newHolders = Array(holdersToAdd).fill(null).map((_, index) => ({
       name: "",
       nationality: "قطري",
       idNumber: "",
       phone: "",
       ticketType: ticket.type
     }));
-    console.log("Adding ticket holders:", newHolders);
+    console.log("Adding ticket holders:", newHolders, "isFirstAddition:", isFirstAddition);
     setTicketHolders([...ticketHolders, ...newHolders]);
 
     toast({
