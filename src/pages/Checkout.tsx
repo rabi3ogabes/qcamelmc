@@ -11,31 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 import { CreditCard, Banknote, Loader2, Plus, Minus, X } from "lucide-react";
 import { Footer } from "@/components/Footer";
-
-const ARABIC_COUNTRIES = [
-  "السعودية",
-  "الإمارات",
-  "قطر",
-  "الكويت",
-  "البحرين",
-  "عمان",
-  "مصر",
-  "الأردن",
-  "لبنان",
-  "العراق",
-  "سوريا",
-  "اليمن",
-  "ليبيا",
-  "السودان",
-  "الجزائر",
-  "المغرب",
-  "تونس",
-  "موريتانيا",
-  "الصومال",
-  "جيبوتي",
-  "فلسطين"
-];
-
+const ARABIC_COUNTRIES = ["السعودية", "الإمارات", "قطر", "الكويت", "البحرين", "عمان", "مصر", "الأردن", "لبنان", "العراق", "سوريا", "اليمن", "ليبيا", "السودان", "الجزائر", "المغرب", "تونس", "موريتانيا", "الصومال", "جيبوتي", "فلسطين"];
 const COUNTRY_FLAGS: Record<string, string> = {
   "السعودية": "🇸🇦",
   "الإمارات": "🇦🇪",
@@ -59,7 +35,6 @@ const COUNTRY_FLAGS: Record<string, string> = {
   "جيبوتي": "🇩🇯",
   "فلسطين": "🇵🇸"
 };
-
 const COUNTRY_CODES: Record<string, string> = {
   "السعودية": "+966",
   "الإمارات": "+971",
@@ -83,14 +58,12 @@ const COUNTRY_CODES: Record<string, string> = {
   "جيبوتي": "+253",
   "فلسطين": "+970"
 };
-
 interface TicketSelection {
   ticketId: string;
   type: string;
   quantity: number;
   price: number;
 }
-
 interface TicketHolder {
   name: string;
   phone: string;
@@ -98,9 +71,10 @@ interface TicketHolder {
   ticketType: string;
   idNumber: string;
 }
-
 const Checkout = () => {
-  const { t } = useTranslation();
+  const {
+    t
+  } = useTranslation();
   const [selections, setSelections] = useState<TicketSelection[]>([]);
   const [paymentMethod, setPaymentMethod] = useState<"sadad" | "cash_pos">("sadad");
   const [customerInfo, setCustomerInfo] = useState({
@@ -116,7 +90,6 @@ const Checkout = () => {
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
   const [headerBgColor, setHeaderBgColor] = useState<string>("hsl(var(--card) / 0.5)");
   const navigate = useNavigate();
-
   useEffect(() => {
     const stored = localStorage.getItem("ticketSelection");
     if (!stored) {
@@ -125,11 +98,9 @@ const Checkout = () => {
     }
     const parsedSelections = JSON.parse(stored);
     setSelections(parsedSelections);
-    
+
     // Initialize ticket holders array based on total quantity
-    const totalTickets = parsedSelections.reduce((total: number, item: TicketSelection) => 
-      total + item.quantity, 0);
-    
+    const totalTickets = parsedSelections.reduce((total: number, item: TicketSelection) => total + item.quantity, 0);
     const holders: TicketHolder[] = [];
     parsedSelections.forEach((selection: TicketSelection) => {
       for (let i = 0; i < selection.quantity; i++) {
@@ -143,34 +114,29 @@ const Checkout = () => {
       }
     });
     setTicketHolders(holders);
-    
+
     // Fetch logo
     fetchSettings();
   }, [navigate]);
-
   const fetchSettings = async () => {
-    const { data, error } = await supabase
-      .from("settings")
-      .select("logo_url, header_bg_color")
-      .maybeSingle();
-
+    const {
+      data,
+      error
+    } = await supabase.from("settings").select("logo_url, header_bg_color").maybeSingle();
     if (error) {
       console.error("Error fetching settings:", error);
       return;
     }
-
     if (data?.logo_url) {
       setLogoUrl(data.logo_url);
     }
-    
     if (data?.header_bg_color) {
       setHeaderBgColor(data.header_bg_color);
     }
   };
-
   const calculateTotal = () => {
     return selections.reduce((total, item) => {
-      return total + (item.price * item.quantity);
+      return total + item.price * item.quantity;
     }, 0);
   };
 
@@ -180,9 +146,9 @@ const Checkout = () => {
       const updated = [...ticketHolders];
       const fullPhone = `${customerInfo.countryCode} ${customerInfo.phone}`;
       // Update first ticket holder with all customer info
-      updated[0] = { 
-        ...updated[0], 
-        name: customerInfo.name, 
+      updated[0] = {
+        ...updated[0],
+        name: customerInfo.name,
         phone: fullPhone,
         nationality: customerInfo.nationality,
         idNumber: customerInfo.idNumber
@@ -209,19 +175,23 @@ const Checkout = () => {
       setTicketHolders(updated);
     }
   }, [customerInfo.name, customerInfo.phone, customerInfo.nationality, customerInfo.countryCode, customerInfo.idNumber]);
-
   const updateTicketHolder = (index: number, field: keyof TicketHolder, value: string) => {
     const updated = [...ticketHolders];
-    updated[index] = { ...updated[index], [field]: value };
+    updated[index] = {
+      ...updated[index],
+      [field]: value
+    };
     setTicketHolders(updated);
   };
-
   const handleIncreaseQuantity = (index: number) => {
     const updated = [...selections];
-    updated[index] = { ...updated[index], quantity: updated[index].quantity + 1 };
+    updated[index] = {
+      ...updated[index],
+      quantity: updated[index].quantity + 1
+    };
     setSelections(updated);
     localStorage.setItem("ticketSelection", JSON.stringify(updated));
-    
+
     // Rebuild ticket holders array
     const holders: TicketHolder[] = [];
     updated.forEach((selection: TicketSelection) => {
@@ -238,27 +208,22 @@ const Checkout = () => {
     setTicketHolders(holders);
     toast.success("تم زيادة الكمية");
   };
-
   const handleDecreaseQuantity = (index: number) => {
     const item = selections[index];
-    
     if (item.quantity === 1) {
       // If quantity is 1, remove the item entirely
       const confirmed = confirm(`هل تريد حذف ${item.type} من الطلب؟`);
-      
       if (confirmed) {
         const updated = selections.filter((_, i) => i !== index);
-        
         if (updated.length === 0) {
           localStorage.removeItem("ticketSelection");
           toast.info("تم حذف جميع التذاكر، سيتم إعادتك إلى صفحة التذاكر");
           navigate("/tickets");
           return;
         }
-        
         setSelections(updated);
         localStorage.setItem("ticketSelection", JSON.stringify(updated));
-        
+
         // Rebuild ticket holders array
         const holders: TicketHolder[] = [];
         updated.forEach((selection: TicketSelection) => {
@@ -277,10 +242,13 @@ const Checkout = () => {
       }
     } else {
       const updated = [...selections];
-      updated[index] = { ...updated[index], quantity: updated[index].quantity - 1 };
+      updated[index] = {
+        ...updated[index],
+        quantity: updated[index].quantity - 1
+      };
       setSelections(updated);
       localStorage.setItem("ticketSelection", JSON.stringify(updated));
-      
+
       // Rebuild ticket holders array
       const holders: TicketHolder[] = [];
       updated.forEach((selection: TicketSelection) => {
@@ -298,17 +266,15 @@ const Checkout = () => {
       toast.success("تم تقليل الكمية");
     }
   };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     // Validate minimum amount for Sadad payment (3 QAR minimum)
     const totalAmount = calculateTotal();
     if (paymentMethod === "sadad" && totalAmount < 3) {
       toast.error("الحد الأدنى للدفع عبر سداد هو 3 ريال قطري");
       return;
     }
-    
     if (!customerInfo.name || !customerInfo.phone || !customerInfo.nationality || !customerInfo.idNumber) {
       toast.error("Please fill in all customer information");
       return;
@@ -318,45 +284,37 @@ const Checkout = () => {
     const allHoldersFilled = ticketHolders.every((holder, index) => {
       return holder.name && holder.phone && holder.nationality && holder.idNumber;
     });
-    
     if (!allHoldersFilled) {
       toast.error("Please fill in information for all ticket holders");
       return;
     }
-
     setLoading(true);
-
     try {
       // Create customer
-      const { data: customer, error: customerError } = await supabase
-        .from("customers")
-        .insert({
-          name: customerInfo.name,
-          email: customerInfo.email,
-          phone: customerInfo.phone,
-          nationality: customerInfo.nationality,
-          id_number: customerInfo.idNumber
-        })
-        .select()
-        .single();
-
+      const {
+        data: customer,
+        error: customerError
+      } = await supabase.from("customers").insert({
+        name: customerInfo.name,
+        email: customerInfo.email,
+        phone: customerInfo.phone,
+        nationality: customerInfo.nationality,
+        id_number: customerInfo.idNumber
+      }).select().single();
       if (customerError) throw customerError;
 
       // Get event ID
-      const { data: event, error: eventError } = await supabase
-        .from("events")
-        .select("id")
-        .eq("is_active", true)
-        .order("event_date", { ascending: true })
-        .limit(1)
-        .single();
-
+      const {
+        data: event,
+        error: eventError
+      } = await supabase.from("events").select("id").eq("is_active", true).order("event_date", {
+        ascending: true
+      }).limit(1).single();
       if (eventError) throw eventError;
 
       // Create order
       const bookingRef = `QTR-${Math.random().toString(36).substring(2, 10).toUpperCase()}`;
       const totalQuantity = selections.reduce((sum, s) => sum + s.quantity, 0);
-      
       const orderData = {
         customer_id: customer.id,
         event_id: event.id,
@@ -364,15 +322,12 @@ const Checkout = () => {
         quantity: totalQuantity,
         total_amount: calculateTotal(),
         payment_method: paymentMethod,
-        booking_reference: bookingRef,
+        booking_reference: bookingRef
       };
-
-      const { data: order, error: orderError } = await supabase
-        .from("orders")
-        .insert(orderData)
-        .select()
-        .single();
-
+      const {
+        data: order,
+        error: orderError
+      } = await supabase.from("orders").insert(orderData).select().single();
       if (orderError) throw orderError;
 
       // Create ticket holders first without QR codes for faster processing
@@ -385,16 +340,15 @@ const Checkout = () => {
           country_code: '+974',
           nationality: holder.nationality,
           ticket_type: holder.ticketType,
-          qr_code: ticketRef, // Temporary placeholder
+          qr_code: ticketRef,
+          // Temporary placeholder
           id_number: holder.idNumber
         };
       });
-
-      const { data: insertedHolders, error: holdersError } = await supabase
-        .from("ticket_holders")
-        .insert(holdersToInsert)
-        .select();
-
+      const {
+        data: insertedHolders,
+        error: holdersError
+      } = await supabase.from("ticket_holders").insert(holdersToInsert).select();
       if (holdersError) throw holdersError;
 
       // Generate QR codes asynchronously in the background (non-blocking)
@@ -402,15 +356,18 @@ const Checkout = () => {
         Promise.all(insertedHolders.map(async (holder, index) => {
           try {
             const ticketRef = `${bookingRef}-TKT${(index + 1).toString().padStart(2, '0')}`;
-            const { data: qrData } = await supabase.functions.invoke('generate-qr-code', {
-              body: { text: ticketRef, filename: ticketRef }
+            const {
+              data: qrData
+            } = await supabase.functions.invoke('generate-qr-code', {
+              body: {
+                text: ticketRef,
+                filename: ticketRef
+              }
             });
-
             if (qrData?.url) {
-              await supabase
-                .from("ticket_holders")
-                .update({ qr_code: qrData.url })
-                .eq('id', holder.id);
+              await supabase.from("ticket_holders").update({
+                qr_code: qrData.url
+              }).eq('id', holder.id);
             }
           } catch (error) {
             console.error('Background QR generation failed for ticket:', error);
@@ -425,24 +382,21 @@ const Checkout = () => {
           price: s.price,
           quantity: s.quantity
         }));
-        
-        const { data: paymentResponse, error: paymentError } = await supabase.functions.invoke(
-          'sadad-payment',
-          {
-            body: {
-              orderId: order.booking_reference,
-              orderData: {
-                ...orderData,
-                customer_email: customerInfo.email,
-                customer_phone: customerInfo.phone,
-                items: orderItems
-              }
+        const {
+          data: paymentResponse,
+          error: paymentError
+        } = await supabase.functions.invoke('sadad-payment', {
+          body: {
+            orderId: order.booking_reference,
+            orderData: {
+              ...orderData,
+              customer_email: customerInfo.email,
+              customer_phone: customerInfo.phone,
+              items: orderItems
             }
           }
-        );
-
+        });
         if (paymentError) throw paymentError;
-        
         if (!paymentResponse?.success) {
           throw new Error(paymentResponse?.error || 'Failed to initiate Sadad payment');
         }
@@ -452,7 +406,7 @@ const Checkout = () => {
           paymentData: paymentResponse.paymentData,
           sadadUrl: paymentResponse.sadadUrl
         }));
-        
+
         // Redirect to payment submission page
         navigate('/sadad-redirect');
         return;
@@ -465,36 +419,40 @@ const Checkout = () => {
       // Call webhook asynchronously (non-blocking)
       (async () => {
         try {
-          const { data: settings } = await supabase
-            .from("settings")
-            .select("webhook_url, admin_phone")
-            .maybeSingle();
-
+          const {
+            data: settings
+          } = await supabase.from("settings").select("webhook_url, admin_phone").maybeSingle();
           if (settings?.webhook_url) {
             const formatPhoneNumber = (phone: string | null | undefined) => {
               if (!phone) return null;
               const cleanPhone = phone.replace(/[\+\s]/g, '');
               return cleanPhone.startsWith('974') ? cleanPhone : `974${cleanPhone}`;
             };
-
             await fetch(settings.webhook_url, {
               method: "POST",
-              headers: { "Content-Type": "application/json" },
+              headers: {
+                "Content-Type": "application/json"
+              },
               body: JSON.stringify({
-                customer: { ...customer, phone: formatPhoneNumber(customer.phone) },
+                customer: {
+                  ...customer,
+                  phone: formatPhoneNumber(customer.phone)
+                },
                 order,
-                ticketHolders: holdersToInsert.map(h => ({ ...h, phone: formatPhoneNumber(h.phone) })),
+                ticketHolders: holdersToInsert.map(h => ({
+                  ...h,
+                  phone: formatPhoneNumber(h.phone)
+                })),
                 bookingReference: bookingRef,
                 adminPhone: formatPhoneNumber(settings.admin_phone),
-                timestamp: new Date().toISOString(),
-              }),
+                timestamp: new Date().toISOString()
+              })
             });
           }
         } catch (error) {
           console.error("Webhook call failed:", error);
         }
       })();
-
       toast.success(t('bookingCreated'));
       navigate("/confirmation");
     } catch (error) {
@@ -504,35 +462,20 @@ const Checkout = () => {
       setLoading(false);
     }
   };
-
   if (selections.length === 0) {
-    return (
-      <div className="min-h-screen flex items-center justify-center font-lusail">
+    return <div className="min-h-screen flex items-center justify-center font-lusail">
         <div className="animate-pulse text-lg">{t('loading')}</div>
-      </div>
-    );
+      </div>;
   }
-
-  return (
-    <div className="min-h-screen bg-background font-lusail">
+  return <div className="min-h-screen bg-background font-lusail">
       {/* Header */}
-      <header className="border-b backdrop-blur-sm sticky top-0 z-10 mb-4 sm:mb-6 md:mb-8" style={{ backgroundColor: headerBgColor }}>
+      <header className="border-b backdrop-blur-sm sticky top-0 z-10 mb-4 sm:mb-6 md:mb-8" style={{
+      backgroundColor: headerBgColor
+    }}>
         <div className="container mx-auto px-3 sm:px-4 py-3 sm:py-4 flex justify-between items-center gap-2">
-          {logoUrl ? (
-            <img 
-              src={logoUrl} 
-              alt="Logo" 
-              className="h-8 sm:h-10 md:h-12 object-contain cursor-pointer" 
-              onClick={() => navigate("/")}
-            />
-          ) : (
-            <h1 
-              className="text-lg sm:text-xl md:text-2xl font-bold cursor-pointer"
-              onClick={() => navigate("/")}
-            >
+          {logoUrl ? <img src={logoUrl} alt="Logo" className="h-8 sm:h-10 md:h-12 object-contain cursor-pointer" onClick={() => navigate("/")} /> : <h1 className="text-lg sm:text-xl md:text-2xl font-bold cursor-pointer" onClick={() => navigate("/")}>
               فعاليات قطر
-            </h1>
-          )}
+            </h1>}
           <Button variant="ghost" onClick={() => navigate("/")} className="text-xs sm:text-sm text-white hover:text-white">
             {t('backToHome') || 'العودة للرئيسية'}
           </Button>
@@ -558,100 +501,78 @@ const Checkout = () => {
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
                   <Label htmlFor="name">{t('fullName')} *</Label>
-                  <Input
-                    id="name"
-                    value={customerInfo.name}
-                    onChange={(e) => setCustomerInfo({ ...customerInfo, name: e.target.value })}
-                    required
-                  />
+                  <Input id="name" value={customerInfo.name} onChange={e => setCustomerInfo({
+                  ...customerInfo,
+                  name: e.target.value
+                })} required />
                 </div>
                 <div>
                   <Label htmlFor="email">{t('email')}</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    value={customerInfo.email}
-                    onChange={(e) => setCustomerInfo({ ...customerInfo, email: e.target.value })}
-                  />
+                  <Input id="email" type="email" value={customerInfo.email} onChange={e => setCustomerInfo({
+                  ...customerInfo,
+                  email: e.target.value
+                })} />
                 </div>
                 <div>
                   <Label htmlFor="nationality">{t('nationality')} *</Label>
-                  <Select
-                    value={customerInfo.nationality}
-                    onValueChange={(value) => {
-                      const countryCode = COUNTRY_CODES[value] || "+974";
-                      setCustomerInfo({ 
-                        ...customerInfo, 
-                        nationality: value,
-                        countryCode: countryCode
-                      });
-                    }}
-                    required
-                    dir="rtl"
-                  >
+                  <Select value={customerInfo.nationality} onValueChange={value => {
+                  const countryCode = COUNTRY_CODES[value] || "+974";
+                  setCustomerInfo({
+                    ...customerInfo,
+                    nationality: value,
+                    countryCode: countryCode
+                  });
+                }} required dir="rtl">
                     <SelectTrigger id="nationality">
                       <SelectValue placeholder={t('nationality')} />
                     </SelectTrigger>
                     <SelectContent align="end">
-                      {ARABIC_COUNTRIES.map((country) => (
-                        <SelectItem key={country} value={country}>
+                      {ARABIC_COUNTRIES.map(country => <SelectItem key={country} value={country}>
                           <span className="flex items-center gap-2">
                             <span>{COUNTRY_FLAGS[country]}</span>
                             <span>{country}</span>
                           </span>
-                        </SelectItem>
-                      ))}
+                        </SelectItem>)}
                     </SelectContent>
                   </Select>
                 </div>
                 <div>
                   <Label htmlFor="phone">{t('phoneNumber')} *</Label>
                   <div className="flex gap-2">
-                    <Select
-                      value={customerInfo.countryCode}
-                      onValueChange={(value) => setCustomerInfo({ ...customerInfo, countryCode: value })}
-                      dir="rtl"
-                    >
+                    <Select value={customerInfo.countryCode} onValueChange={value => setCustomerInfo({
+                    ...customerInfo,
+                    countryCode: value
+                  })} dir="rtl">
                       <SelectTrigger className="w-[90px] sm:w-[110px] md:w-[120px]">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent align="end">
-                        {ARABIC_COUNTRIES.map((country) => (
-                          <SelectItem key={country} value={COUNTRY_CODES[country]}>
+                        {ARABIC_COUNTRIES.map(country => <SelectItem key={country} value={COUNTRY_CODES[country]}>
                             <span className="flex items-center gap-2">
                               <span>{COUNTRY_FLAGS[country]}</span>
                               <span>{COUNTRY_CODES[country]}</span>
                             </span>
-                          </SelectItem>
-                        ))}
+                          </SelectItem>)}
                       </SelectContent>
                     </Select>
-                    <Input
-                      id="phone"
-                      type="tel"
-                      value={customerInfo.phone}
-                      onChange={(e) => setCustomerInfo({ ...customerInfo, phone: e.target.value })}
-                      required
-                      className="flex-1"
-                    />
+                    <Input id="phone" type="tel" value={customerInfo.phone} onChange={e => setCustomerInfo({
+                    ...customerInfo,
+                    phone: e.target.value
+                  })} required className="flex-1" />
                   </div>
                 </div>
                 <div>
                   <Label htmlFor="idNumber">رقم الهوية *</Label>
-                  <Input
-                    id="idNumber"
-                    value={customerInfo.idNumber}
-                    onChange={(e) => setCustomerInfo({ ...customerInfo, idNumber: e.target.value })}
-                    required
-                    placeholder="رقم الهوية"
-                  />
+                  <Input id="idNumber" value={customerInfo.idNumber} onChange={e => setCustomerInfo({
+                  ...customerInfo,
+                  idNumber: e.target.value
+                })} required placeholder="رقم الهوية" />
                 </div>
               </form>
             </Card>
 
             {/* Ticket Holders Information - Only show if more than 1 ticket */}
-            {ticketHolders.length > 1 && (
-              <Card className="p-4 sm:p-5 md:p-6">
+            {ticketHolders.length > 1 && <Card className="p-4 sm:p-5 md:p-6">
                 <div className="mb-4 sm:mb-6">
                   <h2 className="text-xl sm:text-2xl font-semibold mb-2">التذاكر الإضافية</h2>
                   <p className="text-sm text-muted-foreground">
@@ -660,11 +581,9 @@ const Checkout = () => {
                 </div>
                 <div className="space-y-4 sm:space-y-6">
                   {ticketHolders.map((holder, index) => {
-                    // Skip rendering the first ticket holder since info is from customer
-                    if (index === 0) return null;
-                    
-                    return (
-                      <div key={index} className="p-3 sm:p-4 border-2 border-primary/20 rounded-lg space-y-3 sm:space-y-4 bg-primary/5">
+                // Skip rendering the first ticket holder since info is from customer
+                if (index === 0) return null;
+                return <div key={index} className="p-3 sm:p-4 border-2 border-primary/20 rounded-lg space-y-3 sm:space-y-4 bg-primary/5">
                         <div className="flex items-center justify-between mb-2">
                           <h3 className="font-semibold text-base sm:text-lg flex items-center gap-2">
                             <span className="w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-sm">
@@ -677,80 +596,52 @@ const Checkout = () => {
                         <div className="grid sm:grid-cols-2 gap-3 sm:gap-4">
                           <div>
                             <Label htmlFor={`holder-name-${index}`}>{t('fullName')} *</Label>
-                            <Input
-                              id={`holder-name-${index}`}
-                              value={holder.name}
-                              onChange={(e) => updateTicketHolder(index, 'name', e.target.value)}
-                              required
-                              placeholder={t('fullName')}
-                            />
+                            <Input id={`holder-name-${index}`} value={holder.name} onChange={e => updateTicketHolder(index, 'name', e.target.value)} required placeholder={t('fullName')} />
                           </div>
                           <div>
                             <Label htmlFor={`holder-nationality-${index}`}>{t('nationality')} *</Label>
-                            <Select
-                              value={holder.nationality}
-                              onValueChange={(value) => {
-                                const countryCode = COUNTRY_CODES[value] || "";
-                                const currentPhone = holder.phone;
-                                // Remove any existing country code from phone
-                                const phoneWithoutCode = currentPhone.replace(/^\+\d+\s*/, "");
-                                const updated = [...ticketHolders];
-                                updated[index] = { 
-                                  ...updated[index], 
-                                  nationality: value,
-                                  phone: countryCode ? `${countryCode} ${phoneWithoutCode}` : phoneWithoutCode
-                                };
-                                setTicketHolders(updated);
-                              }}
-                              required
-                              dir="rtl"
-                            >
+                            <Select value={holder.nationality} onValueChange={value => {
+                        const countryCode = COUNTRY_CODES[value] || "";
+                        const currentPhone = holder.phone;
+                        // Remove any existing country code from phone
+                        const phoneWithoutCode = currentPhone.replace(/^\+\d+\s*/, "");
+                        const updated = [...ticketHolders];
+                        updated[index] = {
+                          ...updated[index],
+                          nationality: value,
+                          phone: countryCode ? `${countryCode} ${phoneWithoutCode}` : phoneWithoutCode
+                        };
+                        setTicketHolders(updated);
+                      }} required dir="rtl">
                               <SelectTrigger id={`holder-nationality-${index}`}>
                                 <SelectValue placeholder={t('nationality')} />
                               </SelectTrigger>
                               <SelectContent align="end">
-                                {ARABIC_COUNTRIES.map((country) => (
-                                  <SelectItem key={country} value={country}>
+                                {ARABIC_COUNTRIES.map(country => <SelectItem key={country} value={country}>
                                     <span className="flex items-center gap-2">
                                       <span>{COUNTRY_FLAGS[country]}</span>
                                       <span>{country}</span>
                                     </span>
-                                  </SelectItem>
-                                ))}
+                                  </SelectItem>)}
                               </SelectContent>
                             </Select>
                           </div>
                           <div>
                             <Label htmlFor={`holder-idNumber-${index}`}>رقم الهوية *</Label>
-                            <Input
-                              id={`holder-idNumber-${index}`}
-                              value={holder.idNumber}
-                              onChange={(e) => updateTicketHolder(index, 'idNumber', e.target.value)}
-                              required
-                              placeholder="رقم الهوية"
-                            />
+                            <Input id={`holder-idNumber-${index}`} value={holder.idNumber} onChange={e => updateTicketHolder(index, 'idNumber', e.target.value)} required placeholder="رقم الهوية" />
                           </div>
                           <div>
                             <Label htmlFor={`holder-phone-${index}`}>{t('phone')} *</Label>
-                            <Input
-                              id={`holder-phone-${index}`}
-                              type="tel"
-                              value={holder.phone.replace(/^\+\d+\s*/, "")}
-                              onChange={(e) => {
-                                const countryCode = COUNTRY_CODES[holder.nationality] || "+974";
-                                updateTicketHolder(index, 'phone', `${countryCode} ${e.target.value}`);
-                              }}
-                              required
-                              placeholder={t('phone')}
-                            />
+                            <Input id={`holder-phone-${index}`} type="tel" value={holder.phone.replace(/^\+\d+\s*/, "")} onChange={e => {
+                        const countryCode = COUNTRY_CODES[holder.nationality] || "+974";
+                        updateTicketHolder(index, 'phone', `${countryCode} ${e.target.value}`);
+                      }} required placeholder={t('phone')} />
                           </div>
                         </div>
-                      </div>
-                    );
-                  })}
+                      </div>;
+              })}
                 </div>
-              </Card>
-            )}
+              </Card>}
 
             {/* Payment Method */}
             <Card className="p-4 sm:p-5 md:p-6">
@@ -779,20 +670,11 @@ const Checkout = () => {
               </RadioGroup>
             </Card>
 
-            <Button 
-              onClick={handleSubmit} 
-              className="w-full" 
-              size="lg" 
-              disabled={loading}
-            >
-              {loading ? (
-                <>
+            <Button onClick={handleSubmit} className="w-full" size="lg" disabled={loading}>
+              {loading ? <>
                   <Loader2 className="w-4 h-4 ml-2 animate-spin" />
                   {t('loading')}
-                </>
-              ) : (
-                t('completeBooking')
-              )}
+                </> : t('completeBooking')}
             </Button>
           </div>
 
@@ -801,8 +683,7 @@ const Checkout = () => {
             <Card className="p-4 sm:p-5 md:p-6 lg:sticky lg:top-20">
               <h2 className="text-xl sm:text-2xl font-semibold mb-4 sm:mb-6">{t('orderSummary')}</h2>
               <div className="space-y-3 sm:space-y-4">
-                {selections.map((item, index) => (
-                  <div key={index} className="flex justify-between items-center py-2 sm:py-3 border-b gap-4">
+                {selections.map((item, index) => <div key={index} className="flex justify-between items-center py-2 sm:py-3 border-b gap-4">
                     <div className="flex-1 min-w-0">
                       <div className="font-medium capitalize text-sm sm:text-base truncate">{item.type} {t('ticket')}</div>
                       <div className="text-xs sm:text-sm text-muted-foreground">{t('quantity')}: {item.quantity}</div>
@@ -812,27 +693,16 @@ const Checkout = () => {
                         {(item.price * item.quantity).toFixed(2)} {t('qar')}
                       </div>
                       <div className="flex items-center gap-1 border rounded-md">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 hover:bg-accent"
-                          onClick={() => handleDecreaseQuantity(index)}
-                        >
+                        <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-accent" onClick={() => handleDecreaseQuantity(index)}>
                           <Minus className="h-4 w-4" />
                         </Button>
                         <span className="px-2 text-sm font-medium min-w-[20px] text-center">{item.quantity}</span>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 hover:bg-accent"
-                          onClick={() => handleIncreaseQuantity(index)}
-                        >
+                        <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-accent" onClick={() => handleIncreaseQuantity(index)}>
                           <Plus className="h-4 w-4" />
                         </Button>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  </div>)}
                 
                 <div className="pt-3 sm:pt-4 border-t">
                   <div className="flex justify-between items-center text-lg sm:text-xl font-bold gap-4">
@@ -852,15 +722,13 @@ const Checkout = () => {
               <Button variant="ghost" onClick={() => navigate("/tickets")} className="w-full text-sm sm:text-base bg-yellow-500 hover:bg-yellow-600 text-black">
                 {t('backToTickets')}
               </Button>
-              <p className="text-xs text-muted-foreground mt-2">v1.0</p>
+              <p className="text-xs text-muted-foreground mt-2">v1.1</p>
             </div>
           </div>
         </div>
       </div>
 
       <Footer />
-    </div>
-  );
+    </div>;
 };
-
 export default Checkout;
