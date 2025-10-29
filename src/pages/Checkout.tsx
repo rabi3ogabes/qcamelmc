@@ -81,7 +81,9 @@ const Checkout = () => {
     name: "",
     email: "",
     phone: "",
-    countryCode: "+974"
+    nationality: "قطر",
+    countryCode: "+974",
+    idNumber: ""
   });
   const [ticketHolders, setTicketHolders] = useState<TicketHolder[]>([]);
   const [loading, setLoading] = useState(false);
@@ -138,7 +140,41 @@ const Checkout = () => {
     }, 0);
   };
 
-  // No auto-fill - each ticket holder fills their own form independently
+  // Auto-fill first ticket holder from customer info and apply nationality to all holders
+  useEffect(() => {
+    if (ticketHolders.length > 0 && customerInfo.name && customerInfo.phone && customerInfo.nationality) {
+      const updated = [...ticketHolders];
+      const fullPhone = `${customerInfo.countryCode} ${customerInfo.phone}`;
+      // Update first ticket holder with all customer info
+      updated[0] = {
+        ...updated[0],
+        name: customerInfo.name,
+        phone: fullPhone,
+        nationality: customerInfo.nationality,
+        idNumber: customerInfo.idNumber
+      };
+      // Apply main user's nationality and country code to all other ticket holders
+      const countryCode = customerInfo.countryCode;
+      for (let i = 1; i < updated.length; i++) {
+        // Only update nationality and phone prefix if not already set
+        if (!updated[i].nationality) {
+          updated[i] = {
+            ...updated[i],
+            nationality: customerInfo.nationality,
+            phone: countryCode // Set initial phone with country code
+          };
+        } else if (!updated[i].phone) {
+          // If nationality is set but phone is empty, use appropriate country code
+          const holderCountryCode = COUNTRY_CODES[updated[i].nationality] || "+974";
+          updated[i] = {
+            ...updated[i],
+            phone: holderCountryCode
+          };
+        }
+      }
+      setTicketHolders(updated);
+    }
+  }, [customerInfo.name, customerInfo.phone, customerInfo.nationality, customerInfo.countryCode, customerInfo.idNumber]);
   const updateTicketHolder = (index: number, field: keyof TicketHolder, value: string) => {
     const updated = [...ticketHolders];
     updated[index] = {
@@ -148,21 +184,6 @@ const Checkout = () => {
     setTicketHolders(updated);
   };
   const handleIncreaseQuantity = (index: number) => {
-    // Calculate total VIP + Normal tickets
-    const totalVipNormal = selections.reduce((total, item) => {
-      if (item.type.toLowerCase() !== 'parking') {
-        return total + item.quantity;
-      }
-      return total;
-    }, 0);
-
-    // Check if adding would exceed 5 tickets for VIP + Normal
-    const currentItem = selections[index];
-    if (currentItem.type.toLowerCase() !== 'parking' && totalVipNormal >= 5) {
-      toast.error("الحد الأقصى 5 تذاكر لـ VIP + Normal");
-      return;
-    }
-
     const updated = [...selections];
     updated[index] = {
       ...updated[index],
@@ -254,8 +275,8 @@ const Checkout = () => {
       toast.error("الحد الأدنى للدفع عبر سداد هو 3 ريال قطري");
       return;
     }
-    if (!customerInfo.name || !customerInfo.phone) {
-      toast.error("الرجاء إدخال معلومات الاتصال");
+    if (!customerInfo.name || !customerInfo.phone || !customerInfo.nationality || !customerInfo.idNumber) {
+      toast.error("Please fill in all customer information");
       return;
     }
 
@@ -264,7 +285,7 @@ const Checkout = () => {
       return holder.name && holder.phone && holder.nationality && holder.idNumber;
     });
     if (!allHoldersFilled) {
-      toast.error("الرجاء إدخال معلومات كاملة لجميع حاملي التذاكر");
+      toast.error("Please fill in information for all ticket holders");
       return;
     }
     setLoading(true);
@@ -277,8 +298,8 @@ const Checkout = () => {
         name: customerInfo.name,
         email: customerInfo.email,
         phone: customerInfo.phone,
-        nationality: ticketHolders[0]?.nationality || "قطر",
-        id_number: ticketHolders[0]?.idNumber || ""
+        nationality: customerInfo.nationality,
+        id_number: customerInfo.idNumber
       }).select().single();
       if (customerError) throw customerError;
 
@@ -472,9 +493,12 @@ const Checkout = () => {
           <div className="lg:col-span-2 space-y-4 sm:space-y-6">
             <Card className="p-4 sm:p-5 md:p-6">
               <div className="mb-4 sm:mb-6">
-                <h2 className="text-xl sm:text-2xl font-semibold mb-2">معلومات التواصل</h2>
+                <h2 className="text-xl sm:text-2xl font-semibold mb-2 flex items-center gap-2">
+                  <span className="w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-sm">1</span>
+                  {t('customerInfo')} - التذكرة الرئيسية
+                </h2>
                 <p className="text-sm text-muted-foreground">
-                  معلومات الشخص المسؤول عن الحجز (للتواصل والإشعارات)
+                  هذه المعلومات للتذكرة الرئيسية وستحصل على QR Code خاص بها
                 </p>
               </div>
               <form onSubmit={handleSubmit} className="space-y-4">
@@ -491,6 +515,29 @@ const Checkout = () => {
                   ...customerInfo,
                   email: e.target.value
                 })} />
+                </div>
+                <div>
+                  <Label htmlFor="nationality">{t('nationality')} *</Label>
+                  <Select value={customerInfo.nationality} onValueChange={value => {
+                  const countryCode = COUNTRY_CODES[value] || "+974";
+                  setCustomerInfo({
+                    ...customerInfo,
+                    nationality: value,
+                    countryCode: countryCode
+                  });
+                }} required dir="rtl">
+                    <SelectTrigger id="nationality">
+                      <SelectValue placeholder={t('nationality')} />
+                    </SelectTrigger>
+                    <SelectContent align="end">
+                      {ARABIC_COUNTRIES.map(country => <SelectItem key={country} value={country}>
+                          <span className="flex items-center gap-2">
+                            <span>{COUNTRY_FLAGS[country]}</span>
+                            <span>{country}</span>
+                          </span>
+                        </SelectItem>)}
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div>
                   <Label htmlFor="phone">{t('phoneNumber')} *</Label>
@@ -517,19 +564,28 @@ const Checkout = () => {
                   })} required className="flex-1" />
                   </div>
                 </div>
+                <div>
+                  <Label htmlFor="idNumber">رقم الهوية *</Label>
+                  <Input id="idNumber" value={customerInfo.idNumber} onChange={e => setCustomerInfo({
+                  ...customerInfo,
+                  idNumber: e.target.value
+                })} required placeholder="رقم الهوية" />
+                </div>
               </form>
             </Card>
 
-            {/* Ticket Holders Information - Show all tickets */}
-            <Card className="p-4 sm:p-5 md:p-6">
+            {/* Ticket Holders Information - Only show if more than 1 ticket */}
+            {ticketHolders.length > 1 && <Card className="p-4 sm:p-5 md:p-6">
                 <div className="mb-4 sm:mb-6">
-                  <h2 className="text-xl sm:text-2xl font-semibold mb-2">معلومات حاملي التذاكر</h2>
+                  <h2 className="text-xl sm:text-2xl font-semibold mb-2">التذاكر الإضافية</h2>
                   <p className="text-sm text-muted-foreground">
-                    كل تذكرة ستحصل على QR Code فريد خاص بها. يرجى إدخال معلومات كاملة لكل حامل تذكرة. (الحد الأقصى 5 تذاكر)
+                    كل تذكرة ستحصل على QR Code فريد خاص بها. يرجى إدخال معلومات كاملة لكل حامل تذكرة.
                   </p>
                 </div>
                 <div className="space-y-4 sm:space-y-6">
                   {ticketHolders.map((holder, index) => {
+                // Skip rendering the first ticket holder since info is from customer
+                if (index === 0) return null;
                 return <div key={index} className="p-3 sm:p-4 border-2 border-primary/20 rounded-lg space-y-3 sm:space-y-4 bg-primary/5">
                         <div className="flex items-center justify-between mb-2">
                           <h3 className="font-semibold text-base sm:text-lg flex items-center gap-2">
@@ -586,9 +642,9 @@ const Checkout = () => {
                           </div>
                         </div>
                       </div>;
-               })}
+              })}
                 </div>
-              </Card>
+              </Card>}
 
             {/* Payment Method */}
             <Card className="p-4 sm:p-5 md:p-6">
