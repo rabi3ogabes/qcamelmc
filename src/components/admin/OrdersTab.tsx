@@ -505,28 +505,36 @@ export const OrdersTab = ({
             )}
           </div>
           <div className="flex items-center gap-2">
-            <Button 
-              size="sm"
-              variant={order.payment_status === "confirmed" ? "outline" : "default"}
-              onClick={(e) => {
-                e.stopPropagation();
-                togglePaymentStatus(order.id, order.payment_status);
-              }}
-              className={`h-8 font-lusail ${order.payment_status === "confirmed" ? "" : "bg-green-600 hover:bg-green-700 text-white"}`}
-              title={order.payment_status === "confirmed" ? "إلغاء التأكيد" : "تأكيد الدفع يدوياً"}
-            >
-              {order.payment_status === "confirmed" ? (
-                <>
-                  <XCircle className="w-4 h-4 mr-1" />
-                  إلغاء
-                </>
-              ) : (
-                <>
-                  <CheckCircle className="w-4 h-4 mr-1" />
-                  تحقق ✓
-                </>
-              )}
-            </Button>
+            {order.payment_status === "pending" && (
+              <Button 
+                size="sm"
+                variant="default"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  togglePaymentStatus(order.id, order.payment_status);
+                }}
+                className="h-8 bg-green-600 hover:bg-green-700 text-white font-lusail"
+                title="تأكيد الدفع يدوياً"
+              >
+                <CheckCircle className="w-4 h-4 mr-1" />
+                تأكيد ✓
+              </Button>
+            )}
+            {order.payment_status === "confirmed" && (
+              <Button 
+                size="sm"
+                variant="destructive"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  togglePaymentStatus(order.id, order.payment_status);
+                }}
+                className="h-8 font-lusail"
+                title="إلغاء التأكيد"
+              >
+                <XCircle className="w-4 h-4 mr-1" />
+                إلغاء
+              </Button>
+            )}
             {showDeleteButton && (
               <Button 
                 size="icon" 
