@@ -162,7 +162,7 @@ serve(async (req) => {
           ...paymentData,
           signature  // New signature parameter replaces checksumhash
         },
-        sadadUrl: 'https://secure.sadadqa.com/webpurchase'  // Direct Payment API URL
+        sadadUrl: 'https://sadadqa.com/webpurchase'  // Direct Payment API URL (Official Sadad endpoint)
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
