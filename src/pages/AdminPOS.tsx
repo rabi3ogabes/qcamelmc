@@ -10,10 +10,7 @@ import { ArrowRight, ShoppingCart, Trash2, Plus, Minus, Maximize, Minimize, Cale
 import { useToast } from "@/hooks/use-toast";
 import { useTranslation } from "react-i18next";
 import { TicketAddItem } from "@/components/admin/TicketAddItem";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Calendar } from "@/components/ui/calendar";
 import { format } from "date-fns";
-import { cn } from "@/lib/utils";
 
 interface Ticket {
   id: string;
@@ -59,17 +56,38 @@ const AdminPOS = () => {
   const [showAllNationalities, setShowAllNationalities] = useState(false);
   const [ticketHolders, setTicketHolders] = useState<TicketHolderInput[]>([]);
   const [isFullscreen, setIsFullscreen] = useState(false);
-  const [selectedDate, setSelectedDate] = useState<Date | undefined>(() => {
-    const saved = localStorage.getItem('posSelectedDate');
-    return saved ? new Date(saved) : new Date();
-  });
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
+
+  useEffect(() => {
+    // Fetch the upcoming event automatically
+    const fetchUpcomingEvent = async () => {
+      try {
+        const { data, error } = await supabase
+          .from("events")
+          .select("event_date")
+          .gte("event_date", new Date().toISOString())
+          .order("event_date", { ascending: true })
+          .limit(1)
+          .single();
+
+        if (error) throw error;
+        
+        if (data?.event_date) {
+          setSelectedDate(new Date(data.event_date));
+        }
+      } catch (error) {
+        console.error("Failed to fetch upcoming event:", error);
+      }
+    };
+
+    fetchUpcomingEvent();
+    fetchSettings();
+  }, []);
 
   useEffect(() => {
     if (selectedDate) {
       fetchTickets();
-      localStorage.setItem('posSelectedDate', selectedDate.toISOString());
     }
-    fetchSettings();
   }, [selectedDate]);
 
   useEffect(() => {
@@ -207,10 +225,10 @@ const AdminPOS = () => {
       }]);
     }
 
-    // Add ticket holder slots for the new tickets
+    // Add ticket holder slots for the new tickets with default nationality "قطري"
     const newHolders = Array(quantity).fill(null).map(() => ({
       name: "",
-      nationality: "",
+      nationality: "قطري",
       idNumber: "",
       phone: "",
       ticketType: ticket.type
@@ -268,10 +286,10 @@ const AdminPOS = () => {
 
     // Adjust ticket holders
     if (difference > 0) {
-      // Add more holders
+      // Add more holders with default nationality "قطري"
       const newHolders = Array(difference).fill(null).map(() => ({
         name: "",
-        nationality: "",
+        nationality: "قطري",
         idNumber: "",
         phone: "",
         ticketType: item.ticketType
@@ -544,29 +562,12 @@ const AdminPOS = () => {
             )}
           </button>
           <div className="flex items-center gap-4">
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  className={cn(
-                    "justify-start text-left font-normal",
-                    !selectedDate && "text-muted-foreground"
-                  )}
-                >
-                  <CalendarIcon className="ml-2 h-4 w-4" />
-                  {selectedDate ? format(selectedDate, "PPP") : <span>اختر التاريخ</span>}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
-                <Calendar
-                  mode="single"
-                  selected={selectedDate}
-                  onSelect={setSelectedDate}
-                  initialFocus
-                  className={cn("p-3 pointer-events-auto")}
-                />
-              </PopoverContent>
-            </Popover>
+            <div className="flex items-center gap-2 px-4 py-2 bg-muted rounded">
+              <CalendarIcon className="h-4 w-4" />
+              <span className="font-semibold">
+                {selectedDate ? format(selectedDate, "PPP") : "جاري التحميل..."}
+              </span>
+            </div>
             <h2 className="text-xl font-semibold bg-yellow-400 px-4 py-2 rounded">بيع تذكرة</h2>
             <Button
               variant="ghost"

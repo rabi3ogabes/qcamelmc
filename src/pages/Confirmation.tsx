@@ -23,12 +23,26 @@ const Confirmation = () => {
   const [loading, setLoading] = useState(true);
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
   const [headerBgColor, setHeaderBgColor] = useState<string>("hsl(var(--card) / 0.5)");
+  const [countdown, setCountdown] = useState(20);
   const navigate = useNavigate();
 
   useEffect(() => {
     fetchOrders();
     fetchSettings();
   }, []);
+
+  useEffect(() => {
+    if (countdown <= 0) {
+      navigate("/");
+      return;
+    }
+
+    const timer = setInterval(() => {
+      setCountdown((prev) => prev - 1);
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [countdown, navigate]);
 
   const fetchSettings = async () => {
     const { data, error } = await supabase
@@ -192,7 +206,10 @@ const Confirmation = () => {
           </div>
         </Card>
 
-        <div className="text-center">
+        <div className="text-center space-y-4">
+          <div className="text-lg text-muted-foreground">
+            سيتم التحويل تلقائياً إلى الصفحة الرئيسية خلال <span className="font-bold text-foreground">{countdown}</span> ثانية
+          </div>
           <Button size="lg" onClick={() => navigate("/")}>
             {t('returnToHome')}
           </Button>
