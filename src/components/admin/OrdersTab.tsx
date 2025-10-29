@@ -517,17 +517,17 @@ export const OrdersTab = ({
                 }));
               }}
               className={`h-8 font-lusail ${manualVerification[order.id] ? "" : "bg-green-600 hover:bg-green-700 text-white"}`}
-              title={manualVerification[order.id] ? "لم يتم التحقق" : "تم التحقق"}
+              title={manualVerification[order.id] ? "لم يتم التأكد من الدفع في سداد" : "التأكد من الدفع في سداد"}
             >
               {manualVerification[order.id] ? (
                 <>
                   <XCircle className="w-4 h-4 mr-1" />
-                  لا
+                  لم يتم التأكد من الدفع في سداد
                 </>
               ) : (
                 <>
                   <CheckCircle className="w-4 h-4 mr-1" />
-                  نعم
+                  التأكد من الدفع في سداد
                 </>
               )}
             </Button>
