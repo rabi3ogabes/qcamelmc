@@ -236,7 +236,8 @@ const AdminPOS = () => {
     }
 
     // Add ticket holder slots for the new tickets with default nationality "قطري"
-    const newHolders = Array(quantity).fill(null).map(() => ({
+    // We create (quantity - 1) holders since the first ticket uses customer info
+    const newHolders = Array(Math.max(0, quantity - 1)).fill(null).map((_, index) => ({
       name: "",
       nationality: "قطري",
       idNumber: "",
@@ -297,7 +298,8 @@ const AdminPOS = () => {
 
     // Adjust ticket holders
     if (difference > 0) {
-      // Add more holders with default nationality "قطري"
+      // Add more holders with default nationality "قطری"
+      // We add (difference) holders since customer already counts as one
       const newHolders = Array(difference).fill(null).map(() => ({
         name: "",
         nationality: "قطري",
@@ -419,7 +421,8 @@ const AdminPOS = () => {
 
     // Validate all ticket holders have required info
     const totalTickets = cart.reduce((sum, item) => sum + item.quantity, 0);
-    if (ticketHolders.length !== totalTickets) {
+    // We expect (totalTickets - 1) ticket holders since customer is the first ticket
+    if (ticketHolders.length !== totalTickets - 1) {
       toast({
         title: "خطأ",
         description: "يرجى ملء معلومات جميع حاملي التذاكر",
@@ -449,6 +452,7 @@ const AdminPOS = () => {
           email: customerEmail,
           phone: customerPhone,
           nationality: customerNationality,
+          id_number: customerIdNumber,
         })
         .select()
         .single();
@@ -477,7 +481,19 @@ const AdminPOS = () => {
       if (orderError) throw orderError;
 
       // Create ticket holders with QR codes
-      const holdersToInsert = await Promise.all(ticketHolders.map(async (holder, index) => {
+      // First ticket holder is the customer
+      const allHoldersData = [
+        {
+          name: customerName,
+          nationality: customerNationality,
+          idNumber: customerIdNumber,
+          phone: customerPhone,
+          ticketType: cart[0].ticketType
+        },
+        ...ticketHolders
+      ];
+
+      const holdersToInsert = await Promise.all(allHoldersData.map(async (holder, index) => {
         const ticketRef = `${bookingRef}-TKT${(index + 1).toString().padStart(2, '0')}`;
         
         // Generate QR code and upload to storage
@@ -694,14 +710,19 @@ const AdminPOS = () => {
               {ticketHolders.length > 0 && (
                 <Card>
                   <CardHeader>
-                    <CardTitle>معلومات حاملي التذاكر ({ticketHolders.length} تذاكر)</CardTitle>
+                    <CardTitle>
+                      معلومات حاملي التذاكر الإضافية ({ticketHolders.length} {ticketHolders.length === 1 ? 'تذكرة' : 'تذاكر'})
+                    </CardTitle>
+                    <p className="text-sm text-muted-foreground mt-2">
+                      التذكرة الأولى مخصصة للعميل أعلاه. املأ معلومات حاملي التذاكر الإضافية هنا.
+                    </p>
                   </CardHeader>
                   <CardContent className="space-y-6">
                     {ticketHolders.map((holder, index) => (
                       <div key={index} className="p-4 border rounded-lg space-y-3 bg-muted/50">
                         <div className="flex justify-between items-center">
                           <h4 className="font-bold text-primary">
-                            التذكرة #{index + 1} - {getTicketTypeName(holder.ticketType)}
+                            التذكرة الإضافية #{index + 1} - {getTicketTypeName(holder.ticketType)}
                           </h4>
                           <Button
                             type="button"
@@ -766,7 +787,10 @@ const AdminPOS = () => {
 
               <Card>
                 <CardHeader>
-                  <CardTitle>معلومات العميل</CardTitle>
+                  <CardTitle>معلومات العميل (التذكرة الرئيسية)</CardTitle>
+                  <p className="text-sm text-muted-foreground mt-2">
+                    هذه المعلومات ستُستخدم للتذكرة الأولى وللتواصل مع العميل
+                  </p>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div>
@@ -798,6 +822,17 @@ const AdminPOS = () => {
                       value={customerPhone}
                       onChange={(e) => setCustomerPhone(e.target.value)}
                       placeholder="974XXXXXXXX"
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="id_number">رقم الهوية *</Label>
+                    <Input
+                      id="id_number"
+                      value={customerIdNumber}
+                      onChange={(e) => setCustomerIdNumber(e.target.value)}
+                      placeholder="رقم الهوية"
                       required
                     />
                   </div>
