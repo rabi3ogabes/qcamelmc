@@ -34,68 +34,14 @@ const SadadRedirect = () => {
       // Clear the session storage
       sessionStorage.removeItem('sadadPaymentData');
       
-      // Create form HTML and open in new window via blob URL
+      // Auto-submit the form to redirect to Sadad payment page
       setTimeout(() => {
-        if (!hasSubmitted.current) {
+        if (!hasSubmitted.current && formRef.current) {
           hasSubmitted.current = true;
-          
           console.log('Submitting form to Sadad...');
-          
-          // Build form HTML
-          let formHtml = `<!DOCTYPE html>
-<html dir="rtl">
-<head>
-  <meta charset="UTF-8">
-  <title>جاري تحويلك لبوابة الدفع...</title>
-  <style>
-    body { font-family: Arial, sans-serif; text-align: center; padding: 50px; }
-    .loader { border: 5px solid #f3f3f3; border-top: 5px solid #9c1638; 
-              border-radius: 50%; width: 50px; height: 50px; 
-              animation: spin 1s linear infinite; margin: 20px auto; }
-    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-  </style>
-</head>
-<body>
-  <div class="loader"></div>
-  <h2>جاري تحويلك لبوابة الدفع سداد...</h2>
-  <p>يرجى الانتظار...</p>
-  <form id="paymentForm" method="POST" action="${data.sadadUrl}">`;
-          
-          // Add all form fields
-          Object.entries(data.paymentData).forEach(([key, value]) => {
-            if (key === 'productdetail' && Array.isArray(value)) {
-              value.forEach((product: any, index: number) => {
-                Object.entries(product).forEach(([pKey, pValue]) => {
-                  formHtml += `<input type="hidden" name="productdetail[${index}][${pKey}]" value="${String(pValue)}" />`;
-                });
-              });
-            } else {
-              formHtml += `<input type="hidden" name="${key}" value="${String(value)}" />`;
-            }
-          });
-          
-          formHtml += `</form>
-  <script>
-    document.getElementById('paymentForm').submit();
-  </script>
-</body>
-</html>`;
-          
-          // Create blob URL and open in new window
-          const blob = new Blob([formHtml], { type: 'text/html' });
-          const url = URL.createObjectURL(blob);
-          const newWindow = window.open(url, '_blank');
-          
-          if (!newWindow) {
-            alert('يرجى السماح بالنوافذ المنبثقة لإتمام الدفع');
-            window.location.href = '/checkout';
-          } else {
-            // Clean up blob URL after a delay
-            setTimeout(() => URL.revokeObjectURL(url), 1000);
-            // Keep user on this page to see payment status
-          }
+          formRef.current.submit();
         }
-      }, 500);
+      }, 1000);
     } catch (error) {
       console.error('Error processing payment data:', error);
       navigate('/checkout');
@@ -118,29 +64,9 @@ const SadadRedirect = () => {
   return (
     <div className="min-h-screen bg-background flex items-center justify-center px-4 md:px-8 font-lusail">
       <div className="text-center space-y-4 w-full max-w-4xl">
-        <div className="w-12 h-12 md:w-16 md:h-16 mx-auto mb-4 rounded-full bg-green-100 flex items-center justify-center">
-          <svg className="w-6 h-6 md:w-8 md:h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-          </svg>
-        </div>
-        <h2 className="text-xl md:text-2xl font-bold mb-2 text-green-600">تم فتح نافذة الدفع</h2>
-        <p className="text-sm md:text-base text-muted-foreground">يرجى إكمال عملية الدفع في النافذة المنبثقة</p>
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-right mt-4">
-          <p className="text-sm text-blue-800 font-semibold mb-2">📝 ملاحظات هامة:</p>
-          <ul className="text-xs text-blue-700 space-y-1 list-disc list-inside">
-            <li>إذا لم تظهر النافذة، تأكد من السماح بالنوافذ المنبثقة</li>
-            <li>بعد إتمام الدفع، سيتم تحويلك تلقائياً لصفحة التأكيد</li>
-            <li>احتفظ بهذه الصفحة مفتوحة حتى إتمام الدفع</li>
-          </ul>
-        </div>
-        <div className="mt-6 space-x-2 space-x-reverse">
-          <button
-            onClick={() => window.location.href = '/'}
-            className="px-6 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
-          >
-            العودة للصفحة الرئيسية
-          </button>
-        </div>
+        <Loader2 className="w-12 h-12 md:w-16 md:h-16 animate-spin mx-auto mb-4 text-primary" />
+        <h2 className="text-xl md:text-2xl font-bold mb-2">جاري تحويلك لبوابة الدفع سداد...</h2>
+        <p className="text-sm md:text-base text-muted-foreground">يرجى الانتظار...</p>
         
         <div className="mt-8 p-3 md:p-4 bg-red-50 border border-red-200 rounded-lg text-right">
           <h3 className="font-bold text-red-800 mb-2 text-sm md:text-base">إذا ظهرت رسالة 404:</h3>
@@ -205,12 +131,11 @@ const SadadRedirect = () => {
           </div>
         </details>
         
-        {/* Hidden form that will auto-submit */}
+        {/* Hidden form that will auto-submit and redirect to Sadad */}
         <form 
           ref={formRef}
           method="POST" 
           action={sadadUrl}
-          target="_top"
           style={{ display: 'none' }}
         >
           {Object.entries(paymentData).map(([key, value]) => {
