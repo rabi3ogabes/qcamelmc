@@ -135,15 +135,28 @@ serve(async (req) => {
       }))
     };
 
-    // Generate checksumhash - CRITICAL: Use RAW secret (not URL encoded) in both JSON and encryption key
-    // Per Sadad documentation (lines 360-363 of their PHP example)
-    const checksumData = {
-      postData: paymentData,
-      secretKey: settings.sadad_secret  // RAW secret in JSON data (NOT URL encoded)
-    };
+    // Generate checksumhash - Build pipe-separated string per Sadad spec
+    // Format: merchant_id|ORDER_ID|WEBSITE|TXN_AMOUNT|CUST_ID|EMAIL|MOBILE_NO|productdetails
+    const productDetailsStr = paymentData.productdetail
+      .map((p: any) => `${p.order_id}|${p.itemname}|${p.amount}|${p.quantity}|${p.type}`)
+      .join('|');
     
-    const dataString = JSON.stringify(checksumData);
-    const key = settings.sadad_secret + settings.sadad_merchant_id;  // RAW secret + merchant ID for encryption
+    const dataString = [
+      paymentData.merchant_id,
+      paymentData.ORDER_ID,
+      paymentData.WEBSITE,
+      paymentData.TXN_AMOUNT,
+      paymentData.CUST_ID,
+      paymentData.EMAIL,
+      paymentData.MOBILE_NO,
+      paymentData.SADAD_WEBCHECKOUT_PAGE_LANGUAGE,
+      paymentData.CALLBACK_URL,
+      paymentData.txnDate,
+      productDetailsStr,
+      settings.sadad_secret
+    ].join('|');
+    
+    const key = settings.sadad_secret + settings.sadad_merchant_id;
     const checksumhash = await getChecksumFromString(dataString, key);
 
     // Enhanced logging for debugging
