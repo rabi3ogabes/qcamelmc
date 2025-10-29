@@ -59,10 +59,10 @@ const SadadRedirect = () => {
   <div class="loader"></div>
   <h2>جاري تحويلك لبوابة الدفع سداد...</h2>
   <p>يرجى الانتظار...</p>
-  <form id="paymentForm" method="POST" action="${sadadUrl}">`;
+  <form id="paymentForm" method="POST" action="${data.sadadUrl}">`;
           
           // Add all form fields
-          Object.entries(paymentData).forEach(([key, value]) => {
+          Object.entries(data.paymentData).forEach(([key, value]) => {
             if (key === 'productdetail' && Array.isArray(value)) {
               value.forEach((product: any, index: number) => {
                 Object.entries(product).forEach(([pKey, pValue]) => {
