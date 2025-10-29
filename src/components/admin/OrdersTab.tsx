@@ -507,35 +507,25 @@ export const OrdersTab = ({
           <div className="flex items-center gap-2">
             <Button 
               size="sm"
-              variant="default"
+              variant={order.payment_status === "confirmed" ? "destructive" : "default"}
               onClick={(e) => {
                 e.stopPropagation();
-                if (order.payment_status !== "confirmed") {
-                  togglePaymentStatus(order.id, order.payment_status);
-                }
+                togglePaymentStatus(order.id, order.payment_status);
               }}
-              disabled={order.payment_status === "confirmed"}
-              className="h-8 bg-green-600 hover:bg-green-700 text-white font-lusail disabled:opacity-50 disabled:cursor-not-allowed"
-              title="نعم - تأكيد الدفع"
+              className={`h-8 font-lusail ${order.payment_status === "confirmed" ? "" : "bg-green-600 hover:bg-green-700 text-white"}`}
+              title={order.payment_status === "confirmed" ? "إلغاء التأكيد" : "تأكيد الدفع"}
             >
-              <CheckCircle className="w-4 h-4 mr-1" />
-              نعم
-            </Button>
-            <Button 
-              size="sm"
-              variant="destructive"
-              onClick={(e) => {
-                e.stopPropagation();
-                if (order.payment_status === "confirmed") {
-                  togglePaymentStatus(order.id, order.payment_status);
-                }
-              }}
-              disabled={order.payment_status !== "confirmed"}
-              className="h-8 font-lusail disabled:opacity-50 disabled:cursor-not-allowed"
-              title="لا - إلغاء التأكيد"
-            >
-              <XCircle className="w-4 h-4 mr-1" />
-              لا
+              {order.payment_status === "confirmed" ? (
+                <>
+                  <XCircle className="w-4 h-4 mr-1" />
+                  لا
+                </>
+              ) : (
+                <>
+                  <CheckCircle className="w-4 h-4 mr-1" />
+                  نعم
+                </>
+              )}
             </Button>
             {showDeleteButton && (
               <Button 
