@@ -73,6 +73,7 @@ export const TicketAddItem = ({ ticket, onAddToCart, getTicketTypeName }: Ticket
             size="lg"
             className="h-12 px-8 text-lg font-bold"
             onClick={() => {
+              console.log("Button clicked! Ticket:", ticket, "Quantity:", tempQty);
               onAddToCart(ticket, tempQty);
               setTempQty(1);
             }}

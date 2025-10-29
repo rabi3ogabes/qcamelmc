@@ -68,12 +68,20 @@ const AdminPOS = () => {
           .gte("event_date", new Date().toISOString())
           .order("event_date", { ascending: true })
           .limit(1)
-          .single();
+          .maybeSingle();
 
-        if (error) throw error;
+        if (error) {
+          console.error("Error fetching upcoming event:", error);
+          throw error;
+        }
+        
+        console.log("Upcoming event data:", data);
         
         if (data?.event_date) {
           setSelectedDate(new Date(data.event_date));
+          console.log("Selected date set to:", new Date(data.event_date));
+        } else {
+          console.log("No upcoming events found");
         }
       } catch (error) {
         console.error("Failed to fetch upcoming event:", error);
