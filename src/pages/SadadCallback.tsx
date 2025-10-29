@@ -18,72 +18,92 @@ const SadadCallback = () => {
     try {
       const urlParams = new URLSearchParams(window.location.search);
       
-      // Sadad sends parameters with specific field names
-      // Try different possible parameter names that Sadad might use
+      // Collect all parameters from URL - Sadad sends payment data as query parameters
+      const allParams = Object.fromEntries(urlParams.entries());
+      console.log('Sadad callback received with params:', allParams);
+
+      // Try to get order ID from various possible parameter names
       const orderId = urlParams.get('ORDERID') || 
                      urlParams.get('ORDER_ID') || 
-                     urlParams.get('orderId');
-      const txnStatus = urlParams.get('STATUS') || 
-                       urlParams.get('RESPCODE') || 
-                       urlParams.get('status');
-      const txnId = urlParams.get('TXNID') || 
-                   urlParams.get('transactionNumber') ||
-                   urlParams.get('txnId');
-
-      console.log('Sadad callback received:', { orderId, txnStatus, txnId, allParams: Object.fromEntries(urlParams) });
-
+                     urlParams.get('orderId') ||
+                     urlParams.get('websiteRefNo');
+      
       if (!orderId) {
-        throw new Error('No order ID received from Sadad');
+        console.error('No order ID in URL params:', allParams);
+        throw new Error('لم يتم استلام رقم الطلب من سداد');
       }
 
-      // Determine if payment was successful
-      // Sadad typically uses: '1' or 'TXN_SUCCESS' for success, '0' or other codes for failure
-      const isSuccess = txnStatus === '1' || 
-                       txnStatus === 'TXN_SUCCESS' || 
-                       txnStatus === '3' ||
-                       txnStatus === 'success';
+      // Forward the payment data to the webhook for processing
+      const webhookData = {
+        ORDERID: orderId,
+        ORDER_ID: orderId,
+        websiteRefNo: orderId,
+        STATUS: urlParams.get('STATUS') || urlParams.get('status') || urlParams.get('RESPCODE'),
+        RESPCODE: urlParams.get('RESPCODE') || urlParams.get('STATUS'),
+        transactionStatus: urlParams.get('transactionStatus') || urlParams.get('STATUS'),
+        TXNID: urlParams.get('TXNID') || urlParams.get('txnId') || urlParams.get('transactionNumber'),
+        transactionNumber: urlParams.get('transactionNumber') || urlParams.get('TXNID'),
+        RESPMSG: urlParams.get('RESPMSG') || urlParams.get('message'),
+        message: urlParams.get('message') || urlParams.get('RESPMSG'),
+        TXNAMOUNT: urlParams.get('TXNAMOUNT') || urlParams.get('txnAmount'),
+        txnAmount: urlParams.get('txnAmount') || urlParams.get('TXNAMOUNT'),
+        MID: urlParams.get('MID') || urlParams.get('merchantId'),
+        merchantId: urlParams.get('merchantId') || urlParams.get('MID'),
+        CHECKSUMHASH: urlParams.get('CHECKSUMHASH') || urlParams.get('checksumhash') || urlParams.get('signature'),
+        checksumhash: urlParams.get('checksumhash') || urlParams.get('CHECKSUMHASH'),
+        isTestMode: urlParams.get('isTestMode') || urlParams.get('TESTMODE'),
+        // Include all other parameters
+        ...allParams
+      };
 
-      // Update order status in database
-      const { error: updateError } = await supabase
-        .from('orders')
-        .update({
-          payment_status: isSuccess ? 'confirmed' : 'cancelled',
-          payment_id: txnId || null,
-          confirmed_at: isSuccess ? new Date().toISOString() : null
-        })
-        .eq('booking_reference', orderId);
+      console.log('Calling webhook with data:', webhookData);
 
-      if (updateError) {
-        console.error('Error updating order:', updateError);
-        throw updateError;
+      // Call the webhook edge function to process the payment
+      const { data: webhookResponse, error: webhookError } = await supabase.functions.invoke('sadad-webhook', {
+        body: webhookData
+      });
+
+      if (webhookError) {
+        console.error('Webhook error:', webhookError);
+        throw new Error('فشل في معالجة الدفع: ' + webhookError.message);
       }
 
-      // Fetch updated order data
-      const { data: orderData, error: orderError } = await supabase
+      console.log('Webhook response:', webhookResponse);
+
+      // Fetch the updated order
+      const { data: order, error: orderError } = await supabase
         .from('orders')
-        .select('id, payment_status, payment_id')
+        .select('*')
         .eq('booking_reference', orderId)
         .single();
 
-      if (orderError) throw orderError;
+      if (orderError) {
+        console.error('Error fetching order:', orderError);
+        throw orderError;
+      }
 
-      if (isSuccess && orderData.payment_status === 'confirmed') {
+      // Check payment status
+      const isSuccess = order.payment_status === 'confirmed';
+
+      if (isSuccess) {
         setStatus('success');
         setMessage('تم الدفع بنجاح!');
         
-        // Store order ID and redirect to confirmation after 2 seconds
+        // Store order info for confirmation page
+        localStorage.setItem('orderIds', JSON.stringify([order.id]));
+        
+        // Redirect to confirmation page after a short delay
         setTimeout(() => {
-          localStorage.setItem("orderIds", JSON.stringify([orderData.id]));
-          navigate("/confirmation");
+          navigate('/confirmation');
         }, 2000);
       } else {
         setStatus('failed');
-        setMessage('فشلت عملية الدفع. حالة المعاملة: ' + (txnStatus || 'غير معروف'));
+        setMessage('لم يتم تأكيد الدفع. يرجى التواصل مع الدعم إذا تم خصم المبلغ.');
       }
     } catch (error) {
       console.error('Error processing callback:', error);
       setStatus('failed');
-      setMessage('حدث خطأ أثناء معالجة الدفع');
+      setMessage(error instanceof Error ? error.message : 'حدث خطأ أثناء معالجة الدفع');
     }
   };
 

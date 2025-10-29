@@ -18,21 +18,38 @@ Deno.serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseServiceKey)
 
     console.log('=== SADAD WEBHOOK RECEIVED ===');
+    console.log('Request method:', req.method);
     console.log('Content-Type:', req.headers.get('content-type'));
     
-    // Parse the incoming webhook data (Sadad sends as form data)
+    // Parse the incoming webhook data
+    // Can come from: 1) Form data POST from Sadad, 2) JSON POST from frontend, 3) GET with URL params
     let webhookData: any = {};
     const contentType = req.headers.get('content-type') || '';
     
-    if (contentType.includes('application/x-www-form-urlencoded')) {
+    if (req.method === 'GET') {
+      // Handle GET request with URL parameters
+      const url = new URL(req.url);
+      for (const [key, value] of url.searchParams.entries()) {
+        webhookData[key] = value;
+      }
+      console.log('Parsed URL params:', JSON.stringify(webhookData, null, 2));
+    } else if (contentType.includes('application/x-www-form-urlencoded')) {
       const formData = await req.formData();
       for (const [key, value] of formData.entries()) {
         webhookData[key] = value;
       }
       console.log('Parsed form data:', JSON.stringify(webhookData, null, 2));
-    } else {
+    } else if (contentType.includes('application/json')) {
       webhookData = await req.json();
       console.log('Parsed JSON data:', JSON.stringify(webhookData, null, 2));
+    } else {
+      // Try to parse as JSON anyway
+      try {
+        webhookData = await req.json();
+        console.log('Parsed as JSON:', JSON.stringify(webhookData, null, 2));
+      } catch (e) {
+        console.error('Failed to parse request body:', e);
+      }
     }
 
     // Extract relevant data (Sadad uses different field names in callbacks)
@@ -196,16 +213,19 @@ Deno.serve(async (req) => {
 
     console.log('Webhook processing completed successfully');
 
-    // Redirect user to callback page with order details
-    const redirectUrl = `https://qcamelmc.org/sadad-callback?status=${isSuccess ? 'success' : 'failed'}&orderId=${websiteRefNo}`;
-    
-    return new Response(null, {
-      status: 302,
-      headers: {
-        ...corsHeaders,
-        'Location': redirectUrl
+    // Return success response (no redirect needed when called from frontend)
+    return new Response(
+      JSON.stringify({ 
+        success: true,
+        payment_status: paymentStatus,
+        order_id: websiteRefNo,
+        message: 'Payment processed successfully'
+      }),
+      {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 200,
       }
-    });
+    );
 
   } catch (error) {
     console.error('Webhook error:', error)

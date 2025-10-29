@@ -69,13 +69,13 @@ serve(async (req) => {
     // Prepare payment data
     const txnDate = new Date().toISOString().replace('T', ' ').substring(0, 19);
     
-    // CRITICAL: CALLBACK_URL must point to the webhook to receive POST data from Sadad
-    // The webhook will then redirect the user to the frontend callback page
-    const callbackUrl = `${Deno.env.get('SUPABASE_URL')}/functions/v1/sadad-webhook`;
-    
     // Payment data - parameter names are CASE-SENSITIVE per Sadad docs
     // CRITICAL: WEBSITE must match EXACTLY what's registered in Sadad merchant panel when generating secret key
     const websiteDomain = settings.sadad_website_domain || 'qcamelmc.org';
+    
+    // CRITICAL: CALLBACK_URL must be on the registered domain (qcamelmc.org)
+    // Sadad will redirect the user here with payment data as URL parameters
+    const callbackUrl = `https://${websiteDomain}/sadad-callback`;
     
     console.log('=== SADAD REQUEST CONFIGURATION ===');
     console.log('Website Domain (from settings):', websiteDomain);
