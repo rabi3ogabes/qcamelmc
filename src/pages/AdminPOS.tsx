@@ -57,6 +57,7 @@ const AdminPOS = () => {
   const [ticketHolders, setTicketHolders] = useState<TicketHolderInput[]>([]);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
+  const [currentEventId, setCurrentEventId] = useState<string | null>(null);
 
   useEffect(() => {
     // Fetch the upcoming event automatically
@@ -64,7 +65,7 @@ const AdminPOS = () => {
       try {
         const { data, error } = await supabase
           .from("events")
-          .select("event_date")
+          .select("id, event_date")
           .gte("event_date", new Date().toISOString())
           .order("event_date", { ascending: true })
           .limit(1)
@@ -77,8 +78,11 @@ const AdminPOS = () => {
         
         console.log("Upcoming event data:", data);
         
-        if (data?.event_date) {
+        if (data) {
           setSelectedDate(new Date(data.event_date));
+          setCurrentEventId(data.id);
+          // Store the event ID to fetch tickets for this specific event
+          fetchTicketsForEvent(data.id);
           console.log("Selected date set to:", new Date(data.event_date));
         } else {
           console.log("No upcoming events found");
@@ -93,9 +97,7 @@ const AdminPOS = () => {
   }, []);
 
   useEffect(() => {
-    if (selectedDate) {
-      fetchTickets();
-    }
+    // Removed - we now fetch tickets directly when fetching the event
   }, [selectedDate]);
 
   useEffect(() => {
@@ -141,26 +143,14 @@ const AdminPOS = () => {
     }
   };
 
-  const fetchTickets = async () => {
-    if (!selectedDate) {
-      console.log("No selectedDate, skipping fetch");
-      return;
-    }
-    
-    console.log("Fetching tickets for date:", selectedDate);
-    
+  const fetchTicketsForEvent = async (eventId: string) => {
     try {
-      // Format the selected date to match the event_date format (YYYY-MM-DD)
-      const formattedDate = format(selectedDate, 'yyyy-MM-dd');
+      console.log("Fetching tickets for event ID:", eventId);
       
       const { data, error } = await supabase
         .from("tickets")
-        .select(`
-          *,
-          events!inner(event_date)
-        `)
-        .gte('events.event_date', `${formattedDate}T00:00:00`)
-        .lt('events.event_date', `${formattedDate}T23:59:59`)
+        .select("*")
+        .eq("event_id", eventId)
         .order("type");
 
       if (error) throw error;
@@ -557,7 +547,10 @@ const AdminPOS = () => {
       setCustomerIdNumber("");
       setShowAllNationalities(false);
       
-      fetchTickets();
+      // Refresh tickets if we have an event ID
+      if (currentEventId) {
+        fetchTicketsForEvent(currentEventId);
+      }
     } catch (error) {
       console.error("Error creating orders:", error);
       toast({
