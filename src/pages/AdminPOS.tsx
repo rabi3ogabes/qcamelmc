@@ -134,7 +134,12 @@ const AdminPOS = () => {
   };
 
   const fetchTickets = async () => {
-    if (!selectedDate) return;
+    if (!selectedDate) {
+      console.log("No selectedDate, skipping fetch");
+      return;
+    }
+    
+    console.log("Fetching tickets for date:", selectedDate);
     
     try {
       // Format the selected date to match the event_date format (YYYY-MM-DD)
@@ -151,6 +156,7 @@ const AdminPOS = () => {
         .order("type");
 
       if (error) throw error;
+      console.log("Fetched tickets:", data);
       setTickets(data || []);
     } catch (error) {
       console.error("Failed to load tickets:", error);
@@ -191,6 +197,9 @@ const AdminPOS = () => {
   };
 
   const addToCart = (ticket: Ticket, quantity: number) => {
+    console.log("addToCart called with:", { ticket, quantity });
+    console.log("Current cart:", cart);
+    
     const existingItem = cart.find(item => item.ticketId === ticket.id);
     
     // Calculate what the new total would be
@@ -201,6 +210,7 @@ const AdminPOS = () => {
     
     // Check if adding this quantity would exceed the limit
     if ((ticket.type === "vip" || ticket.type === "normal") && totalVipNormalAfterAdd > 5) {
+      console.log("Exceeding limit, showing error");
       toast({
         title: "خطأ",
         description: "الحد الأقصى لتذاكر VIP والعادي معاً هو 5",
@@ -210,12 +220,14 @@ const AdminPOS = () => {
     }
 
     if (existingItem) {
+      console.log("Updating existing item");
       setCart(cart.map(item =>
         item.ticketId === ticket.id
           ? { ...item, quantity: item.quantity + quantity }
           : item
       ));
     } else {
+      console.log("Adding new item to cart");
       setCart([...cart, {
         ticketId: ticket.id,
         ticketType: ticket.type,
@@ -233,6 +245,7 @@ const AdminPOS = () => {
       phone: "",
       ticketType: ticket.type
     }));
+    console.log("Adding ticket holders:", newHolders);
     setTicketHolders([...ticketHolders, ...newHolders]);
 
     toast({
