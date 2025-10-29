@@ -455,24 +455,28 @@ export const OrdersTab = ({
             {t("viewDetails")}
             <Eye className="w-4 h-4" />
           </Button>
-          <Button 
-            size="sm" 
-            variant={order.payment_status === "confirmed" ? "destructive" : "default"}
-            onClick={() => togglePaymentStatus(order.id, order.payment_status)} 
-            className="font-lusail flex items-center justify-center gap-2"
-          >
-            {order.payment_status === "confirmed" ? (
-              <>
-                <XCircle className="w-4 h-4" />
-                إلغاء التأكيد
-              </>
-            ) : (
-              <>
-                <CheckCircle className="w-4 h-4" />
-                {t("confirmPayment")}
-              </>
-            )}
-          </Button>
+          {order.payment_status === "pending" && (
+            <Button 
+              size="sm" 
+              variant="default"
+              onClick={() => togglePaymentStatus(order.id, order.payment_status)} 
+              className="font-lusail flex items-center justify-center gap-2 bg-green-600 hover:bg-green-700"
+            >
+              <CheckCircle className="w-4 h-4" />
+              تم ✓
+            </Button>
+          )}
+          {order.payment_status === "confirmed" && (
+            <Button 
+              size="sm" 
+              variant="outline"
+              onClick={() => togglePaymentStatus(order.id, order.payment_status)} 
+              className="font-lusail flex items-center justify-center gap-2"
+            >
+              <XCircle className="w-4 h-4" />
+              إلغاء التأكيد
+            </Button>
+          )}
         </div>
       </div>
       
