@@ -46,16 +46,23 @@ const EventHome = () => {
 
   const fetchEvents = async () => {
     try {
+      // Fetch only the next upcoming event
       const { data, error } = await supabase
         .from("events")
         .select("*")
         .eq("is_active", true)
         .gte("event_date", new Date().toISOString())
-        .order("display_order", { ascending: true })
-        .order("event_date", { ascending: true }); // Nearest date first (top right in RTL)
+        .order("event_date", { ascending: true })
+        .limit(1); // Only get the next upcoming event
 
       if (error) throw error;
-      setEvents(data || []);
+      
+      // If we have an upcoming event, automatically redirect to ticket selection
+      if (data && data.length > 0) {
+        navigate(`/tickets/${data[0].id}`);
+      } else {
+        setEvents([]);
+      }
     } catch (error) {
       console.error("Error fetching events:", error);
     } finally {

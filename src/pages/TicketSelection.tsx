@@ -50,11 +50,41 @@ const TicketSelection = () => {
 
   useEffect(() => {
     if (eventId) {
-      fetchEvent();
-      fetchTickets();
+      validateEventAccess();
     }
     fetchSettings();
   }, [eventId]);
+
+  const validateEventAccess = async () => {
+    if (!eventId) return;
+
+    try {
+      // Get the next upcoming event
+      const { data: upcomingEvents, error: upcomingError } = await supabase
+        .from("events")
+        .select("id")
+        .eq("is_active", true)
+        .gte("event_date", new Date().toISOString())
+        .order("event_date", { ascending: true })
+        .limit(1);
+
+      if (upcomingError) throw upcomingError;
+
+      // If the requested event is not the next upcoming event, redirect to home
+      if (!upcomingEvents || upcomingEvents.length === 0 || upcomingEvents[0].id !== eventId) {
+        toast.error("لا يمكن حجز تذاكر لهذا التاريخ");
+        navigate("/");
+        return;
+      }
+
+      // If valid, fetch the event and tickets
+      await fetchEvent();
+      await fetchTickets();
+    } catch (error) {
+      console.error("Error validating event access:", error);
+      navigate("/");
+    }
+  };
 
   const fetchSettings = async () => {
     const { data, error } = await supabase
