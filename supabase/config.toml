@@ -1,1 +1,7 @@
 project_id = "cdyycdboudurnhvqlrcb"
+
+[functions.sadad-payment]
+verify_jwt = true
+
+[functions.sadad-webhook]
+verify_jwt = false
