@@ -82,6 +82,8 @@ const Confirmation = () => {
     );
   }
 
+  const isConfirmed = orders.some(order => order.payment_status === 'confirmed');
+
   return (
     <div className="min-h-screen bg-background py-12 px-4 font-lusail">
       <div className="max-w-3xl mx-auto">
@@ -91,23 +93,44 @@ const Confirmation = () => {
           </div>
         )}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-secondary/20 rounded-full mb-4">
-            <Clock className="w-8 h-8 text-secondary" />
+          <div className={`inline-flex items-center justify-center w-16 h-16 ${isConfirmed ? 'bg-green-500/20' : 'bg-secondary/20'} rounded-full mb-4`}>
+            {isConfirmed ? (
+              <CheckCircle className="w-8 h-8 text-green-500" />
+            ) : (
+              <Clock className="w-8 h-8 text-secondary" />
+            )}
           </div>
-          <h1 className="text-4xl font-bold mb-4">{t('bookingReceived')}</h1>
+          <h1 className="text-4xl font-bold mb-4">
+            {isConfirmed ? t('bookingConfirmed') || 'تم تأكيد الحجز!' : t('bookingReceived')}
+          </h1>
           <p className="text-lg text-muted-foreground">
-            {t('bookingPending')}
+            {isConfirmed 
+              ? t('paymentSuccessDesc') || 'تم تأكيد دفعتك بنجاح. ستتلقى تذاكرك عبر البريد الإلكتروني قريباً.'
+              : t('bookingPending')
+            }
           </p>
         </div>
 
         <Card className="p-8 mb-8">
           <div className="space-y-6">
-            <div className="bg-accent/50 p-6 rounded-lg border-l-4 border-secondary">
-              <h3 className="font-semibold text-lg mb-2">{t('paymentPendingTitle')}</h3>
-              <p className="text-muted-foreground">
-                {t('paymentPendingDesc')}
-              </p>
-            </div>
+            {!isConfirmed && (
+              <div className="bg-accent/50 p-6 rounded-lg border-l-4 border-secondary">
+                <h3 className="font-semibold text-lg mb-2">{t('paymentPendingTitle')}</h3>
+                <p className="text-muted-foreground">
+                  {t('paymentPendingDesc')}
+                </p>
+              </div>
+            )}
+            {isConfirmed && (
+              <div className="bg-green-500/10 p-6 rounded-lg border-l-4 border-green-500">
+                <h3 className="font-semibold text-lg mb-2 text-green-600">
+                  {t('paymentConfirmedTitle') || 'تم تأكيد الدفع!'}
+                </h3>
+                <p className="text-muted-foreground">
+                  {t('paymentConfirmedDesc') || 'تم تأكيد دفعتك بنجاح. ستتلقى تذاكرك مع رموز QR عبر البريد الإلكتروني قريباً.'}
+                </p>
+              </div>
+            )}
 
             <div>
               <h3 className="text-xl font-semibold mb-4">{t('bookingDetails')}</h3>
