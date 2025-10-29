@@ -69,17 +69,14 @@ serve(async (req) => {
     // Prepare payment data
     const txnDate = new Date().toISOString().replace('T', ' ').substring(0, 19);
     
-    // CRITICAL: CALLBACK_URL must use the actual request origin where the payment was initiated
-    // This is required for Sadad's security validation
-    const requestOrigin = req.headers.get('origin') || 'https://qcamelmc.org';
-    const callbackUrl = `${requestOrigin}/sadad-callback`;
+    // CRITICAL: CALLBACK_URL must point to the webhook edge function to handle POST data
+    const callbackUrl = `${Deno.env.get('SUPABASE_URL')}/functions/v1/sadad-webhook`;
     
     // Payment data - parameter names are CASE-SENSITIVE per Sadad docs
     // CRITICAL: WEBSITE must match EXACTLY what's registered in Sadad merchant panel when generating secret key
     const websiteDomain = settings.sadad_website_domain || 'qcamelmc.org';
     
     console.log('=== SADAD REQUEST CONFIGURATION ===');
-    console.log('Request Origin:', requestOrigin);
     console.log('Website Domain (from settings):', websiteDomain);
     console.log('Callback URL:', callbackUrl);
     console.log('Merchant ID:', settings.sadad_merchant_id);

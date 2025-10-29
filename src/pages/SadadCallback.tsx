@@ -16,55 +16,37 @@ const SadadCallback = () => {
 
   const handleCallback = async () => {
     try {
-      // Get callback data from URL parameters (POST data will be in the form)
       const urlParams = new URLSearchParams(window.location.search);
-      
-      // In production, you would get POST data from the form submission
-      // For now, we'll check URL parameters
-      const orderId = urlParams.get('ORDERID');
-      const respCode = urlParams.get('RESPCODE');
-      const respMsg = urlParams.get('RESPMSG');
-      const txnAmount = urlParams.get('TXNAMOUNT');
-      const transactionNumber = urlParams.get('transaction_number');
+      const status = urlParams.get('status');
+      const orderId = urlParams.get('orderId');
+
+      console.log('Callback received:', { status, orderId });
 
       if (!orderId) {
         throw new Error('No order ID received');
       }
 
-      // Update order status based on response code
-      if (respCode === '1') {
-        // Success
-        const { error } = await supabase
-          .from('orders')
-          .update({ 
-            payment_status: 'confirmed',
-            payment_id: transactionNumber || undefined
-          })
-          .eq('booking_reference', orderId);
+      // Check order status from database
+      const { data: orderData, error: orderError } = await supabase
+        .from('orders')
+        .select('id, payment_status, payment_id')
+        .eq('booking_reference', orderId)
+        .single();
 
-        if (error) throw error;
+      if (orderError) throw orderError;
 
+      if (orderData.payment_status === 'confirmed') {
         setStatus('success');
         setMessage('تم الدفع بنجاح!');
         
         // Store order ID and redirect to confirmation after 2 seconds
         setTimeout(() => {
-          supabase
-            .from('orders')
-            .select('id')
-            .eq('booking_reference', orderId)
-            .single()
-            .then(({ data }) => {
-              if (data) {
-                localStorage.setItem("orderIds", JSON.stringify([data.id]));
-                navigate("/confirmation");
-              }
-            });
+          localStorage.setItem("orderIds", JSON.stringify([orderData.id]));
+          navigate("/confirmation");
         }, 2000);
       } else {
-        // Failed or pending
         setStatus('failed');
-        setMessage(respMsg || 'فشلت عملية الدفع');
+        setMessage('فشلت عملية الدفع');
       }
     } catch (error) {
       console.error('Error processing callback:', error);

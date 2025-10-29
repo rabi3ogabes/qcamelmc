@@ -17,26 +17,47 @@ Deno.serve(async (req) => {
   try {
     const supabase = createClient(supabaseUrl, supabaseServiceKey)
 
-    // Get the webhook data from Sadad (JSON format)
-    const webhookData = await req.json()
+    console.log('=== SADAD WEBHOOK RECEIVED ===');
+    console.log('Content-Type:', req.headers.get('content-type'));
     
-    console.log('Sadad Webhook received:', webhookData)
+    // Parse the incoming webhook data (Sadad sends as form data)
+    let webhookData: any = {};
+    const contentType = req.headers.get('content-type') || '';
+    
+    if (contentType.includes('application/x-www-form-urlencoded')) {
+      const formData = await req.formData();
+      for (const [key, value] of formData.entries()) {
+        webhookData[key] = value;
+      }
+      console.log('Parsed form data:', JSON.stringify(webhookData, null, 2));
+    } else {
+      webhookData = await req.json();
+      console.log('Parsed JSON data:', JSON.stringify(webhookData, null, 2));
+    }
 
-    const {
+    // Extract relevant data (Sadad uses different field names in callbacks)
+    const websiteRefNo = webhookData.ORDERID || webhookData.ORDER_ID || webhookData.websiteRefNo;
+    const transactionNumber = webhookData.TXNID || webhookData.transactionNumber;
+    const transactionStatus = webhookData.STATUS || webhookData.RESPCODE || webhookData.transactionStatus;
+    const merchantId = webhookData.MID || webhookData.merchant_id || webhookData.merchantId;
+    const message = webhookData.RESPMSG || webhookData.message;
+    const txnAmount = webhookData.TXNAMOUNT || webhookData.txnAmount;
+    const checksumhash = webhookData.CHECKSUMHASH || webhookData.checksumhash;
+    const isTestMode = webhookData.isTestMode || webhookData.TESTMODE;
+
+    console.log('Extracted data:', {
       websiteRefNo,
-      transactionStatus,
       transactionNumber,
+      transactionStatus,
       merchantId,
       message,
-      txnAmount,
-      isTestMode,
-      checksumhash
-    } = webhookData
+      txnAmount
+    });
 
     if (!websiteRefNo) {
-      console.error('Missing websiteRefNo in webhook')
+      console.error('Missing order ID in webhook data');
       return new Response(
-        JSON.stringify({ error: 'Missing websiteRefNo' }),
+        JSON.stringify({ error: 'Missing order ID' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
@@ -82,21 +103,18 @@ Deno.serve(async (req) => {
     }
 
     // Update order status based on transaction status
-    // transactionStatus: 1 = in progress, 2 = failed, 3 = success
-    let paymentStatus: 'pending' | 'confirmed' | 'failed'
-    if (transactionStatus === 3) {
-      paymentStatus = 'confirmed'
-    } else if (transactionStatus === 2) {
-      paymentStatus = 'failed'
-    } else {
-      paymentStatus = 'pending'
-    }
-
+    // Sadad uses: '1' or 1 for success, '0' or other codes for failure
+    const isSuccess = transactionStatus === 'TXN_SUCCESS' || transactionStatus === '1' || transactionStatus === 1 || transactionStatus === 3;
+    const paymentStatus = isSuccess ? 'confirmed' : 'failed';
+    
+    console.log(`Payment status determined: ${paymentStatus} (from status: ${transactionStatus})`);
+    
     const { error: updateError } = await supabase
       .from('orders')
       .update({
         payment_status: paymentStatus,
         payment_id: transactionNumber || null,
+        confirmed_at: paymentStatus === 'confirmed' ? new Date().toISOString() : null
       })
       .eq('booking_reference', websiteRefNo)
 
@@ -105,7 +123,7 @@ Deno.serve(async (req) => {
       throw updateError
     }
 
-    console.log(`Order ${websiteRefNo} updated to ${paymentStatus} (transactionStatus: ${transactionStatus})`)
+    console.log(`Order ${websiteRefNo} updated to ${paymentStatus}`)
 
     // Get webhook URL to call n8n if configured
     const { data: webhookSettings } = await supabase
@@ -174,14 +192,18 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Return required response format for Sadad
-    return new Response(
-      JSON.stringify({ status: 'success' }),
-      { 
-        status: 200, 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+    console.log('Webhook processing completed successfully');
+
+    // Redirect user to callback page with order details
+    const redirectUrl = `https://qcamelmc.org/sadad-callback?status=${isSuccess ? 'success' : 'failed'}&orderId=${websiteRefNo}`;
+    
+    return new Response(null, {
+      status: 302,
+      headers: {
+        ...corsHeaders,
+        'Location': redirectUrl
       }
-    )
+    });
 
   } catch (error) {
     console.error('Webhook error:', error)
