@@ -113,89 +113,9 @@ const Checkout = () => {
   });
   const [ticketHolders, setTicketHolders] = useState<TicketHolder[]>([]);
   const [loading, setLoading] = useState(false);
-  const [showPaymentSection, setShowPaymentSection] = useState(false);
-  const [paymentFormData, setPaymentFormData] = useState<any>(null);
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
   const [headerBgColor, setHeaderBgColor] = useState<string>("hsl(var(--card) / 0.5)");
   const navigate = useNavigate();
-  const iframeRef = useRef<HTMLIFrameElement>(null);
-
-  // Listen for payment completion and errors in iframe
-  useEffect(() => {
-    const handleMessage = (event: MessageEvent) => {
-      console.log('=== IFRAME MESSAGE RECEIVED ===');
-      console.log('Event origin:', event.origin);
-      console.log('Event data:', event.data);
-      console.log('Event data type:', typeof event.data);
-      
-      // Try to parse if it's a string
-      let parsedData = event.data;
-      if (typeof event.data === 'string') {
-        try {
-          parsedData = JSON.parse(event.data);
-          console.log('Parsed data:', parsedData);
-        } catch (e) {
-          console.log('Could not parse as JSON, raw string:', event.data);
-        }
-      }
-      
-      // Check for any error indicators in the data
-      const dataStr = JSON.stringify(parsedData || event.data).toLowerCase();
-      if (dataStr.includes('error') || dataStr.includes('fail') || dataStr.includes('checksum')) {
-        console.error('=== POTENTIAL ERROR DETECTED IN MESSAGE ===');
-        console.error('Full data:', parsedData || event.data);
-        console.error('=== END ERROR ===');
-        
-        toast.error('خطأ في معالجة الدفع - يرجى التحقق من إعدادات سداد');
-      }
-      console.log('=== END MESSAGE ===');
-      
-      // Handle messages from Sadad iframe
-      if (parsedData && parsedData.type === 'SADAD_PAYMENT_COMPLETE') {
-        setShowPaymentSection(false);
-        setPaymentFormData(null);
-        toast.success('تم إتمام عملية الدفع بنجاح');
-        navigate('/confirmation');
-      }
-      
-      // Log any error messages
-      if (parsedData && (parsedData.error || parsedData.RESPCODE !== '1')) {
-        console.error('=== SADAD ERROR DETAILS ===');
-        console.error('Error:', parsedData.error || parsedData.RESPMSG);
-        console.error('Error Code:', parsedData.errorCode || parsedData.RESPCODE);
-        console.error('Error Details:', parsedData.errorDetails || parsedData);
-        console.error('=== END ERROR ===');
-      }
-    };
-
-    window.addEventListener('message', handleMessage);
-    return () => window.removeEventListener('message', handleMessage);
-  }, [navigate]);
-
-  // Monitor iframe for callback URL redirect
-  useEffect(() => {
-    if (!iframeRef.current || !showPaymentSection) return;
-
-    const checkIframeUrl = setInterval(() => {
-      try {
-        const iframe = iframeRef.current;
-        if (iframe && iframe.contentWindow) {
-          const iframeUrl = iframe.contentWindow.location.href;
-          // Check if iframe redirected to callback page
-          if (iframeUrl.includes('/sadad-callback')) {
-            clearInterval(checkIframeUrl);
-            setShowPaymentSection(false);
-            setPaymentFormData(null);
-            // Let the callback page handle the rest
-          }
-        }
-      } catch (e) {
-        // Cross-origin errors are expected, ignore them
-      }
-    }, 500);
-
-    return () => clearInterval(checkIframeUrl);
-  }, [showPaymentSection]);
 
   useEffect(() => {
     const stored = localStorage.getItem("ticketSelection");
@@ -498,51 +418,44 @@ const Checkout = () => {
         })).catch(err => console.error('QR batch generation error:', err));
       }
 
-      // If Sadad payment, show embedded iframe
+      // Handle Sadad payment - redirect to Sadad payment page
       if (paymentMethod === "sadad") {
-        try {
-          const { data: sadadData, error: sadadError } = await supabase.functions.invoke('sadad-payment', {
+        const orderItems = selections.map(s => ({
+          name: `تذكرة ${s.type}`,
+          price: s.price,
+          quantity: s.quantity
+        }));
+        
+        const { data: paymentResponse, error: paymentError } = await supabase.functions.invoke(
+          'sadad-payment',
+          {
             body: {
-              orderId: bookingRef,
+              orderId: order.booking_reference,
               orderData: {
+                ...orderData,
                 customer_email: customerInfo.email,
                 customer_phone: customerInfo.phone,
-                total_amount: calculateTotal(),
-                items: selections.map(s => ({
-                  name: `تذكرة ${s.type}`,
-                  price: s.price,
-                  quantity: s.quantity
-                }))
+                items: orderItems
               }
             }
-          });
-
-          if (sadadError) throw sadadError;
-
-          if (sadadData.success && sadadData.paymentData) {
-            // Store payment data and show payment section on same page
-            setPaymentFormData({
-              paymentData: sadadData.paymentData,
-              sadadUrl: sadadData.sadadUrl
-            });
-            setShowPaymentSection(true);
-            setLoading(false);
-            
-            // Auto-submit form to iframe after it's rendered
-            setTimeout(() => {
-              const form = document.getElementById('sadad-iframe-form') as HTMLFormElement;
-              if (form) {
-                form.submit();
-              }
-            }, 500);
-            return;
           }
-        } catch (sadadError) {
-          console.error('Sadad payment error:', sadadError);
-          toast.error('فشل الاتصال ببوابة الدفع. يرجى المحاولة مرة أخرى.');
-          setLoading(false);
-          return;
+        );
+
+        if (paymentError) throw paymentError;
+        
+        if (!paymentResponse?.success) {
+          throw new Error(paymentResponse?.error || 'Failed to initiate Sadad payment');
         }
+
+        // Store payment data for form submission
+        sessionStorage.setItem('sadadPaymentData', JSON.stringify({
+          paymentData: paymentResponse.paymentData,
+          sadadUrl: paymentResponse.sadadUrl
+        }));
+        
+        // Redirect to payment submission page
+        navigate('/sadad-redirect');
+        return;
       }
 
       // For cash/POS, proceed directly
@@ -943,121 +856,7 @@ const Checkout = () => {
           </div>
         </div>
       </div>
-      
-      {/* Sadad Payment Section - Embedded on Page */}
-      {showPaymentSection && (
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6">
-          <Card className="overflow-hidden">
-            <div className="bg-primary/10 p-4 border-b flex justify-between items-center">
-              <h2 className="text-xl font-bold">إتمام عملية الدفع</h2>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => {
-                  setShowPaymentSection(false);
-                  setPaymentFormData(null);
-                  toast.info("تم إلغاء عملية الدفع");
-                }}
-              >
-                <X className="w-4 h-4 ml-2" />
-                إلغاء
-              </Button>
-            </div>
-            
-            <div className="relative w-full" style={{ height: '700px' }}>
-              {/* Loading overlay */}
-              {!paymentFormData && (
-                <div className="absolute inset-0 flex items-center justify-center bg-background">
-                  <Loader2 className="w-12 h-12 animate-spin text-primary" />
-                </div>
-              )}
-              
-              {/* Payment iframe */}
-              {paymentFormData && (
-                <>
-                  <iframe
-                    ref={iframeRef}
-                    name="sadad-payment-frame"
-                    className="w-full h-full border-0"
-                    title="Sadad Payment"
-                    onLoad={() => {
-                      console.log('=== SADAD IFRAME LOADED ===');
-                      console.log('Payment Data Sent:', paymentFormData.paymentData);
-                      console.log('Sadad URL:', paymentFormData.sadadUrl);
-                      
-                      // Try to access iframe content (will fail due to CORS, but worth trying)
-                      try {
-                        const iframeDoc = iframeRef.current?.contentDocument || iframeRef.current?.contentWindow?.document;
-                        if (iframeDoc) {
-                          console.log('✓ Iframe document accessible');
-                          console.log('Iframe title:', iframeDoc.title);
-                          
-                          const bodyText = iframeDoc.body?.textContent?.toLowerCase() || '';
-                          console.log('Body text (first 300 chars):', bodyText.substring(0, 300));
-                          
-                          // Check for error indicators
-                          if (bodyText.includes('error') || bodyText.includes('checksum') || bodyText.includes('fail')) {
-                            console.error('=== ⚠️ ERROR DETECTED IN IFRAME CONTENT ===');
-                            console.error('Full error text:', bodyText);
-                            console.error('=== END ERROR ===');
-                            toast.error('خطأ في التحقق من البيانات - يرجى مراجعة إعدادات سداد');
-                          }
-                        }
-                      } catch (e) {
-                        console.log('⚠️ Cannot access iframe content (CORS restriction)');
-                        console.log('This is normal for cross-origin iframes');
-                      }
-                      
-                      console.log('=== END IFRAME LOAD ===');
-                    }}
-                    onError={(e) => {
-                      console.error('=== ❌ IFRAME LOAD ERROR ===');
-                      console.error('Error event:', e);
-                      console.error('Error type:', e.type);
-                      console.error('Error target:', e.target);
-                      console.error('=== END IFRAME ERROR ===');
-                      toast.error('خطأ في تحميل صفحة الدفع');
-                    }}
-                  />
-                  
-                  {/* Hidden form to submit to iframe */}
-                  <form
-                    id="sadad-iframe-form"
-                    method="POST"
-                    action={paymentFormData.sadadUrl}
-                    target="sadad-payment-frame"
-                    style={{ display: 'none' }}
-                  >
-                    {Object.entries(paymentFormData.paymentData).map(([key, value]) => {
-                      if (key === 'productdetail' && Array.isArray(value)) {
-                        return value.map((product: any, index: number) =>
-                          Object.entries(product).map(([pKey, pValue]) => (
-                            <input
-                              key={`${key}-${index}-${pKey}`}
-                              type="hidden"
-                              name={`productdetail[${index}][${pKey}]`}
-                              value={String(pValue)}
-                            />
-                          ))
-                        );
-                      }
-                      return (
-                        <input
-                          key={key}
-                          type="hidden"
-                          name={key}
-                          value={String(value)}
-                        />
-                      );
-                    })}
-                  </form>
-                </>
-              )}
-            </div>
-          </Card>
-        </div>
-      )}
-      
+
       <Footer />
     </div>
   );

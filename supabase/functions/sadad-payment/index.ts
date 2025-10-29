@@ -114,8 +114,7 @@ serve(async (req) => {
       throw new Error('WEBSITE domain not configured in settings.sadad_website_domain');
     }
     
-    // Build payment data for iFrame (Web Checkout 2.2)
-    // Note: VERSION is NOT included in Web Checkout 2.2
+    // Build payment data for Direct Payment API (standard web checkout)
     const paymentData = {
       merchant_id: settings.sadad_merchant_id,
       ORDER_ID: orderId,
@@ -127,9 +126,6 @@ serve(async (req) => {
       SADAD_WEBCHECKOUT_PAGE_LANGUAGE: 'Arb',
       CALLBACK_URL: callbackUrl,
       txnDate: txnDate,
-      // iFrame-specific parameters for Web Checkout 2.2
-      SADAD_WEBCHECKOUT_HIDE_LOADER: 'YES',
-      Showdialog: '2',  // 2 = iFrame mode
       productdetail: orderData.items.map((item: any) => ({
         order_id: orderId,
         itemname: item.name,
@@ -172,7 +168,6 @@ serve(async (req) => {
     console.log('✓ Secret key is set:', !!settings.sadad_secret && settings.sadad_secret.length > 0);
     console.log('✓ Amount format is correct:', /^\d+\.\d{2}$/.test(orderData.total_amount.toFixed(2)));
     console.log('⚠️  CRITICAL REMINDER: Ensure Test Mode is ENABLED in Sadad Merchant Panel → API section');
-    console.log('⚠️  CRITICAL REMINDER: Ensure Web Checkout 2.2 is ENABLED for your account');
     console.log('⚠️  CRITICAL REMINDER: Verify the secret key was generated for domain:', websiteDomain);
     console.log('=== END DEBUG ===');
 
@@ -183,7 +178,7 @@ serve(async (req) => {
           ...paymentData,
           checksumhash
         },
-        sadadUrl: 'https://secure.sadadqa.com/webpurchasepage'  // iFrame URL for Web Checkout 2.2
+        sadadUrl: 'https://secure.sadadqa.com/webpurchase'  // Direct Payment API URL
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
