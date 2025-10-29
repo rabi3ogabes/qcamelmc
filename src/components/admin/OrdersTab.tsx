@@ -460,16 +460,16 @@ export const OrdersTab = ({
               size="sm" 
               variant="default"
               onClick={() => togglePaymentStatus(order.id, order.payment_status)} 
-              className="font-lusail flex items-center justify-center gap-2 bg-green-600 hover:bg-green-700"
+              className="font-lusail flex items-center justify-center gap-2 bg-green-600 hover:bg-green-700 text-white"
             >
               <CheckCircle className="w-4 h-4" />
-              تم ✓
+              تأكيد الدفع ✓
             </Button>
           )}
           {order.payment_status === "confirmed" && (
             <Button 
               size="sm" 
-              variant="outline"
+              variant="destructive"
               onClick={() => togglePaymentStatus(order.id, order.payment_status)} 
               className="font-lusail flex items-center justify-center gap-2"
             >
