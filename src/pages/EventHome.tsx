@@ -46,14 +46,13 @@ const EventHome = () => {
 
   const fetchEvents = async () => {
     try {
-      // Fetch only the next upcoming event
+      // Fetch all upcoming events
       const { data, error } = await supabase
         .from("events")
         .select("*")
         .eq("is_active", true)
         .gte("event_date", new Date().toISOString())
-        .order("event_date", { ascending: true })
-        .limit(1); // Only get the next upcoming event
+        .order("event_date", { ascending: true });
 
       if (error) throw error;
       
