@@ -17,58 +17,103 @@ Deno.serve(async (req) => {
   try {
     const supabase = createClient(supabaseUrl, supabaseServiceKey)
 
-    // Get the webhook data from Sadad
-    const formData = await req.formData()
-    const webhookData: Record<string, string> = {}
+    // Get the webhook data from Sadad (JSON format)
+    const webhookData = await req.json()
     
-    for (const [key, value] of formData.entries()) {
-      webhookData[key] = value.toString()
-    }
-
     console.log('Sadad Webhook received:', webhookData)
 
     const {
-      ORDER_ID,
-      RESPCODE,
-      RESPMSG,
-      TXNID,
-      TXNAMOUNT,
-      CHECKSUMHASH
+      websiteRefNo,
+      transactionStatus,
+      transactionNumber,
+      merchantId,
+      message,
+      txnAmount,
+      isTestMode,
+      checksumhash
     } = webhookData
 
-    if (!ORDER_ID) {
-      console.error('Missing ORDER_ID in webhook')
+    if (!websiteRefNo) {
+      console.error('Missing websiteRefNo in webhook')
       return new Response(
-        JSON.stringify({ error: 'Missing ORDER_ID' }),
+        JSON.stringify({ error: 'Missing websiteRefNo' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
-    // Update order status based on response code
-    const paymentStatus = RESPCODE === '00' ? 'completed' : 'failed'
+    // Verify checksumhash
+    const { data: settings } = await supabase
+      .from('settings')
+      .select('sadad_secret')
+      .maybeSingle()
+
+    if (settings?.sadad_secret && checksumhash) {
+      // Create verification string: secretKey + sorted values (no separators)
+      const dataToVerify: Record<string, any> = {
+        isTestMode,
+        merchantId,
+        message,
+        transactionNumber,
+        transactionStatus,
+        txnAmount,
+        websiteRefNo
+      }
+      
+      // Sort keys alphabetically and concatenate values
+      const sortedKeys = Object.keys(dataToVerify).sort()
+      const verificationString = settings.sadad_secret + sortedKeys.map(key => String(dataToVerify[key])).join('')
+      
+      // Hash with SHA256
+      const encoder = new TextEncoder()
+      const data = encoder.encode(verificationString)
+      const hashBuffer = await crypto.subtle.digest('SHA-256', data)
+      const hashArray = Array.from(new Uint8Array(hashBuffer))
+      const computedHash = hashArray.map(b => b.toString(16).padStart(2, '0')).join('')
+      
+      if (computedHash !== checksumhash) {
+        console.error('Checksumhash verification failed')
+        return new Response(
+          JSON.stringify({ error: 'Invalid checksumhash' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
+      
+      console.log('Checksumhash verified successfully')
+    }
+
+    // Update order status based on transaction status
+    // transactionStatus: 1 = in progress, 2 = failed, 3 = success
+    let paymentStatus: 'pending' | 'confirmed' | 'failed'
+    if (transactionStatus === 3) {
+      paymentStatus = 'confirmed'
+    } else if (transactionStatus === 2) {
+      paymentStatus = 'failed'
+    } else {
+      paymentStatus = 'pending'
+    }
 
     const { error: updateError } = await supabase
       .from('orders')
       .update({
         payment_status: paymentStatus,
-        payment_id: TXNID || null,
+        payment_id: transactionNumber || null,
       })
-      .eq('booking_reference', ORDER_ID)
+      .eq('booking_reference', websiteRefNo)
 
     if (updateError) {
       console.error('Error updating order:', updateError)
       throw updateError
     }
 
-    console.log(`Order ${ORDER_ID} updated to ${paymentStatus}`)
+    console.log(`Order ${websiteRefNo} updated to ${paymentStatus} (transactionStatus: ${transactionStatus})`)
 
-    // Get settings to call n8n webhook if configured
-    const { data: settings } = await supabase
+    // Get webhook URL to call n8n if configured
+    const { data: webhookSettings } = await supabase
       .from('settings')
       .select('webhook_url')
       .maybeSingle()
 
-    if (settings?.webhook_url) {
+    if (webhookSettings?.webhook_url) {
       try {
         // Get order details with ticket holders to send to n8n
         const { data: order } = await supabase
@@ -79,7 +124,7 @@ Deno.serve(async (req) => {
             events (*),
             ticket_holders (*)
           `)
-          .eq('booking_reference', ORDER_ID)
+          .eq('booking_reference', websiteRefNo)
           .single()
 
         // Fetch ticket prices
@@ -106,7 +151,7 @@ Deno.serve(async (req) => {
             is_present: holder.is_present
           }))
 
-          await fetch(settings.webhook_url, {
+          await fetch(webhookSettings.webhook_url, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -117,7 +162,7 @@ Deno.serve(async (req) => {
               customer: order.customers,
               event: order.events,
               payment_status: paymentStatus,
-              sadad_response: webhookData,
+              sadad_webhook_data: webhookData,
               timestamp: new Date().toISOString()
             })
           })
@@ -129,8 +174,9 @@ Deno.serve(async (req) => {
       }
     }
 
+    // Return required response format for Sadad
     return new Response(
-      JSON.stringify({ success: true }),
+      JSON.stringify({ status: 'success' }),
       { 
         status: 200, 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
