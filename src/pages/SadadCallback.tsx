@@ -16,70 +16,58 @@ const SadadCallback = () => {
 
   const handleCallback = async () => {
     try {
-      const urlParams = new URLSearchParams(window.location.search);
-      
-      // Collect all parameters from URL - Sadad sends payment data as query parameters
-      const allParams = Object.fromEntries(urlParams.entries());
-      console.log('Sadad callback received with params:', allParams);
+      // Try to get order ID from localStorage first (set during checkout)
+      const orderIdsString = localStorage.getItem('pendingOrderId');
+      let orderId = orderIdsString;
 
-      // Try to get order ID from various possible parameter names
-      const orderId = urlParams.get('ORDERID') || 
-                     urlParams.get('ORDER_ID') || 
-                     urlParams.get('orderId') ||
-                     urlParams.get('websiteRefNo');
+      // Also check URL parameters as fallback
+      const urlParams = new URLSearchParams(window.location.search);
+      const urlOrderId = urlParams.get('ORDERID') || 
+                        urlParams.get('ORDER_ID') || 
+                        urlParams.get('orderId') ||
+                        urlParams.get('websiteRefNo');
+      
+      // Use URL parameter if available, otherwise use localStorage
+      if (urlOrderId) {
+        orderId = urlOrderId;
+      }
+
+      console.log('Processing order ID:', orderId);
       
       if (!orderId) {
-        console.error('No order ID in URL params:', allParams);
-        throw new Error('لم يتم استلام رقم الطلب من سداد');
+        console.error('No order ID found in localStorage or URL');
+        throw new Error('لم يتم العثور على رقم الطلب');
       }
 
-      // Forward the payment data to the webhook for processing
-      const webhookData = {
-        ORDERID: orderId,
-        ORDER_ID: orderId,
-        websiteRefNo: orderId,
-        STATUS: urlParams.get('STATUS') || urlParams.get('status') || urlParams.get('RESPCODE'),
-        RESPCODE: urlParams.get('RESPCODE') || urlParams.get('STATUS'),
-        transactionStatus: urlParams.get('transactionStatus') || urlParams.get('STATUS'),
-        TXNID: urlParams.get('TXNID') || urlParams.get('txnId') || urlParams.get('transactionNumber'),
-        transactionNumber: urlParams.get('transactionNumber') || urlParams.get('TXNID'),
-        RESPMSG: urlParams.get('RESPMSG') || urlParams.get('message'),
-        message: urlParams.get('message') || urlParams.get('RESPMSG'),
-        TXNAMOUNT: urlParams.get('TXNAMOUNT') || urlParams.get('txnAmount'),
-        txnAmount: urlParams.get('txnAmount') || urlParams.get('TXNAMOUNT'),
-        MID: urlParams.get('MID') || urlParams.get('merchantId'),
-        merchantId: urlParams.get('merchantId') || urlParams.get('MID'),
-        CHECKSUMHASH: urlParams.get('CHECKSUMHASH') || urlParams.get('checksumhash') || urlParams.get('signature'),
-        checksumhash: urlParams.get('checksumhash') || urlParams.get('CHECKSUMHASH'),
-        isTestMode: urlParams.get('isTestMode') || urlParams.get('TESTMODE'),
-        // Include all other parameters
-        ...allParams
-      };
+      // Poll the order status since webhook processes it in background
+      let attempts = 0;
+      const maxAttempts = 10;
+      let order = null;
 
-      console.log('Calling webhook with data:', webhookData);
+      while (attempts < maxAttempts) {
+        const { data, error } = await supabase
+          .from('orders')
+          .select('*')
+          .eq('booking_reference', orderId)
+          .maybeSingle();
 
-      // Call the webhook edge function to process the payment
-      const { data: webhookResponse, error: webhookError } = await supabase.functions.invoke('sadad-webhook', {
-        body: webhookData
-      });
+        if (error) {
+          console.error('Error fetching order:', error);
+          throw error;
+        }
 
-      if (webhookError) {
-        console.error('Webhook error:', webhookError);
-        throw new Error('فشل في معالجة الدفع: ' + webhookError.message);
+        if (data && data.payment_status !== 'pending') {
+          order = data;
+          break;
+        }
+
+        // Wait 1 second before retrying
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        attempts++;
       }
 
-      console.log('Webhook response:', webhookResponse);
-
-      // Fetch the updated order
-      const { data: order, error: orderError } = await supabase
-        .from('orders')
-        .select('*')
-        .eq('booking_reference', orderId)
-        .single();
-
-      if (orderError) {
-        console.error('Error fetching order:', orderError);
-        throw orderError;
+      if (!order) {
+        throw new Error('لم يتم العثور على الطلب');
       }
 
       // Check payment status
@@ -91,6 +79,7 @@ const SadadCallback = () => {
         
         // Store order info for confirmation page
         localStorage.setItem('orderIds', JSON.stringify([order.id]));
+        localStorage.removeItem('pendingOrderId'); // Clean up
         
         // Redirect to confirmation page after a short delay
         setTimeout(() => {
