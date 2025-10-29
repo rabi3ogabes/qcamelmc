@@ -660,7 +660,7 @@ const Checkout = () => {
                     </div>
                   </Label>
                 </div>
-                <div className="flex items-center gap-3 p-3 sm:p-4 border rounded-lg hover:bg-accent cursor-pointer">
+                <div className="hidden flex items-center gap-3 p-3 sm:p-4 border rounded-lg hover:bg-accent cursor-pointer">
                   <RadioGroupItem value="cash_pos" id="cash_pos" />
                   <Label htmlFor="cash_pos" className="flex items-center gap-2 cursor-pointer flex-1">
                     <Banknote className="w-4 h-4 sm:w-5 sm:h-5 text-secondary flex-shrink-0" />
