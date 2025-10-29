@@ -63,6 +63,7 @@ export const OrdersTab = ({
   const [orderToDelete, setOrderToDelete] = useState<string | null>(null);
   const [showDeleteButton, setShowDeleteButton] = useState(false);
   const [showGenerateQrButton, setShowGenerateQrButton] = useState(false);
+  const [manualVerification, setManualVerification] = useState<Record<string, boolean>>({});
 
   // Generate QR code image when selectedHolder changes
   useEffect(() => {
@@ -507,15 +508,18 @@ export const OrdersTab = ({
           <div className="flex items-center gap-2">
             <Button 
               size="sm"
-              variant={order.payment_status === "confirmed" ? "destructive" : "default"}
+              variant={manualVerification[order.id] ? "destructive" : "default"}
               onClick={(e) => {
                 e.stopPropagation();
-                togglePaymentStatus(order.id, order.payment_status);
+                setManualVerification(prev => ({
+                  ...prev,
+                  [order.id]: !prev[order.id]
+                }));
               }}
-              className={`h-8 font-lusail ${order.payment_status === "confirmed" ? "" : "bg-green-600 hover:bg-green-700 text-white"}`}
-              title={order.payment_status === "confirmed" ? "إلغاء التأكيد" : "تأكيد الدفع"}
+              className={`h-8 font-lusail ${manualVerification[order.id] ? "" : "bg-green-600 hover:bg-green-700 text-white"}`}
+              title={manualVerification[order.id] ? "لم يتم التحقق" : "تم التحقق"}
             >
-              {order.payment_status === "confirmed" ? (
+              {manualVerification[order.id] ? (
                 <>
                   <XCircle className="w-4 h-4 mr-1" />
                   لا
