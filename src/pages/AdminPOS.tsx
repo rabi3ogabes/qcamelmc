@@ -51,7 +51,7 @@ const AdminPOS = () => {
   const [customerName, setCustomerName] = useState("");
   const [customerEmail, setCustomerEmail] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
-  const [customerNationality, setCustomerNationality] = useState("");
+  const [customerNationality, setCustomerNationality] = useState("قطري");
   const [customerIdNumber, setCustomerIdNumber] = useState("");
   const [showAllNationalities, setShowAllNationalities] = useState(false);
   const [ticketHolders, setTicketHolders] = useState<TicketHolderInput[]>([]);
@@ -559,7 +559,7 @@ const AdminPOS = () => {
       setCustomerName("");
       setCustomerEmail("");
       setCustomerPhone("");
-      setCustomerNationality("");
+      setCustomerNationality("قطري");
       setCustomerIdNumber("");
       setShowAllNationalities(false);
       
