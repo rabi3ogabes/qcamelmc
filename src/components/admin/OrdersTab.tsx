@@ -413,14 +413,8 @@ export const OrdersTab = ({
     }
   };
   const filterOrders = (status: string) => {
-    // Exclude ALL pending orders and orders waiting for manual Sadad verification
-    const filteredOrders = orders.filter(o => {
-      // Exclude any pending orders
-      if (o.payment_status === 'pending') return false;
-      // Exclude orders waiting for manual verification
-      if (o.sadad_manually_verified) return false;
-      return true;
-    });
+    // Only exclude pending orders (they need manual verification or are incomplete)
+    const filteredOrders = orders.filter(o => o.payment_status !== 'pending');
     
     // Apply status filter
     let statusFiltered = filteredOrders;
