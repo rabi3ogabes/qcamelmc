@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { LogOut, ShoppingCart, Calendar, Ticket, Settings, ExternalLink, Image, ScanLine, Users, CreditCard, ShieldCheck } from "lucide-react";
+import { LogOut, ShoppingCart, Calendar, Ticket, Settings, ExternalLink, Image, ScanLine, Users, CreditCard, ShieldCheck, FileText } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { OrdersTab } from "@/components/admin/OrdersTab";
 import { EventsTab } from "@/components/admin/EventsTab";
@@ -13,6 +13,7 @@ import { SettingsTab } from "@/components/admin/SettingsTab";
 import { PopupBannersTab } from "@/components/admin/PopupBannersTab";
 import { CustomersTab } from "@/components/admin/CustomersTab";
 import { SadadVerificationTab } from "@/components/admin/SadadVerificationTab";
+import { InvoiceTab } from "@/components/admin/InvoiceTab";
 import "../i18n/config";
 
 interface Order {
@@ -138,7 +139,7 @@ const AdminDashboard = () => {
           <div className="text-center py-12">{t("loading")}</div>
         ) : (
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid w-full grid-cols-5 mb-8">
+            <TabsList className="grid w-full grid-cols-6 mb-8">
               <TabsTrigger value="orders" className="flex items-center gap-2">
                 <ShoppingCart className="w-4 h-4" />
                 {t("orders")}
@@ -154,6 +155,10 @@ const AdminDashboard = () => {
               <TabsTrigger value="tickets" className="flex items-center gap-2">
                 <Ticket className="w-4 h-4" />
                 {t("tickets")}
+              </TabsTrigger>
+              <TabsTrigger value="invoices" className="flex items-center gap-2">
+                <FileText className="w-4 h-4" />
+                إرسال الفواتير
               </TabsTrigger>
               <TabsTrigger value="settings" className="flex items-center gap-2">
                 <Settings className="w-4 h-4" />
@@ -238,6 +243,10 @@ const AdminDashboard = () => {
 
             <TabsContent value="tickets">
               <TicketsTab />
+            </TabsContent>
+
+            <TabsContent value="invoices">
+              <InvoiceTab />
             </TabsContent>
 
             <TabsContent value="settings">
