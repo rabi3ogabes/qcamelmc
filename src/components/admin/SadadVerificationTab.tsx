@@ -274,15 +274,6 @@ export const SadadVerificationTab = ({ onRefresh }: SadadVerificationTabProps) =
                         </>
                       )}
                     </Button>
-                    <Button
-                      size="sm"
-                      variant="destructive"
-                      onClick={() => rejectPayment(order.id)}
-                      disabled={processingOrder === order.id}
-                    >
-                      <XCircle className="w-4 h-4 ml-1" />
-                      رفض
-                    </Button>
                   </div>
                 </TableCell>
               </TableRow>
