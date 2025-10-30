@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { LogOut, ShoppingCart, Calendar, Ticket, Settings, ExternalLink, Image, ScanLine, Users, CreditCard, ShieldCheck, FileText } from "lucide-react";
+import { LogOut, ShoppingCart, Calendar, Ticket, Settings, ExternalLink, Image, ScanLine, Users, CreditCard, FileText } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { OrdersTab } from "@/components/admin/OrdersTab";
 import { EventsTab } from "@/components/admin/EventsTab";
@@ -12,7 +12,6 @@ import { TicketsTab } from "@/components/admin/TicketsTab";
 import { SettingsTab } from "@/components/admin/SettingsTab";
 import { PopupBannersTab } from "@/components/admin/PopupBannersTab";
 import { CustomersTab } from "@/components/admin/CustomersTab";
-import { SadadVerificationTab } from "@/components/admin/SadadVerificationTab";
 import { InvoiceTab } from "@/components/admin/InvoiceTab";
 import "../i18n/config";
 
@@ -203,34 +202,10 @@ const AdminDashboard = () => {
             </div>
 
             <TabsContent value="orders">
-              <Tabs defaultValue="all" className="w-full">
-                <TabsList className="grid w-full grid-cols-2 mb-6">
-                  <TabsTrigger value="all" className="flex items-center gap-2 font-lusail">
-                    جميع الطلبات
-                    <Badge variant="secondary" className="mr-2">
-                      {orders.length}
-                    </Badge>
-                  </TabsTrigger>
-                  <TabsTrigger value="sadad-verification" className="flex items-center gap-2 font-lusail">
-                    <ShieldCheck className="w-4 h-4" />
-                    التاكد من الدفع في سداد
-                    <Badge variant="destructive" className="mr-2">
-                      {orders.filter(o => o.payment_method === "sadad" && (o as any).sadad_manually_verified === true).length}
-                    </Badge>
-                  </TabsTrigger>
-                </TabsList>
-
-                <TabsContent value="all">
-                  <OrdersTab 
-                    orders={orders} 
-                    onRefresh={fetchOrders}
-                  />
-                </TabsContent>
-
-                <TabsContent value="sadad-verification">
-                  <SadadVerificationTab onRefresh={fetchOrders} />
-                </TabsContent>
-              </Tabs>
+              <OrdersTab 
+                orders={orders} 
+                onRefresh={fetchOrders}
+              />
             </TabsContent>
 
             <TabsContent value="customers">
