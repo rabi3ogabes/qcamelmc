@@ -438,7 +438,7 @@ export const OrdersTab = ({
     order
   }: {
     order: Order;
-  }) => <Card className="p-6 hover:shadow-lg transition-shadow">
+  }) => <Card className={`p-6 hover:shadow-lg transition-shadow ${order.sadad_manually_verified ? 'bg-green-50 dark:bg-green-950/20 border-green-200 dark:border-green-800' : ''}`}>
       <div className="space-y-4">
         {/* Header Row - Reference and Status */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 pb-4 border-b">
@@ -536,9 +536,8 @@ export const OrdersTab = ({
         
         {/* Sadad Verification Row */}
         <div className="flex flex-wrap items-center gap-2 pt-2">
-          <Button 
-            size="sm"
-            variant={order.sadad_manually_verified ? "destructive" : "default"}
+          <Badge 
+            variant={order.sadad_manually_verified ? "default" : "secondary"}
             onClick={async (e) => {
               e.stopPropagation();
               try {
@@ -555,21 +554,25 @@ export const OrdersTab = ({
                 toast.error("فشل في تحديث حالة التأكد");
               }
             }}
-            className={`h-9 font-lusail ${order.sadad_manually_verified ? "" : "bg-green-600 hover:bg-green-700 text-white"}`}
-            title={order.sadad_manually_verified ? "لم يتم التأكد ان الدفع في سداد" : "التأكد من الدفع في سداد"}
+            className={`font-lusail text-sm px-3 py-2 cursor-pointer hover:opacity-80 transition-opacity ${
+              order.sadad_manually_verified 
+                ? "bg-green-600 hover:bg-green-700 text-white" 
+                : "bg-yellow-100 text-yellow-900 dark:bg-yellow-900 dark:text-yellow-100"
+            }`}
+            title={order.sadad_manually_verified ? "اضغط لإلغاء التأكد" : "اضغط للتأكد من الدفع"}
           >
             {order.sadad_manually_verified ? (
               <>
-                <XCircle className="w-4 h-4 mr-1" />
-                لم يتم التأكد ان الدفع في سداد
+                <CheckCircle className="w-4 h-4 mr-1 inline" />
+                تم التأكد من الدفع في سداد ✓
               </>
             ) : (
               <>
-                <CheckCircle className="w-4 h-4 mr-1" />
-                التأكد من الدفع في سداد
+                <XCircle className="w-4 h-4 mr-1 inline" />
+                لم يتم التأكد من الدفع في سداد
               </>
             )}
-          </Button>
+          </Badge>
           {showDeleteButton && (
             <Button 
               size="icon" 
