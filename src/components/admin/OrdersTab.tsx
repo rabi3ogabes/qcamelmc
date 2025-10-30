@@ -419,40 +419,43 @@ export const OrdersTab = ({
   }: {
     order: Order;
   }) => <Card className="p-6 hover:shadow-lg transition-shadow">
-      <div className="grid md:grid-cols-6 gap-4 items-center">
-        <div>
-          <p className="text-sm text-muted-foreground mb-1">{t("reference")}</p>
-          <p className="font-mono font-semibold text-primary">{order.booking_reference}</p>
-        </div>
-        
-        <div>
-          <p className="text-sm text-muted-foreground mb-1">{t("customer")}</p>
-          <p className="font-semibold">{order.customers.name}</p>
-          <p className="text-sm text-muted-foreground">{order.customers.email}</p>
-          <p className="text-xs text-muted-foreground">{order.customers.phone}</p>
-        </div>
-        
-        <div>
-          <p className="text-sm text-muted-foreground mb-1">{t("ticket")}</p>
-          <p className="font-semibold capitalize">
-            {order.ticket_type === "vip" ? t("vipAccess") : order.ticket_type === "normal" ? t("generalAdmission") : t("parking")} × {order.quantity}
-          </p>
-          <p className="text-sm font-semibold text-primary">{order.total_amount.toFixed(2)} {t("qar")}</p>
-        </div>
-        
-        <div>
-          <p className="text-sm text-muted-foreground mb-1">{t("paymentMethod")}</p>
-          <p className="font-medium capitalize">{order.payment_method}</p>
-        </div>
-        
-        <div>
-          <p className="text-sm text-muted-foreground mb-1">{t("status")}</p>
-          <Badge variant={order.payment_status === "confirmed" ? "default" : order.payment_status === "cancelled" ? "destructive" : "secondary"} className="font-lusail">
+      <div className="space-y-4">
+        {/* Top Row - Reference and Status */}
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 pb-4 border-b">
+          <div>
+            <p className="text-sm text-muted-foreground mb-1">{t("reference")}</p>
+            <p className="font-mono font-semibold text-primary text-lg">{order.booking_reference}</p>
+          </div>
+          <Badge variant={order.payment_status === "confirmed" ? "default" : order.payment_status === "cancelled" ? "destructive" : "secondary"} className="font-lusail text-base px-4 py-1">
             {order.payment_status === "confirmed" ? t("confirmed") : order.payment_status === "cancelled" ? t("failed") : t("pending")}
           </Badge>
         </div>
-        
-        <div className="flex flex-col gap-2">
+
+        {/* Main Info Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div>
+            <p className="text-sm text-muted-foreground mb-1">{t("customer")}</p>
+            <p className="font-semibold">{order.customers.name}</p>
+            <p className="text-sm text-muted-foreground">{order.customers.email}</p>
+            <p className="text-xs text-muted-foreground">{order.customers.phone}</p>
+          </div>
+          
+          <div>
+            <p className="text-sm text-muted-foreground mb-1">{t("ticket")}</p>
+            <p className="font-semibold capitalize">
+              {order.ticket_type === "vip" ? t("vipAccess") : order.ticket_type === "normal" ? t("generalAdmission") : t("parking")} × {order.quantity}
+            </p>
+            <p className="text-sm font-semibold text-primary">{order.total_amount.toFixed(2)} {t("qar")}</p>
+          </div>
+          
+          <div>
+            <p className="text-sm text-muted-foreground mb-1">{t("paymentMethod")}</p>
+            <p className="font-medium capitalize">{order.payment_method}</p>
+          </div>
+        </div>
+
+        {/* Action Buttons */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 pt-2">
           <Button size="sm" variant="outline" onClick={() => navigate(`/admin/tickets?ref=${order.booking_reference}`)} className="font-lusail flex items-center justify-center gap-2">
             <Printer className="w-4 h-4" />
             عرض التذاكر
