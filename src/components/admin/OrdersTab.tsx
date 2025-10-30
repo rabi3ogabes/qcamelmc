@@ -569,7 +569,7 @@ export const OrdersTab = ({
             ) : (
               <>
                 <XCircle className="w-4 h-4 mr-1 inline" />
-                لم يتم التأكد من الدفع في سداد
+                إضغط هنا لتاكيد سداد
               </>
             )}
           </Badge>
