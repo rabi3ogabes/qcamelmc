@@ -556,8 +556,8 @@ export const OrdersTab = ({
             }}
             className={`font-lusail text-sm px-3 py-2 cursor-pointer hover:opacity-80 transition-opacity ${
               order.sadad_manually_verified 
-                ? "bg-green-600 hover:bg-green-700 text-white" 
-                : "bg-yellow-100 text-yellow-900 dark:bg-yellow-900 dark:text-yellow-100"
+                ? "bg-yellow-100 text-yellow-900 dark:bg-yellow-900 dark:text-yellow-100"
+                : "bg-green-600 hover:bg-green-700 text-white"
             }`}
             title={order.sadad_manually_verified ? "اضغط لإلغاء التأكد" : "اضغط للتأكد من الدفع"}
           >
