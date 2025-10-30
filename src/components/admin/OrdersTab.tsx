@@ -31,6 +31,7 @@ interface Order {
   quantity: number;
   total_amount: number;
   created_at: string;
+  sadad_manually_verified?: boolean;
   customers: {
     name: string;
     email: string;
@@ -63,7 +64,6 @@ export const OrdersTab = ({
   const [orderToDelete, setOrderToDelete] = useState<string | null>(null);
   const [showDeleteButton, setShowDeleteButton] = useState(false);
   const [showGenerateQrButton, setShowGenerateQrButton] = useState(false);
-  const [manualVerification, setManualVerification] = useState<Record<string, boolean>>({});
 
   // Generate QR code image when selectedHolder changes
   useEffect(() => {
@@ -508,18 +508,27 @@ export const OrdersTab = ({
           <div className="flex items-center gap-2">
             <Button 
               size="sm"
-              variant={manualVerification[order.id] ? "destructive" : "default"}
-              onClick={(e) => {
+              variant={order.sadad_manually_verified ? "destructive" : "default"}
+              onClick={async (e) => {
                 e.stopPropagation();
-                setManualVerification(prev => ({
-                  ...prev,
-                  [order.id]: !prev[order.id]
-                }));
+                try {
+                  const { error } = await supabase
+                    .from("orders")
+                    .update({ sadad_manually_verified: !order.sadad_manually_verified })
+                    .eq("id", order.id);
+                  
+                  if (error) throw error;
+                  toast.success(order.sadad_manually_verified ? "تم إلغاء التأكد من الدفع" : "تم التأكد من الدفع في سداد");
+                  onRefresh();
+                } catch (error) {
+                  console.error("Error updating verification status:", error);
+                  toast.error("فشل في تحديث حالة التأكد");
+                }
               }}
-              className={`h-8 font-lusail ${manualVerification[order.id] ? "" : "bg-green-600 hover:bg-green-700 text-white"}`}
-              title={manualVerification[order.id] ? "لم يتم التأكد من الدفع في سداد" : "التأكد من الدفع في سداد"}
+              className={`h-8 font-lusail ${order.sadad_manually_verified ? "" : "bg-green-600 hover:bg-green-700 text-white"}`}
+              title={order.sadad_manually_verified ? "لم يتم التأكد من الدفع في سداد" : "التأكد من الدفع في سداد"}
             >
-              {manualVerification[order.id] ? (
+              {order.sadad_manually_verified ? (
                 <>
                   <XCircle className="w-4 h-4 mr-1" />
                   لم يتم التأكد من الدفع في سداد

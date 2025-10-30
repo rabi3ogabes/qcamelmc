@@ -128,6 +128,7 @@ export type Database = {
           payment_status: Database["public"]["Enums"]["payment_status"] | null
           qr_code: string | null
           quantity: number
+          sadad_manually_verified: boolean | null
           ticket_type: Database["public"]["Enums"]["ticket_type"]
           total_amount: number
         }
@@ -145,6 +146,7 @@ export type Database = {
           payment_status?: Database["public"]["Enums"]["payment_status"] | null
           qr_code?: string | null
           quantity: number
+          sadad_manually_verified?: boolean | null
           ticket_type: Database["public"]["Enums"]["ticket_type"]
           total_amount: number
         }
@@ -162,6 +164,7 @@ export type Database = {
           payment_status?: Database["public"]["Enums"]["payment_status"] | null
           qr_code?: string | null
           quantity?: number
+          sadad_manually_verified?: boolean | null
           ticket_type?: Database["public"]["Enums"]["ticket_type"]
           total_amount?: number
         }
