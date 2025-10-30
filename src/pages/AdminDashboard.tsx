@@ -99,8 +99,6 @@ const AdminDashboard = () => {
         .order("created_at", { ascending: false });
 
       if (error) throw error;
-      console.log("Fetched orders:", data);
-      console.log("Orders count:", data?.length || 0);
       setOrders(data || []);
     } catch (error) {
       console.error("Failed to load orders:", error);
@@ -205,7 +203,7 @@ const AdminDashboard = () => {
                   <TabsTrigger value="all" className="flex items-center gap-2 font-lusail">
                     جميع الطلبات
                     <Badge variant="secondary" className="mr-2">
-                      {(() => { console.log("Rendering badge with orders.length:", orders.length); return orders.length; })()}
+                      {orders.length}
                     </Badge>
                   </TabsTrigger>
                   <TabsTrigger value="sadad-verification" className="flex items-center gap-2 font-lusail">
