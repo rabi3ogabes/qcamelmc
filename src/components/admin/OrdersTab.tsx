@@ -45,10 +45,12 @@ interface Order {
 interface OrdersTabProps {
   orders: Order[];
   onRefresh: () => void;
+  onSwitchToSadadVerification?: () => void;
 }
 export const OrdersTab = ({
   orders,
-  onRefresh
+  onRefresh,
+  onSwitchToSadadVerification
 }: OrdersTabProps) => {
   const {
     t
@@ -456,7 +458,18 @@ export const OrdersTab = ({
             {t("viewDetails")}
             <Eye className="w-4 h-4" />
           </Button>
-          {order.payment_status === "pending" && (
+          {order.payment_status === "pending" && order.payment_method === "sadad" && (
+            <Button 
+              size="sm" 
+              variant="outline"
+              onClick={onSwitchToSadadVerification}
+              className="font-lusail flex items-center justify-center gap-2 border-amber-500 text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-950/20"
+            >
+              <CheckCircle className="w-4 h-4" />
+              التاكد من الدفع في سداد
+            </Button>
+          )}
+          {order.payment_status === "pending" && order.payment_method !== "sadad" && (
             <Button 
               size="sm" 
               variant="default"

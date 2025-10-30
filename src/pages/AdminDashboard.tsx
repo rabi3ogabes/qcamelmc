@@ -201,7 +201,11 @@ const AdminDashboard = () => {
             </div>
 
             <TabsContent value="orders">
-              <OrdersTab orders={orders} onRefresh={fetchOrders} />
+              <OrdersTab 
+                orders={orders} 
+                onRefresh={fetchOrders}
+                onSwitchToSadadVerification={() => setActiveTab("sadad-verification")}
+              />
             </TabsContent>
 
             <TabsContent value="sadad-verification">
