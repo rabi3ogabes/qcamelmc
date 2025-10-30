@@ -69,7 +69,6 @@ export const SadadVerificationTab = ({ onRefresh }: SadadVerificationTabProps) =
         .from("orders")
         .select("*, customers(name, email, phone), events(title, event_date, location)")
         .eq("payment_method", "sadad")
-        .eq("payment_status", "pending")
         .eq("sadad_manually_verified", true)
         .order("created_at", { ascending: false });
 
@@ -219,7 +218,7 @@ export const SadadVerificationTab = ({ onRefresh }: SadadVerificationTabProps) =
               <TableHead className="text-right">التذاكر</TableHead>
               <TableHead className="text-right">المبلغ</TableHead>
               <TableHead className="text-right">تاريخ الطلب</TableHead>
-              <TableHead className="text-right">رقم المعاملة</TableHead>
+              <TableHead className="text-right">الحالة</TableHead>
               <TableHead className="text-right">الإجراءات</TableHead>
             </TableRow>
           </TableHeader>
@@ -258,36 +257,50 @@ export const SadadVerificationTab = ({ onRefresh }: SadadVerificationTabProps) =
                 <TableCell className="text-sm text-muted-foreground">
                   {format(new Date(order.created_at), 'dd/MM/yyyy HH:mm')}
                 </TableCell>
-                <TableCell className="text-sm font-mono">
-                  {order.payment_id || '-'}
+                <TableCell>
+                  <Badge 
+                    variant={order.payment_status === "confirmed" ? "default" : order.payment_status === "failed" ? "destructive" : "secondary"}
+                    className="font-lusail"
+                  >
+                    {order.payment_status === "confirmed" ? "مؤكد" : order.payment_status === "failed" ? "فشل" : "معلق"}
+                  </Badge>
                 </TableCell>
                 <TableCell>
                   <div className="flex gap-2">
-                    <Button
-                      size="sm"
-                      variant="default"
-                      onClick={() => confirmPayment(order.id)}
-                      disabled={processingOrder === order.id}
-                      className="bg-green-600 hover:bg-green-700 text-white"
-                    >
-                      {processingOrder === order.id ? (
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                      ) : (
-                        <>
-                          <CheckCircle className="w-4 h-4 ml-1" />
-                          تأكيد
-                        </>
-                      )}
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="destructive"
-                      onClick={() => rejectPayment(order.id)}
-                      disabled={processingOrder === order.id}
-                    >
-                      <XCircle className="w-4 h-4 ml-1" />
-                      رفض
-                    </Button>
+                    {order.payment_status === "pending" && (
+                      <>
+                        <Button
+                          size="sm"
+                          variant="default"
+                          onClick={() => confirmPayment(order.id)}
+                          disabled={processingOrder === order.id}
+                          className="bg-green-600 hover:bg-green-700 text-white"
+                        >
+                          {processingOrder === order.id ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <>
+                              <CheckCircle className="w-4 h-4 ml-1" />
+                              تأكيد
+                            </>
+                          )}
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          onClick={() => rejectPayment(order.id)}
+                          disabled={processingOrder === order.id}
+                        >
+                          <XCircle className="w-4 h-4 ml-1" />
+                          رفض
+                        </Button>
+                      </>
+                    )}
+                    {order.payment_status === "confirmed" && (
+                      <Badge variant="default" className="font-lusail">
+                        تم التأكيد ✓
+                      </Badge>
+                    )}
                   </div>
                 </TableCell>
               </TableRow>
