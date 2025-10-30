@@ -530,12 +530,12 @@ export const OrdersTab = ({
                 }
               }}
               className={`h-8 font-lusail ${order.sadad_manually_verified ? "" : "bg-green-600 hover:bg-green-700 text-white"}`}
-              title={order.sadad_manually_verified ? "لم يتم التأكد من الدفع في سداد" : "التأكد من الدفع في سداد"}
+              title={order.sadad_manually_verified ? "لم يتم التأكد ان الدفع في سداد" : "التأكد من الدفع في سداد"}
             >
               {order.sadad_manually_verified ? (
                 <>
                   <XCircle className="w-4 h-4 mr-1" />
-                  لم يتم التأكد من الدفع في سداد
+                  لم يتم التأكد ان الدفع في سداد
                 </>
               ) : (
                 <>
