@@ -489,7 +489,8 @@ export const OrdersTab = ({
         </div>
       </div>
       
-      <div className="mt-4 pt-4 border-t space-y-2">
+      <div className="mt-4 pt-4 border-t space-y-3">
+        {/* Event Date */}
         {order.events && (
           <div className="flex items-center gap-2 text-sm">
             <Calendar className="w-4 h-4 text-primary" />
@@ -499,71 +500,73 @@ export const OrdersTab = ({
             </span>
           </div>
         )}
-        <div className="flex items-center justify-between gap-4 text-sm text-muted-foreground">
-          <div className="flex items-center gap-4">
+        
+        {/* Booking Info Row */}
+        <div className="flex flex-col sm:flex-row gap-3 text-sm text-muted-foreground">
+          <div className="flex items-center gap-1">
+            <Calendar className="w-4 h-4" />
+            <span>تاريخ الحجز: </span>
+            {format(new Date(order.created_at), 'dd/MM/yyyy - HH:mm')}
+          </div>
+          {order.events && (
             <div className="flex items-center gap-1">
-              <Calendar className="w-4 h-4" />
-              <span>تاريخ الحجز: </span>
-              {format(new Date(order.created_at), 'dd/MM/yyyy - HH:mm')}
+              <MapPin className="w-4 h-4" />
+              <span>{order.events.location}</span>
             </div>
-            {order.events && (
-              <div className="flex items-center gap-1">
-                <MapPin className="w-4 h-4" />
-                <span>{order.events.location}</span>
-              </div>
+          )}
+        </div>
+        
+        {/* Sadad Verification Row */}
+        <div className="flex flex-wrap items-center gap-2 pt-2">
+          <Button 
+            size="sm"
+            variant={order.sadad_manually_verified ? "destructive" : "default"}
+            onClick={async (e) => {
+              e.stopPropagation();
+              try {
+                const { error } = await supabase
+                  .from("orders")
+                  .update({ sadad_manually_verified: !order.sadad_manually_verified })
+                  .eq("id", order.id);
+                
+                if (error) throw error;
+                toast.success(order.sadad_manually_verified ? "تم إلغاء التأكد من الدفع" : "تم التأكد من الدفع في سداد");
+                onRefresh();
+              } catch (error) {
+                console.error("Error updating verification status:", error);
+                toast.error("فشل في تحديث حالة التأكد");
+              }
+            }}
+            className={`h-9 font-lusail ${order.sadad_manually_verified ? "" : "bg-green-600 hover:bg-green-700 text-white"}`}
+            title={order.sadad_manually_verified ? "لم يتم التأكد ان الدفع في سداد" : "التأكد من الدفع في سداد"}
+          >
+            {order.sadad_manually_verified ? (
+              <>
+                <XCircle className="w-4 h-4 mr-1" />
+                لم يتم التأكد ان الدفع في سداد
+              </>
+            ) : (
+              <>
+                <CheckCircle className="w-4 h-4 mr-1" />
+                التأكد من الدفع في سداد
+              </>
             )}
-          </div>
-          <div className="flex items-center gap-2">
+          </Button>
+          {showDeleteButton && (
             <Button 
-              size="sm"
-              variant={order.sadad_manually_verified ? "destructive" : "default"}
-              onClick={async (e) => {
+              size="icon" 
+              variant="destructive" 
+              onClick={(e) => {
                 e.stopPropagation();
-                try {
-                  const { error } = await supabase
-                    .from("orders")
-                    .update({ sadad_manually_verified: !order.sadad_manually_verified })
-                    .eq("id", order.id);
-                  
-                  if (error) throw error;
-                  toast.success(order.sadad_manually_verified ? "تم إلغاء التأكد من الدفع" : "تم التأكد من الدفع في سداد");
-                  onRefresh();
-                } catch (error) {
-                  console.error("Error updating verification status:", error);
-                  toast.error("فشل في تحديث حالة التأكد");
-                }
+                console.log("Delete button clicked for order:", order.id);
+                setOrderToDelete(order.id);
               }}
-              className={`h-8 font-lusail ${order.sadad_manually_verified ? "" : "bg-green-600 hover:bg-green-700 text-white"}`}
-              title={order.sadad_manually_verified ? "لم يتم التأكد ان الدفع في سداد" : "التأكد من الدفع في سداد"}
+              className="h-9 w-9"
+              title="حذف الطلب"
             >
-              {order.sadad_manually_verified ? (
-                <>
-                  <XCircle className="w-4 h-4 mr-1" />
-                  لم يتم التأكد ان الدفع في سداد
-                </>
-              ) : (
-                <>
-                  <CheckCircle className="w-4 h-4 mr-1" />
-                  التأكد من الدفع في سداد
-                </>
-              )}
+              <Trash2 className="w-4 h-4" />
             </Button>
-            {showDeleteButton && (
-              <Button 
-                size="icon" 
-                variant="destructive" 
-                onClick={(e) => {
-                  e.stopPropagation();
-                  console.log("Delete button clicked for order:", order.id);
-                  setOrderToDelete(order.id);
-                }}
-                className="h-8 w-8"
-                title="حذف الطلب"
-              >
-                <Trash2 className="w-4 h-4" />
-              </Button>
-            )}
-          </div>
+          )}
         </div>
       </div>
     </Card>;
