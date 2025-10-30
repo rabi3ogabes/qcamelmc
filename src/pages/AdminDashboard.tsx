@@ -202,11 +202,9 @@ const AdminDashboard = () => {
                 <TabsList className="grid w-full grid-cols-2 mb-6">
                   <TabsTrigger value="all" className="flex items-center gap-2 font-lusail">
                     جميع الطلبات
-                    {orders.length > 0 && (
-                      <Badge variant="secondary" className="mr-2">
-                        {orders.length}
-                      </Badge>
-                    )}
+                    <Badge variant="secondary" className="mr-2">
+                      {orders.length}
+                    </Badge>
                   </TabsTrigger>
                   <TabsTrigger value="sadad-verification" className="flex items-center gap-2 font-lusail">
                     <ShieldCheck className="w-4 h-4" />
