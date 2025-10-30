@@ -565,13 +565,11 @@ export const OrdersTab = ({
     </Card>;
   const filteredOrders = filterOrders(activeTab);
   
-  // Filter out manually verified Sadad orders for stats
-  const ordersForStats = orders.filter(o => !o.sadad_manually_verified);
+  // Calculate stats from filtered orders (excluding those waiting for manual verification)
+  const ordersForStats = orders.filter(o => !(o.sadad_manually_verified && o.payment_status === 'pending'));
   const stats = {
-    total: ordersForStats.length,
     success: ordersForStats.filter(o => o.payment_status === "confirmed").length,
     failed: ordersForStats.filter(o => o.payment_status === "cancelled").length,
-    pending: ordersForStats.filter(o => o.payment_status === "pending").length
   };
   return <div className="space-y-6">
       {/* Generate QR Codes Button */}
