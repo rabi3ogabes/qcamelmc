@@ -147,10 +147,14 @@ export const InvoiceTab = () => {
 
       setCurrentlySending(null);
 
-      // Wait 5 minutes (300000ms) before sending the next one, unless it's the last order
+      // Wait random time between 5-10 minutes before sending the next one, unless it's the last order
       if (i < orders.length - 1) {
-        toast.info("انتظار 5 دقائق قبل إرسال الفاتورة التالية...");
-        await new Promise(resolve => setTimeout(resolve, 300000)); // 5 minutes
+        const minDelay = 300000; // 5 minutes
+        const maxDelay = 600000; // 10 minutes
+        const randomDelay = Math.floor(Math.random() * (maxDelay - minDelay + 1)) + minDelay;
+        const delayMinutes = Math.round(randomDelay / 60000);
+        toast.info(`انتظار ${delayMinutes} دقائق قبل إرسال الفاتورة التالية...`);
+        await new Promise(resolve => setTimeout(resolve, randomDelay));
       }
     }
 
@@ -174,7 +178,7 @@ export const InvoiceTab = () => {
           <div>
             <h2 className="text-2xl font-bold mb-2">إرسال الفواتير</h2>
             <p className="text-muted-foreground">
-              إرسال الفواتير للطلبات المدفوعة عبر سداد إلى n8n (5 دقائق بين كل رسالة)
+              إرسال الفواتير للطلبات المدفوعة عبر سداد إلى n8n (5-10 دقائق بشكل عشوائي بين كل رسالة)
             </p>
           </div>
           <Button
