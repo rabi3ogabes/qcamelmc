@@ -7,7 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { CheckCircle, MapPin, Calendar, Eye, QrCode, Loader2, XCircle, Printer, Trash2 } from "lucide-react";
+import { CheckCircle, MapPin, Calendar, Eye, QrCode, Loader2, XCircle, Printer, Trash2, Grid3x3, List } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -56,6 +56,7 @@ export const OrdersTab = ({
   } = useTranslation();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("success");
+  const [viewMode, setViewMode] = useState<"grid" | "list">("list");
   const [selectedOrder, setSelectedOrder] = useState<string | null>(null);
   const [ticketHolders, setTicketHolders] = useState<TicketHolder[]>([]);
   const [selectedHolder, setSelectedHolder] = useState<TicketHolder | null>(null);
@@ -601,15 +602,44 @@ export const OrdersTab = ({
 
       {/* Orders Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-2 font-lusail">
-          <TabsTrigger value="success">{t("success")} ({stats.success})</TabsTrigger>
-          <TabsTrigger value="failed">{t("failed")} ({stats.failed})</TabsTrigger>
-        </TabsList>
+        <div className="flex items-center justify-between mb-4">
+          <TabsList className="grid grid-cols-2 font-lusail">
+            <TabsTrigger value="success">{t("success")} ({stats.success})</TabsTrigger>
+            <TabsTrigger value="failed">{t("failed")} ({stats.failed})</TabsTrigger>
+          </TabsList>
+          
+          <div className="flex gap-2">
+            <Button
+              variant={viewMode === "list" ? "default" : "outline"}
+              size="sm"
+              onClick={() => setViewMode("list")}
+              className="font-lusail"
+            >
+              <List className="w-4 h-4" />
+            </Button>
+            <Button
+              variant={viewMode === "grid" ? "default" : "outline"}
+              size="sm"
+              onClick={() => setViewMode("grid")}
+              className="font-lusail"
+            >
+              <Grid3x3 className="w-4 h-4" />
+            </Button>
+          </div>
+        </div>
         
-        <TabsContent value={activeTab} className="space-y-4 mt-6">
+        <TabsContent value={activeTab} className="mt-6">
           {filteredOrders.length === 0 ? <Card className="p-12 text-center">
               <p className="text-muted-foreground font-lusail">{t("noOrders")}</p>
-            </Card> : filteredOrders.map(order => <OrderCard key={order.id} order={order} />)}
+            </Card> : viewMode === "grid" ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {filteredOrders.map(order => <OrderCard key={order.id} order={order} />)}
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {filteredOrders.map(order => <OrderCard key={order.id} order={order} />)}
+              </div>
+            )}
         </TabsContent>
       </Tabs>
 
