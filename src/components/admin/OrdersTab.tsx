@@ -509,40 +509,42 @@ export const OrdersTab = ({
             )}
           </div>
           <div className="flex items-center gap-2">
-            <Button 
-              size="sm"
-              variant={order.sadad_manually_verified ? "destructive" : "default"}
-              onClick={async (e) => {
-                e.stopPropagation();
-                try {
-                  const { error } = await supabase
-                    .from("orders")
-                    .update({ sadad_manually_verified: !order.sadad_manually_verified })
-                    .eq("id", order.id);
-                  
-                  if (error) throw error;
-                  toast.success(order.sadad_manually_verified ? "تم إلغاء التأكد من الدفع" : "تم التأكد من الدفع في سداد");
-                  onRefresh();
-                } catch (error) {
-                  console.error("Error updating verification status:", error);
-                  toast.error("فشل في تحديث حالة التأكد");
-                }
-              }}
-              className={`h-8 font-lusail ${order.sadad_manually_verified ? "" : "bg-green-600 hover:bg-green-700 text-white"}`}
-              title={order.sadad_manually_verified ? "لم يتم التأكد من الدفع في سداد" : "التأكد من الدفع في سداد"}
-            >
-              {order.sadad_manually_verified ? (
-                <>
-                  <XCircle className="w-4 h-4 mr-1" />
-                  لم يتم التأكد من الدفع في سداد
-                </>
-              ) : (
-                <>
-                  <CheckCircle className="w-4 h-4 mr-1" />
-                  التأكد من الدفع في سداد
-                </>
-              )}
-            </Button>
+            {order.payment_method === "sadad" && order.payment_status === "pending" && (
+              <Button 
+                size="sm"
+                variant={order.sadad_manually_verified ? "destructive" : "default"}
+                onClick={async (e) => {
+                  e.stopPropagation();
+                  try {
+                    const { error } = await supabase
+                      .from("orders")
+                      .update({ sadad_manually_verified: !order.sadad_manually_verified })
+                      .eq("id", order.id);
+                    
+                    if (error) throw error;
+                    toast.success(order.sadad_manually_verified ? "تم إلغاء التأكد من الدفع" : "تم التأكد من الدفع في سداد");
+                    onRefresh();
+                  } catch (error) {
+                    console.error("Error updating verification status:", error);
+                    toast.error("فشل في تحديث حالة التأكد");
+                  }
+                }}
+                className={`h-8 font-lusail ${order.sadad_manually_verified ? "" : "bg-green-600 hover:bg-green-700 text-white"}`}
+                title={order.sadad_manually_verified ? "لم يتم التأكد من الدفع في سداد" : "التأكد من الدفع في سداد"}
+              >
+                {order.sadad_manually_verified ? (
+                  <>
+                    <XCircle className="w-4 h-4 mr-1" />
+                    لم يتم التأكد من الدفع في سداد
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle className="w-4 h-4 mr-1" />
+                    التأكد من الدفع في سداد
+                  </>
+                )}
+              </Button>
+            )}
             {showDeleteButton && (
               <Button 
                 size="icon" 
