@@ -7,7 +7,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { CheckCircle, MapPin, Calendar, Eye, QrCode, Loader2, XCircle, Printer, Trash2, Grid3x3, List } from "lucide-react";
+import { CheckCircle, MapPin, Calendar, Eye, QrCode, Loader2, XCircle, Printer, Trash2, Grid3x3, List, Search } from "lucide-react";
+import { Input } from "@/components/ui/input";
 import { useTranslation } from "react-i18next";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -57,6 +58,7 @@ export const OrdersTab = ({
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("success");
   const [viewMode, setViewMode] = useState<"grid" | "list">("list");
+  const [searchQuery, setSearchQuery] = useState("");
   const [selectedOrder, setSelectedOrder] = useState<string | null>(null);
   const [ticketHolders, setTicketHolders] = useState<TicketHolder[]>([]);
   const [selectedHolder, setSelectedHolder] = useState<TicketHolder | null>(null);
@@ -410,9 +412,20 @@ export const OrdersTab = ({
       return !(o.sadad_manually_verified && o.payment_status === 'pending');
     });
     
-    if (status === "success") return filteredOrders.filter(o => o.payment_status === "confirmed");
-    if (status === "failed") return filteredOrders.filter(o => o.payment_status === "cancelled");
-    return filteredOrders;
+    // Apply status filter
+    let statusFiltered = filteredOrders;
+    if (status === "success") statusFiltered = filteredOrders.filter(o => o.payment_status === "confirmed");
+    if (status === "failed") statusFiltered = filteredOrders.filter(o => o.payment_status === "cancelled");
+    
+    // Apply search filter
+    if (!searchQuery.trim()) return statusFiltered;
+    
+    const query = searchQuery.toLowerCase().trim();
+    return statusFiltered.filter(o => 
+      o.booking_reference.toLowerCase().includes(query) ||
+      o.customers.name.toLowerCase().includes(query) ||
+      o.customers.phone.toLowerCase().includes(query)
+    );
   };
   const OrderCard = ({
     order
@@ -606,11 +619,22 @@ export const OrdersTab = ({
 
       {/* Orders Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 mb-4">
           <TabsList className="grid grid-cols-2 font-lusail">
             <TabsTrigger value="success">{t("success")} ({stats.success})</TabsTrigger>
             <TabsTrigger value="failed">{t("failed")} ({stats.failed})</TabsTrigger>
           </TabsList>
+          
+          <div className="relative flex-1 max-w-md">
+            <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input
+              type="text"
+              placeholder="ابحث بالرقم المرجعي، الاسم أو رقم الهاتف..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pr-10 font-lusail"
+            />
+          </div>
           
           <div className="flex gap-2">
             <Button
