@@ -258,22 +258,48 @@ export const SadadVerificationTab = ({ onRefresh }: SadadVerificationTabProps) =
                 </TableCell>
                 <TableCell>
                   <div className="flex gap-2">
-                    <Button
-                      size="sm"
-                      variant="default"
-                      onClick={() => confirmPayment(order.id)}
-                      disabled={processingOrder === order.id}
-                      className="bg-green-600 hover:bg-green-700 text-white"
-                    >
-                      {processingOrder === order.id ? (
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                      ) : (
-                        <>
-                          <CheckCircle className="w-4 h-4 ml-1" />
-                          تأكيد
-                        </>
-                      )}
-                    </Button>
+                    {order.payment_status === "pending" ? (
+                      <Button
+                        size="sm"
+                        variant="default"
+                        onClick={() => confirmPayment(order.id)}
+                        disabled={processingOrder === order.id}
+                        className="bg-green-600 hover:bg-green-700 text-white"
+                      >
+                        {processingOrder === order.id ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <>
+                            <CheckCircle className="w-4 h-4 ml-1" />
+                            تأكيد الدفع
+                          </>
+                        )}
+                      </Button>
+                    ) : (
+                      <Button
+                        size="sm"
+                        variant="destructive"
+                        onClick={async () => {
+                          try {
+                            const { error } = await supabase
+                              .from("orders")
+                              .update({ sadad_manually_verified: false })
+                              .eq("id", order.id);
+                            
+                            if (error) throw error;
+                            toast.success("تم إلغاء التأكد من الدفع");
+                            fetchPendingSadadOrders();
+                            onRefresh();
+                          } catch (error) {
+                            console.error("Error:", error);
+                            toast.error("فشل في الإلغاء");
+                          }
+                        }}
+                      >
+                        <XCircle className="w-4 h-4 ml-1" />
+                        إلغاء
+                      </Button>
+                    )}
                   </div>
                 </TableCell>
               </TableRow>
