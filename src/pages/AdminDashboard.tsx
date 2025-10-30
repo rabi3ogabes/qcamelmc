@@ -3,7 +3,7 @@ import { useNavigate, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { LogOut, ShoppingCart, Calendar, Ticket, Settings, ExternalLink, Image, ScanLine, Users, CreditCard } from "lucide-react";
+import { LogOut, ShoppingCart, Calendar, Ticket, Settings, ExternalLink, Image, ScanLine, Users, CreditCard, ShieldCheck } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { OrdersTab } from "@/components/admin/OrdersTab";
 import { EventsTab } from "@/components/admin/EventsTab";
@@ -11,6 +11,7 @@ import { TicketsTab } from "@/components/admin/TicketsTab";
 import { SettingsTab } from "@/components/admin/SettingsTab";
 import { PopupBannersTab } from "@/components/admin/PopupBannersTab";
 import { CustomersTab } from "@/components/admin/CustomersTab";
+import { SadadVerificationTab } from "@/components/admin/SadadVerificationTab";
 import "../i18n/config";
 
 interface Order {
@@ -136,10 +137,14 @@ const AdminDashboard = () => {
           <div className="text-center py-12">{t("loading")}</div>
         ) : (
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid w-full grid-cols-5 mb-8">
+            <TabsList className="grid w-full grid-cols-6 mb-8">
               <TabsTrigger value="orders" className="flex items-center gap-2">
                 <ShoppingCart className="w-4 h-4" />
                 {t("orders")}
+              </TabsTrigger>
+              <TabsTrigger value="sadad-verification" className="flex items-center gap-2">
+                <ShieldCheck className="w-4 h-4" />
+                التاكد من الدفع في سداد
               </TabsTrigger>
               <TabsTrigger value="customers" className="flex items-center gap-2">
                 <Users className="w-4 h-4" />
@@ -197,6 +202,10 @@ const AdminDashboard = () => {
 
             <TabsContent value="orders">
               <OrdersTab orders={orders} onRefresh={fetchOrders} />
+            </TabsContent>
+
+            <TabsContent value="sadad-verification">
+              <SadadVerificationTab onRefresh={fetchOrders} />
             </TabsContent>
 
             <TabsContent value="customers">
