@@ -55,7 +55,7 @@ export const OrdersTab = ({
     t
   } = useTranslation();
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState("all");
+  const [activeTab, setActiveTab] = useState("success");
   const [selectedOrder, setSelectedOrder] = useState<string | null>(null);
   const [ticketHolders, setTicketHolders] = useState<TicketHolder[]>([]);
   const [selectedHolder, setSelectedHolder] = useState<TicketHolder | null>(null);
@@ -409,10 +409,8 @@ export const OrdersTab = ({
       return !(o.sadad_manually_verified && o.payment_status === 'pending');
     });
     
-    if (status === "all") return filteredOrders;
     if (status === "success") return filteredOrders.filter(o => o.payment_status === "confirmed");
     if (status === "failed") return filteredOrders.filter(o => o.payment_status === "cancelled");
-    if (status === "pending") return filteredOrders.filter(o => o.payment_status === "pending");
     return filteredOrders;
   };
   const OrderCard = ({
@@ -592,11 +590,7 @@ export const OrdersTab = ({
       )}
 
       {/* Statistics Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card className="p-6">
-          <h3 className="text-sm text-muted-foreground mb-2">{t("totalOrders")}</h3>
-          <p className="text-3xl font-bold">{stats.total}</p>
-        </Card>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <Card className="p-6 bg-green-50 dark:bg-green-950">
           <h3 className="text-sm text-muted-foreground mb-2">{t("successfulPaymentsCount")}</h3>
           <p className="text-3xl font-bold text-green-600">{stats.success}</p>
@@ -605,18 +599,12 @@ export const OrdersTab = ({
           <h3 className="text-sm text-muted-foreground mb-2">{t("failedPayments")}</h3>
           <p className="text-3xl font-bold text-red-600">{stats.failed}</p>
         </Card>
-        <Card className="p-6 bg-yellow-50 dark:bg-yellow-950">
-          <h3 className="text-sm text-muted-foreground mb-2">{t("pendingPaymentsCount")}</h3>
-          <p className="text-3xl font-bold text-yellow-600">{stats.pending}</p>
-        </Card>
       </div>
 
       {/* Orders Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-4 font-lusail">
-          <TabsTrigger value="all">{t("allOrders")} ({stats.total})</TabsTrigger>
+        <TabsList className="grid w-full grid-cols-2 font-lusail">
           <TabsTrigger value="success">{t("success")} ({stats.success})</TabsTrigger>
-          <TabsTrigger value="pending">{t("pending")} ({stats.pending})</TabsTrigger>
           <TabsTrigger value="failed">{t("failed")} ({stats.failed})</TabsTrigger>
         </TabsList>
         
