@@ -124,7 +124,7 @@ Deno.serve(async (req) => {
     // Update order status based on transaction status
     // Sadad uses: '1' or 1 for success, '0' or other codes for failure
     const isSuccess = transactionStatus === 'TXN_SUCCESS' || transactionStatus === '1' || transactionStatus === 1 || transactionStatus === 3;
-    const paymentStatus = isSuccess ? 'confirmed' : 'failed';
+    const paymentStatus = isSuccess ? 'confirmed' : 'cancelled';
     
     console.log(`Payment status determined: ${paymentStatus} (from status: ${transactionStatus})`);
     

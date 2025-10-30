@@ -411,7 +411,7 @@ export const OrdersTab = ({
     
     if (status === "all") return filteredOrders;
     if (status === "success") return filteredOrders.filter(o => o.payment_status === "confirmed");
-    if (status === "failed") return filteredOrders.filter(o => o.payment_status === "failed");
+    if (status === "failed") return filteredOrders.filter(o => o.payment_status === "cancelled");
     if (status === "pending") return filteredOrders.filter(o => o.payment_status === "pending");
     return filteredOrders;
   };
@@ -448,8 +448,8 @@ export const OrdersTab = ({
         
         <div>
           <p className="text-sm text-muted-foreground mb-1">{t("status")}</p>
-          <Badge variant={order.payment_status === "confirmed" ? "default" : order.payment_status === "failed" ? "destructive" : "secondary"} className="font-lusail">
-            {order.payment_status === "confirmed" ? t("confirmed") : order.payment_status === "failed" ? t("failed") : t("pending")}
+          <Badge variant={order.payment_status === "confirmed" ? "default" : order.payment_status === "cancelled" ? "destructive" : "secondary"} className="font-lusail">
+            {order.payment_status === "confirmed" ? t("confirmed") : order.payment_status === "cancelled" ? t("failed") : t("pending")}
           </Badge>
         </div>
         
@@ -572,7 +572,7 @@ export const OrdersTab = ({
   const stats = {
     total: ordersForStats.length,
     success: ordersForStats.filter(o => o.payment_status === "confirmed").length,
-    failed: ordersForStats.filter(o => o.payment_status === "failed").length,
+    failed: ordersForStats.filter(o => o.payment_status === "cancelled").length,
     pending: ordersForStats.filter(o => o.payment_status === "pending").length
   };
   return <div className="space-y-6">
