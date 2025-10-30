@@ -33,8 +33,9 @@ export const InvoiceTab = () => {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
-  const [sentOrders, setSentOrders] = useState<Set<string>>(new Set());
+  const [sentOrders, setSentOrders] = useState<Map<string, Date>>(new Map());
   const [webhookUrl, setWebhookUrl] = useState<string | null>(null);
+  const [currentlySending, setCurrentlySending] = useState<string | null>(null);
 
   useEffect(() => {
     fetchOrders();
@@ -121,7 +122,7 @@ export const InvoiceTab = () => {
     }
 
     setSending(true);
-    const newSentOrders = new Set(sentOrders);
+    const newSentOrders = new Map(sentOrders);
 
     for (let i = 0; i < orders.length; i++) {
       const order = orders[i];
@@ -130,17 +131,21 @@ export const InvoiceTab = () => {
         continue; // Skip already sent orders
       }
 
+      setCurrentlySending(order.id);
       toast.info(`إرسال فاتورة ${i + 1} من ${orders.length}...`);
       
       const success = await sendInvoiceToWebhook(order);
       
       if (success) {
-        newSentOrders.add(order.id);
-        setSentOrders(new Set(newSentOrders));
+        const sentTime = new Date();
+        newSentOrders.set(order.id, sentTime);
+        setSentOrders(new Map(newSentOrders));
         toast.success(`تم إرسال الفاتورة لـ ${order.customers.name}`);
       } else {
         toast.error(`فشل إرسال الفاتورة لـ ${order.customers.name}`);
       }
+
+      setCurrentlySending(null);
 
       // Wait 5 minutes (300000ms) before sending the next one, unless it's the last order
       if (i < orders.length - 1) {
@@ -150,6 +155,7 @@ export const InvoiceTab = () => {
     }
 
     setSending(false);
+    setCurrentlySending(null);
     toast.success("تم الانتهاء من إرسال جميع الفواتير!");
   };
 
@@ -222,12 +228,22 @@ export const InvoiceTab = () => {
                 </TableRow>
               ) : (
                 orders.map((order) => (
-                  <TableRow key={order.id}>
+                <TableRow key={order.id}>
                     <TableCell>
                       {sentOrders.has(order.id) ? (
-                        <Badge variant="default" className="gap-1">
-                          <CheckCircle className="w-3 h-3" />
-                          تم الإرسال
+                        <div className="flex flex-col gap-1">
+                          <Badge variant="default" className="gap-1">
+                            <CheckCircle className="w-3 h-3" />
+                            تم الإرسال
+                          </Badge>
+                          <span className="text-xs text-muted-foreground" dir="ltr">
+                            {format(sentOrders.get(order.id)!, "dd/MM/yyyy HH:mm:ss")}
+                          </span>
+                        </div>
+                      ) : currentlySending === order.id ? (
+                        <Badge variant="secondary" className="gap-1">
+                          <Loader2 className="w-3 h-3 animate-spin" />
+                          جاري الإرسال...
                         </Badge>
                       ) : sending ? (
                         <Badge variant="secondary" className="gap-1">
