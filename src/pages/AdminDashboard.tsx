@@ -137,14 +137,10 @@ const AdminDashboard = () => {
           <div className="text-center py-12">{t("loading")}</div>
         ) : (
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid w-full grid-cols-6 mb-8">
+            <TabsList className="grid w-full grid-cols-5 mb-8">
               <TabsTrigger value="orders" className="flex items-center gap-2">
                 <ShoppingCart className="w-4 h-4" />
                 {t("orders")}
-              </TabsTrigger>
-              <TabsTrigger value="sadad-verification" className="flex items-center gap-2">
-                <ShieldCheck className="w-4 h-4" />
-                التاكد من الدفع في سداد
               </TabsTrigger>
               <TabsTrigger value="customers" className="flex items-center gap-2">
                 <Users className="w-4 h-4" />
@@ -201,15 +197,28 @@ const AdminDashboard = () => {
             </div>
 
             <TabsContent value="orders">
-              <OrdersTab 
-                orders={orders} 
-                onRefresh={fetchOrders}
-                onSwitchToSadadVerification={() => setActiveTab("sadad-verification")}
-              />
-            </TabsContent>
+              <Tabs defaultValue="all" className="w-full">
+                <TabsList className="grid w-full grid-cols-2 mb-6">
+                  <TabsTrigger value="all" className="font-lusail">
+                    جميع الطلبات
+                  </TabsTrigger>
+                  <TabsTrigger value="sadad-verification" className="flex items-center gap-2 font-lusail">
+                    <ShieldCheck className="w-4 h-4" />
+                    التاكد من الدفع في سداد
+                  </TabsTrigger>
+                </TabsList>
 
-            <TabsContent value="sadad-verification">
-              <SadadVerificationTab onRefresh={fetchOrders} />
+                <TabsContent value="all">
+                  <OrdersTab 
+                    orders={orders} 
+                    onRefresh={fetchOrders}
+                  />
+                </TabsContent>
+
+                <TabsContent value="sadad-verification">
+                  <SadadVerificationTab onRefresh={fetchOrders} />
+                </TabsContent>
+              </Tabs>
             </TabsContent>
 
             <TabsContent value="customers">
