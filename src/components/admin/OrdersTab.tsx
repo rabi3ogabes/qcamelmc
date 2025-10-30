@@ -240,7 +240,7 @@ export const OrdersTab = ({
         updateData.confirmed_at = new Date().toISOString();
         updateData.confirmed_by = user?.id || null;
       } else {
-        // Clear confirmation fields when changing to pending
+        // Clear confirmation fields when cancelling
         updateData.confirmed_at = null;
         updateData.confirmed_by = null;
       }
@@ -287,7 +287,7 @@ export const OrdersTab = ({
           await new Promise(resolve => setTimeout(resolve, 1000));
         }
       } else {
-        // Clear ticket holders confirmation when changing to pending
+        // Clear ticket holders confirmation when cancelling
         const { error: ticketHoldersError } = await supabase
           .from("ticket_holders")
           .update({
@@ -413,10 +413,13 @@ export const OrdersTab = ({
     }
   };
   const filterOrders = (status: string) => {
-    // Only exclude orders that need manual Sadad verification AND are still pending
+    // Exclude ALL pending orders and orders waiting for manual Sadad verification
     const filteredOrders = orders.filter(o => {
-      // Exclude orders that are waiting for manual verification (pending + sadad_manually_verified)
-      return !(o.sadad_manually_verified && o.payment_status === 'pending');
+      // Exclude any pending orders
+      if (o.payment_status === 'pending') return false;
+      // Exclude orders waiting for manual verification
+      if (o.sadad_manually_verified) return false;
+      return true;
     });
     
     // Apply status filter
