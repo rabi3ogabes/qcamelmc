@@ -3,7 +3,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { CheckCircle, XCircle, Eye, Loader2 } from "lucide-react";
+import { CheckCircle, XCircle, Eye, Loader2, Printer } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { format } from "date-fns";
@@ -258,6 +258,38 @@ export const SadadVerificationTab = ({ onRefresh }: SadadVerificationTabProps) =
                 </TableCell>
                 <TableCell>
                   <div className="flex gap-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => window.open(`/admin/tickets?ref=${order.booking_reference}`, '_blank')}
+                      className="flex items-center gap-1"
+                    >
+                      <Printer className="w-4 h-4" />
+                      عرض التذاكر
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={async () => {
+                        try {
+                          const { data, error } = await supabase
+                            .from("ticket_holders")
+                            .select("*")
+                            .eq("order_id", order.id);
+                          
+                          if (error) throw error;
+                          // You can add dialog state and show ticket details here if needed
+                          toast.success("تم تحميل التفاصيل");
+                        } catch (error) {
+                          console.error("Error:", error);
+                          toast.error("فشل في التحميل");
+                        }
+                      }}
+                      className="flex items-center gap-1"
+                    >
+                      <Eye className="w-4 h-4" />
+                      عرض التفاصيل
+                    </Button>
                     {order.payment_status === "pending" ? (
                       <Button
                         size="sm"
