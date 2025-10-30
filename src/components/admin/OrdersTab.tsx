@@ -206,7 +206,7 @@ export const OrdersTab = ({
       console.log('Order ID:', orderId);
       console.log('Current Status:', currentStatus);
       
-      const newStatus = currentStatus === "confirmed" ? "pending" : "confirmed";
+      const newStatus = currentStatus === "confirmed" ? "cancelled" : "confirmed";
       console.log('New Status:', newStatus);
       
       // Fetch full order details before updating
