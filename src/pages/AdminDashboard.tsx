@@ -211,11 +211,9 @@ const AdminDashboard = () => {
                   <TabsTrigger value="sadad-verification" className="flex items-center gap-2 font-lusail">
                     <ShieldCheck className="w-4 h-4" />
                     التاكد من الدفع في سداد
-                    {orders.filter(o => o.payment_method === "sadad" && (o as any).sadad_manually_verified === true).length > 0 && (
-                      <Badge variant="destructive" className="mr-2">
-                        {orders.filter(o => o.payment_method === "sadad" && (o as any).sadad_manually_verified === true).length}
-                      </Badge>
-                    )}
+                    <Badge variant="destructive" className="mr-2">
+                      {orders.filter(o => o.payment_method === "sadad" && (o as any).sadad_manually_verified === true).length}
+                    </Badge>
                   </TabsTrigger>
                 </TabsList>
 
