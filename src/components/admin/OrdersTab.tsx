@@ -57,7 +57,10 @@ export const OrdersTab = ({
   } = useTranslation();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("success");
-  const [viewMode, setViewMode] = useState<"grid" | "list">("list");
+  const [viewMode, setViewMode] = useState<"grid" | "list">(() => {
+    const saved = localStorage.getItem("ordersViewMode");
+    return (saved === "grid" || saved === "list") ? saved : "list";
+  });
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedOrder, setSelectedOrder] = useState<string | null>(null);
   const [ticketHolders, setTicketHolders] = useState<TicketHolder[]>([]);
@@ -89,6 +92,10 @@ export const OrdersTab = ({
       setQrCodeImage(null);
     }
   }, [selectedHolder]);
+
+  useEffect(() => {
+    localStorage.setItem("ordersViewMode", viewMode);
+  }, [viewMode]);
 
   useEffect(() => {
     fetchSettings();
