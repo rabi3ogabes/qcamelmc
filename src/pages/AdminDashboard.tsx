@@ -3,6 +3,7 @@ import { useNavigate, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
 import { LogOut, ShoppingCart, Calendar, Ticket, Settings, ExternalLink, Image, ScanLine, Users, CreditCard, ShieldCheck } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { OrdersTab } from "@/components/admin/OrdersTab";
@@ -205,6 +206,11 @@ const AdminDashboard = () => {
                   <TabsTrigger value="sadad-verification" className="flex items-center gap-2 font-lusail">
                     <ShieldCheck className="w-4 h-4" />
                     التاكد من الدفع في سداد
+                    {orders.filter(o => o.payment_method === "sadad" && (o as any).sadad_manually_verified === true).length > 0 && (
+                      <Badge variant="destructive" className="mr-2">
+                        {orders.filter(o => o.payment_method === "sadad" && (o as any).sadad_manually_verified === true).length}
+                      </Badge>
+                    )}
                   </TabsTrigger>
                 </TabsList>
 
