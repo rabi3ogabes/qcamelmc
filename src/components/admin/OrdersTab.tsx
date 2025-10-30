@@ -420,7 +420,7 @@ export const OrdersTab = ({
     order: Order;
   }) => <Card className="p-6 hover:shadow-lg transition-shadow">
       <div className="space-y-4">
-        {/* Top Row - Reference and Status */}
+        {/* Header Row - Reference and Status */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 pb-4 border-b">
           <div>
             <p className="text-sm text-muted-foreground mb-1">{t("reference")}</p>
@@ -432,7 +432,7 @@ export const OrdersTab = ({
         </div>
 
         {/* Main Info Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pb-4">
           <div>
             <p className="text-sm text-muted-foreground mb-1">{t("customer")}</p>
             <p className="font-semibold">{order.customers.name}</p>
@@ -454,22 +454,22 @@ export const OrdersTab = ({
           </div>
         </div>
 
-        {/* Action Buttons */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 pt-2">
-          <Button size="sm" variant="outline" onClick={() => navigate(`/admin/tickets?ref=${order.booking_reference}`)} className="font-lusail flex items-center justify-center gap-2">
+        {/* Primary Action Buttons */}
+        <div className="flex flex-wrap gap-2 pb-4 border-b">
+          <Button size="sm" variant="outline" onClick={() => navigate(`/admin/tickets?ref=${order.booking_reference}`)} className="font-lusail flex items-center gap-2">
             <Printer className="w-4 h-4" />
             عرض التذاكر
           </Button>
-          <Button size="sm" variant="outline" onClick={() => viewOrderDetails(order.id)} className="font-lusail flex items-center justify-center gap-2">
-            {t("viewDetails")}
+          <Button size="sm" variant="outline" onClick={() => viewOrderDetails(order.id)} className="font-lusail flex items-center gap-2">
             <Eye className="w-4 h-4" />
+            {t("viewDetails")}
           </Button>
           {order.payment_status === "pending" && (
             <Button 
               size="sm" 
               variant="default"
               onClick={() => togglePaymentStatus(order.id, order.payment_status)} 
-              className="font-lusail flex items-center justify-center gap-2 bg-green-600 hover:bg-green-700 text-white"
+              className="font-lusail flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white"
             >
               <CheckCircle className="w-4 h-4" />
               تأكيد الدفع ✓
@@ -480,40 +480,38 @@ export const OrdersTab = ({
               size="sm" 
               variant="destructive"
               onClick={() => togglePaymentStatus(order.id, order.payment_status)} 
-              className="font-lusail flex items-center justify-center gap-2"
+              className="font-lusail flex items-center gap-2"
             >
               <XCircle className="w-4 h-4" />
               إلغاء التأكيد
             </Button>
           )}
         </div>
-      </div>
-      
-      <div className="mt-4 pt-4 border-t space-y-3">
-        {/* Event Date */}
-        {order.events && (
-          <div className="flex items-center gap-2 text-sm">
-            <Calendar className="w-4 h-4 text-primary" />
-            <span className="font-semibold text-primary">تاريخ الفعالية:</span>
-            <span className="font-medium">
-              {format(new Date(order.events.event_date), 'dd/MM/yyyy')}
-            </span>
-          </div>
-        )}
-        
-        {/* Booking Info Row */}
-        <div className="flex flex-col sm:flex-row gap-3 text-sm text-muted-foreground">
-          <div className="flex items-center gap-1">
-            <Calendar className="w-4 h-4" />
-            <span>تاريخ الحجز: </span>
-            {format(new Date(order.created_at), 'dd/MM/yyyy - HH:mm')}
-          </div>
+
+        {/* Event & Booking Info */}
+        <div className="space-y-2">
           {order.events && (
-            <div className="flex items-center gap-1">
-              <MapPin className="w-4 h-4" />
-              <span>{order.events.location}</span>
+            <div className="flex items-center gap-2 text-sm">
+              <Calendar className="w-4 h-4 text-primary" />
+              <span className="font-semibold text-primary">تاريخ الفعالية:</span>
+              <span className="font-medium">
+                {format(new Date(order.events.event_date), 'dd/MM/yyyy')}
+              </span>
             </div>
           )}
+          
+          <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 text-sm text-muted-foreground">
+            <div className="flex items-center gap-1">
+              <Calendar className="w-4 h-4" />
+              <span>تاريخ الحجز: {format(new Date(order.created_at), 'dd/MM/yyyy - HH:mm')}</span>
+            </div>
+            {order.events && (
+              <div className="flex items-center gap-1">
+                <MapPin className="w-4 h-4" />
+                <span>{order.events.location}</span>
+              </div>
+            )}
+          </div>
         </div>
         
         {/* Sadad Verification Row */}
