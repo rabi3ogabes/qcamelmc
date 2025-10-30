@@ -506,6 +506,17 @@ export const OrdersTab = ({
               إلغاء التأكيد
             </Button>
           )}
+          {order.payment_status === "cancelled" && (
+            <Button 
+              size="sm" 
+              variant="default"
+              onClick={() => togglePaymentStatus(order.id, order.payment_status)} 
+              className="font-lusail flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white"
+            >
+              <CheckCircle className="w-4 h-4" />
+              تغيير إلى نجح
+            </Button>
+          )}
         </div>
 
         {/* Event & Booking Info */}
