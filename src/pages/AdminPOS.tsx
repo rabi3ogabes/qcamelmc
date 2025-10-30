@@ -7,6 +7,8 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ArrowRight, ShoppingCart, Trash2, Plus, Minus, Maximize, Minimize, CalendarIcon } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
 import { useToast } from "@/hooks/use-toast";
 import { useTranslation } from "react-i18next";
 import { TicketAddItem } from "@/components/admin/TicketAddItem";
@@ -95,6 +97,51 @@ const AdminPOS = () => {
     fetchUpcomingEvent();
     fetchSettings();
   }, []);
+
+  const handleDateSelect = async (date: Date | undefined) => {
+    if (!date) return;
+    
+    setSelectedDate(date);
+    setLoading(true);
+    
+    try {
+      // Fetch event for the selected date
+      const startOfDay = new Date(date);
+      startOfDay.setHours(0, 0, 0, 0);
+      const endOfDay = new Date(date);
+      endOfDay.setHours(23, 59, 59, 999);
+      
+      const { data, error } = await supabase
+        .from("events")
+        .select("id")
+        .gte("event_date", startOfDay.toISOString())
+        .lte("event_date", endOfDay.toISOString())
+        .maybeSingle();
+
+      if (error) throw error;
+      
+      if (data) {
+        setCurrentEventId(data.id);
+        await fetchTicketsForEvent(data.id);
+      } else {
+        setTickets([]);
+        toast({
+          title: "تنبيه",
+          description: "لا توجد فعاليات في هذا التاريخ",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error("Failed to fetch event for date:", error);
+      toast({
+        title: "خطأ",
+        description: "فشل تحميل الفعالية",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
     // Removed - we now fetch tickets directly when fetching the event
@@ -596,12 +643,24 @@ const AdminPOS = () => {
             )}
           </button>
           <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2 px-4 py-2 bg-muted rounded">
-              <CalendarIcon className="h-4 w-4" />
-              <span className="font-semibold">
-                {selectedDate ? format(selectedDate, "PPP") : "جاري التحميل..."}
-              </span>
-            </div>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" className="flex items-center gap-2 px-4 py-2 h-auto">
+                  <CalendarIcon className="h-4 w-4" />
+                  <span className="font-semibold">
+                    {selectedDate ? format(selectedDate, "PPP") : "اختر التاريخ"}
+                  </span>
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar
+                  mode="single"
+                  selected={selectedDate}
+                  onSelect={handleDateSelect}
+                  initialFocus
+                />
+              </PopoverContent>
+            </Popover>
             <h2 className="text-xl font-semibold bg-yellow-400 px-4 py-2 rounded">بيع تذكرة</h2>
             <Button
               variant="ghost"
