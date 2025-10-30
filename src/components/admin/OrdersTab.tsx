@@ -403,11 +403,14 @@ export const OrdersTab = ({
     }
   };
   const filterOrders = (status: string) => {
-    if (status === "all") return orders;
-    if (status === "success") return orders.filter(o => o.payment_status === "confirmed");
-    if (status === "failed") return orders.filter(o => o.payment_status === "failed");
-    if (status === "pending") return orders.filter(o => o.payment_status === "pending");
-    return orders;
+    // Filter out orders that have been manually verified for Sadad
+    const filteredOrders = orders.filter(o => !o.sadad_manually_verified);
+    
+    if (status === "all") return filteredOrders;
+    if (status === "success") return filteredOrders.filter(o => o.payment_status === "confirmed");
+    if (status === "failed") return filteredOrders.filter(o => o.payment_status === "failed");
+    if (status === "pending") return filteredOrders.filter(o => o.payment_status === "pending");
+    return filteredOrders;
   };
   const OrderCard = ({
     order
@@ -560,11 +563,14 @@ export const OrdersTab = ({
       </div>
     </Card>;
   const filteredOrders = filterOrders(activeTab);
+  
+  // Filter out manually verified Sadad orders for stats
+  const ordersForStats = orders.filter(o => !o.sadad_manually_verified);
   const stats = {
-    total: orders.length,
-    success: orders.filter(o => o.payment_status === "confirmed").length,
-    failed: orders.filter(o => o.payment_status === "failed").length,
-    pending: orders.filter(o => o.payment_status === "pending").length
+    total: ordersForStats.length,
+    success: ordersForStats.filter(o => o.payment_status === "confirmed").length,
+    failed: ordersForStats.filter(o => o.payment_status === "failed").length,
+    pending: ordersForStats.filter(o => o.payment_status === "pending").length
   };
   return <div className="space-y-6">
       {/* Generate QR Codes Button */}

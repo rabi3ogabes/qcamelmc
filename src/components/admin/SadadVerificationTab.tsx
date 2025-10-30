@@ -70,6 +70,7 @@ export const SadadVerificationTab = ({ onRefresh }: SadadVerificationTabProps) =
         .select("*, customers(name, email, phone), events(title, event_date, location)")
         .eq("payment_method", "sadad")
         .eq("payment_status", "pending")
+        .eq("sadad_manually_verified", true)
         .order("created_at", { ascending: false });
 
       if (error) throw error;
@@ -88,13 +89,14 @@ export const SadadVerificationTab = ({ onRefresh }: SadadVerificationTabProps) =
       // Get current admin user
       const { data: { user } } = await supabase.auth.getUser();
       
-      // Update order status
+      // Update order status and clear manual verification
       const { error: orderError } = await supabase
         .from("orders")
         .update({
           payment_status: "confirmed",
           confirmed_at: new Date().toISOString(),
-          confirmed_by: user?.id || null
+          confirmed_by: user?.id || null,
+          sadad_manually_verified: false
         })
         .eq("id", orderId);
 
@@ -153,7 +155,8 @@ export const SadadVerificationTab = ({ onRefresh }: SadadVerificationTabProps) =
       const { error } = await supabase
         .from("orders")
         .update({
-          payment_status: "cancelled"
+          payment_status: "cancelled",
+          sadad_manually_verified: false
         })
         .eq("id", orderId);
 
