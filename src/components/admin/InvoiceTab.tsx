@@ -338,12 +338,13 @@ export const InvoiceTab = () => {
                 <TableHead className="text-right">المبلغ</TableHead>
                 <TableHead className="text-right">الفعالية</TableHead>
                 <TableHead className="text-right">تاريخ الطلب</TableHead>
+                <TableHead className="text-right">رد n8n</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {orders.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
+                  <TableCell colSpan={10} className="text-center py-8 text-muted-foreground">
                     لا توجد طلبات مدفوعة عبر سداد
                   </TableCell>
                 </TableRow>
@@ -403,6 +404,26 @@ export const InvoiceTab = () => {
                     <TableCell>{order.total_amount} QAR</TableCell>
                     <TableCell>{order.events?.title || "غير متوفر"}</TableCell>
                     <TableCell>{format(new Date(order.created_at), "dd/MM/yyyy HH:mm")}</TableCell>
+                    <TableCell>
+                      {order.n8n_response_message ? (
+                        <div className="flex flex-col gap-1">
+                          <Badge variant="default" className="gap-1 w-fit">
+                            <CheckCircle className="w-3 h-3" />
+                            تم الاستلام
+                          </Badge>
+                          {order.n8n_responded_at && (
+                            <span className="text-xs text-muted-foreground" dir="ltr">
+                              {format(new Date(order.n8n_responded_at), "dd/MM/yyyy HH:mm:ss")}
+                            </span>
+                          )}
+                          <span className="text-xs">
+                            {order.n8n_response_message}
+                          </span>
+                        </div>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">-</span>
+                      )}
+                    </TableCell>
                   </TableRow>
                 ))
               )}
