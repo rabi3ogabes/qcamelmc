@@ -17,6 +17,7 @@ interface Order {
   quantity: number;
   total_amount: number;
   created_at: string;
+  qr_code: string | null;
   n8n_response_message: string | null;
   n8n_responded_at: string | null;
   customers: {
@@ -143,6 +144,7 @@ export const InvoiceTab = () => {
         quantity: order.quantity,
         total_amount: order.total_amount,
         payment_status: order.payment_status,
+        qr_code: order.qr_code,
         event_title: order.events?.title,
         event_date: order.events?.event_date,
         event_location: order.events?.location,
