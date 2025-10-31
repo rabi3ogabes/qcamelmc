@@ -129,13 +129,33 @@ export const InvoiceTab = () => {
         body: JSON.stringify(payload),
       });
 
+      // Parse the response from n8n
+      const responseData = await response.json();
+      
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        // Handle error responses from n8n
+        const errorMessage = responseData.message || `HTTP error! status: ${response.status}`;
+        console.error("n8n webhook error:", responseData);
+        toast.error(`خطأ من n8n: ${errorMessage}`);
+        return false;
       }
 
-      return true;
+      // Handle successful response
+      if (responseData.success !== false) {
+        console.log("n8n response:", responseData);
+        if (responseData.message) {
+          toast.success(`رد n8n: ${responseData.message}`);
+        }
+        return true;
+      } else {
+        // n8n returned success: false
+        const errorMessage = responseData.message || "فشل الإرسال";
+        toast.warning(`تحذير من n8n: ${errorMessage}`);
+        return false;
+      }
     } catch (error) {
       console.error("Error sending to webhook:", error);
+      toast.error(`خطأ في الاتصال بـ n8n: ${error instanceof Error ? error.message : 'خطأ غير معروف'}`);
       return false;
     }
   };
