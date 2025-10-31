@@ -3,7 +3,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Send, Loader2, CheckCircle, Clock } from "lucide-react";
+import { Send, Loader2, CheckCircle, Clock, RotateCcw } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { format } from "date-fns";
@@ -251,6 +251,31 @@ export const InvoiceTab = () => {
     toast.info("تم إيقاف العد التنازلي");
   };
 
+  const resetOrderStatus = async (orderId: string) => {
+    try {
+      const { error } = await supabase
+        .from("orders")
+        .update({
+          n8n_response_message: null,
+          n8n_responded_at: null,
+        })
+        .eq("id", orderId);
+
+      if (error) throw error;
+
+      // Remove from sentOrders state
+      const newSentOrders = new Map(sentOrders);
+      newSentOrders.delete(orderId);
+      setSentOrders(newSentOrders);
+
+      toast.success("تم إعادة تعيين حالة الطلب");
+      fetchOrders(); // Refresh the orders list
+    } catch (error) {
+      console.error("Error resetting order status:", error);
+      toast.error("فشل في إعادة تعيين حالة الطلب");
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex justify-center items-center py-12">
@@ -339,12 +364,13 @@ export const InvoiceTab = () => {
                 <TableHead className="text-right">الفعالية</TableHead>
                 <TableHead className="text-right">تاريخ الطلب</TableHead>
                 <TableHead className="text-right">رد n8n</TableHead>
+                <TableHead className="text-right">إعادة الإرسال</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {orders.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={10} className="text-center py-8 text-muted-foreground">
+                  <TableCell colSpan={11} className="text-center py-8 text-muted-foreground">
                     لا توجد طلبات مدفوعة عبر سداد
                   </TableCell>
                 </TableRow>
@@ -422,6 +448,20 @@ export const InvoiceTab = () => {
                         </div>
                       ) : (
                         <span className="text-xs text-muted-foreground">-</span>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      {(order.n8n_response_message || sentOrders.has(order.id)) && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => resetOrderStatus(order.id)}
+                          disabled={sending || currentlySending === order.id}
+                          className="gap-2"
+                        >
+                          <RotateCcw className="w-4 h-4" />
+                          إعادة
+                        </Button>
                       )}
                     </TableCell>
                   </TableRow>
