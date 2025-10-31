@@ -123,6 +123,8 @@ export type Database = {
           event_id: string
           id: string
           is_present: boolean | null
+          n8n_responded_at: string | null
+          n8n_response_message: string | null
           payment_id: string | null
           payment_method: Database["public"]["Enums"]["payment_method"]
           payment_status: Database["public"]["Enums"]["payment_status"] | null
@@ -141,6 +143,8 @@ export type Database = {
           event_id: string
           id?: string
           is_present?: boolean | null
+          n8n_responded_at?: string | null
+          n8n_response_message?: string | null
           payment_id?: string | null
           payment_method: Database["public"]["Enums"]["payment_method"]
           payment_status?: Database["public"]["Enums"]["payment_status"] | null
@@ -159,6 +163,8 @@ export type Database = {
           event_id?: string
           id?: string
           is_present?: boolean | null
+          n8n_responded_at?: string | null
+          n8n_response_message?: string | null
           payment_id?: string | null
           payment_method?: Database["public"]["Enums"]["payment_method"]
           payment_status?: Database["public"]["Enums"]["payment_status"] | null

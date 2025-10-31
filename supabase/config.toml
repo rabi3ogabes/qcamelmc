@@ -5,3 +5,6 @@ verify_jwt = true
 
 [functions.sadad-webhook]
 verify_jwt = false
+
+[functions.n8n-response]
+verify_jwt = false

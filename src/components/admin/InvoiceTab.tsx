@@ -17,6 +17,8 @@ interface Order {
   quantity: number;
   total_amount: number;
   created_at: string;
+  n8n_response_message: string | null;
+  n8n_responded_at: string | null;
   customers: {
     name: string;
     email: string;
@@ -43,6 +45,29 @@ export const InvoiceTab = () => {
   useEffect(() => {
     fetchOrders();
     fetchWebhookUrl();
+
+    // Subscribe to realtime updates for n8n responses
+    const channel = supabase
+      .channel('orders-n8n-updates')
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'orders',
+          filter: 'payment_method=eq.sadad'
+        },
+        (payload) => {
+          console.log('Order updated:', payload);
+          // Refresh orders when n8n responds
+          fetchOrders();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   useEffect(() => {
@@ -326,7 +351,22 @@ export const InvoiceTab = () => {
                 orders.map((order) => (
                 <TableRow key={order.id}>
                     <TableCell>
-                      {sentOrders.has(order.id) ? (
+                      {order.n8n_response_message ? (
+                        <div className="flex flex-col gap-1">
+                          <Badge variant="default" className="gap-1">
+                            <CheckCircle className="w-3 h-3" />
+                            رد من n8n
+                          </Badge>
+                          {order.n8n_responded_at && (
+                            <span className="text-xs text-muted-foreground" dir="ltr">
+                              {format(new Date(order.n8n_responded_at), "dd/MM/yyyy HH:mm:ss")}
+                            </span>
+                          )}
+                          <span className="text-xs text-muted-foreground italic">
+                            {order.n8n_response_message}
+                          </span>
+                        </div>
+                      ) : sentOrders.has(order.id) ? (
                         <div className="flex flex-col gap-1">
                           <Badge variant="default" className="gap-1">
                             <CheckCircle className="w-3 h-3" />
