@@ -37,11 +37,30 @@ export const InvoiceTab = () => {
   const [sentOrders, setSentOrders] = useState<Map<string, Date>>(new Map());
   const [webhookUrl, setWebhookUrl] = useState<string | null>(null);
   const [currentlySending, setCurrentlySending] = useState<string | null>(null);
+  const [countdown, setCountdown] = useState<number>(60);
+  const [isCountdownActive, setIsCountdownActive] = useState(false);
 
   useEffect(() => {
     fetchOrders();
     fetchWebhookUrl();
   }, []);
+
+  useEffect(() => {
+    let timer: NodeJS.Timeout;
+    
+    if (isCountdownActive && countdown > 0 && !sending) {
+      timer = setTimeout(() => {
+        setCountdown(countdown - 1);
+      }, 1000);
+    } else if (countdown === 0 && isCountdownActive && !sending) {
+      // Countdown reached 0, trigger send
+      sendInvoices();
+      setIsCountdownActive(false);
+      setCountdown(60);
+    }
+
+    return () => clearTimeout(timer);
+  }, [countdown, isCountdownActive, sending]);
 
   const fetchWebhookUrl = async () => {
     const { data, error } = await supabase
@@ -127,6 +146,7 @@ export const InvoiceTab = () => {
       return;
     }
 
+    setIsCountdownActive(false);
     setSending(true);
     const newSentOrders = new Map(sentOrders);
 
@@ -166,7 +186,20 @@ export const InvoiceTab = () => {
 
     setSending(false);
     setCurrentlySending(null);
+    setCountdown(60);
     toast.success("تم الانتهاء من إرسال جميع الفواتير!");
+  };
+
+  const startCountdown = () => {
+    setCountdown(60);
+    setIsCountdownActive(true);
+    toast.info("بدأ العد التنازلي - 60 ثانية");
+  };
+
+  const stopCountdown = () => {
+    setIsCountdownActive(false);
+    setCountdown(60);
+    toast.info("تم إيقاف العد التنازلي");
   };
 
   if (loading) {
@@ -187,23 +220,52 @@ export const InvoiceTab = () => {
               إرسال الفواتير للطلبات المدفوعة عبر سداد إلى n8n (5-10 دقائق بشكل عشوائي بين كل رسالة)
             </p>
           </div>
-          <Button
-            onClick={sendInvoices}
-            disabled={sending || orders.length === 0 || !webhookUrl}
-            className="gap-2"
-          >
-            {sending ? (
-              <>
-                <Loader2 className="w-4 h-4 animate-spin" />
-                جاري الإرسال...
-              </>
-            ) : (
-              <>
-                <Send className="w-4 h-4" />
-                إرسال الفواتير ({orders.length})
-              </>
+          <div className="flex gap-2 items-center">
+            {isCountdownActive && (
+              <div className="flex flex-col items-center gap-1 px-4 py-2 bg-primary/10 rounded-lg">
+                <span className="text-sm text-muted-foreground">العد التنازلي</span>
+                <span className="text-3xl font-bold text-primary">{countdown}</span>
+              </div>
             )}
-          </Button>
+            {isCountdownActive ? (
+              <Button
+                onClick={stopCountdown}
+                disabled={sending}
+                variant="destructive"
+                className="gap-2"
+              >
+                <Clock className="w-4 h-4" />
+                إيقاف العد التنازلي
+              </Button>
+            ) : (
+              <Button
+                onClick={startCountdown}
+                disabled={sending || orders.length === 0 || !webhookUrl}
+                variant="secondary"
+                className="gap-2"
+              >
+                <Clock className="w-4 h-4" />
+                بدء العد التنازلي (60 ثانية)
+              </Button>
+            )}
+            <Button
+              onClick={sendInvoices}
+              disabled={sending || orders.length === 0 || !webhookUrl}
+              className="gap-2"
+            >
+              {sending ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  جاري الإرسال...
+                </>
+              ) : (
+                <>
+                  <Send className="w-4 h-4" />
+                  إرسال الفواتير ({orders.length})
+                </>
+              )}
+            </Button>
+          </div>
         </div>
 
         {!webhookUrl && (
