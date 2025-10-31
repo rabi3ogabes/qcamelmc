@@ -34,6 +34,7 @@ interface Order {
   };
   ticket_holders?: Array<{
     qr_code: string | null;
+    ticket_type: string;
   }>;
 }
 
@@ -110,7 +111,7 @@ export const InvoiceTab = () => {
     try {
       const { data, error } = await supabase
         .from("orders")
-        .select("*, customers(name, email, phone, country_code, nationality), events(title, event_date, location), ticket_holders(qr_code)")
+        .select("*, customers(name, email, phone, country_code, nationality), events(title, event_date, location), ticket_holders(qr_code, ticket_type)")
         .in("payment_method", ["sadad", "cash_pos"])
         .eq("payment_status", "confirmed")
         .order("created_at", { ascending: false });
@@ -136,8 +137,9 @@ export const InvoiceTab = () => {
       const countryCode = order.customers.country_code?.replace('+', '') || '974';
       const fullPhone = `${countryCode}${order.customers.phone}`;
 
-      // Extract all ticket holder QR codes
+      // Extract all ticket holder QR codes and ticket types
       const ticketQrCodes = order.ticket_holders?.map(holder => holder.qr_code).filter(Boolean) || [];
+      const ticketTypes = order.ticket_holders?.map(holder => holder.ticket_type) || [];
 
       const payload = {
         booking_reference: order.booking_reference,
@@ -151,6 +153,7 @@ export const InvoiceTab = () => {
         total_amount: order.total_amount,
         payment_status: order.payment_status,
         qr_codes: ticketQrCodes,
+        ticket_types: ticketTypes,
         event_title: order.events?.title,
         event_date: order.events?.event_date,
         event_location: order.events?.location,
