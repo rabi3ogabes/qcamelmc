@@ -34,7 +34,7 @@ export const InvoiceTab = () => {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
-  const [sentOrders, setSentOrders] = useState<Map<string, Date>>(new Map());
+  const [sentOrders, setSentOrders] = useState<Map<string, { sentAt: Date; message?: string }>>(new Map());
   const [webhookUrl, setWebhookUrl] = useState<string | null>(null);
   const [currentlySending, setCurrentlySending] = useState<string | null>(null);
   const [countdown, setCountdown] = useState<number>(60);
@@ -95,10 +95,10 @@ export const InvoiceTab = () => {
     }
   };
 
-  const sendInvoiceToWebhook = async (order: Order) => {
+  const sendInvoiceToWebhook = async (order: Order): Promise<{ success: boolean; message: string }> => {
     if (!webhookUrl) {
       toast.error("لم يتم تكوين رابط الويب هوك. يرجى تحديثه في الإعدادات");
-      return false;
+      return { success: false, message: "لم يتم تكوين رابط الويب هوك" };
     }
 
     try {
@@ -137,26 +137,28 @@ export const InvoiceTab = () => {
         const errorMessage = responseData.message || `HTTP error! status: ${response.status}`;
         console.error("n8n webhook error:", responseData);
         toast.error(`خطأ من n8n: ${errorMessage}`);
-        return false;
+        return { success: false, message: errorMessage };
       }
 
       // Handle successful response
       if (responseData.success !== false) {
         console.log("n8n response:", responseData);
+        const message = responseData.message || "تم الإرسال بنجاح";
         if (responseData.message) {
-          toast.success(`رد n8n: ${responseData.message}`);
+          toast.success(`رد n8n: ${message}`);
         }
-        return true;
+        return { success: true, message };
       } else {
         // n8n returned success: false
         const errorMessage = responseData.message || "فشل الإرسال";
         toast.warning(`تحذير من n8n: ${errorMessage}`);
-        return false;
+        return { success: false, message: errorMessage };
       }
     } catch (error) {
       console.error("Error sending to webhook:", error);
-      toast.error(`خطأ في الاتصال بـ n8n: ${error instanceof Error ? error.message : 'خطأ غير معروف'}`);
-      return false;
+      const errorMessage = error instanceof Error ? error.message : 'خطأ غير معروف';
+      toast.error(`خطأ في الاتصال بـ n8n: ${errorMessage}`);
+      return { success: false, message: errorMessage };
     }
   };
 
@@ -180,14 +182,16 @@ export const InvoiceTab = () => {
       setCurrentlySending(order.id);
       toast.info(`إرسال فاتورة ${i + 1} من ${orders.length}...`);
       
-      const success = await sendInvoiceToWebhook(order);
+      const result = await sendInvoiceToWebhook(order);
       
-      if (success) {
+      if (result.success) {
         const sentTime = new Date();
-        newSentOrders.set(order.id, sentTime);
+        newSentOrders.set(order.id, { sentAt: sentTime, message: result.message });
         setSentOrders(new Map(newSentOrders));
         toast.success(`تم إرسال الفاتورة لـ ${order.customers.name}`);
       } else {
+        newSentOrders.set(order.id, { sentAt: new Date(), message: result.message });
+        setSentOrders(new Map(newSentOrders));
         toast.error(`فشل إرسال الفاتورة لـ ${order.customers.name}`);
       }
 
@@ -329,8 +333,13 @@ export const InvoiceTab = () => {
                             تم الإرسال
                           </Badge>
                           <span className="text-xs text-muted-foreground" dir="ltr">
-                            {format(sentOrders.get(order.id)!, "dd/MM/yyyy HH:mm:ss")}
+                            {format(sentOrders.get(order.id)!.sentAt, "dd/MM/yyyy HH:mm:ss")}
                           </span>
+                          {sentOrders.get(order.id)?.message && (
+                            <span className="text-xs text-muted-foreground italic">
+                              {sentOrders.get(order.id)!.message}
+                            </span>
+                          )}
                         </div>
                       ) : currentlySending === order.id ? (
                         <Badge variant="secondary" className="gap-1">
