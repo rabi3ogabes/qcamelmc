@@ -200,8 +200,8 @@ export const InvoiceTab = () => {
     for (let i = 0; i < orders.length; i++) {
       const order = orders[i];
       
-      if (sentOrders.has(order.id)) {
-        continue; // Skip already sent orders
+      if (sentOrders.has(order.id) || order.n8n_response_message) {
+        continue; // Skip already sent orders or orders with n8n response
       }
 
       setCurrentlySending(order.id);
