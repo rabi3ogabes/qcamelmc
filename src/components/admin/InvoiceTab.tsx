@@ -111,7 +111,7 @@ export const InvoiceTab = () => {
       const { data, error } = await supabase
         .from("orders")
         .select("*, customers(name, email, phone, country_code, nationality), events(title, event_date, location), ticket_holders(qr_code)")
-        .eq("payment_method", "sadad")
+        .in("payment_method", ["sadad", "cash_pos"])
         .eq("payment_status", "confirmed")
         .order("created_at", { ascending: false });
 
