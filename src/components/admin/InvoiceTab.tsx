@@ -197,15 +197,22 @@ export const InvoiceTab = () => {
     setSending(true);
     const newSentOrders = new Map(sentOrders);
 
-    for (let i = 0; i < orders.length; i++) {
-      const order = orders[i];
-      
-      if (sentOrders.has(order.id) || order.n8n_response_message) {
-        continue; // Skip already sent orders or orders with n8n response
-      }
+    // Filter orders that need to be sent
+    const ordersToSend = orders.filter(
+      order => !sentOrders.has(order.id) && !order.n8n_response_message
+    );
+
+    if (ordersToSend.length === 0) {
+      setSending(false);
+      toast.info("جميع الطلبات تم إرسالها بالفعل");
+      return;
+    }
+
+    for (let i = 0; i < ordersToSend.length; i++) {
+      const order = ordersToSend[i];
 
       setCurrentlySending(order.id);
-      toast.info(`إرسال فاتورة ${i + 1} من ${orders.length}...`);
+      toast.info(`إرسال فاتورة ${i + 1} من ${ordersToSend.length}...`);
       
       const result = await sendInvoiceToWebhook(order);
       
@@ -222,8 +229,8 @@ export const InvoiceTab = () => {
 
       setCurrentlySending(null);
 
-      // Wait random time between 5-10 minutes before sending the next one, unless it's the last order
-      if (i < orders.length - 1) {
+      // Only wait if there are more orders to send
+      if (i < ordersToSend.length - 1) {
         const minDelay = 300000; // 5 minutes
         const maxDelay = 600000; // 10 minutes
         const randomDelay = Math.floor(Math.random() * (maxDelay - minDelay + 1)) + minDelay;
