@@ -24,6 +24,7 @@ interface Order {
     email: string;
     phone: string;
     country_code: string;
+    nationality: string | null;
   };
   events?: {
     title: string;
@@ -105,7 +106,7 @@ export const InvoiceTab = () => {
     try {
       const { data, error } = await supabase
         .from("orders")
-        .select("*, customers(name, email, phone, country_code), events(title, event_date, location)")
+        .select("*, customers(name, email, phone, country_code, nationality), events(title, event_date, location)")
         .eq("payment_method", "sadad")
         .eq("payment_status", "confirmed")
         .order("created_at", { ascending: false });
@@ -137,9 +138,11 @@ export const InvoiceTab = () => {
         customer_phone: order.customers.phone,
         customer_phone_whatsapp: fullPhone,
         customer_email: order.customers.email,
+        nationality: order.customers.nationality,
         ticket_type: order.ticket_type,
         quantity: order.quantity,
         total_amount: order.total_amount,
+        payment_status: order.payment_status,
         event_title: order.events?.title,
         event_date: order.events?.event_date,
         event_location: order.events?.location,
