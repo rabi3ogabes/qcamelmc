@@ -32,6 +32,9 @@ interface Order {
     event_date: string;
     location: string;
   };
+  ticket_holders?: Array<{
+    qr_code: string | null;
+  }>;
 }
 
 export const InvoiceTab = () => {
@@ -107,7 +110,7 @@ export const InvoiceTab = () => {
     try {
       const { data, error } = await supabase
         .from("orders")
-        .select("*, customers(name, email, phone, country_code, nationality), events(title, event_date, location)")
+        .select("*, customers(name, email, phone, country_code, nationality), events(title, event_date, location), ticket_holders(qr_code)")
         .eq("payment_method", "sadad")
         .eq("payment_status", "confirmed")
         .order("created_at", { ascending: false });
@@ -133,6 +136,9 @@ export const InvoiceTab = () => {
       const countryCode = order.customers.country_code?.replace('+', '') || '974';
       const fullPhone = `${countryCode}${order.customers.phone}`;
 
+      // Extract all ticket holder QR codes
+      const ticketQrCodes = order.ticket_holders?.map(holder => holder.qr_code).filter(Boolean) || [];
+
       const payload = {
         booking_reference: order.booking_reference,
         customer_name: order.customers.name,
@@ -144,7 +150,7 @@ export const InvoiceTab = () => {
         quantity: order.quantity,
         total_amount: order.total_amount,
         payment_status: order.payment_status,
-        qr_code: order.qr_code,
+        qr_codes: ticketQrCodes,
         event_title: order.events?.title,
         event_date: order.events?.event_date,
         event_location: order.events?.location,
