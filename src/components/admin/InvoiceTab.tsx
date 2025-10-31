@@ -21,6 +21,7 @@ interface Order {
     name: string;
     email: string;
     phone: string;
+    country_code: string;
   };
   events?: {
     title: string;
@@ -60,7 +61,7 @@ export const InvoiceTab = () => {
     try {
       const { data, error } = await supabase
         .from("orders")
-        .select("*, customers(name, email, phone), events(title, event_date, location)")
+        .select("*, customers(name, email, phone, country_code), events(title, event_date, location)")
         .eq("payment_method", "sadad")
         .eq("payment_status", "confirmed")
         .order("created_at", { ascending: false });
@@ -82,10 +83,15 @@ export const InvoiceTab = () => {
     }
 
     try {
+      // Construct full phone number with country code (without +) for WhatsApp
+      const countryCode = order.customers.country_code?.replace('+', '') || '974';
+      const fullPhone = `${countryCode}${order.customers.phone}`;
+
       const payload = {
         booking_reference: order.booking_reference,
         customer_name: order.customers.name,
         customer_phone: order.customers.phone,
+        customer_phone_whatsapp: fullPhone,
         customer_email: order.customers.email,
         ticket_type: order.ticket_type,
         quantity: order.quantity,
