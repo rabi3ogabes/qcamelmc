@@ -60,7 +60,7 @@ export const InvoiceTab = () => {
           event: 'UPDATE',
           schema: 'public',
           table: 'orders',
-          filter: 'payment_method=eq.sadad'
+          filter: 'payment_method=in.(sadad,cash_pos)'
         },
         (payload) => {
           console.log('Order updated:', payload);
