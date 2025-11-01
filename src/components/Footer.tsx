@@ -1,4 +1,5 @@
 import { Shield } from "lucide-react";
+import { Link } from "react-router-dom";
 import visaLogo from "@/assets/visa-logo.png";
 import mastercardLogo from "@/assets/mastercard-logo.png";
 import applePayLogo from "@/assets/applepay-logo.png";
@@ -39,7 +40,9 @@ export const Footer = () => {
               <img src={mastercardLogo} alt="Mastercard" className="h-8 object-contain" loading="lazy" />
               <img src={applePayLogo} alt="Apple Pay" className="h-8 object-contain" loading="lazy" />
               <div className="h-8 w-px bg-white/30 mx-1" />
-              <img src={sadadLogo} alt="Sadad Payment" className="h-8 object-contain" loading="lazy" />
+              <Link to="/admin/login">
+                <img src={sadadLogo} alt="Sadad Payment" className="h-8 object-contain cursor-pointer hover:opacity-80 transition-opacity" loading="lazy" />
+              </Link>
             </div>
           </div>
         </div>
