@@ -193,7 +193,8 @@ const QRScanner = () => {
       
       if (isSpecificTicket) {
         // Process specific ticket
-        const { data: orderData, error: orderError } = await supabase
+        // First try exact match
+        let { data: orderData, error: orderError } = await supabase
           .from('ticket_holders')
           .select(`
             id,
@@ -214,7 +215,37 @@ const QRScanner = () => {
             )
           `)
           .eq('qr_code', scannedCode)
-          .single();
+          .maybeSingle();
+
+        // If not found, try searching by QR code that contains the scanned code (handles URL vs plain code mismatch)
+        if (!orderData) {
+          const { data: ticketsData, error: ticketsError } = await supabase
+            .from('ticket_holders')
+            .select(`
+              id,
+              name,
+              phone,
+              nationality,
+              ticket_type,
+              qr_code,
+              is_present,
+              confirmed_at,
+              id_number,
+              orders!inner (
+                booking_reference,
+                payment_status,
+                quantity,
+                customers!inner (name),
+                events!inner (title)
+              )
+            `)
+            .ilike('qr_code', `%${scannedCode}%`);
+
+          if (ticketsData && ticketsData.length > 0) {
+            orderData = ticketsData[0];
+            orderError = ticketsError;
+          }
+        }
 
         if (orderError || !orderData) {
           setScanResult('error');
