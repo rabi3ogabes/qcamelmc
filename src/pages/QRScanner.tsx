@@ -64,6 +64,38 @@ const QRScanner = () => {
     };
   }, []);
 
+  // Update ticket info when a specific ticket is selected from the list
+  useEffect(() => {
+    if (selectedTicketId && availableTickets.length > 0) {
+      const selectedTicket: any = availableTickets.find(t => t.id === selectedTicketId);
+      if (selectedTicket) {
+        const order = selectedTicket.orders;
+        const isPOSOrder = order.booking_reference?.startsWith('POS-') || order.payment_method === 'cash_pos';
+        const effectivePaymentStatus = isPOSOrder ? 'confirmed' : order.payment_status;
+        
+        setTicketInfo({
+          booking_reference: order.booking_reference,
+          customer_name: order.customers.name,
+          event_title: order.events.title,
+          ticket_type: selectedTicket.ticket_type,
+          ticket_holder_name: selectedTicket.name,
+          ticket_holder_phone: selectedTicket.phone,
+          ticket_holder_nationality: selectedTicket.nationality,
+          ticket_holder_id_number: selectedTicket.id_number,
+          ticket_holder_qr_code: selectedTicket.qr_code,
+          quantity: 1,
+          payment_status: effectivePaymentStatus,
+          is_present: selectedTicket.is_present,
+          confirmed_at: selectedTicket.confirmed_at,
+        });
+        
+        if (selectedTicket.is_present) {
+          toast.info('هذه التذكرة تم تسجيل حضورها مسبقاً');
+        }
+      }
+    }
+  }, [selectedTicketId, availableTickets]);
+
   const fetchSettings = async () => {
     const { data, error } = await supabase
       .from("settings")
