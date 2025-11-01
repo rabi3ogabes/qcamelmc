@@ -53,7 +53,7 @@ const AdminPOS = () => {
   const [customerName, setCustomerName] = useState("");
   const [customerEmail, setCustomerEmail] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
-  const [customerNationality, setCustomerNationality] = useState("قطري");
+  const [customerNationality, setCustomerNationality] = useState("قطر");
   const [customerIdNumber, setCustomerIdNumber] = useState("");
   const [showAllNationalities, setShowAllNationalities] = useState(false);
   const [ticketHolders, setTicketHolders] = useState<TicketHolderInput[]>([]);
@@ -282,7 +282,7 @@ const AdminPOS = () => {
       }]);
     }
 
-    // Add ticket holder slots for the new tickets with default nationality "قطري"
+    // Add ticket holder slots for the new tickets with default nationality "قطر"
     // We create (quantity - 1) holders for the FIRST addition only (customer takes first ticket)
     // For subsequent additions, we create full quantity of holders
     const isFirstAddition = cart.length === 0;
@@ -290,7 +290,7 @@ const AdminPOS = () => {
     
     const newHolders = Array(holdersToAdd).fill(null).map((_, index) => ({
       name: "",
-      nationality: "قطري",
+      nationality: "قطر",
       idNumber: "",
       phone: "",
       ticketType: ticket.type
@@ -349,11 +349,11 @@ const AdminPOS = () => {
 
     // Adjust ticket holders
     if (difference > 0) {
-      // Add more holders with default nationality "قطری"
+      // Add more holders with default nationality "قطر"
       // We add (difference) holders since customer already counts as one
       const newHolders = Array(difference).fill(null).map(() => ({
         name: "",
-        nationality: "قطري",
+        nationality: "قطر",
         idNumber: "",
         phone: "",
         ticketType: item.ticketType
@@ -410,39 +410,39 @@ const AdminPOS = () => {
   const totalAmount = cart.reduce((total, item) => total + (item.price * item.quantity), 0);
 
   const gulfNationalities = [
-    { name: "قطري", flag: "🇶🇦" },
-    { name: "سعودي", flag: "🇸🇦" },
-    { name: "إماراتي", flag: "🇦🇪" },
-    { name: "كويتي", flag: "🇰🇼" },
-    { name: "بحريني", flag: "🇧🇭" },
-    { name: "عماني", flag: "🇴🇲" },
+    { name: "قطر", flag: "🇶🇦" },
+    { name: "السعودية", flag: "🇸🇦" },
+    { name: "الإمارات", flag: "🇦🇪" },
+    { name: "الكويت", flag: "🇰🇼" },
+    { name: "البحرين", flag: "🇧🇭" },
+    { name: "عمان", flag: "🇴🇲" },
   ];
 
   const otherNationalities = [
-    { name: "مصري", flag: "🇪🇬" },
-    { name: "أردني", flag: "🇯🇴" },
-    { name: "لبناني", flag: "🇱🇧" },
-    { name: "سوري", flag: "🇸🇾" },
-    { name: "عراقي", flag: "🇮🇶" },
-    { name: "يمني", flag: "🇾🇪" },
-    { name: "مغربي", flag: "🇲🇦" },
-    { name: "جزائري", flag: "🇩🇿" },
-    { name: "تونسي", flag: "🇹🇳" },
-    { name: "ليبي", flag: "🇱🇾" },
-    { name: "سوداني", flag: "🇸🇩" },
-    { name: "فلسطيني", flag: "🇵🇸" },
-    { name: "باكستاني", flag: "🇵🇰" },
-    { name: "هندي", flag: "🇮🇳" },
-    { name: "بنغالي", flag: "🇧🇩" },
-    { name: "فلبيني", flag: "🇵🇭" },
-    { name: "إندونيسي", flag: "🇮🇩" },
-    { name: "نيبالي", flag: "🇳🇵" },
-    { name: "أمريكي", flag: "🇺🇸" },
-    { name: "بريطاني", flag: "🇬🇧" },
-    { name: "فرنسي", flag: "🇫🇷" },
-    { name: "ألماني", flag: "🇩🇪" },
-    { name: "إيطالي", flag: "🇮🇹" },
-    { name: "أسباني", flag: "🇪🇸" },
+    { name: "مصر", flag: "🇪🇬" },
+    { name: "الأردن", flag: "🇯🇴" },
+    { name: "لبنان", flag: "🇱🇧" },
+    { name: "سوريا", flag: "🇸🇾" },
+    { name: "العراق", flag: "🇮🇶" },
+    { name: "اليمن", flag: "🇾🇪" },
+    { name: "المغرب", flag: "🇲🇦" },
+    { name: "الجزائر", flag: "🇩🇿" },
+    { name: "تونس", flag: "🇹🇳" },
+    { name: "ليبيا", flag: "🇱🇾" },
+    { name: "السودان", flag: "🇸🇩" },
+    { name: "فلسطين", flag: "🇵🇸" },
+    { name: "باكستان", flag: "🇵🇰" },
+    { name: "الهند", flag: "🇮🇳" },
+    { name: "بنغلاديش", flag: "🇧🇩" },
+    { name: "الفلبين", flag: "🇵🇭" },
+    { name: "إندونيسيا", flag: "🇮🇩" },
+    { name: "نيبال", flag: "🇳🇵" },
+    { name: "أمريكا", flag: "🇺🇸" },
+    { name: "بريطانيا", flag: "🇬🇧" },
+    { name: "فرنسا", flag: "🇫🇷" },
+    { name: "ألمانيا", flag: "🇩🇪" },
+    { name: "إيطاليا", flag: "🇮🇹" },
+    { name: "أسبانيا", flag: "🇪🇸" },
   ];
 
   const displayedNationalities = showAllNationalities 
@@ -610,7 +610,7 @@ const AdminPOS = () => {
       setCustomerName("");
       setCustomerEmail("");
       setCustomerPhone("");
-      setCustomerNationality("قطري");
+      setCustomerNationality("قطر");
       setCustomerIdNumber("");
       setShowAllNationalities(false);
       
