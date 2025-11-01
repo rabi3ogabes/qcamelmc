@@ -453,12 +453,12 @@ const LiveBookings = () => {
                     <div className="flex items-center justify-between gap-2">
                       <div className="flex items-center gap-2">
                         <Phone className="w-4 h-4 text-primary flex-shrink-0" />
-                        <span className="text-sm truncate">{holder.phone}</span>
+                        <span className="text-xs truncate">{holder.phone}</span>
                       </div>
                       {holder.id_number && (
                         <div className="flex items-center gap-2">
                           <Hash className="w-4 h-4 text-primary flex-shrink-0" />
-                          <span className="text-sm truncate">{holder.id_number}</span>
+                          <span className="text-xs truncate">{holder.id_number}</span>
                         </div>
                       )}
                     </div>
