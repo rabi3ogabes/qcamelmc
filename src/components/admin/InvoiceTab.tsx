@@ -229,9 +229,9 @@ export const InvoiceTab = () => {
     setSending(true);
     const newSentOrders = new Map(sentOrders);
 
-    // Filter orders that need to be sent
+    // Filter orders that need to be sent (exclude those with n8n response)
     const ordersToSend = orders.filter(
-      order => !sentOrders.has(order.id) && !order.n8n_response_message
+      order => !sentOrders.has(order.id) && !order.n8n_response_message && !order.n8n_responded_at
     );
 
     if (ordersToSend.length === 0) {
@@ -353,7 +353,7 @@ export const InvoiceTab = () => {
             ) : (
               <Button
                 onClick={startCountdown}
-                disabled={sending || orders.length === 0 || !webhookUrl}
+                disabled={sending || orders.filter(o => !o.n8n_response_message && !o.n8n_responded_at).length === 0 || !webhookUrl}
                 variant="secondary"
                 className="gap-2"
               >
@@ -363,7 +363,7 @@ export const InvoiceTab = () => {
             )}
             <Button
               onClick={sendInvoices}
-              disabled={sending || orders.length === 0 || !webhookUrl}
+              disabled={sending || orders.filter(o => !o.n8n_response_message && !o.n8n_responded_at).length === 0 || !webhookUrl}
               className="gap-2"
             >
               {sending ? (
@@ -374,7 +374,7 @@ export const InvoiceTab = () => {
               ) : (
                 <>
                   <Send className="w-4 h-4" />
-                  إرسال الفواتير ({orders.length})
+                  إرسال الفواتير ({orders.filter(o => !o.n8n_response_message && !o.n8n_responded_at).length})
                 </>
               )}
             </Button>
