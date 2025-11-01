@@ -20,6 +20,7 @@ interface Customer {
   name: string;
   email: string;
   phone: string;
+  nationality?: string;
   created_at: string;
   orders: Array<{
     id: string;
@@ -126,7 +127,7 @@ export const CustomersTab = () => {
   const [sendingInvoice, setSendingInvoice] = useState<string | null>(null);
   const [sendingTicket, setSendingTicket] = useState<string | null>(null);
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
-  const [editForm, setEditForm] = useState({ name: "", email: "", phone: "" });
+  const [editForm, setEditForm] = useState({ name: "", email: "", phone: "", nationality: "" });
   const [saving, setSaving] = useState(false);
   const [qrCodes, setQrCodes] = useState<Record<string, string>>({});
   const [viewingQrCode, setViewingQrCode] = useState<{ code: string; name: string; reference: string } | null>(null);
@@ -527,6 +528,7 @@ export const CustomersTab = () => {
       name: customer.name,
       email: customer.email,
       phone: customer.phone,
+      nationality: customer.nationality || "",
     });
   };
 
@@ -542,6 +544,7 @@ export const CustomersTab = () => {
           name: editForm.name,
           email: editForm.email,
           phone: editForm.phone,
+          nationality: editForm.nationality,
         })
         .eq("id", editingCustomer.id);
 
@@ -1456,6 +1459,16 @@ export const CustomersTab = () => {
                 value={editForm.phone}
                 onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })}
                 placeholder="+974 XXXX XXXX"
+                className="font-lusail"
+              />
+            </div>
+
+            <div>
+              <label className="text-sm font-medium font-lusail block mb-2">الجنسية</label>
+              <Input
+                value={editForm.nationality}
+                onChange={(e) => setEditForm({ ...editForm, nationality: e.target.value })}
+                placeholder="الجنسية"
                 className="font-lusail"
               />
             </div>
