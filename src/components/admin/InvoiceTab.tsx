@@ -340,7 +340,7 @@ export const InvoiceTab = () => {
                 className="gap-2"
               >
                 <Clock className="w-4 h-4" />
-                بدء العد التنازلي (60 ثانية)
+                بدء العد التنازلي
               </Button>
             )}
             <Button
