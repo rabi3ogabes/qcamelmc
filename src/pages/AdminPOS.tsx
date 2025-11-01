@@ -772,85 +772,6 @@ const AdminPOS = () => {
                 </Card>
               )}
 
-              {/* Ticket Holders Details */}
-              {ticketHolders.length > 0 && (
-                <Card>
-                  <CardHeader>
-                    <CardTitle>
-                      معلومات حاملي التذاكر الإضافية ({ticketHolders.length} {ticketHolders.length === 1 ? 'تذكرة' : 'تذاكر'})
-                    </CardTitle>
-                    <p className="text-sm text-muted-foreground mt-2">
-                      التذكرة الأولى مخصصة للعميل أعلاه. املأ معلومات حاملي التذاكر الإضافية هنا.
-                    </p>
-                  </CardHeader>
-                  <CardContent className="space-y-6">
-                    {ticketHolders.map((holder, index) => (
-                      <div key={index} className="p-4 border rounded-lg space-y-3 bg-muted/50">
-                        <div className="flex justify-between items-center">
-                          <h4 className="font-bold text-primary">
-                            التذكرة الإضافية #{index + 1} - {getTicketTypeName(holder.ticketType)}
-                          </h4>
-                          <Button
-                            type="button"
-                            variant="destructive"
-                            size="icon"
-                            className="h-8 w-8"
-                            onClick={() => deleteTicketHolder(index)}
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        </div>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                          <div>
-                            <Label htmlFor={`holder-name-${index}`}>الاسم *</Label>
-                            <Input
-                              id={`holder-name-${index}`}
-                              value={holder.name}
-                              onChange={(e) => updateTicketHolder(index, 'name', e.target.value)}
-                              placeholder="اسم حامل التذكرة"
-                              required
-                            />
-                          </div>
-                          <div>
-                            <Label htmlFor={`holder-nationality-${index}`}>الجنسية *</Label>
-                            <Select
-                              value={holder.nationality}
-                              onValueChange={(value) => updateTicketHolder(index, 'nationality', value)}
-                            >
-                              <SelectTrigger id={`holder-nationality-${index}`}>
-                                <SelectValue placeholder="اختر الجنسية" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {gulfNationalities.map((nat) => (
-                                  <SelectItem key={nat.name} value={nat.name}>
-                                    {nat.flag} {nat.name}
-                                  </SelectItem>
-                                ))}
-                                {otherNationalities.map((nat) => (
-                                  <SelectItem key={nat.name} value={nat.name}>
-                                    {nat.flag} {nat.name}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          </div>
-                          <div className="sm:col-span-2 lg:col-span-1">
-                            <Label htmlFor={`holder-id-${index}`}>رقم الهوية *</Label>
-                            <Input
-                              id={`holder-id-${index}`}
-                              value={holder.idNumber}
-                              onChange={(e) => updateTicketHolder(index, 'idNumber', e.target.value)}
-                              placeholder="رقم الهوية"
-                              required
-                            />
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </CardContent>
-                </Card>
-              )}
-
               <Card>
                 <CardHeader>
                   <CardTitle>معلومات العميل (التذكرة الرئيسية)</CardTitle>
@@ -882,14 +803,22 @@ const AdminPOS = () => {
 
                   <div>
                     <Label htmlFor="phone">رقم الهاتف *</Label>
-                    <Input
-                      id="phone"
-                      type="tel"
-                      value={customerPhone}
-                      onChange={(e) => setCustomerPhone(e.target.value)}
-                      placeholder="974XXXXXXXX"
-                      required
-                    />
+                    <div className="flex gap-2">
+                      <Input
+                        className="w-20"
+                        value="+974"
+                        disabled
+                      />
+                      <Input
+                        id="phone"
+                        type="tel"
+                        className="flex-1"
+                        value={customerPhone}
+                        onChange={(e) => setCustomerPhone(e.target.value)}
+                        placeholder="XXXXXXXX"
+                        required
+                      />
+                    </div>
                   </div>
 
                   <div>
@@ -938,7 +867,104 @@ const AdminPOS = () => {
                 </CardContent>
               </Card>
 
-              <Button 
+              {/* Ticket Holders Details */}
+              {ticketHolders.length > 0 && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle>
+                      معلومات حاملي التذاكر الإضافية ({ticketHolders.length} {ticketHolders.length === 1 ? 'تذكرة' : 'تذاكر'})
+                    </CardTitle>
+                    <p className="text-sm text-muted-foreground mt-2">
+                      التذكرة الأولى مخصصة للعميل أعلاه. املأ معلومات حاملي التذاكر الإضافية هنا.
+                    </p>
+                  </CardHeader>
+                  <CardContent className="space-y-6">
+                    {ticketHolders.map((holder, index) => (
+                      <div key={index} className="p-4 border rounded-lg space-y-3 bg-muted/50">
+                        <div className="flex justify-between items-center">
+                          <h4 className="font-bold text-primary">
+                            التذكرة الإضافية #{index + 1} - {getTicketTypeName(holder.ticketType)}
+                          </h4>
+                          <Button
+                            type="button"
+                            variant="destructive"
+                            size="icon"
+                            className="h-8 w-8"
+                            onClick={() => deleteTicketHolder(index)}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          <div>
+                            <Label htmlFor={`holder-name-${index}`}>الاسم *</Label>
+                            <Input
+                              id={`holder-name-${index}`}
+                              value={holder.name}
+                              onChange={(e) => updateTicketHolder(index, 'name', e.target.value)}
+                              placeholder="اسم حامل التذكرة"
+                              required
+                            />
+                          </div>
+                          <div>
+                            <Label htmlFor={`holder-phone-${index}`}>رقم الهاتف</Label>
+                            <div className="flex gap-2">
+                              <Input
+                                className="w-20"
+                                value="+974"
+                                disabled
+                              />
+                              <Input
+                                id={`holder-phone-${index}`}
+                                type="tel"
+                                className="flex-1"
+                                value={holder.phone}
+                                onChange={(e) => updateTicketHolder(index, 'phone', e.target.value)}
+                                placeholder="XXXXXXXX"
+                              />
+                            </div>
+                          </div>
+                          <div>
+                            <Label htmlFor={`holder-nationality-${index}`}>الجنسية *</Label>
+                            <Select
+                              value={holder.nationality}
+                              onValueChange={(value) => updateTicketHolder(index, 'nationality', value)}
+                            >
+                              <SelectTrigger id={`holder-nationality-${index}`}>
+                                <SelectValue placeholder="اختر الجنسية" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {gulfNationalities.map((nat) => (
+                                  <SelectItem key={nat.name} value={nat.name}>
+                                    {nat.flag} {nat.name}
+                                  </SelectItem>
+                                ))}
+                                {otherNationalities.map((nat) => (
+                                  <SelectItem key={nat.name} value={nat.name}>
+                                    {nat.flag} {nat.name}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div>
+                            <Label htmlFor={`holder-id-${index}`}>رقم الهوية *</Label>
+                            <Input
+                              id={`holder-id-${index}`}
+                              value={holder.idNumber}
+                              onChange={(e) => updateTicketHolder(index, 'idNumber', e.target.value)}
+                              placeholder="رقم الهوية"
+                              required
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </CardContent>
+                </Card>
+              )}
+
+              <Button
                 type="submit" 
                 size="lg" 
                 disabled={processing || cart.length === 0} 
