@@ -266,6 +266,15 @@ const QRScanner = () => {
         
         console.log('Order data:', orderData);
         console.log('Payment status from order:', order.payment_status);
+        console.log('Payment method:', order.payment_method);
+        console.log('Booking reference:', order.booking_reference);
+        
+        // Force confirmed status for POS orders
+        const isPOSOrder = order.booking_reference?.startsWith('POS-') || order.payment_method === 'cash_pos';
+        const effectivePaymentStatus = isPOSOrder ? 'confirmed' : order.payment_status;
+        
+        console.log('Is POS order:', isPOSOrder);
+        console.log('Effective payment status:', effectivePaymentStatus);
         
         setTicketInfo({
           booking_reference: order.booking_reference,
@@ -278,7 +287,7 @@ const QRScanner = () => {
           ticket_holder_id_number: orderData.id_number,
           ticket_holder_qr_code: orderData.qr_code,
           quantity: 1,
-          payment_status: order.payment_status,
+          payment_status: effectivePaymentStatus,
           is_present: orderData.is_present,
           confirmed_at: orderData.confirmed_at,
         });
@@ -286,7 +295,7 @@ const QRScanner = () => {
         if (orderData.is_present) {
           setScanResult('error');
           toast.error('تم استخدام التذكرة مسبقاً');
-        } else if (order.payment_status !== 'confirmed') {
+        } else if (effectivePaymentStatus !== 'confirmed') {
           setScanResult('success');
           toast.warning('⚠️ الدفع غير مؤكد');
         } else {
@@ -336,6 +345,13 @@ const QRScanner = () => {
           return;
         }
 
+        // Force confirmed status for POS orders
+        const isPOSBooking = orderData.booking_reference?.startsWith('POS-');
+        const effectiveBookingPaymentStatus = isPOSBooking ? 'confirmed' : orderData.payment_status;
+        
+        console.log('Booking reference scan - Is POS:', isPOSBooking);
+        console.log('Booking reference scan - Effective status:', effectiveBookingPaymentStatus);
+        
         setAvailableTickets(ticketsData);
         setTicketInfo({
           booking_reference: orderData.booking_reference,
@@ -343,7 +359,7 @@ const QRScanner = () => {
           event_title: orderData.events.title,
           ticket_type: ticketsData[0].ticket_type,
           quantity: ticketsData.length,
-          payment_status: orderData.payment_status,
+          payment_status: effectiveBookingPaymentStatus,
           is_present: false,
         });
         setScanResult('success');
