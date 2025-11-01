@@ -634,55 +634,58 @@ const AdminPOS = () => {
     <div className="min-h-screen bg-background font-lusail" dir="rtl">
       {/* Header */}
       <header className="border-b backdrop-blur-sm sticky top-0 z-10" style={{ backgroundColor: headerBgColor }}>
-        <div className="container mx-auto px-4 py-4 flex justify-between items-center">
-          <button onClick={() => navigate("/")} className="focus:outline-none hover:opacity-80 transition-opacity">
-            {logoUrl ? (
-              <img src={logoUrl} alt="Logo" className="h-12 object-contain" />
-            ) : (
-              <h1 className="text-2xl font-bold">نقاط البيع</h1>
-            )}
-          </button>
-          <div className="flex items-center gap-4">
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button variant="outline" className="flex items-center gap-2 px-4 py-2 h-auto">
-                  <CalendarIcon className="h-4 w-4" />
-                  <span className="font-semibold">
-                    {selectedDate ? format(selectedDate, "PPP") : "اختر التاريخ"}
-                  </span>
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
-                <Calendar
-                  mode="single"
-                  selected={selectedDate}
-                  onSelect={handleDateSelect}
-                  initialFocus
-                />
-              </PopoverContent>
-            </Popover>
-            <h2 className="text-xl font-semibold bg-yellow-400 px-4 py-2 rounded">بيع تذكرة</h2>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={toggleFullscreen}
-              title={isFullscreen ? "تصغير الشاشة" : "ملء الشاشة"}
-            >
-              {isFullscreen ? (
-                <Minimize className="w-5 h-5" />
+        <div className="container mx-auto px-2 sm:px-4 py-3 sm:py-4">
+          <div className="flex flex-col sm:flex-row justify-between items-center gap-3 sm:gap-4">
+            <button onClick={() => navigate("/")} className="focus:outline-none hover:opacity-80 transition-opacity">
+              {logoUrl ? (
+                <img src={logoUrl} alt="Logo" className="h-10 sm:h-12 object-contain" />
               ) : (
-                <Maximize className="w-5 h-5" />
+                <h1 className="text-xl sm:text-2xl font-bold">نقاط البيع</h1>
               )}
-            </Button>
+            </button>
+            <div className="flex items-center gap-2 sm:gap-4 flex-wrap justify-center">
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" className="flex items-center gap-2 px-2 sm:px-4 py-2 h-auto text-sm sm:text-base">
+                    <CalendarIcon className="h-4 w-4" />
+                    <span className="font-semibold">
+                      {selectedDate ? format(selectedDate, "PPP") : "اختر التاريخ"}
+                    </span>
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={selectedDate}
+                    onSelect={handleDateSelect}
+                    initialFocus
+                  />
+                </PopoverContent>
+              </Popover>
+              <h2 className="text-base sm:text-xl font-semibold bg-yellow-400 px-3 sm:px-4 py-2 rounded">بيع تذكرة</h2>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={toggleFullscreen}
+                title={isFullscreen ? "تصغير الشاشة" : "ملء الشاشة"}
+                className="hidden sm:flex"
+              >
+                {isFullscreen ? (
+                  <Minimize className="w-5 h-5" />
+                ) : (
+                  <Maximize className="w-5 h-5" />
+                )}
+              </Button>
+            </div>
           </div>
         </div>
       </header>
 
-      <div className="max-w-4xl mx-auto py-8 px-4">{loading ? (
+      <div className="w-full mx-auto py-4 sm:py-8 px-2 sm:px-4 lg:px-6 max-w-7xl">{loading ? (
           <div className="text-center py-12">جاري التحميل...</div>
         ) : (
           <form onSubmit={handleSubmit}>
-            <div className="grid gap-6">
+            <div className="grid gap-4 sm:gap-6">
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
@@ -718,12 +721,12 @@ const AdminPOS = () => {
                   </CardHeader>
                   <CardContent className="space-y-3">
                     {cart.map((item) => (
-                      <div key={item.ticketId} className="flex justify-between items-center p-3 border rounded-lg">
-                        <div>
-                          <h4 className="font-bold">{getTicketTypeName(item.ticketType)}</h4>
+                      <div key={item.ticketId} className="flex flex-col sm:flex-row justify-between items-start sm:items-center p-3 border rounded-lg gap-3">
+                        <div className="flex-1">
+                          <h4 className="font-bold text-base sm:text-lg">{getTicketTypeName(item.ticketType)}</h4>
                           <p className="text-sm text-muted-foreground">{item.price} ريال × {item.quantity}</p>
                         </div>
-                        <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-2 sm:gap-3 w-full sm:w-auto justify-between sm:justify-end">
                           <div className="flex items-center gap-1">
                             <Button
                               type="button"
@@ -745,7 +748,7 @@ const AdminPOS = () => {
                               <Plus className="w-3 h-3" />
                             </Button>
                           </div>
-                          <span className="font-bold min-w-[80px] text-right">{item.price * item.quantity} ريال</span>
+                          <span className="font-bold min-w-[70px] sm:min-w-[80px] text-right">{item.price * item.quantity} ريال</span>
                           <Button
                             type="button"
                             variant="destructive"
@@ -797,7 +800,7 @@ const AdminPOS = () => {
                             <Trash2 className="w-4 h-4" />
                           </Button>
                         </div>
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                           <div>
                             <Label htmlFor={`holder-name-${index}`}>الاسم *</Label>
                             <Input
@@ -831,7 +834,7 @@ const AdminPOS = () => {
                               </SelectContent>
                             </Select>
                           </div>
-                          <div>
+                          <div className="sm:col-span-2 lg:col-span-1">
                             <Label htmlFor={`holder-id-${index}`}>رقم الهوية *</Label>
                             <Input
                               id={`holder-id-${index}`}
@@ -902,17 +905,17 @@ const AdminPOS = () => {
 
                   <div>
                     <Label className="mb-3 block">الجنسية *</Label>
-                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-2">
                       {displayedNationalities.map((nationality) => (
                         <Button
                           key={nationality.name}
                           type="button"
                           variant={customerNationality === nationality.name ? "default" : "outline"}
-                          className="h-14 text-base flex items-center justify-center gap-2"
+                          className="h-12 sm:h-14 text-sm sm:text-base flex items-center justify-center gap-1 sm:gap-2"
                           onClick={() => setCustomerNationality(nationality.name)}
                         >
-                          {nationality.flag && <span className="text-2xl">{nationality.flag}</span>}
-                          <span>{nationality.name}</span>
+                          {nationality.flag && <span className="text-xl sm:text-2xl">{nationality.flag}</span>}
+                          <span className="truncate">{nationality.name}</span>
                         </Button>
                       ))}
                     </div>
@@ -920,7 +923,7 @@ const AdminPOS = () => {
                     <Button
                       type="button"
                       variant="ghost"
-                      className="w-full mt-3"
+                      className="w-full mt-3 text-sm sm:text-base"
                       onClick={() => setShowAllNationalities(!showAllNationalities)}
                     >
                       {showAllNationalities ? "إخفاء الجنسيات الأخرى" : "عرض المزيد من الجنسيات"}
@@ -935,9 +938,14 @@ const AdminPOS = () => {
                 </CardContent>
               </Card>
 
-              <Button type="submit" size="lg" disabled={processing} className="w-full">
+              <Button 
+                type="submit" 
+                size="lg" 
+                disabled={processing || cart.length === 0} 
+                className="w-full h-12 sm:h-14 text-base sm:text-lg flex items-center justify-center gap-2"
+              >
                 {processing ? "جاري المعالجة..." : "إتمام الشراء وإرسال الفاتورة"}
-                <ArrowRight className="w-4 h-4 mr-2" />
+                <ArrowRight className="w-4 h-4" />
               </Button>
             </div>
           </form>
