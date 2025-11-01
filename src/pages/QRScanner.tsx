@@ -807,7 +807,7 @@ const QRScanner = () => {
                 )}
                 
                 <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center py-2 border-b gap-1">
-                  <span className="font-semibold text-sm sm:text-base">{t('customerName') || 'اسم العميل'}:</span>
+                  <span className="font-semibold text-sm sm:text-base">{t('customerName') || 'اسم العميل'}</span>
                   <span className="text-sm sm:text-base">{ticketInfo.customer_name}</span>
                 </div>
                 
