@@ -7,6 +7,7 @@ interface Settings {
   header_bg_color: string;
   hero_text: string;
   copyright_text: string;
+  auto_invoice_interval_seconds: number;
 }
 
 interface SettingsContextType {
@@ -33,7 +34,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
     try {
       const { data, error } = await supabase
         .from("settings")
-        .select("logo_url, hero_image_url, header_bg_color, hero_text, copyright_text")
+        .select("logo_url, hero_image_url, header_bg_color, hero_text, copyright_text, auto_invoice_interval_seconds")
         .maybeSingle();
 
       if (error) throw error;
@@ -44,6 +45,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
         header_bg_color: data?.header_bg_color || "hsl(var(--card) / 0.5)",
         hero_text: data?.hero_text || "",
         copyright_text: data?.copyright_text || "جميع الحقوق محفوظة",
+        auto_invoice_interval_seconds: data?.auto_invoice_interval_seconds || 60,
       });
     } catch (error) {
       console.error("Error fetching settings:", error);

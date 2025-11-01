@@ -37,6 +37,8 @@ export const SettingsTab = () => {
   const [savingDeleteButton, setSavingDeleteButton] = useState(false);
   const [showGenerateQrButton, setShowGenerateQrButton] = useState(false);
   const [savingGenerateQrButton, setSavingGenerateQrButton] = useState(false);
+  const [autoInvoiceInterval, setAutoInvoiceInterval] = useState(60);
+  const [savingAutoInvoice, setSavingAutoInvoice] = useState(false);
 
   useEffect(() => {
     fetchSettings();
@@ -45,7 +47,7 @@ export const SettingsTab = () => {
   const fetchSettings = async () => {
     const { data, error } = await supabase
       .from("settings")
-      .select("logo_url, hero_image_url, header_bg_color, hero_text, copyright_text, webhook_url, admin_phone, sadad_merchant_id, sadad_api_key, sadad_secret, sadad_website_domain, show_delete_customer_button, show_generate_qr_button")
+      .select("logo_url, hero_image_url, header_bg_color, hero_text, copyright_text, webhook_url, admin_phone, sadad_merchant_id, sadad_api_key, sadad_secret, sadad_website_domain, show_delete_customer_button, show_generate_qr_button, auto_invoice_interval_seconds")
       .maybeSingle();
 
     if (error) {
@@ -94,6 +96,7 @@ export const SettingsTab = () => {
     if (data?.sadad_website_domain) setSadadWebsiteDomain(data.sadad_website_domain);
     if (data?.show_delete_customer_button !== undefined) setShowDeleteButton(data.show_delete_customer_button);
     if (data?.show_generate_qr_button !== undefined) setShowGenerateQrButton(data.show_generate_qr_button);
+    if (data?.auto_invoice_interval_seconds !== undefined) setAutoInvoiceInterval(data.auto_invoice_interval_seconds);
   };
 
   const handleSaveLogo = async () => {
@@ -442,6 +445,43 @@ export const SettingsTab = () => {
     }
   };
 
+  const handleSaveAutoInvoiceInterval = async () => {
+    if (autoInvoiceInterval < 10) {
+      toast.error("يجب أن يكون الفاصل الزمني 10 ثوانٍ على الأقل");
+      return;
+    }
+
+    setSavingAutoInvoice(true);
+    try {
+      const { data: settings } = await supabase
+        .from("settings")
+        .select("id")
+        .maybeSingle();
+
+      if (settings) {
+        const { error } = await supabase
+          .from("settings")
+          .update({ auto_invoice_interval_seconds: autoInvoiceInterval })
+          .eq("id", settings.id);
+
+        if (error) throw error;
+      } else {
+        const { error } = await supabase
+          .from("settings")
+          .insert({ auto_invoice_interval_seconds: autoInvoiceInterval });
+
+        if (error) throw error;
+      }
+
+      toast.success(t("savedSuccessfully"));
+    } catch (error) {
+      console.error("Error saving auto invoice interval:", error);
+      toast.error("فشل في حفظ الإعداد");
+    } finally {
+      setSavingAutoInvoice(false);
+    }
+  };
+
   return (
     <div className="space-y-6 max-w-4xl">
       <h2 className="text-2xl font-bold font-lusail">{t("settings")}</h2>
@@ -616,6 +656,35 @@ export const SettingsTab = () => {
           <Button onClick={handleSaveLogo} disabled={loading} className="font-lusail">
             <Upload className="w-4 h-4 ml-2" />
             {loading ? t("loading") : t("save")}
+          </Button>
+        </div>
+      </Card>
+
+      {/* Auto Invoice Interval */}
+      <Card className="p-6">
+        <h3 className="text-lg font-semibold mb-4 font-lusail">إعدادات الإرسال التلقائي للفواتير</h3>
+        <div className="space-y-4">
+          <div>
+            <Label htmlFor="auto-invoice-interval" className="font-lusail">الفاصل الزمني (بالثواني)</Label>
+            <Input 
+              id="auto-invoice-interval" 
+              type="number" 
+              min="10"
+              placeholder="60"
+              value={autoInvoiceInterval}
+              onChange={(e) => setAutoInvoiceInterval(parseInt(e.target.value) || 60)}
+              className="mt-2 font-lusail" 
+            />
+            <p className="text-xs text-muted-foreground mt-2">
+              الفاصل الزمني بين كل إرسال تلقائي للفواتير (الحد الأدنى: 10 ثوانٍ)
+            </p>
+            <p className="text-xs text-yellow-600 mt-1">
+              ⚠️ تنبيه: سيتم إرسال الفواتير تلقائياً حتى لو كان التطبيق مغلقاً
+            </p>
+          </div>
+          
+          <Button onClick={handleSaveAutoInvoiceInterval} disabled={savingAutoInvoice} className="font-lusail">
+            {savingAutoInvoice ? t("loading") : t("save")}
           </Button>
         </div>
       </Card>

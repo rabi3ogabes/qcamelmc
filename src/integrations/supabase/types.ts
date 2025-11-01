@@ -224,12 +224,14 @@ export type Database = {
       settings: {
         Row: {
           admin_phone: string | null
+          auto_invoice_interval_seconds: number | null
           copyright_text: string | null
           created_at: string | null
           header_bg_color: string | null
           hero_image_url: string | null
           hero_text: string | null
           id: string
+          last_invoice_sent_at: string | null
           logo_url: string | null
           sadad_api_key: string | null
           sadad_merchant_id: string | null
@@ -242,12 +244,14 @@ export type Database = {
         }
         Insert: {
           admin_phone?: string | null
+          auto_invoice_interval_seconds?: number | null
           copyright_text?: string | null
           created_at?: string | null
           header_bg_color?: string | null
           hero_image_url?: string | null
           hero_text?: string | null
           id?: string
+          last_invoice_sent_at?: string | null
           logo_url?: string | null
           sadad_api_key?: string | null
           sadad_merchant_id?: string | null
@@ -260,12 +264,14 @@ export type Database = {
         }
         Update: {
           admin_phone?: string | null
+          auto_invoice_interval_seconds?: number | null
           copyright_text?: string | null
           created_at?: string | null
           header_bg_color?: string | null
           hero_image_url?: string | null
           hero_text?: string | null
           id?: string
+          last_invoice_sent_at?: string | null
           logo_url?: string | null
           sadad_api_key?: string | null
           sadad_merchant_id?: string | null
