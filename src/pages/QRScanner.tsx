@@ -694,7 +694,7 @@ const QRScanner = () => {
             {/* QR Scanner Container */}
             <div 
               id="qr-reader" 
-              className="w-full min-h-[250px] sm:min-h-[300px] rounded-lg overflow-hidden bg-muted/30"
+              className="w-full min-h-[180px] sm:min-h-[220px] rounded-lg overflow-hidden bg-muted/30"
             ></div>
             
             {processing && (
