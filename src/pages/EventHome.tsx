@@ -84,7 +84,7 @@ const EventHome = () => {
                 {t('liveBookings')}
               </Button>
             </Link>
-            <Link to="/admin/login">
+            <Link to="/admin/login" className="hidden">
               <Button variant="outline" size="sm" style={{ borderColor: '#A85740', color: '#6B4E3D', backgroundColor: 'transparent' }}>
                 <Lock className="w-4 h-4 ml-2" />
                 {t('adminLoginBtn')}
