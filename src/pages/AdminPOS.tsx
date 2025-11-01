@@ -36,6 +36,7 @@ interface TicketHolderInput {
   nationality: string;
   idNumber: string;
   phone: string;
+  countryCode: string;
   ticketType: string;
 }
 
@@ -53,6 +54,7 @@ const AdminPOS = () => {
   const [customerName, setCustomerName] = useState("");
   const [customerEmail, setCustomerEmail] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
+  const [customerCountryCode, setCustomerCountryCode] = useState("+974");
   const [customerNationality, setCustomerNationality] = useState("قطر");
   const [customerIdNumber, setCustomerIdNumber] = useState("");
   const [showAllNationalities, setShowAllNationalities] = useState(false);
@@ -293,6 +295,7 @@ const AdminPOS = () => {
       nationality: "قطر",
       idNumber: "",
       phone: "",
+      countryCode: "+974",
       ticketType: ticket.type
     }));
     console.log("Adding ticket holders:", newHolders, "isFirstAddition:", isFirstAddition);
@@ -356,6 +359,7 @@ const AdminPOS = () => {
         nationality: "قطر",
         idNumber: "",
         phone: "",
+        countryCode: "+974",
         ticketType: item.ticketType
       }));
       setTicketHolders([...ticketHolders, ...newHolders]);
@@ -408,6 +412,39 @@ const AdminPOS = () => {
   };
 
   const totalAmount = cart.reduce((total, item) => total + (item.price * item.quantity), 0);
+
+  const countryCodes = [
+    { code: "+974", country: "قطر", flag: "🇶🇦" },
+    { code: "+966", country: "السعودية", flag: "🇸🇦" },
+    { code: "+971", country: "الإمارات", flag: "🇦🇪" },
+    { code: "+965", country: "الكويت", flag: "🇰🇼" },
+    { code: "+973", country: "البحرين", flag: "🇧🇭" },
+    { code: "+968", country: "عمان", flag: "🇴🇲" },
+    { code: "+20", country: "مصر", flag: "🇪🇬" },
+    { code: "+962", country: "الأردن", flag: "🇯🇴" },
+    { code: "+961", country: "لبنان", flag: "🇱🇧" },
+    { code: "+963", country: "سوريا", flag: "🇸🇾" },
+    { code: "+964", country: "العراق", flag: "🇮🇶" },
+    { code: "+967", country: "اليمن", flag: "🇾🇪" },
+    { code: "+212", country: "المغرب", flag: "🇲🇦" },
+    { code: "+213", country: "الجزائر", flag: "🇩🇿" },
+    { code: "+216", country: "تونس", flag: "🇹🇳" },
+    { code: "+218", country: "ليبيا", flag: "🇱🇾" },
+    { code: "+249", country: "السودان", flag: "🇸🇩" },
+    { code: "+970", country: "فلسطين", flag: "🇵🇸" },
+    { code: "+92", country: "باكستان", flag: "🇵🇰" },
+    { code: "+91", country: "الهند", flag: "🇮🇳" },
+    { code: "+880", country: "بنغلاديش", flag: "🇧🇩" },
+    { code: "+63", country: "الفلبين", flag: "🇵🇭" },
+    { code: "+62", country: "إندونيسيا", flag: "🇮🇩" },
+    { code: "+977", country: "نيبال", flag: "🇳🇵" },
+    { code: "+1", country: "أمريكا", flag: "🇺🇸" },
+    { code: "+44", country: "بريطانيا", flag: "🇬🇧" },
+    { code: "+33", country: "فرنسا", flag: "🇫🇷" },
+    { code: "+49", country: "ألمانيا", flag: "🇩🇪" },
+    { code: "+39", country: "إيطاليا", flag: "🇮🇹" },
+    { code: "+34", country: "أسبانيا", flag: "🇪🇸" },
+  ];
 
   const gulfNationalities = [
     { name: "قطر", flag: "🇶🇦" },
@@ -539,6 +576,7 @@ const AdminPOS = () => {
           nationality: customerNationality,
           idNumber: customerIdNumber,
           phone: customerPhone,
+          countryCode: customerCountryCode,
           ticketType: cart[0].ticketType
         },
         ...ticketHolders
@@ -557,7 +595,7 @@ const AdminPOS = () => {
             order_id: orderData.id,
             name: holder.name,
             phone: holder.phone || customerPhone,
-            country_code: '+974',
+            country_code: holder.countryCode || customerCountryCode,
             nationality: holder.nationality,
             ticket_type: holder.ticketType,
             qr_code: qrData?.url || ticketRef,
@@ -569,7 +607,7 @@ const AdminPOS = () => {
             order_id: orderData.id,
             name: holder.name,
             phone: holder.phone || customerPhone,
-            country_code: '+974',
+            country_code: holder.countryCode || customerCountryCode,
             nationality: holder.nationality,
             ticket_type: holder.ticketType,
             qr_code: ticketRef,
@@ -803,12 +841,7 @@ const AdminPOS = () => {
 
                   <div>
                     <Label htmlFor="phone">رقم الهاتف *</Label>
-                    <div className="flex gap-2">
-                      <Input
-                        className="w-20"
-                        value="+974"
-                        disabled
-                      />
+                    <div className="flex gap-2" dir="ltr">
                       <Input
                         id="phone"
                         type="tel"
@@ -818,6 +851,21 @@ const AdminPOS = () => {
                         placeholder="XXXXXXXX"
                         required
                       />
+                      <Select
+                        value={customerCountryCode}
+                        onValueChange={setCustomerCountryCode}
+                      >
+                        <SelectTrigger className="w-[140px]">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {countryCodes.map((country) => (
+                            <SelectItem key={country.code} value={country.code}>
+                              {country.flag} {country.country} {country.code}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </div>
                   </div>
 
@@ -908,12 +956,7 @@ const AdminPOS = () => {
                           </div>
                           <div>
                             <Label htmlFor={`holder-phone-${index}`}>رقم الهاتف</Label>
-                            <div className="flex gap-2">
-                              <Input
-                                className="w-20"
-                                value="+974"
-                                disabled
-                              />
+                            <div className="flex gap-2" dir="ltr">
                               <Input
                                 id={`holder-phone-${index}`}
                                 type="tel"
@@ -922,6 +965,21 @@ const AdminPOS = () => {
                                 onChange={(e) => updateTicketHolder(index, 'phone', e.target.value)}
                                 placeholder="XXXXXXXX"
                               />
+                              <Select
+                                value={holder.countryCode}
+                                onValueChange={(value) => updateTicketHolder(index, 'countryCode', value)}
+                              >
+                                <SelectTrigger className="w-[140px]">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {countryCodes.map((country) => (
+                                    <SelectItem key={country.code} value={country.code}>
+                                      {country.flag} {country.country} {country.code}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
                             </div>
                           </div>
                           <div>
