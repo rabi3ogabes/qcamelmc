@@ -78,7 +78,7 @@ const EventHome = () => {
             <h1 className="text-2xl font-bold" style={{ color: '#6B4E3D' }}>فعاليات قطر</h1>
           )}
           <div className="flex gap-2">
-            <Link to="/live-bookings">
+            <Link to="/live-bookings" className="hidden">
               <Button variant="outline" size="sm" style={{ borderColor: '#A85740', color: '#6B4E3D', backgroundColor: 'transparent' }}>
                 <Calendar className="w-4 h-4 ml-2" />
                 {t('liveBookings')}
