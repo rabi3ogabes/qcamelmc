@@ -774,34 +774,34 @@ const QRScanner = () => {
 
               <div className="space-y-2 sm:space-y-3">
                 <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center py-2 border-b gap-1">
-                  <span className="font-semibold text-sm sm:text-base">{t('bookingReference') || 'رقم الحجز'}:</span>
+                  <span className="font-semibold text-sm sm:text-base">{t('bookingReference') || 'رقم الحجز'}</span>
                   <span className="font-mono text-sm sm:text-lg break-all">{ticketInfo.booking_reference}</span>
                 </div>
                 
                 {ticketInfo.ticket_holder_name && (
                   <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center py-2 border-b gap-1">
-                    <span className="font-semibold text-sm sm:text-base">اسم حامل التذكرة:</span>
+                    <span className="font-semibold text-sm sm:text-base">اسم حامل التذكرة</span>
                     <span className="font-bold text-sm sm:text-lg">{ticketInfo.ticket_holder_name}</span>
                   </div>
                 )}
                 
                 {ticketInfo.ticket_holder_phone && (
                   <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center py-2 border-b gap-1">
-                    <span className="font-semibold text-sm sm:text-base">رقم الهاتف:</span>
+                    <span className="font-semibold text-sm sm:text-base">رقم الهاتف</span>
                     <span className="font-mono text-sm sm:text-base">{ticketInfo.ticket_holder_phone}</span>
                   </div>
                 )}
                 
                 {ticketInfo.ticket_holder_nationality && (
                   <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center py-2 border-b gap-1">
-                    <span className="font-semibold text-sm sm:text-base">الجنسية:</span>
+                    <span className="font-semibold text-sm sm:text-base">الجنسية</span>
                     <span className="text-sm sm:text-base">{ticketInfo.ticket_holder_nationality}</span>
                   </div>
                 )}
                 
                 {ticketInfo.ticket_holder_id_number && (
                   <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center py-2 border-b gap-1">
-                    <span className="font-semibold text-sm sm:text-base">رقم الهوية:</span>
+                    <span className="font-semibold text-sm sm:text-base">رقم الهوية</span>
                     <span className="font-mono text-sm sm:text-base">{ticketInfo.ticket_holder_id_number}</span>
                   </div>
                 )}
@@ -859,15 +859,15 @@ const QRScanner = () => {
                   </div>
                 )}
                 <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center py-2 border-b gap-1">
-                  <span className="font-semibold text-sm sm:text-base">اسم الحدث:</span>
+                  <span className="font-semibold text-sm sm:text-base">اسم الحدث</span>
                   <span className="text-sm sm:text-base">{ticketInfo.event_title}</span>
                 </div>
                 <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center py-2 border-b gap-1">
-                  <span className="font-semibold text-sm sm:text-base">{t('ticketType') || 'نوع التذكرة'}:</span>
+                  <span className="font-semibold text-sm sm:text-base">{t('ticketType') || 'نوع التذكرة'}</span>
                   <span className="uppercase font-bold text-sm sm:text-base">{ticketInfo.ticket_type}</span>
                 </div>
                 <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center py-2 border-b gap-1">
-                  <span className="font-semibold text-sm sm:text-base">{t('quantity') || 'الكمية'}:</span>
+                  <span className="font-semibold text-sm sm:text-base">{t('quantity') || 'الكمية'}</span>
                   <span className="text-base sm:text-lg">{ticketInfo.quantity}</span>
                 </div>
                 <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center py-2 border-b gap-1">
