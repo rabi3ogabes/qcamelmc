@@ -81,7 +81,7 @@ const AdminLogin = () => {
         <div className="container mx-auto px-4 py-4 flex justify-center items-center">
           <button onClick={() => navigate("/")} className="focus:outline-none hover:opacity-80 transition-opacity">
             {logoUrl ? (
-              <img src={logoUrl} alt="Logo" className="h-12 object-contain" />
+              <img src={logoUrl} alt="Logo" className="h-[53px] object-contain" />
             ) : (
               <h1 className="text-2xl font-bold">Admin Login</h1>
             )}

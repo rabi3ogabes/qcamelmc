@@ -73,7 +73,7 @@ const EventHome = () => {
       <header className="border-b backdrop-blur-sm sticky top-0 z-10" style={{ backgroundColor: settings?.header_bg_color || "#D4B78A", borderColor: '#A85740' }}>
         <div className="container mx-auto px-4 py-4 flex justify-between items-center">
           {settings?.logo_url ? (
-            <img src={settings.logo_url} alt="Logo" className="h-12 object-contain" loading="lazy" />
+            <img src={settings.logo_url} alt="Logo" className="h-[53px] object-contain" loading="lazy" />
           ) : (
             <h1 className="text-2xl font-bold" style={{ color: '#6B4E3D' }}>فعاليات قطر</h1>
           )}

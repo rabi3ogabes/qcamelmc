@@ -289,7 +289,7 @@ const TicketSelection = () => {
             <img 
               src={logoUrl} 
               alt="Logo" 
-              className="h-12 object-contain cursor-pointer" 
+              className="h-[53px] object-contain cursor-pointer" 
               onClick={() => navigate("/")}
             />
           )}
