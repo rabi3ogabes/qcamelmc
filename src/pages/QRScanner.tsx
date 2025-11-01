@@ -871,7 +871,7 @@ const QRScanner = () => {
                   <span className="text-base sm:text-lg">{ticketInfo.quantity}</span>
                 </div>
                 <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center py-2 border-b gap-1">
-                  <span className="font-semibold text-sm sm:text-base">{t('paymentStatus') || 'حالة الدفع'}:</span>
+                  <span className="font-semibold text-sm sm:text-base">{t('paymentStatus') || 'حالة الدفع'}</span>
                   <span className={`font-semibold text-sm sm:text-base ${
                     ticketInfo.payment_status === 'confirmed'
                       ? 'text-green-600 dark:text-green-400' 
