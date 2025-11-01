@@ -14,6 +14,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface Customer {
   id: string;
@@ -135,6 +136,40 @@ export const CustomersTab = () => {
   const [editingTicketHolder, setEditingTicketHolder] = useState<string | null>(null);
   const [ticketHolderEditForm, setTicketHolderEditForm] = useState({ phone: "", country_code: "" });
   const [sendingSingleTicket, setSendingSingleTicket] = useState<string | null>(null);
+
+  const gulfNationalities = [
+    { name: "قطري", flag: "🇶🇦" },
+    { name: "سعودي", flag: "🇸🇦" },
+    { name: "إماراتي", flag: "🇦🇪" },
+    { name: "كويتي", flag: "🇰🇼" },
+    { name: "بحريني", flag: "🇧🇭" },
+    { name: "عماني", flag: "🇴🇲" },
+  ];
+
+  const otherNationalities = [
+    { name: "مصري", flag: "🇪🇬" },
+    { name: "أردني", flag: "🇯🇴" },
+    { name: "لبناني", flag: "🇱🇧" },
+    { name: "سوري", flag: "🇸🇾" },
+    { name: "عراقي", flag: "🇮🇶" },
+    { name: "يمني", flag: "🇾🇪" },
+    { name: "مغربي", flag: "🇲🇦" },
+    { name: "جزائري", flag: "🇩🇿" },
+    { name: "تونسي", flag: "🇹🇳" },
+    { name: "فلسطيني", flag: "🇵🇸" },
+    { name: "سوداني", flag: "🇸🇩" },
+    { name: "صومالي", flag: "🇸🇴" },
+    { name: "هندي", flag: "🇮🇳" },
+    { name: "باكستاني", flag: "🇵🇰" },
+    { name: "بنغلاديشي", flag: "🇧🇩" },
+    { name: "فلبيني", flag: "🇵🇭" },
+    { name: "أمريكي", flag: "🇺🇸" },
+    { name: "بريطاني", flag: "🇬🇧" },
+    { name: "فرنسي", flag: "🇫🇷" },
+    { name: "ألماني", flag: "🇩🇪" },
+    { name: "إيطالي", flag: "🇮🇹" },
+    { name: "أسباني", flag: "🇪🇸" },
+  ];
 
   useEffect(() => {
     fetchCustomers();
@@ -1465,12 +1500,26 @@ export const CustomersTab = () => {
 
             <div>
               <label className="text-sm font-medium font-lusail block mb-2">الجنسية</label>
-              <Input
+              <Select
                 value={editForm.nationality}
-                onChange={(e) => setEditForm({ ...editForm, nationality: e.target.value })}
-                placeholder="الجنسية"
-                className="font-lusail"
-              />
+                onValueChange={(value) => setEditForm({ ...editForm, nationality: value })}
+              >
+                <SelectTrigger className="font-lusail">
+                  <SelectValue placeholder="اختر الجنسية" />
+                </SelectTrigger>
+                <SelectContent className="bg-background z-50">
+                  {gulfNationalities.map((nat) => (
+                    <SelectItem key={nat.name} value={nat.name}>
+                      {nat.flag} {nat.name}
+                    </SelectItem>
+                  ))}
+                  {otherNationalities.map((nat) => (
+                    <SelectItem key={nat.name} value={nat.name}>
+                      {nat.flag} {nat.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             <div className="flex justify-end gap-2 pt-4">
