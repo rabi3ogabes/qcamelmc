@@ -205,7 +205,11 @@ serve(async (req) => {
       }
 
       // Validate payment status (but still return ticket info)
-      if (order.payment_status !== 'confirmed') {
+      // Force confirmed status for POS orders
+      const isPOSOrder = order.booking_reference?.startsWith('POS-') || order.payment_method === 'cash_pos';
+      const effectivePaymentStatus = isPOSOrder ? 'confirmed' : order.payment_status;
+      
+      if (effectivePaymentStatus !== 'confirmed') {
         console.warn(`[Ticket Check-in] Payment not confirmed for ${booking_reference}`);
         return new Response(
           JSON.stringify({
@@ -222,7 +226,7 @@ serve(async (req) => {
               ticket_holder_nationality: ticketHolder.nationality,
               ticket_holder_id_number: ticketHolder.id_number,
               quantity: 1,
-              payment_status: order.payment_status,
+              payment_status: effectivePaymentStatus,
               is_present: ticketHolder.is_present,
             }
           } as CheckInResponse),
@@ -309,7 +313,11 @@ serve(async (req) => {
     }
 
     // Validate payment status
-    if (order.payment_status !== 'confirmed') {
+    // Force confirmed status for POS orders
+    const isPOSOrder = order.booking_reference?.startsWith('POS-') || order.payment_method === 'cash_pos';
+    const effectivePaymentStatus = isPOSOrder ? 'confirmed' : order.payment_status;
+    
+    if (effectivePaymentStatus !== 'confirmed') {
       console.warn(`[Ticket Check-in] Payment not confirmed for ${booking_reference}`);
       return new Response(
         JSON.stringify({
@@ -322,7 +330,7 @@ serve(async (req) => {
             event_title: order.events?.title || 'غير معروف',
             ticket_type: order.ticket_type,
             quantity: order.quantity,
-            payment_status: order.payment_status,
+            payment_status: effectivePaymentStatus,
             is_present: order.is_present,
           }
         } as CheckInResponse),
