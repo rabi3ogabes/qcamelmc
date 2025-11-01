@@ -71,7 +71,8 @@ serve(async (req) => {
       console.log('[Ticket Check-in] QR code:', booking_reference);
       
       // Query ticket holder by QR code with proper foreign key syntax
-      const { data: ticketHolder, error: holderError } = await supabase
+      // First try exact match
+      let { data: ticketHolder, error: holderError } = await supabase
         .from('ticket_holders')
         .select(`
           id,
@@ -106,7 +107,52 @@ serve(async (req) => {
           )
         `)
         .eq('qr_code', booking_reference)
-        .single();
+        .maybeSingle();
+
+      // If not found, try searching by QR code that contains the booking reference (handles URL vs plain code mismatch)
+      if (!ticketHolder) {
+        console.log('[Ticket Check-in] Exact match failed, trying partial match');
+        const { data: ticketsData, error: ticketsError } = await supabase
+          .from('ticket_holders')
+          .select(`
+            id,
+            name,
+            phone,
+            nationality,
+            ticket_type,
+            qr_code,
+            is_present,
+            confirmed_at,
+            confirmed_by,
+            order_id,
+            id_number,
+            orders!inner (
+              id,
+              booking_reference,
+              payment_status,
+              payment_method,
+              total_amount,
+              quantity,
+              ticket_type,
+              customers!inner (
+                name,
+                email,
+                phone
+              ),
+              events!inner (
+                title,
+                event_date,
+                location
+              )
+            )
+          `)
+          .ilike('qr_code', `%${booking_reference}%`);
+
+        if (ticketsData && ticketsData.length > 0) {
+          ticketHolder = ticketsData[0];
+          holderError = ticketsError;
+        }
+      }
 
       console.log('[Ticket Check-in] Query result:', JSON.stringify(ticketHolder, null, 2));
       console.log('[Ticket Check-in] Query error:', JSON.stringify(holderError, null, 2));

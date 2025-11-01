@@ -264,6 +264,9 @@ const QRScanner = () => {
 
         const order: any = orderData.orders;
         
+        console.log('Order data:', orderData);
+        console.log('Payment status from order:', order.payment_status);
+        
         setTicketInfo({
           booking_reference: order.booking_reference,
           customer_name: order.customers.name,
