@@ -65,27 +65,27 @@ const EventHome = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background font-lusail">
+    <div className="min-h-screen font-lusail" style={{ backgroundColor: '#F5EFE7' }}>
       {/* Popup Banner */}
       <PopupBanner />
       
       {/* Header */}
-      <header className="border-b backdrop-blur-sm sticky top-0 z-10" style={{ backgroundColor: settings?.header_bg_color || "hsl(var(--card) / 0.5)" }}>
+      <header className="border-b backdrop-blur-sm sticky top-0 z-10" style={{ backgroundColor: settings?.header_bg_color || "#D4B78A", borderColor: '#A85740' }}>
         <div className="container mx-auto px-4 py-4 flex justify-between items-center">
           {settings?.logo_url ? (
             <img src={settings.logo_url} alt="Logo" className="h-12 object-contain" loading="lazy" />
           ) : (
-            <h1 className="text-2xl font-bold">فعاليات قطر</h1>
+            <h1 className="text-2xl font-bold" style={{ color: '#6B4E3D' }}>فعاليات قطر</h1>
           )}
           <div className="flex gap-2">
             <Link to="/live-bookings">
-              <Button variant="outline" size="sm">
+              <Button variant="outline" size="sm" style={{ borderColor: '#A85740', color: '#6B4E3D', backgroundColor: 'transparent' }}>
                 <Calendar className="w-4 h-4 ml-2" />
                 {t('liveBookings')}
               </Button>
             </Link>
             <Link to="/admin/login">
-              <Button variant="outline" size="sm">
+              <Button variant="outline" size="sm" style={{ borderColor: '#A85740', color: '#6B4E3D', backgroundColor: 'transparent' }}>
                 <Lock className="w-4 h-4 ml-2" />
                 {t('adminLoginBtn')}
               </Button>
@@ -112,7 +112,7 @@ const EventHome = () => {
         </div>
       ) : events.length === 0 ? (
         <div className="flex items-center justify-center min-h-screen">
-          <p className="text-lg">{t('noActiveEvents')}</p>
+          <p className="text-lg" style={{ color: '#6B4E3D' }}>{t('noActiveEvents')}</p>
         </div>
       ) : (
         <>
@@ -124,7 +124,7 @@ const EventHome = () => {
               className="absolute inset-0 w-full h-full object-cover"
               fetchPriority="high"
             />
-            <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/40 to-background" />
+            <div className="absolute inset-0" style={{ background: 'linear-gradient(to bottom, rgba(168, 87, 64, 0.6), rgba(168, 87, 64, 0.4), #F5EFE7)' }} />
             
             <div className="relative h-full flex items-center justify-center px-4">
               {settings?.hero_text && (
@@ -142,8 +142,8 @@ const EventHome = () => {
             <div className="max-w-7xl mx-auto">
               <div className="flex flex-wrap justify-center gap-8">
                 {events.map((event) => (
-                <Card key={event.id} className="overflow-hidden hover:shadow-2xl transition-shadow flex flex-col w-full md:w-[calc(50%-1rem)] lg:w-[calc(33.333%-1.334rem)]">
-                    <div className="h-2" style={{ backgroundColor: settings?.header_bg_color || "hsl(var(--card) / 0.5)" }} />
+                <Card key={event.id} className="overflow-hidden hover:shadow-2xl transition-shadow flex flex-col w-full md:w-[calc(50%-1rem)] lg:w-[calc(33.333%-1.334rem)]" style={{ backgroundColor: '#FFFFFF', borderColor: '#D4B78A' }}>
+                    <div className="h-2" style={{ backgroundColor: settings?.header_bg_color || "#A85740" }} />
                     {event.image_url && (
                       <div className="relative h-64 overflow-hidden">
                         <img 
@@ -156,8 +156,8 @@ const EventHome = () => {
                     )}
                     
                     <div className="p-8 flex-1">
-                      <h2 className="text-3xl font-bold mb-4 text-center">{event.title}</h2>
-                      <p className="text-foreground font-bold mb-6 line-clamp-3 text-center">{event.description}</p>
+                      <h2 className="text-3xl font-bold mb-4 text-center" style={{ color: '#6B4E3D' }}>{event.title}</h2>
+                      <p className="font-bold mb-6 line-clamp-3 text-center" style={{ color: '#6B4E3D' }}>{event.description}</p>
                       
                       <div className="space-y-4">
                         <div className="hidden">
@@ -172,10 +172,10 @@ const EventHome = () => {
                         
                         {(event.start_time || event.end_time) && (
                           <div className="flex items-start gap-3">
-                            <Calendar className="w-5 h-5 text-primary mt-1" />
+                            <Calendar className="w-5 h-5 mt-1" style={{ color: '#A85740' }} />
                             <div>
-                              <p className="font-semibold">التوقيت</p>
-                              <p className="text-sm text-muted-foreground">
+                              <p className="font-semibold" style={{ color: '#6B4E3D' }}>التوقيت</p>
+                              <p className="text-sm" style={{ color: '#8B6F47' }}>
                                 {event.start_time && `وقت البداية: ${formatTime12Hour(event.start_time)}`}
                                 {event.start_time && event.end_time && " | "}
                                 {event.end_time && `وقت النهاية: ${formatTime12Hour(event.end_time)}`}
@@ -185,10 +185,10 @@ const EventHome = () => {
                         )}
                         
                         <div className="flex items-start gap-3">
-                          <MapPin className="w-5 h-5 text-primary mt-1" />
+                          <MapPin className="w-5 h-5 mt-1" style={{ color: '#A85740' }} />
                           <div>
-                            <p className="font-semibold">{t('location')}</p>
-                            <p className="text-sm text-muted-foreground">{event.location}</p>
+                            <p className="font-semibold" style={{ color: '#6B4E3D' }}>{t('location')}</p>
+                            <p className="text-sm" style={{ color: '#8B6F47' }}>{event.location}</p>
                           </div>
                         </div>
                       </div>
@@ -199,6 +199,7 @@ const EventHome = () => {
                         className="w-full"
                         size="lg"
                         onClick={() => navigate(`/tickets/${event.id}`)}
+                        style={{ backgroundColor: '#A85740', color: '#FFFFFF', border: 'none' }}
                       >
                         <Ticket className="w-5 h-5 ml-2" />
                         {t('bookTicketsNow')}
