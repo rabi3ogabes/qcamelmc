@@ -128,7 +128,7 @@ const AdminLogin = () => {
         </form>
 
         <div className="mt-6 p-4 bg-muted/50 rounded-lg border border-border">
-          <p className="text-sm text-muted-foreground mb-2 text-center">Demo Credentials</p>
+          <p className="text-sm text-muted-foreground mb-2 text-center hidden">Demo Credentials</p>
           <Button
             variant="outline"
             className="w-full text-sm"
