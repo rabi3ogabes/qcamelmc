@@ -188,10 +188,124 @@ const QRScanner = () => {
     setSelectedTicketId(null);
 
     try {
+      // Check if it's a phone number (contains only digits, +, spaces, or hyphens)
+      const isPhoneNumber = /^[\d\s+\-()]+$/.test(scannedCode);
+      
       // Check if it's a specific ticket code (contains -TKT) or just booking reference
       const isSpecificTicket = scannedCode.includes('-TKT');
       
-      if (isSpecificTicket) {
+      if (isPhoneNumber) {
+        // Search by phone number in ticket_holders
+        const cleanPhone = scannedCode.replace(/[\s\-()]/g, ''); // Remove spaces, hyphens, parentheses
+        
+        const { data: ticketsData, error: ticketsError } = await supabase
+          .from('ticket_holders')
+          .select(`
+            id,
+            name,
+            phone,
+            nationality,
+            ticket_type,
+            qr_code,
+            is_present,
+            confirmed_at,
+            id_number,
+            order_id,
+            orders!inner (
+              id,
+              booking_reference,
+              payment_status,
+              payment_method,
+              quantity,
+              customers!inner (name),
+              events!inner (title, event_date)
+            )
+          `)
+          .or(`phone.ilike.%${cleanPhone}%,phone.ilike.%${scannedCode}%`)
+          .order('created_at', { ascending: false });
+
+        if (ticketsError || !ticketsData || ticketsData.length === 0) {
+          setScanResult('error');
+          setTicketInfo({
+            booking_reference: scannedCode,
+            customer_name: "غير موجود",
+            event_title: "-",
+            ticket_type: "-",
+            quantity: 0,
+            payment_status: "غير مؤكد",
+            is_present: false,
+          });
+          toast.error('لا توجد تذاكر لهذا الرقم');
+          setProcessing(false);
+          return;
+        }
+
+        // Group tickets by order
+        const orderGroups = new Map();
+        ticketsData.forEach(ticket => {
+          const orderId = ticket.order_id;
+          if (!orderGroups.has(orderId)) {
+            orderGroups.set(orderId, []);
+          }
+          orderGroups.get(orderId).push(ticket);
+        });
+
+        // If multiple orders, show all tickets to choose from
+        if (orderGroups.size > 1 || ticketsData.length > 1) {
+          setAvailableTickets(ticketsData);
+          const firstTicket = ticketsData[0];
+          const order: any = firstTicket.orders;
+          
+          const isPOSOrder = order.booking_reference?.startsWith('POS-') || order.payment_method === 'cash_pos';
+          const effectivePaymentStatus = isPOSOrder ? 'confirmed' : order.payment_status;
+          
+          setTicketInfo({
+            booking_reference: `${ticketsData.length} تذكرة`,
+            customer_name: order.customers.name,
+            event_title: order.events.title,
+            ticket_type: firstTicket.ticket_type,
+            quantity: ticketsData.length,
+            payment_status: effectivePaymentStatus,
+            is_present: false,
+          });
+          setScanResult('success');
+          toast.info(`تم العثور على ${ticketsData.length} تذكرة لهذا الرقم - اختر التذكرة المراد تأكيدها`);
+        } else {
+          // Single ticket found
+          const ticket = ticketsData[0];
+          const order: any = ticket.orders;
+          
+          const isPOSOrder = order.booking_reference?.startsWith('POS-') || order.payment_method === 'cash_pos';
+          const effectivePaymentStatus = isPOSOrder ? 'confirmed' : order.payment_status;
+          
+          setTicketInfo({
+            booking_reference: order.booking_reference,
+            customer_name: order.customers.name,
+            event_title: order.events.title,
+            ticket_type: ticket.ticket_type,
+            ticket_holder_name: ticket.name,
+            ticket_holder_phone: ticket.phone,
+            ticket_holder_nationality: ticket.nationality,
+            ticket_holder_id_number: ticket.id_number,
+            ticket_holder_qr_code: ticket.qr_code,
+            quantity: 1,
+            payment_status: effectivePaymentStatus,
+            is_present: ticket.is_present,
+            confirmed_at: ticket.confirmed_at,
+          });
+
+          if (ticket.is_present) {
+            setScanResult('error');
+            toast.error('تم استخدام التذكرة مسبقاً');
+          } else if (effectivePaymentStatus !== 'confirmed') {
+            setScanResult('success');
+            toast.warning('⚠️ الدفع غير مؤكد');
+          } else {
+            setScanResult('success');
+            toast.success('معلومات التذكرة - جاهز للتأكيد');
+          }
+        }
+      } else if (isSpecificTicket) {
         // Process specific ticket
         // First try exact match
         let { data: orderData, error: orderError } = await supabase
@@ -669,7 +783,7 @@ const QRScanner = () => {
               <form onSubmit={handleManualSearch} className="space-y-3">
                 <Input
                   type="text"
-                  placeholder="أدخل رقم الحجز (مثال: QTR-XXXXXXXX)"
+                  placeholder="أدخل رقم الحجز أو رقم الهاتف"
                   value={manualSearch}
                   onChange={(e) => setManualSearch(e.target.value)}
                   className="text-center font-mono"
