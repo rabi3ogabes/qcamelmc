@@ -45,12 +45,14 @@ export const InvoiceTab = () => {
   const [sentOrders, setSentOrders] = useState<Map<string, { sentAt: Date; message?: string }>>(new Map());
   const [webhookUrl, setWebhookUrl] = useState<string | null>(null);
   const [currentlySending, setCurrentlySending] = useState<string | null>(null);
+  const [autoInvoiceInterval, setAutoInvoiceInterval] = useState<number>(60);
   const [countdown, setCountdown] = useState<number>(60);
   const [isCountdownActive, setIsCountdownActive] = useState(false);
 
   useEffect(() => {
     fetchOrders();
     fetchWebhookUrl();
+    fetchAutoInvoiceInterval();
 
     // Subscribe to realtime updates for n8n responses
     const channel = supabase
@@ -87,7 +89,7 @@ export const InvoiceTab = () => {
       // Countdown reached 0, trigger send
       sendInvoices();
       setIsCountdownActive(false);
-      setCountdown(60);
+      setCountdown(autoInvoiceInterval);
     }
 
     return () => clearTimeout(timer);
@@ -105,6 +107,22 @@ export const InvoiceTab = () => {
     }
 
     setWebhookUrl(data?.webhook_url || null);
+  };
+
+  const fetchAutoInvoiceInterval = async () => {
+    const { data, error } = await supabase
+      .from("settings")
+      .select("auto_invoice_interval_seconds")
+      .maybeSingle();
+
+    if (error) {
+      console.error("Error fetching auto invoice interval:", error);
+      return;
+    }
+
+    const interval = data?.auto_invoice_interval_seconds || 60;
+    setAutoInvoiceInterval(interval);
+    setCountdown(interval);
   };
 
   const fetchOrders = async () => {
@@ -256,19 +274,19 @@ export const InvoiceTab = () => {
 
     setSending(false);
     setCurrentlySending(null);
-    setCountdown(60);
+    setCountdown(autoInvoiceInterval);
     toast.success("تم الانتهاء من إرسال جميع الفواتير!");
   };
 
   const startCountdown = () => {
-    setCountdown(60);
+    setCountdown(autoInvoiceInterval);
     setIsCountdownActive(true);
-    toast.info("بدأ العد التنازلي - 60 ثانية");
+    toast.info(`بدأ العد التنازلي - ${autoInvoiceInterval} ثانية`);
   };
 
   const stopCountdown = () => {
     setIsCountdownActive(false);
-    setCountdown(60);
+    setCountdown(autoInvoiceInterval);
     toast.info("تم إيقاف العد التنازلي");
   };
 
