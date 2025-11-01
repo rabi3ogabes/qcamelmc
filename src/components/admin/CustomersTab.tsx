@@ -563,7 +563,7 @@ export const CustomersTab = () => {
       name: customer.name,
       email: customer.email,
       phone: customer.phone,
-      nationality: customer.nationality || "",
+      nationality: customer.nationality || "قطري",
     });
   };
 
