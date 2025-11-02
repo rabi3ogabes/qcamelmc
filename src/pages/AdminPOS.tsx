@@ -498,7 +498,7 @@ const AdminPOS = () => {
       return;
     }
 
-    if (!customerName || !customerEmail || !customerPhone || !customerNationality) {
+    if (!customerName || !customerPhone || !customerNationality) {
       toast({
         title: "خطأ",
         description: "يرجى ملء جميع الحقول المطلوبة",
@@ -829,13 +829,12 @@ const AdminPOS = () => {
                   </div>
 
                   <div>
-                    <Label htmlFor="email">البريد الإلكتروني *</Label>
+                    <Label htmlFor="email">البريد الإلكتروني</Label>
                     <Input
                       id="email"
                       type="email"
                       value={customerEmail}
                       onChange={(e) => setCustomerEmail(e.target.value)}
-                      required
                     />
                   </div>
 
