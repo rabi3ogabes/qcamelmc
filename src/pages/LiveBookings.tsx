@@ -474,16 +474,11 @@ const LiveBookings = () => {
                 <Card key={holder.id} className="p-4 hover:shadow-xl transition-shadow shadow-md">
                   <div className="flex flex-col gap-3">
                     {/* Name and Flag */}
-                    <div className="flex items-center justify-between gap-2">
-                      <div className="flex items-center gap-2">
-                        <User className="w-4 h-4 text-primary flex-shrink-0" />
-                        <span className="font-semibold text-sm truncate">{holder.name}</span>
-                      </div>
+                    <div className="flex items-center gap-2">
+                      <User className="w-4 h-4 text-primary flex-shrink-0" />
+                      <span className="font-semibold text-sm truncate flex-1 min-w-0">{holder.name}</span>
                       {holder.nationality && (
-                        <div className="flex items-center gap-2">
-                          <span className="text-lg">{getNationalityFlag(holder.nationality)}</span>
-                          <span className="text-xs">{holder.nationality}</span>
-                        </div>
+                        <span className="text-lg flex-shrink-0">{getNationalityFlag(holder.nationality)}</span>
                       )}
                     </div>
 
