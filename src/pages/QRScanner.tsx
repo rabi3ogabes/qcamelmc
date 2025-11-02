@@ -745,26 +745,26 @@ const QRScanner = () => {
         </div>
       </header>
 
-      <div className="max-w-4xl mx-auto py-4 sm:py-6 lg:py-8 px-3 sm:px-4">
+      <div className="max-w-4xl mx-auto py-3 sm:py-6 lg:py-8 px-3 sm:px-4 lg:px-6">
         {/* Mode Toggle Buttons */}
-        <div className="flex justify-center gap-2 sm:gap-4 mb-6">
+        <div className="flex justify-center gap-2 sm:gap-3 lg:gap-4 mb-4 sm:mb-6">
           <Button
             variant={scanMode === 'confirm' ? 'default' : 'secondary'}
             onClick={() => setScanMode('confirm')}
             size="sm"
-            className="flex-1 sm:flex-none sm:min-w-[180px]"
+            className="flex-1 sm:flex-none sm:min-w-[160px] lg:min-w-[200px] text-xs sm:text-sm lg:text-base"
           >
-            <CheckCircle2 className="w-4 h-4 sm:w-5 sm:h-5 ml-2" />
-            <span className="text-sm sm:text-base">تأكيد الحضور</span>
+            <CheckCircle2 className="w-3 h-3 sm:w-4 sm:h-4 lg:w-5 lg:h-5 ml-1 sm:ml-2" />
+            <span>تأكيد الحضور</span>
           </Button>
           <Button
             variant={scanMode === 'unconfirm' ? 'destructive' : 'secondary'}
             onClick={() => setScanMode('unconfirm')}
             size="sm"
-            className="flex-1 sm:flex-none sm:min-w-[180px]"
+            className="flex-1 sm:flex-none sm:min-w-[160px] lg:min-w-[200px] text-xs sm:text-sm lg:text-base"
           >
-            <XCircle className="w-4 h-4 sm:w-5 sm:h-5 ml-2" />
-            <span className="text-sm sm:text-base">إلغاء التأكيد</span>
+            <XCircle className="w-3 h-3 sm:w-4 sm:h-4 lg:w-5 lg:h-5 ml-1 sm:ml-2" />
+            <span>إلغاء التأكيد</span>
           </Button>
         </div>
 
@@ -859,7 +859,7 @@ const QRScanner = () => {
             {/* QR Scanner Container */}
             <div 
               id="qr-reader" 
-              className="w-full min-h-[180px] sm:min-h-[220px] rounded-lg overflow-hidden bg-muted/30"
+              className="w-full min-h-[200px] sm:min-h-[280px] md:min-h-[320px] lg:min-h-[360px] rounded-lg overflow-hidden bg-muted/30"
             ></div>
             
             {processing && (
@@ -964,8 +964,8 @@ const QRScanner = () => {
                               : ''
                           }`}
                         >
-                          <div className="flex justify-between items-start gap-2">
-                            <div className="flex items-start gap-3 flex-1">
+                           <div className="flex flex-col sm:flex-row justify-between items-start gap-2 sm:gap-3">
+                            <div className="flex items-start gap-2 sm:gap-3 flex-1 w-full sm:w-auto">
                               <Checkbox
                                 id={`ticket-${ticket.id}`}
                                 checked={selectedTicketIds.includes(ticket.id)}
@@ -974,33 +974,34 @@ const QRScanner = () => {
                                   scanMode === 'confirm' ? ticket.is_present : !ticket.is_present
                                 }
                                 onClick={(e) => e.stopPropagation()}
+                                className="mt-1"
                               />
                               <div className="flex-1 min-w-0">
-                                <div className="flex items-center gap-2 mb-1">
-                                  <span className="bg-primary text-primary-foreground text-xs font-bold px-2 py-1 rounded">
+                                <div className="flex flex-wrap items-center gap-2 mb-1.5">
+                                  <span className="bg-primary text-primary-foreground text-xs font-bold px-1.5 sm:px-2 py-0.5 sm:py-1 rounded whitespace-nowrap">
                                     {ticketPosition}/{totalTicketsForBooking}
                                   </span>
-                                  <div className="font-bold text-sm sm:text-lg truncate">{ticket.name}</div>
+                                  <div className="font-bold text-sm sm:text-base lg:text-lg truncate flex-1 min-w-0">{ticket.name}</div>
                                 </div>
                                 {bookingReference && (
-                                  <div className="text-xs sm:text-sm mt-1 bg-muted/50 p-1.5 rounded">
+                                  <div className="text-xs sm:text-sm mt-1.5 bg-muted/50 p-1.5 sm:p-2 rounded">
                                     <span className="font-semibold">الرقم المرجعي:</span>
-                                    <div className="font-mono text-xs break-all mt-0.5">{bookingReference}</div>
+                                    <div className="font-mono text-[10px] sm:text-xs break-all mt-0.5">{bookingReference}</div>
                                   </div>
                                 )}
-                                <div className="text-xs sm:text-sm mt-1">
-                                  <span className="font-semibold">الهاتف:</span> <span className="truncate inline-block max-w-[150px] sm:max-w-none">{ticket.phone}</span>
+                                <div className="text-xs sm:text-sm mt-1 break-words">
+                                  <span className="font-semibold">الهاتف:</span> <span className="font-mono">{ticket.phone}</span>
                                 </div>
-                                <div className="text-xs sm:text-sm">
-                                  <span className="font-semibold">النوع:</span> {ticket.ticket_type.toUpperCase()}
+                                <div className="text-xs sm:text-sm mt-0.5">
+                                  <span className="font-semibold">النوع:</span> <span className="uppercase font-medium">{ticket.ticket_type}</span>
                                 </div>
                               </div>
                             </div>
-                            <div className="flex-shrink-0">
+                            <div className="flex-shrink-0 self-start sm:self-auto mt-1 sm:mt-0">
                               {ticket.is_present ? (
-                                <span className="text-green-600 font-bold text-sm">✅ حاضر</span>
+                                <span className="text-green-600 font-bold text-xs sm:text-sm whitespace-nowrap">✅ حاضر</span>
                               ) : (
-                                <span className="text-muted-foreground text-sm">⭕ غير حاضر</span>
+                                <span className="text-muted-foreground text-xs sm:text-sm whitespace-nowrap">⭕ غير حاضر</span>
                               )}
                             </div>
                           </div>
@@ -1058,43 +1059,43 @@ const QRScanner = () => {
                 </div>
               )}
 
-              <div className="space-y-2 sm:space-y-3">
-                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center py-2 border-b gap-1">
-                  <span className="font-semibold text-sm sm:text-base">{t('bookingReference') || 'رقم الحجز'}</span>
-                  <span className="font-mono text-sm sm:text-lg break-all">{ticketInfo.booking_reference}</span>
+               <div className="space-y-2 sm:space-y-3">
+                <div className="flex flex-col sm:flex-row sm:justify-between py-2 border-b gap-1">
+                  <span className="font-semibold text-xs sm:text-sm lg:text-base">{t('bookingReference') || 'رقم الحجز'}</span>
+                  <span className="font-mono text-sm sm:text-base lg:text-lg break-all text-left sm:text-right">{ticketInfo.booking_reference}</span>
                 </div>
                 
                 {ticketInfo.ticket_holder_name && (
-                  <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center py-2 border-b gap-1">
-                    <span className="font-semibold text-sm sm:text-base">اسم حامل التذكرة</span>
-                    <span className="font-bold text-sm sm:text-lg">{ticketInfo.ticket_holder_name}</span>
+                  <div className="flex flex-col sm:flex-row sm:justify-between py-2 border-b gap-1">
+                    <span className="font-semibold text-xs sm:text-sm lg:text-base">اسم حامل التذكرة</span>
+                    <span className="font-bold text-sm sm:text-base lg:text-lg break-words text-left sm:text-right">{ticketInfo.ticket_holder_name}</span>
                   </div>
                 )}
                 
                 {ticketInfo.ticket_holder_phone && (
-                  <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center py-2 border-b gap-1">
-                    <span className="font-semibold text-sm sm:text-base">رقم الهاتف</span>
-                    <span className="font-mono text-sm sm:text-base">{ticketInfo.ticket_holder_phone}</span>
+                  <div className="flex flex-col sm:flex-row sm:justify-between py-2 border-b gap-1">
+                    <span className="font-semibold text-xs sm:text-sm lg:text-base">رقم الهاتف</span>
+                    <span className="font-mono text-sm sm:text-base lg:text-lg">{ticketInfo.ticket_holder_phone}</span>
                   </div>
                 )}
                 
                 {ticketInfo.ticket_holder_nationality && (
-                  <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center py-2 border-b gap-1">
-                    <span className="font-semibold text-sm sm:text-base">الجنسية</span>
-                    <span className="text-sm sm:text-base">{ticketInfo.ticket_holder_nationality}</span>
+                  <div className="flex flex-col sm:flex-row sm:justify-between py-2 border-b gap-1">
+                    <span className="font-semibold text-xs sm:text-sm lg:text-base">الجنسية</span>
+                    <span className="text-sm sm:text-base lg:text-lg">{ticketInfo.ticket_holder_nationality}</span>
                   </div>
                 )}
                 
                 {ticketInfo.ticket_holder_id_number && (
-                  <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center py-2 border-b gap-1">
-                    <span className="font-semibold text-sm sm:text-base">رقم الهوية</span>
-                    <span className="font-mono text-sm sm:text-base">{ticketInfo.ticket_holder_id_number}</span>
+                  <div className="flex flex-col sm:flex-row sm:justify-between py-2 border-b gap-1">
+                    <span className="font-semibold text-xs sm:text-sm lg:text-base">رقم الهوية</span>
+                    <span className="font-mono text-sm sm:text-base lg:text-lg break-all">{ticketInfo.ticket_holder_id_number}</span>
                   </div>
                 )}
                 
-                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center py-2 border-b gap-1">
-                  <span className="font-semibold text-sm sm:text-base">{t('customerName') || 'إسم العميل'}</span>
-                  <span className="text-sm sm:text-base">{ticketInfo.customer_name}</span>
+                <div className="flex flex-col sm:flex-row sm:justify-between py-2 border-b gap-1">
+                  <span className="font-semibold text-xs sm:text-sm lg:text-base">{t('customerName') || 'إسم العميل'}</span>
+                  <span className="text-sm sm:text-base lg:text-lg break-words text-left sm:text-right">{ticketInfo.customer_name}</span>
                 </div>
                 
                  {/* Confirm Presence Button - Only show when there are no available tickets (single ticket scan) */}
@@ -1144,21 +1145,21 @@ const QRScanner = () => {
                     </Button>
                   </div>
                 )}
-                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center py-2 border-b gap-1">
-                  <span className="font-semibold text-sm sm:text-base">اسم الحدث</span>
-                  <span className="text-sm sm:text-base">{ticketInfo.event_title}</span>
+                <div className="flex flex-col sm:flex-row sm:justify-between py-2 border-b gap-1">
+                  <span className="font-semibold text-xs sm:text-sm lg:text-base">اسم الحدث</span>
+                  <span className="text-sm sm:text-base lg:text-lg break-words text-left sm:text-right">{ticketInfo.event_title}</span>
                 </div>
-                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center py-2 border-b gap-1">
-                  <span className="font-semibold text-sm sm:text-base">{t('ticketType') || 'نوع التذكرة'}</span>
-                  <span className="uppercase font-bold text-sm sm:text-base">{ticketInfo.ticket_type}</span>
+                <div className="flex flex-col sm:flex-row sm:justify-between py-2 border-b gap-1">
+                  <span className="font-semibold text-xs sm:text-sm lg:text-base">{t('ticketType') || 'نوع التذكرة'}</span>
+                  <span className="uppercase font-bold text-sm sm:text-base lg:text-lg">{ticketInfo.ticket_type}</span>
                 </div>
-                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center py-2 border-b gap-1">
-                  <span className="font-semibold text-sm sm:text-base">{t('quantity') || 'الكمية'}</span>
-                  <span className="text-base sm:text-lg">{ticketInfo.quantity}</span>
+                <div className="flex flex-col sm:flex-row sm:justify-between py-2 border-b gap-1">
+                  <span className="font-semibold text-xs sm:text-sm lg:text-base">{t('quantity') || 'الكمية'}</span>
+                  <span className="text-base sm:text-lg lg:text-xl font-medium">{ticketInfo.quantity}</span>
                 </div>
-                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center py-2 border-b gap-1">
-                  <span className="font-semibold text-sm sm:text-base">حالة الدفع</span>
-                  <span className={`font-semibold text-sm sm:text-base ${
+                <div className="flex flex-col sm:flex-row sm:justify-between py-2 border-b gap-1">
+                  <span className="font-semibold text-xs sm:text-sm lg:text-base">حالة الدفع</span>
+                  <span className={`font-semibold text-sm sm:text-base lg:text-lg ${
                     ticketInfo.payment_status === 'confirmed'
                       ? 'text-green-600 dark:text-green-400' 
                       : 'text-orange-600 dark:text-orange-400'
@@ -1190,20 +1191,21 @@ const QRScanner = () => {
               </div>
 
               {/* Reset Button */}
-              <div className="mt-6">
+              <div className="mt-4 sm:mt-6">
                 <Button 
                   onClick={resetScanner} 
-                  className="w-full"
+                  className="w-full text-sm sm:text-base"
                   variant={scanResult === 'success' ? 'default' : 'outline'}
                   disabled={cameraStarting}
+                  size="lg"
                 >
                   {cameraStarting ? (
                     <>
-                      <Loader2 className="w-4 h-4 ml-2 animate-spin" />
-                      جاري التحميل...
+                      <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 ml-2 animate-spin" />
+                      <span className="text-sm sm:text-base">جاري التحميل...</span>
                     </>
                   ) : (
-                    "مسح تذكرة جديدة"
+                    <span className="text-sm sm:text-base">مسح تذكرة جديدة</span>
                   )}
                 </Button>
               </div>
