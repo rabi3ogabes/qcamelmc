@@ -478,12 +478,12 @@ export const OrdersTab = ({
 
         {/* Primary Action Buttons */}
         <div className="flex flex-wrap gap-2 pb-4 border-b">
-          <Button size="sm" variant="outline" onClick={() => navigate(`/admin/tickets?ref=${order.booking_reference}`)} className="font-lusail flex items-center gap-2">
-            <Printer className="w-4 h-4" />
+          <Button size="sm" variant="outline" onClick={() => navigate(`/admin/tickets?ref=${order.booking_reference}`)} className="font-lusail flex items-center gap-1 text-xs px-2 py-1 h-8">
+            <Printer className="w-3 h-3" />
             عرض التذاكر
           </Button>
-          <Button size="sm" variant="outline" onClick={() => viewOrderDetails(order.id)} className="font-lusail flex items-center gap-2">
-            <Eye className="w-4 h-4" />
+          <Button size="sm" variant="outline" onClick={() => viewOrderDetails(order.id)} className="font-lusail flex items-center gap-1 text-xs px-2 py-1 h-8">
+            <Eye className="w-3 h-3" />
             {t("viewDetails")}
           </Button>
           {order.payment_status === "pending" && (
@@ -491,9 +491,9 @@ export const OrdersTab = ({
               size="sm" 
               variant="default"
               onClick={() => togglePaymentStatus(order.id, order.payment_status)} 
-              className="font-lusail flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white"
+              className="font-lusail flex items-center gap-1 text-xs px-2 py-1 h-8 bg-green-600 hover:bg-green-700 text-white"
             >
-              <CheckCircle className="w-4 h-4" />
+              <CheckCircle className="w-3 h-3" />
               تأكيد الدفع ✓
             </Button>
           )}
@@ -502,9 +502,9 @@ export const OrdersTab = ({
               size="sm" 
               variant="destructive"
               onClick={() => togglePaymentStatus(order.id, order.payment_status)} 
-              className="font-lusail flex items-center gap-2"
+              className="font-lusail flex items-center gap-1 text-xs px-2 py-1 h-8"
             >
-              <XCircle className="w-4 h-4" />
+              <XCircle className="w-3 h-3" />
               إلغاء التأكيد
             </Button>
           )}
@@ -513,9 +513,9 @@ export const OrdersTab = ({
               size="sm" 
               variant="default"
               onClick={() => togglePaymentStatus(order.id, order.payment_status)} 
-              className="font-lusail flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white"
+              className="font-lusail flex items-center gap-1 text-xs px-2 py-1 h-8 bg-green-600 hover:bg-green-700 text-white"
             >
-              <CheckCircle className="w-4 h-4" />
+              <CheckCircle className="w-3 h-3" />
               تغيير إلى نجح
             </Button>
           )}
