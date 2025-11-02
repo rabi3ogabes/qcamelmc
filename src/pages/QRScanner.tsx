@@ -920,47 +920,60 @@ const QRScanner = () => {
                     </div>
                   </div>
                   <div className="space-y-2">
-                    {availableTickets.map((ticket) => (
-                      <div
-                        key={ticket.id}
-                        className={`w-full p-2 sm:p-3 rounded-lg border-2 text-right transition-all ${
-                          selectedTicketIds.includes(ticket.id)
-                            ? 'border-primary bg-primary/10 shadow-md'
-                            : 'border-border bg-card hover:border-primary/50'
-                        } ${
-                          ticket.is_present
-                            ? 'opacity-50'
-                            : ''
-                        }`}
-                      >
-                        <div className="flex justify-between items-start gap-2">
-                          <div className="flex items-start gap-3 flex-1">
-                            <Checkbox
-                              id={`ticket-${ticket.id}`}
-                              checked={selectedTicketIds.includes(ticket.id)}
-                              onCheckedChange={() => toggleTicketSelection(ticket.id)}
-                              disabled={ticket.is_present}
-                            />
-                            <div className="flex-1 min-w-0">
-                              <div className="font-bold text-sm sm:text-lg truncate">{ticket.name}</div>
-                              <div className="text-xs sm:text-sm mt-1">
-                                <span className="font-semibold">الهاتف:</span> <span className="truncate inline-block max-w-[150px] sm:max-w-none">{ticket.phone}</span>
-                              </div>
-                              <div className="text-xs sm:text-sm">
-                                <span className="font-semibold">النوع:</span> {ticket.ticket_type.toUpperCase()}
+                    {availableTickets.map((ticket, index) => {
+                      const ticketNumber = ticket.qr_code.includes('-TKT') 
+                        ? ticket.qr_code.split('-TKT')[1] || (index + 1).toString()
+                        : (index + 1).toString();
+                      
+                      return (
+                        <div
+                          key={ticket.id}
+                          onClick={() => !ticket.is_present && toggleTicketSelection(ticket.id)}
+                          className={`w-full p-2 sm:p-3 rounded-lg border-2 text-right transition-all cursor-pointer ${
+                            selectedTicketIds.includes(ticket.id)
+                              ? 'border-primary bg-primary/10 shadow-md'
+                              : 'border-border bg-card hover:border-primary/50'
+                          } ${
+                            ticket.is_present
+                              ? 'opacity-50 cursor-not-allowed'
+                              : ''
+                          }`}
+                        >
+                          <div className="flex justify-between items-start gap-2">
+                            <div className="flex items-start gap-3 flex-1">
+                              <Checkbox
+                                id={`ticket-${ticket.id}`}
+                                checked={selectedTicketIds.includes(ticket.id)}
+                                onCheckedChange={() => toggleTicketSelection(ticket.id)}
+                                disabled={ticket.is_present}
+                                onClick={(e) => e.stopPropagation()}
+                              />
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2 mb-1">
+                                  <span className="bg-primary text-primary-foreground text-xs font-bold px-2 py-0.5 rounded">
+                                    #{ticketNumber}
+                                  </span>
+                                </div>
+                                <div className="font-bold text-sm sm:text-lg truncate">{ticket.name}</div>
+                                <div className="text-xs sm:text-sm mt-1">
+                                  <span className="font-semibold">الهاتف:</span> <span className="truncate inline-block max-w-[150px] sm:max-w-none">{ticket.phone}</span>
+                                </div>
+                                <div className="text-xs sm:text-sm">
+                                  <span className="font-semibold">النوع:</span> {ticket.ticket_type.toUpperCase()}
+                                </div>
                               </div>
                             </div>
-                          </div>
-                          <div className="flex-shrink-0">
-                            {ticket.is_present ? (
-                              <span className="text-green-600 font-bold text-sm">✅ حاضر</span>
-                            ) : (
-                              <span className="text-muted-foreground text-sm">⭕ غير حاضر</span>
-                            )}
+                            <div className="flex-shrink-0">
+                              {ticket.is_present ? (
+                                <span className="text-green-600 font-bold text-sm">✅ حاضر</span>
+                              ) : (
+                                <span className="text-muted-foreground text-sm">⭕ غير حاضر</span>
+                              )}
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
 
                   {/* Bulk Action Buttons */}
