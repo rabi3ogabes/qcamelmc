@@ -329,7 +329,7 @@ const LiveBookings = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background font-lusail" dir="rtl">
+    <div className="min-h-screen bg-background font-lusail flex flex-col" dir="rtl">
       {/* Header with Logo */}
       <header className="border-b backdrop-blur-sm sticky top-0 z-10" style={{ backgroundColor: headerBgColor }}>
         <div className="container mx-auto px-4 py-4 flex justify-between items-center">
@@ -377,7 +377,7 @@ const LiveBookings = () => {
         </div>
       </header>
 
-      <div className="w-full py-8 px-[5%]">
+      <div className="w-full py-8 px-[5%] flex-1">
 
         {/* Date Selector and Stats */}
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 mb-8">
