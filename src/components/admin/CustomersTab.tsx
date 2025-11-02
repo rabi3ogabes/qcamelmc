@@ -343,8 +343,16 @@ export const CustomersTab = () => {
             const response = await fetch(qrDataUrl);
             const blob = await response.blob();
             
+            // Extract just the filename from holder.qr_code (in case it's a URL)
+            let baseFileName = holder.qr_code;
+            if (baseFileName.includes('/')) {
+              // Extract filename from URL
+              const parts = baseFileName.split('/');
+              baseFileName = parts[parts.length - 1].replace('.png', '');
+            }
+            
             // Upload to storage
-            const fileName = `${holder.qr_code}.png`;
+            const fileName = `${baseFileName}.png`;
             const { data: uploadData, error: uploadError } = await supabase.storage
               .from("qr-codes")
               .upload(fileName, blob, {
