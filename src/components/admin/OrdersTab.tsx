@@ -453,8 +453,8 @@ export const OrdersTab = ({
           <div>
             <p className="text-sm text-muted-foreground mb-1">{t("customer")}</p>
             <p className="font-semibold">{order.customers.name}</p>
-            <p className="text-sm text-muted-foreground">{order.customers.email}</p>
             <p className="text-xs text-muted-foreground">{order.customers.phone}</p>
+            <p className="text-sm text-muted-foreground">{order.customers.email}</p>
           </div>
           
           <div>
