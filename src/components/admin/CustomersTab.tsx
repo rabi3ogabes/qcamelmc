@@ -1342,8 +1342,7 @@ export const CustomersTab = () => {
                                       </div>
                                       <div className="text-xs text-muted-foreground space-y-1">
                                         <div className="flex items-center gap-2" dir="rtl">
-                                          <span>{holder.phone}</span>
-                                          <span>{holder.country_code || '+974'}</span>
+                                          <span>{(holder.country_code || '+974')}{holder.phone}</span>
                                           <span>•</span>
                                           <span>{holder.nationality}</span>
                                         </div>
