@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -39,10 +39,13 @@ const AdminDashboard = () => {
 
   useEffect(() => {
     checkAuth();
-    fetchOrders();
-    fetchSettings();
+    const initDashboard = async () => {
+      await Promise.all([fetchOrders(), fetchSettings()]);
+    };
+    initDashboard();
 
-    // Subscribe to real-time order changes
+    // Subscribe to real-time order changes with debouncing
+    let refreshTimeout: NodeJS.Timeout;
     const channel = supabase
       .channel('orders-changes')
       .on(
@@ -54,12 +57,16 @@ const AdminDashboard = () => {
         },
         () => {
           console.log('Order changed, refreshing...');
-          fetchOrders();
+          clearTimeout(refreshTimeout);
+          refreshTimeout = setTimeout(() => {
+            fetchOrders();
+          }, 500);
         }
       )
       .subscribe();
 
     return () => {
+      clearTimeout(refreshTimeout);
       supabase.removeChannel(channel);
     };
   }, []);
@@ -91,7 +98,7 @@ const AdminDashboard = () => {
     }
   };
 
-  const fetchOrders = async () => {
+  const fetchOrders = useCallback(async () => {
     try {
       const { data, error } = await supabase
         .from("orders")
@@ -101,11 +108,11 @@ const AdminDashboard = () => {
       if (error) throw error;
       setOrders(data || []);
     } catch (error) {
-      console.error("Failed to load orders:", error);
+      console.error("Error fetching orders:", error);
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();

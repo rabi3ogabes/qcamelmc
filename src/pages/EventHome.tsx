@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { supabase } from "@/integrations/supabase/client";
@@ -73,7 +73,13 @@ const EventHome = () => {
       <header className="border-b backdrop-blur-sm sticky top-0 z-10" style={{ backgroundColor: settings?.header_bg_color || "#D4B78A", borderColor: '#A85740' }}>
         <div className="container mx-auto px-4 py-4 flex justify-between items-center">
           {settings?.logo_url ? (
-            <img src={settings.logo_url} alt="Logo" className="h-[53px] object-contain" loading="lazy" />
+            <img 
+              src={settings.logo_url} 
+              alt="Logo" 
+              className="h-[53px] object-contain" 
+              loading="eager"
+              decoding="async"
+            />
           ) : (
             <h1 className="text-2xl font-bold" style={{ color: '#6B4E3D' }}>فعاليات قطر</h1>
           )}
@@ -122,7 +128,8 @@ const EventHome = () => {
               src={settings?.hero_image_url || heroImage}
               alt="Hero Image"
               className="absolute inset-0 w-full h-full object-cover"
-              fetchPriority="high"
+              loading="eager"
+              decoding="async"
             />
             <div className="absolute inset-0" style={{ background: 'linear-gradient(to bottom, rgba(168, 87, 64, 0.6), rgba(168, 87, 64, 0.4), #F5EFE7)' }} />
             
