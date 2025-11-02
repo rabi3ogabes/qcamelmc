@@ -321,84 +321,113 @@ export const CustomersTab = () => {
     setSendingInvoice(orderId);
     
     try {
-      // Fetch webhook URL from settings
-      const { data: settings, error: settingsError } = await supabase
-        .from("settings")
-        .select("webhook_url, admin_phone")
-        .maybeSingle();
-
-      if (settingsError) throw settingsError;
-
-      if (!settings?.webhook_url) {
-        toast.error("لم يتم تكوين رابط n8n webhook في الإعدادات");
-        return;
-      }
-
       // Find the order
       const order = customer.orders.find(o => o.id === orderId);
-      if (!order) {
-        toast.error("لم يتم العثور على الطلب");
+      if (!order || !order.ticket_holders || order.ticket_holders.length === 0) {
+        toast.error("لم يتم العثور على التذاكر");
         return;
       }
 
-      // Send to n8n webhook
-      console.log("Sending invoice via n8n webhook:", settings.webhook_url);
-      // Format phone number: ensure 974 country code without +
-      let formattedAdminPhone = null;
-      if (settings.admin_phone) {
-        const cleanPhone = settings.admin_phone.replace(/[\+\s]/g, '');
-        formattedAdminPhone = cleanPhone.startsWith('974') ? cleanPhone : `974${cleanPhone}`;
-      }
+      // Fetch ticket prices
+      const { data: tickets } = await supabase
+        .from("tickets")
+        .select("type, price");
 
-      // Format customer and ticket holder phones
-      const formatPhoneNumber = (phone: string | null | undefined) => {
-        if (!phone) return null;
-        const cleanPhone = phone.replace(/[\+\s]/g, '');
-        return cleanPhone.startsWith('974') ? cleanPhone : `974${cleanPhone}`;
-      };
+      const ticketPrices = new Map<string, number>(
+        tickets?.map((ticket) => [ticket.type as string, ticket.price as number]) || []
+      );
 
-      const formattedCustomer = {
-        name: customer.name,
-        email: customer.email,
-        phone: formatPhoneNumber(customer.phone)
-      };
+      // Send each ticket holder through the edge function
+      let successCount = 0;
+      let failCount = 0;
 
-      const formattedHolders = order.ticket_holders?.map((holder: any) => ({
-        ...holder,
-        phone: formatPhoneNumber(holder.phone)
-      })) || [];
-      
-      const response = await fetch(settings.webhook_url, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          customer: formattedCustomer,
-          order: {
-            id: order.id,
+      for (const holder of order.ticket_holders) {
+        try {
+          // Convert QR code data URL to blob and upload to storage
+          let qrCodeImageUrl = "";
+          const qrDataUrl = qrCodes[holder.qr_code];
+          
+          if (qrDataUrl) {
+            try {
+              // Convert data URL to blob
+              const response = await fetch(qrDataUrl);
+              const blob = await response.blob();
+              
+              // Upload to storage
+              const fileName = `${holder.qr_code}.png`;
+              const { data: uploadData, error: uploadError } = await supabase.storage
+                .from("qr-codes")
+                .upload(fileName, blob, {
+                  contentType: "image/png",
+                  upsert: true,
+                });
+
+              if (uploadError) throw uploadError;
+
+              // Get public URL
+              const { data: urlData } = supabase.storage
+                .from("qr-codes")
+                .getPublicUrl(fileName);
+
+              qrCodeImageUrl = urlData.publicUrl;
+            } catch (error) {
+              console.error("Error uploading QR code:", error);
+            }
+          }
+
+          // Prepare ticket data
+          const ticketData = {
             booking_reference: order.booking_reference,
-            ticket_type: order.ticket_type,
-            quantity: order.quantity,
-            total_amount: order.total_amount,
-            payment_status: order.payment_status,
-          },
-          ticketHolders: formattedHolders,
-          bookingReference: order.booking_reference,
-          adminPhone: formattedAdminPhone,
-          timestamp: new Date().toISOString(),
-          action: "send_invoice", // To differentiate from booking confirmation
-        }),
-      });
+            event_title: order.event_title || "",
+            event_location: order.event_location || "",
+            event_date: order.event_date || "",
+            ticket_count: 1,
+            holder: {
+              name: holder.name,
+              phone: holder.phone.replace(/^\+\d+\s*/, '').trim(),
+              country_code: holder.country_code?.replace('+', '') || '974',
+              nationality: holder.nationality,
+              id_number: holder.id_number,
+              ticket_type: holder.ticket_type,
+              ticket_price: ticketPrices.get(holder.ticket_type) || 0,
+              qr_code: holder.qr_code,
+              qr_code_image: qrCodeImageUrl,
+              is_present: holder.is_present || false,
+            },
+            timestamp: new Date().toISOString(),
+          };
 
-      if (!response.ok) {
-        throw new Error("فشل إرسال الفاتورة");
+          // Call the edge function
+          const { error } = await supabase.functions.invoke("send-to-webhook", {
+            body: ticketData,
+          });
+
+          if (error) {
+            console.error(`Failed to send ticket for ${holder.name}:`, error);
+            failCount++;
+          } else {
+            successCount++;
+          }
+
+          // Small delay between requests to avoid overwhelming the webhook
+          await new Promise(resolve => setTimeout(resolve, 500));
+        } catch (error) {
+          console.error(`Error processing ticket for ${holder.name}:`, error);
+          failCount++;
+        }
       }
 
-      toast.success("تم إرسال الفاتورة إلى واتساب بنجاح");
+      // Show result toast
+      if (successCount > 0 && failCount === 0) {
+        toast.success(`تم إرسال ${successCount} تذكرة إلى واتساب بنجاح`);
+      } else if (successCount > 0 && failCount > 0) {
+        toast.warning(`تم إرسال ${successCount} تذكرة، فشل إرسال ${failCount} تذكرة`);
+      } else {
+        toast.error("فشل إرسال التذاكر");
+      }
     } catch (error) {
-      console.error("Error sending invoice:", error);
-      toast.error("فشل إرسال الفاتورة. يرجى المحاولة مرة أخرى");
+      console.error("Error sending tickets:", error);
+      toast.error("فشل إرسال التذاكر. يرجى المحاولة مرة أخرى");
     } finally {
       setSendingInvoice(null);
     }
