@@ -163,7 +163,7 @@ const resources = {
       "selectTicketsTitle": "اختر تذكرتك",
       "chooseQuantity": "اختر الكمية لكل نوع تذكرة",
       "vipAccessTitle": "دخول VIP",
-      "vipAccessDesc": "مقاعد مميزة، وصول حصري، مشروبات مجانية",
+      "vipAccessDesc": "مقاعد مميزة، وصول حصري",
       "generalAdmissionTitle": "دخول عام",
       "generalAdmissionDesc": "دخول عام لجميع مناطق وأنشطة الفعالية",
       "parkingPassTitle": "بطاقة موقف السيارات",
