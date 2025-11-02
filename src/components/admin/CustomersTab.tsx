@@ -1341,7 +1341,7 @@ export const CustomersTab = () => {
                                         </Badge>
                                       </div>
                                       <div className="text-xs text-muted-foreground space-y-1">
-                                        <div className="flex items-center gap-2" dir="ltr">
+                                        <div className="flex items-center justify-center gap-2" dir="ltr">
                                           <span>{(holder.country_code || '+974')}{holder.phone}</span>
                                           <span>•</span>
                                           <span>{holder.nationality}</span>
