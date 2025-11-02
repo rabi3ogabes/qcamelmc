@@ -381,7 +381,7 @@ export const CustomersTab = () => {
             event_title: order.event_title || "",
             event_location: order.event_location || "",
             event_date: order.event_date || "",
-            ticket_count: 1,
+            ticket_count: order.quantity || order.ticket_holders.length,
             holder: {
               name: holder.name,
               phone: holder.phone.replace(/^\+\d+\s*/, '').trim(),
