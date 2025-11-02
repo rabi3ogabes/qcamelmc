@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
 import { ArrowLeft, CheckCircle2, XCircle, Loader2, Search, Camera, AlertCircle, LogOut } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
@@ -49,7 +50,7 @@ const QRScanner = () => {
   const [cameraError, setCameraError] = useState<string | null>(null);
   const [cameraStarting, setCameraStarting] = useState(false);
   const [availableTickets, setAvailableTickets] = useState<TicketHolder[]>([]);
-  const [selectedTicketId, setSelectedTicketId] = useState<string | null>(null);
+  const [selectedTicketIds, setSelectedTicketIds] = useState<string[]>([]);
   const [scanMode, setScanMode] = useState<'confirm' | 'unconfirm'>('confirm');
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
   const [headerBgColor, setHeaderBgColor] = useState<string>("hsl(var(--card) / 0.5)");
@@ -66,8 +67,8 @@ const QRScanner = () => {
 
   // Update ticket info when a specific ticket is selected from the list
   useEffect(() => {
-    if (selectedTicketId && availableTickets.length > 0) {
-      const selectedTicket: any = availableTickets.find(t => t.id === selectedTicketId);
+    if (selectedTicketIds.length === 1 && availableTickets.length > 0) {
+      const selectedTicket: any = availableTickets.find(t => t.id === selectedTicketIds[0]);
       if (selectedTicket) {
         const order = selectedTicket.orders;
         const isPOSOrder = order.booking_reference?.startsWith('POS-') || order.payment_method === 'cash_pos';
@@ -94,7 +95,7 @@ const QRScanner = () => {
         }
       }
     }
-  }, [selectedTicketId, availableTickets]);
+  }, [selectedTicketIds, availableTickets]);
 
   const fetchSettings = async () => {
     const { data, error } = await supabase
@@ -217,7 +218,7 @@ const QRScanner = () => {
     setProcessing(true);
     setScanning(false);
     setAvailableTickets([]);
-    setSelectedTicketId(null);
+    setSelectedTicketIds([]);
 
     try {
       // Check if it's a phone number (contains only digits, +, spaces, or hyphens)
@@ -532,9 +533,9 @@ const QRScanner = () => {
   const handleConfirmPresence = async () => {
     if (!ticketInfo) return;
     
-    // If we have multiple tickets available, user must select one first
-    if (availableTickets.length > 0 && !selectedTicketId) {
-      toast.error('الرجاء اختيار التذكرة المراد تأكيدها');
+    // If we have multiple tickets available, user must select at least one
+    if (availableTickets.length > 0 && selectedTicketIds.length === 0) {
+      toast.error('الرجاء اختيار التذاكر المراد تأكيدها');
       return;
     }
     
@@ -542,59 +543,57 @@ const QRScanner = () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       
-      // Use the selected ticket's QR code, or the ticket info's QR code if it's a specific ticket
-      const qrCode = selectedTicketId 
-        ? availableTickets.find(t => t.id === selectedTicketId)?.qr_code
-        : ticketInfo.ticket_holder_qr_code;
+      // Get QR codes for selected tickets
+      const qrCodes = selectedTicketIds.length > 0
+        ? availableTickets.filter(t => selectedTicketIds.includes(t.id)).map(t => t.qr_code)
+        : ticketInfo.ticket_holder_qr_code ? [ticketInfo.ticket_holder_qr_code] : [];
       
-      if (!qrCode) {
-        toast.error('خطأ: لم يتم العثور على رمز QR');
-        return;
-      }
-      
-      const { data, error } = await supabase.functions.invoke('ticket-checkin', {
-        body: { 
-          booking_reference: qrCode,
-          admin_id: user?.id 
-        },
-      });
-
-      if (error) throw error;
-
-      const response = data as { success: boolean; message: string; ticket_info?: any; };
-
-      if (!response.success) {
-        toast.error(response.message || 'فشل تأكيد الحضور');
+      if (qrCodes.length === 0) {
+        toast.error('خطأ: لم يتم العثور على رموز QR');
         return;
       }
 
-      // Update the ticket info to show it's been confirmed
-      if (availableTickets.length > 0 && selectedTicketId) {
-        const confirmedTicket = availableTickets.find(t => t.id === selectedTicketId);
-        if (confirmedTicket) {
-          setTicketInfo({
-            ...ticketInfo,
-            ticket_holder_name: confirmedTicket.name,
-            ticket_holder_phone: confirmedTicket.phone,
-            ticket_holder_nationality: confirmedTicket.nationality,
-            ticket_holder_id_number: confirmedTicket.id_number,
-            ticket_holder_qr_code: confirmedTicket.qr_code,
-            is_present: true,
-            confirmed_at: new Date().toISOString(),
+      let successCount = 0;
+      let errorCount = 0;
+
+      // Process each ticket
+      for (const qrCode of qrCodes) {
+        try {
+          const { data, error } = await supabase.functions.invoke('ticket-checkin', {
+            body: { 
+              booking_reference: qrCode,
+              admin_id: user?.id 
+            },
           });
+
+          if (error) throw error;
+
+          const response = data as { success: boolean; message: string; ticket_info?: any; };
+
+          if (response.success) {
+            successCount++;
+          } else {
+            errorCount++;
+          }
+        } catch (err) {
+          console.error('Error confirming ticket:', qrCode, err);
+          errorCount++;
         }
-      } else {
-        setTicketInfo({
-          ...ticketInfo,
-          is_present: true,
-          confirmed_at: new Date().toISOString(),
-        });
       }
-      
+
+      // Show results
+      if (successCount > 0) {
+        toast.success(`✅ تم تأكيد ${successCount} تذكرة بنجاح`);
+      }
+      if (errorCount > 0) {
+        toast.error(`⚠️ فشل تأكيد ${errorCount} تذكرة`);
+      }
+
+      // Clear selections and refresh
       setAvailableTickets([]);
-      setSelectedTicketId(null);
-      setScanResult('success');
-      toast.success(response.message || '✅ تم تأكيد الحضور بنجاح');
+      setSelectedTicketIds([]);
+      setTicketInfo(null);
+      setScanResult(null);
     } catch (err: any) {
       console.error('Confirmation error:', err);
       toast.error(err.message || 'حدث خطأ أثناء تأكيد الحضور');
@@ -606,63 +605,60 @@ const QRScanner = () => {
   const handleUnconfirmPresence = async () => {
     if (!ticketInfo) return;
     
-    // If we have multiple tickets available, user must select one first
-    if (availableTickets.length > 0 && !selectedTicketId) {
-      toast.error('الرجاء اختيار التذكرة المراد إلغاء تأكيدها');
+    // If we have multiple tickets available, user must select at least one
+    if (availableTickets.length > 0 && selectedTicketIds.length === 0) {
+      toast.error('الرجاء اختيار التذاكر المراد إلغاء تأكيدها');
       return;
     }
     
     setProcessing(true);
     try {
-      // Use the selected ticket's QR code, or the ticket info's QR code if it's a specific ticket
-      const qrCode = selectedTicketId 
-        ? availableTickets.find(t => t.id === selectedTicketId)?.qr_code
-        : ticketInfo.ticket_holder_qr_code;
+      // Get QR codes for selected tickets
+      const qrCodes = selectedTicketIds.length > 0
+        ? availableTickets.filter(t => selectedTicketIds.includes(t.id)).map(t => t.qr_code)
+        : ticketInfo.ticket_holder_qr_code ? [ticketInfo.ticket_holder_qr_code] : [];
       
-      if (!qrCode) {
-        toast.error('خطأ: لم يتم العثور على رمز QR');
+      if (qrCodes.length === 0) {
+        toast.error('خطأ: لم يتم العثور على رموز QR');
         return;
       }
 
-      // Update the ticket_holder to mark as not present
-      const { error } = await supabase
-        .from('ticket_holders')
-        .update({ 
-          is_present: false,
-          confirmed_at: null,
-          confirmed_by: null
-        })
-        .eq('qr_code', qrCode);
+      let successCount = 0;
+      let errorCount = 0;
 
-      if (error) throw error;
+      // Process each ticket
+      for (const qrCode of qrCodes) {
+        try {
+          const { error } = await supabase
+            .from('ticket_holders')
+            .update({ 
+              is_present: false,
+              confirmed_at: null,
+              confirmed_by: null
+            })
+            .eq('qr_code', qrCode);
 
-      // Update the ticket info to show it's been unconfirmed
-      if (availableTickets.length > 0 && selectedTicketId) {
-        const unconfirmedTicket = availableTickets.find(t => t.id === selectedTicketId);
-        if (unconfirmedTicket) {
-          setTicketInfo({
-            ...ticketInfo,
-            ticket_holder_name: unconfirmedTicket.name,
-            ticket_holder_phone: unconfirmedTicket.phone,
-            ticket_holder_nationality: unconfirmedTicket.nationality,
-            ticket_holder_id_number: unconfirmedTicket.id_number,
-            ticket_holder_qr_code: unconfirmedTicket.qr_code,
-            is_present: false,
-            confirmed_at: undefined,
-          });
+          if (error) throw error;
+          successCount++;
+        } catch (err) {
+          console.error('Error unconfirming ticket:', qrCode, err);
+          errorCount++;
         }
-      } else {
-        setTicketInfo({
-          ...ticketInfo,
-          is_present: false,
-          confirmed_at: undefined,
-        });
       }
-      
+
+      // Show results
+      if (successCount > 0) {
+        toast.success(`✅ تم إلغاء تأكيد ${successCount} تذكرة بنجاح`);
+      }
+      if (errorCount > 0) {
+        toast.error(`⚠️ فشل إلغاء تأكيد ${errorCount} تذكرة`);
+      }
+
+      // Clear selections and refresh
       setAvailableTickets([]);
-      setSelectedTicketId(null);
-      setScanResult('success');
-      toast.success('✅ تم إلغاء تأكيد الحضور بنجاح');
+      setSelectedTicketIds([]);
+      setTicketInfo(null);
+      setScanResult(null);
     } catch (err: any) {
       console.error('Unconfirmation error:', err);
       toast.error(err.message || 'حدث خطأ أثناء إلغاء تأكيد الحضور');
@@ -694,10 +690,27 @@ const QRScanner = () => {
     setManualSearch("");
     setCameraError(null);
     setAvailableTickets([]);
-    setSelectedTicketId(null);
+    setSelectedTicketIds([]);
     
     // Restart scanner
     await startScanner();
+  };
+
+  const toggleTicketSelection = (ticketId: string) => {
+    setSelectedTicketIds(prev => 
+      prev.includes(ticketId) 
+        ? prev.filter(id => id !== ticketId)
+        : [...prev, ticketId]
+    );
+  };
+
+  const toggleSelectAll = () => {
+    const notPresentTickets = availableTickets.filter(t => !t.is_present);
+    if (selectedTicketIds.length === notPresentTickets.length) {
+      setSelectedTicketIds([]);
+    } else {
+      setSelectedTicketIds(notPresentTickets.map(t => t.id));
+    }
   };
 
   const handleManualSearch = async (e: React.FormEvent) => {
@@ -891,49 +904,112 @@ const QRScanner = () => {
               {/* Ticket Selection for Booking Reference */}
               {availableTickets.length > 0 && (
                 <div className="mb-4 sm:mb-6 p-3 sm:p-4 bg-blue-50 dark:bg-blue-950/20 rounded-lg border-2 border-blue-300">
-                  <h3 className="font-bold text-base sm:text-lg mb-3 text-blue-900 dark:text-blue-100">
-                    اختر التذكرة المراد تأكيدها ({availableTickets.length} تذكرة):
-                  </h3>
+                  <div className="flex justify-between items-center mb-3">
+                    <h3 className="font-bold text-base sm:text-lg text-blue-900 dark:text-blue-100">
+                      اختر التذاكر المراد تأكيدها ({availableTickets.filter(t => !t.is_present).length} متاحة):
+                    </h3>
+                    <div className="flex items-center gap-2">
+                      <Checkbox
+                        id="select-all"
+                        checked={selectedTicketIds.length === availableTickets.filter(t => !t.is_present).length && selectedTicketIds.length > 0}
+                        onCheckedChange={toggleSelectAll}
+                      />
+                      <label htmlFor="select-all" className="text-sm cursor-pointer">
+                        اختيار الكل
+                      </label>
+                    </div>
+                  </div>
                   <div className="space-y-2">
                     {availableTickets.map((ticket) => (
-                      <button
+                      <div
                         key={ticket.id}
-                        onClick={() => setSelectedTicketId(ticket.id)}
                         className={`w-full p-2 sm:p-3 rounded-lg border-2 text-right transition-all ${
-                          selectedTicketId === ticket.id
+                          selectedTicketIds.includes(ticket.id)
                             ? 'border-primary bg-primary/10 shadow-md'
                             : 'border-border bg-card hover:border-primary/50'
                         } ${
                           ticket.is_present
-                            ? 'opacity-50 cursor-not-allowed'
-                            : 'cursor-pointer'
+                            ? 'opacity-50'
+                            : ''
                         }`}
-                        disabled={ticket.is_present}
                       >
                         <div className="flex justify-between items-start gap-2">
-                          <div className="flex-1 min-w-0">
-                            <div className="font-bold text-sm sm:text-lg truncate">{ticket.name}</div>
-                            <div className="text-xs sm:text-sm text-muted-foreground font-mono truncate">{ticket.qr_code}</div>
-                            <div className="text-xs sm:text-sm mt-1">
-                              <span className="font-semibold">الهاتف:</span> <span className="truncate inline-block max-w-[150px] sm:max-w-none">{ticket.phone}</span>
-                            </div>
-                            <div className="text-xs sm:text-sm">
-                              <span className="font-semibold">النوع:</span> {ticket.ticket_type.toUpperCase()}
+                          <div className="flex items-start gap-3 flex-1">
+                            <Checkbox
+                              id={`ticket-${ticket.id}`}
+                              checked={selectedTicketIds.includes(ticket.id)}
+                              onCheckedChange={() => toggleTicketSelection(ticket.id)}
+                              disabled={ticket.is_present}
+                            />
+                            <div className="flex-1 min-w-0">
+                              <div className="font-bold text-sm sm:text-lg truncate">{ticket.name}</div>
+                              <div className="text-xs sm:text-sm text-muted-foreground font-mono truncate">{ticket.qr_code}</div>
+                              <div className="text-xs sm:text-sm mt-1">
+                                <span className="font-semibold">الهاتف:</span> <span className="truncate inline-block max-w-[150px] sm:max-w-none">{ticket.phone}</span>
+                              </div>
+                              <div className="text-xs sm:text-sm">
+                                <span className="font-semibold">النوع:</span> {ticket.ticket_type.toUpperCase()}
+                              </div>
                             </div>
                           </div>
                           <div className="flex-shrink-0">
                             {ticket.is_present ? (
                               <span className="text-green-600 font-bold text-sm">✅ حاضر</span>
-                            ) : selectedTicketId === ticket.id ? (
-                              <span className="text-primary font-bold text-sm">← مختار</span>
                             ) : (
                               <span className="text-muted-foreground text-sm">⭕ غير حاضر</span>
                             )}
                           </div>
                         </div>
-                      </button>
+                      </div>
                     ))}
                   </div>
+
+                  {/* Bulk Action Buttons */}
+                  {selectedTicketIds.length > 0 && (
+                    <div className="mt-4 pt-4 border-t">
+                      {scanMode === 'confirm' && (
+                        <Button 
+                          onClick={handleConfirmPresence}
+                          disabled={processing}
+                          className="w-full bg-green-600 hover:bg-green-700 text-white"
+                          size="lg"
+                        >
+                          {processing ? (
+                            <>
+                              <Loader2 className="w-5 h-5 ml-2 animate-spin" />
+                              جاري التأكيد...
+                            </>
+                          ) : (
+                            <>
+                              <CheckCircle2 className="w-5 h-5 ml-2" />
+                              ✓ تأكيد حضور {selectedTicketIds.length} تذكرة
+                            </>
+                          )}
+                        </Button>
+                      )}
+                      
+                      {scanMode === 'unconfirm' && (
+                        <Button 
+                          onClick={handleUnconfirmPresence}
+                          disabled={processing}
+                          className="w-full bg-red-600 hover:bg-red-700 text-white"
+                          size="lg"
+                        >
+                          {processing ? (
+                            <>
+                              <Loader2 className="w-5 h-5 ml-2 animate-spin" />
+                              جاري إلغاء التأكيد...
+                            </>
+                          ) : (
+                            <>
+                              <XCircle className="w-5 h-5 ml-2" />
+                              ✗ إلغاء تأكيد {selectedTicketIds.length} تذكرة
+                            </>
+                          )}
+                        </Button>
+                      )}
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -976,8 +1052,8 @@ const QRScanner = () => {
                   <span className="text-sm sm:text-base">{ticketInfo.customer_name}</span>
                 </div>
                 
-                 {/* Confirm Presence Button */}
-                {scanMode === 'confirm' && !ticketInfo.is_present && ticketInfo.payment_status === 'confirmed' && (
+                 {/* Confirm Presence Button - Only show when there are no available tickets (single ticket scan) */}
+                {availableTickets.length === 0 && scanMode === 'confirm' && !ticketInfo.is_present && ticketInfo.payment_status === 'confirmed' && (
                   <div className="pt-4">
                     <Button 
                       onClick={handleConfirmPresence}
@@ -1000,8 +1076,8 @@ const QRScanner = () => {
                   </div>
                 )}
                 
-                {/* Unconfirm Presence Button */}
-                {scanMode === 'unconfirm' && ticketInfo.is_present && (
+                {/* Unconfirm Presence Button - Only show when there are no available tickets (single ticket scan) */}
+                {availableTickets.length === 0 && scanMode === 'unconfirm' && ticketInfo.is_present && (
                   <div className="pt-4">
                     <Button 
                       onClick={handleUnconfirmPresence}
