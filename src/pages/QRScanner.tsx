@@ -726,7 +726,7 @@ const QRScanner = () => {
     <div className="min-h-screen bg-background font-lusail" dir="rtl">
       {/* Header */}
       <header className="border-b backdrop-blur-sm sticky top-0 z-10" style={{ backgroundColor: headerBgColor }}>
-        <div className="container mx-auto px-4 py-3 sm:py-4 flex justify-between items-center">
+        <div className="container mx-auto px-3 sm:px-4 py-3 sm:py-4 flex justify-between items-center gap-2">
           <button onClick={() => navigate("/admin/dashboard")} className="focus:outline-none hover:opacity-80 transition-opacity">
             {logoUrl ? (
               <img src={logoUrl} alt="Logo" className="h-10 sm:h-12 object-contain" />
@@ -741,7 +741,7 @@ const QRScanner = () => {
         </div>
       </header>
 
-      <div className="max-w-4xl mx-auto py-4 sm:py-6 lg:py-8 px-4">
+      <div className="max-w-4xl mx-auto py-4 sm:py-6 lg:py-8 px-3 sm:px-4">
         {/* Mode Toggle Buttons */}
         <div className="flex justify-center gap-2 sm:gap-4 mb-6">
           <Button
@@ -904,9 +904,9 @@ const QRScanner = () => {
               {/* Ticket Selection for Booking Reference */}
               {availableTickets.length > 0 && (
                 <div className="mb-4 sm:mb-6 p-3 sm:p-4 bg-blue-50 dark:bg-blue-950/20 rounded-lg border-2 border-blue-300">
-                  <div className="flex justify-between items-center mb-3">
-                    <h3 className="font-bold text-base sm:text-lg text-blue-900 dark:text-blue-100">
-                      اختر التذاكر المراد تأكيدها ({availableTickets.filter(t => !t.is_present).length} متاحة):
+                  <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 mb-3">
+                    <h3 className="font-bold text-sm sm:text-base lg:text-lg text-blue-900 dark:text-blue-100">
+                      اختر التذاكر ({availableTickets.filter(t => !t.is_present).length} متاحة):
                     </h3>
                     <div className="flex items-center gap-2">
                       <Checkbox
@@ -943,7 +943,6 @@ const QRScanner = () => {
                             />
                             <div className="flex-1 min-w-0">
                               <div className="font-bold text-sm sm:text-lg truncate">{ticket.name}</div>
-                              <div className="text-xs sm:text-sm text-muted-foreground font-mono truncate">{ticket.qr_code}</div>
                               <div className="text-xs sm:text-sm mt-1">
                                 <span className="font-semibold">الهاتف:</span> <span className="truncate inline-block max-w-[150px] sm:max-w-none">{ticket.phone}</span>
                               </div>
