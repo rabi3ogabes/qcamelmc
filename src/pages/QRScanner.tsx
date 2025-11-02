@@ -921,10 +921,14 @@ const QRScanner = () => {
                   </div>
                   <div className="space-y-2">
                     {availableTickets.map((ticket, index) => {
-                      const ticketNumber = ticket.qr_code.includes('-TKT') 
-                        ? ticket.qr_code.split('-TKT')[1] || (index + 1).toString()
-                        : (index + 1).toString();
                       const bookingReference = (ticket as any).orders?.booking_reference || '';
+                      
+                      // Calculate ticket position within the same booking reference
+                      const ticketsWithSameBooking = availableTickets.filter(
+                        t => (t as any).orders?.booking_reference === bookingReference
+                      );
+                      const totalTicketsForBooking = ticketsWithSameBooking.length;
+                      const ticketPosition = ticketsWithSameBooking.findIndex(t => t.id === ticket.id) + 1;
                       
                       return (
                         <div
@@ -950,7 +954,12 @@ const QRScanner = () => {
                                 onClick={(e) => e.stopPropagation()}
                               />
                               <div className="flex-1 min-w-0">
-                                <div className="font-bold text-sm sm:text-lg truncate">{ticket.name}</div>
+                                <div className="flex items-center gap-2 mb-1">
+                                  <span className="bg-primary text-primary-foreground text-xs font-bold px-2 py-1 rounded">
+                                    {ticketPosition}/{totalTicketsForBooking}
+                                  </span>
+                                  <div className="font-bold text-sm sm:text-lg truncate">{ticket.name}</div>
+                                </div>
                                 {bookingReference && (
                                   <div className="text-xs sm:text-sm mt-1 bg-muted/50 p-1.5 rounded">
                                     <span className="font-semibold">الرقم المرجعي:</span>
