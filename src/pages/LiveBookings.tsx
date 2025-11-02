@@ -69,6 +69,42 @@ const LiveBookings = () => {
     presentTicketHolders: 0
   });
 
+  const getNationalityFlag = (nationality: string) => {
+    const flagMap: { [key: string]: string } = {
+      'قطر': '🇶🇦',
+      'السعودية': '🇸🇦',
+      'الإمارات': '🇦🇪',
+      'الكويت': '🇰🇼',
+      'البحرين': '🇧🇭',
+      'عمان': '🇴🇲',
+      'مصر': '🇪🇬',
+      'الأردن': '🇯🇴',
+      'لبنان': '🇱🇧',
+      'سوريا': '🇸🇾',
+      'العراق': '🇮🇶',
+      'اليمن': '🇾🇪',
+      'المغرب': '🇲🇦',
+      'الجزائر': '🇩🇿',
+      'تونس': '🇹🇳',
+      'ليبيا': '🇱🇾',
+      'السودان': '🇸🇩',
+      'فلسطين': '🇵🇸',
+      'باكستان': '🇵🇰',
+      'الهند': '🇮🇳',
+      'بنغلاديش': '🇧🇩',
+      'الفلبين': '🇵🇭',
+      'إندونيسيا': '🇮🇩',
+      'نيبال': '🇳🇵',
+      'أمريكا': '🇺🇸',
+      'بريطانيا': '🇬🇧',
+      'فرنسا': '🇫🇷',
+      'ألمانيا': '🇩🇪',
+      'إيطاليا': '🇮🇹',
+      'أسبانيا': '🇪🇸',
+    };
+    return flagMap[nationality] || '🌍';
+  };
+
   useEffect(() => {
     fetchSettings();
     autoSelectUpcomingEvent();
@@ -82,16 +118,14 @@ const LiveBookings = () => {
 
   const autoSelectUpcomingEvent = async () => {
     try {
-      // Get current date in Qatar timezone (UTC+3)
-      const qatarDate = new Date();
-      qatarDate.setHours(qatarDate.getHours() + 3); // Convert to Qatar time
-      const todayStr = format(qatarDate, 'yyyy-MM-dd');
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
       
       // Fetch all events to find the upcoming one
       const { data: events, error } = await supabase
         .from("events")
         .select("event_date")
-        .gte("event_date", todayStr)
+        .gte("event_date", today.toISOString())
         .order("event_date", { ascending: true })
         .limit(1);
 
@@ -103,12 +137,12 @@ const LiveBookings = () => {
         setSelectedDate(upcomingEventDate);
         console.log("Auto-selected upcoming event date:", format(upcomingEventDate, 'yyyy-MM-dd'));
       } else {
-        // No upcoming events, fetch bookings without filter
-        fetchBookings();
+        // No upcoming events
+        setLoading(false);
       }
     } catch (error) {
       console.error("Error auto-selecting event:", error);
-      fetchBookings();
+      setLoading(false);
     }
   };
 
@@ -447,7 +481,7 @@ const LiveBookings = () => {
                       </div>
                       {holder.nationality && (
                         <div className="flex items-center gap-2">
-                          <span className="text-lg">{holder.nationality === 'قطر' ? '🇶🇦' : '🌍'}</span>
+                          <span className="text-lg">{getNationalityFlag(holder.nationality)}</span>
                           <span className="text-xs">{holder.nationality}</span>
                         </div>
                       )}
@@ -536,7 +570,7 @@ const LiveBookings = () => {
                         <TableCell>
                           {holder.nationality && (
                             <span>
-                              {holder.nationality === 'قطر' ? '🇶🇦' : '🌍'} {holder.nationality}
+                              {getNationalityFlag(holder.nationality)} {holder.nationality}
                             </span>
                           )}
                         </TableCell>
