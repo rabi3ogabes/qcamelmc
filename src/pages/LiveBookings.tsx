@@ -24,6 +24,7 @@ interface TicketHolder {
   is_present: boolean;
   confirmed_at?: string;
   order_id: string;
+  booking_reference?: string;
 }
 
 interface Booking {
@@ -191,7 +192,10 @@ const LiveBookings = () => {
         console.log(`Order ${order.booking_reference} ticket_holders:`, order.ticket_holders);
         if (order.ticket_holders && Array.isArray(order.ticket_holders)) {
           order.ticket_holders.forEach((holder: any) => {
-            allTicketHolders.push(holder);
+            allTicketHolders.push({
+              ...holder,
+              booking_reference: order.booking_reference
+            });
           });
         }
       });
@@ -449,19 +453,19 @@ const LiveBookings = () => {
                       )}
                     </div>
 
-                    {/* Phone and ID Number */}
-                    <div className="flex items-center justify-between gap-2">
-                      <div className="flex items-center gap-2">
-                        <Phone className="w-4 h-4 text-primary flex-shrink-0" />
-                        <span className="text-xs truncate">{holder.phone}</span>
-                      </div>
-                      {holder.id_number && (
-                        <div className="flex items-center gap-2">
-                          <Hash className="w-4 h-4 text-primary flex-shrink-0" />
-                          <span className="text-xs truncate">{holder.id_number}</span>
-                        </div>
-                      )}
+                    {/* Phone */}
+                    <div className="flex items-center gap-2">
+                      <Phone className="w-4 h-4 text-primary flex-shrink-0" />
+                      <span className="text-xs truncate">{holder.phone}</span>
                     </div>
+
+                    {/* Booking Reference */}
+                    {holder.booking_reference && (
+                      <div className="flex items-center gap-2">
+                        <CreditCard className="w-4 h-4 text-primary flex-shrink-0" />
+                        <span className="text-xs truncate font-mono">{holder.booking_reference}</span>
+                      </div>
+                    )}
 
                     {/* Ticket Type and Attendance */}
                     <div className="flex items-center justify-between gap-2">
@@ -511,7 +515,7 @@ const LiveBookings = () => {
                     <TableHead className="text-right font-lusail">الاسم</TableHead>
                     <TableHead className="text-right font-lusail">الهاتف</TableHead>
                     <TableHead className="text-right font-lusail">الجنسية</TableHead>
-                    <TableHead className="text-right font-lusail">رقم الهوية</TableHead>
+                    <TableHead className="text-right font-lusail">الرقم المرجعي</TableHead>
                     <TableHead className="text-right font-lusail">نوع التذكرة</TableHead>
                     <TableHead className="text-right font-lusail">الحضور</TableHead>
                     <TableHead className="text-right font-lusail">وقت التأكيد</TableHead>
@@ -536,7 +540,7 @@ const LiveBookings = () => {
                             </span>
                           )}
                         </TableCell>
-                        <TableCell className="font-mono">{holder.id_number || '-'}</TableCell>
+                        <TableCell className="font-mono">{holder.booking_reference || '-'}</TableCell>
                         <TableCell>
                           <Badge variant="outline" className="text-xs">
                             {holder.ticket_type.toUpperCase()}
