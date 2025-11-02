@@ -328,102 +328,79 @@ export const CustomersTab = () => {
         return;
       }
 
-      // Fetch ticket prices
-      const { data: tickets } = await supabase
-        .from("tickets")
-        .select("type, price");
+      // Prepare arrays for QR codes and ticket types
+      const qrCodeUrls: string[] = [];
+      const ticketTypesArray: string[] = [];
 
-      const ticketPrices = new Map<string, number>(
-        tickets?.map((ticket) => [ticket.type as string, ticket.price as number]) || []
-      );
-
-      // Send each ticket holder through the edge function
-      let successCount = 0;
-      let failCount = 0;
-
+      // Process each ticket holder to upload QR codes
       for (const holder of order.ticket_holders) {
-        try {
-          // Convert QR code data URL to blob and upload to storage
-          let qrCodeImageUrl = "";
-          const qrDataUrl = qrCodes[holder.qr_code];
-          
-          if (qrDataUrl) {
-            try {
-              // Convert data URL to blob
-              const response = await fetch(qrDataUrl);
-              const blob = await response.blob();
-              
-              // Upload to storage
-              const fileName = `${holder.qr_code}.png`;
-              const { data: uploadData, error: uploadError } = await supabase.storage
-                .from("qr-codes")
-                .upload(fileName, blob, {
-                  contentType: "image/png",
-                  upsert: true,
-                });
+        let qrCodeImageUrl = "";
+        const qrDataUrl = qrCodes[holder.qr_code];
+        
+        if (qrDataUrl) {
+          try {
+            // Convert data URL to blob
+            const response = await fetch(qrDataUrl);
+            const blob = await response.blob();
+            
+            // Upload to storage
+            const fileName = `${holder.qr_code}.png`;
+            const { data: uploadData, error: uploadError } = await supabase.storage
+              .from("qr-codes")
+              .upload(fileName, blob, {
+                contentType: "image/png",
+                upsert: true,
+              });
 
-              if (uploadError) throw uploadError;
-
+            if (uploadError) {
+              console.error("Error uploading QR code:", uploadError);
+            } else {
               // Get public URL
               const { data: urlData } = supabase.storage
                 .from("qr-codes")
                 .getPublicUrl(fileName);
 
               qrCodeImageUrl = urlData.publicUrl;
-            } catch (error) {
-              console.error("Error uploading QR code:", error);
             }
+          } catch (error) {
+            console.error("Error processing QR code:", error);
           }
-
-          // Prepare ticket data
-          const ticketData = {
-            booking_reference: order.booking_reference,
-            event_title: order.event_title || "",
-            event_location: order.event_location || "",
-            event_date: order.event_date || "",
-            ticket_count: order.quantity || order.ticket_holders.length,
-            holder: {
-              name: holder.name,
-              phone: holder.phone.replace(/^\+\d+\s*/, '').trim(),
-              country_code: holder.country_code?.replace('+', '') || '974',
-              nationality: holder.nationality,
-              id_number: holder.id_number,
-              ticket_type: holder.ticket_type,
-              ticket_price: ticketPrices.get(holder.ticket_type) || 0,
-              qr_code: holder.qr_code,
-              qr_code_image: qrCodeImageUrl,
-              is_present: holder.is_present || false,
-            },
-            timestamp: new Date().toISOString(),
-          };
-
-          // Call the edge function
-          const { error } = await supabase.functions.invoke("send-to-webhook", {
-            body: ticketData,
-          });
-
-          if (error) {
-            console.error(`Failed to send ticket for ${holder.name}:`, error);
-            failCount++;
-          } else {
-            successCount++;
-          }
-
-          // Small delay between requests to avoid overwhelming the webhook
-          await new Promise(resolve => setTimeout(resolve, 500));
-        } catch (error) {
-          console.error(`Error processing ticket for ${holder.name}:`, error);
-          failCount++;
         }
+
+        qrCodeUrls.push(qrCodeImageUrl);
+        ticketTypesArray.push(holder.ticket_type);
       }
 
-      // Show result toast
-      if (successCount > 0 && failCount === 0) {
-        toast.success(`تم إرسال ${successCount} تذكرة إلى واتساب بنجاح`);
-      } else if (successCount > 0 && failCount > 0) {
-        toast.warning(`تم إرسال ${successCount} تذكرة، فشل إرسال ${failCount} تذكرة`);
-      } else {
+      // Prepare consolidated webhook payload
+      const webhookPayload = {
+        booking_reference: order.booking_reference,
+        event_title: order.event_title || "",
+        event_location: order.event_location || "",
+        event_date: order.event_date || "",
+        customer_name: customer.name,
+        customer_phone: customer.phone.replace(/^\+\d+\s*/, '').trim(),
+        customer_phone_whatsapp: `${order.ticket_holders[0]?.country_code?.replace('+', '') || '974'}${customer.phone.replace(/^\+\d+\s*/, '').trim()}`,
+        nationality: customer.nationality || order.ticket_holders[0]?.nationality || "",
+        quantity: order.quantity || order.ticket_holders.length,
+        qr_codes: qrCodeUrls,
+        ticket_types: ticketTypesArray,
+        total_amount: order.total_amount || 0,
+        payment_status: order.payment_status || "",
+        timestamp: new Date().toISOString(),
+      };
+
+      console.log("Sending consolidated data to webhook:", webhookPayload);
+
+      // Call the edge function once with all data
+      const { error } = await supabase.functions.invoke("send-to-webhook", {
+        body: webhookPayload,
+      });
+
+      if (error) {
+        console.error("Failed to send tickets:", error);
         toast.error("فشل إرسال التذاكر");
+      } else {
+        toast.success(`تم إرسال ${order.ticket_holders.length} تذكرة إلى واتساب بنجاح`);
       }
     } catch (error) {
       console.error("Error sending tickets:", error);
