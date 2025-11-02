@@ -924,6 +924,7 @@ const QRScanner = () => {
                       const ticketNumber = ticket.qr_code.includes('-TKT') 
                         ? ticket.qr_code.split('-TKT')[1] || (index + 1).toString()
                         : (index + 1).toString();
+                      const bookingReference = (ticket as any).orders?.booking_reference || '';
                       
                       return (
                         <div
@@ -955,6 +956,12 @@ const QRScanner = () => {
                                   </span>
                                 </div>
                                 <div className="font-bold text-sm sm:text-lg truncate">{ticket.name}</div>
+                                {bookingReference && (
+                                  <div className="text-xs sm:text-sm mt-1 bg-muted/50 p-1.5 rounded">
+                                    <span className="font-semibold">الرقم المرجعي:</span>
+                                    <div className="font-mono text-xs break-all mt-0.5">{bookingReference}</div>
+                                  </div>
+                                )}
                                 <div className="text-xs sm:text-sm mt-1">
                                   <span className="font-semibold">الهاتف:</span> <span className="truncate inline-block max-w-[150px] sm:max-w-none">{ticket.phone}</span>
                                 </div>
