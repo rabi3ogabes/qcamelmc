@@ -284,32 +284,32 @@ const TicketSelection = () => {
       
       {/* Header */}
       <header className="backdrop-blur-sm sticky top-0 z-10 bg-background" style={{ backgroundColor: headerBgColor }}>
-        <div className="container mx-auto px-4 py-4 flex justify-center items-center">
+        <div className="container mx-auto px-3 sm:px-4 py-3 sm:py-4 flex justify-center items-center">
           {logoUrl && (
             <img 
               src={logoUrl} 
               alt="Logo" 
-              className="h-[53px] object-contain cursor-pointer" 
+              className="h-10 sm:h-12 lg:h-[53px] object-contain cursor-pointer" 
               onClick={() => navigate("/")}
             />
           )}
         </div>
       </header>
 
-      <div className="max-w-7xl mx-auto py-6 sm:py-12 px-4">
+      <div className="max-w-7xl mx-auto py-4 sm:py-8 lg:py-12 px-3 sm:px-4 lg:px-6">
         {event && (
-          <div className="text-center mb-8 sm:mb-12">
-            <h1 className="text-3xl sm:text-4xl font-bold mb-3 sm:mb-4">{event.title}</h1>
-            <p className="text-sm sm:text-base text-muted-foreground mb-2 hidden">
+          <div className="text-center mb-6 sm:mb-10 lg:mb-12">
+            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold mb-2 sm:mb-3 lg:mb-4 px-2">{event.title}</h1>
+            <p className="text-xs sm:text-sm lg:text-base text-muted-foreground mb-2 hidden">
               {format(new Date(event.event_date), "EEEE، d MMMM، yyyy - h:mm a", { locale: ar })}
             </p>
-            <p className="text-sm sm:text-base text-muted-foreground">{event.location}</p>
+            <p className="text-xs sm:text-sm lg:text-base text-muted-foreground px-2">{event.location}</p>
           </div>
         )}
 
-        <div className="text-center mb-6 sm:mb-8">
-          <h2 className="text-2xl sm:text-3xl font-bold mb-2">{t('selectTicketsTitle')}</h2>
-          <p className="text-sm sm:text-base text-muted-foreground">{t('chooseQuantity')}</p>
+        <div className="text-center mb-6 sm:mb-8 lg:mb-10">
+          <h2 className="text-xl sm:text-2xl lg:text-3xl font-bold mb-2 px-2">{t('selectTicketsTitle')}</h2>
+          <p className="text-xs sm:text-sm lg:text-base text-muted-foreground px-2">{t('chooseQuantity')}</p>
         </div>
 
         <div className="mb-6 sm:mb-8">
@@ -370,34 +370,34 @@ const TicketSelection = () => {
           </div>
 
           {/* Right Column - Ticket Selection */}
-          <div className="space-y-4 sm:space-y-6 w-[80%] mx-auto">
+          <div className="space-y-3 sm:space-y-4 lg:space-y-6 w-full sm:w-[90%] lg:w-[80%] mx-auto">
           {tickets.map((ticket) => (
-            <Card key={ticket.id} className="overflow-hidden shadow-md hover:shadow-lg transition-shadow flex flex-col min-h-[180px] border-0">
+            <Card key={ticket.id} className="overflow-hidden shadow-md hover:shadow-lg transition-shadow flex flex-col min-h-[160px] sm:min-h-[180px] border-0">
               {/* Header Banner */}
-              <div className="px-4 py-2" style={{ backgroundColor: headerBgColor }}>
-                <h3 className="text-base font-bold text-white text-center">
+              <div className="px-3 sm:px-4 py-2" style={{ backgroundColor: headerBgColor }}>
+                <h3 className="text-sm sm:text-base lg:text-lg font-bold text-white text-center">
                   {getTicketTitle(ticket.type)}
                 </h3>
               </div>
               
-              <div className="p-4 sm:p-6 flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-6 flex-1">
-                <div className="flex items-start sm:items-center gap-4 flex-1">
-                  <div className="p-3 sm:p-4 bg-muted rounded-lg shrink-0">
+              <div className="p-3 sm:p-4 lg:p-6 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 lg:gap-6 flex-1">
+                <div className="flex items-start sm:items-center gap-3 sm:gap-4 flex-1">
+                  <div className="p-2 sm:p-3 lg:p-4 bg-muted rounded-lg shrink-0">
                     {getTicketIcon(ticket.type)}
                   </div>
                   
                   <div className="flex-1 min-w-0">
-                    <p className="text-xs sm:text-sm text-muted-foreground mb-2">
+                    <p className="text-xs sm:text-sm lg:text-base text-muted-foreground mb-1.5 sm:mb-2 break-words">
                       {getTicketDescription(ticket)}
                     </p>
-                    <p className="text-xs sm:text-sm text-muted-foreground">
+                    <p className="text-xs sm:text-sm lg:text-base text-muted-foreground">
                       {t('availableTickets')}: {ticket.available_quantity - ticket.sold_quantity}
                     </p>
                   </div>
                 </div>
 
-                <div className="flex sm:flex-col items-center sm:items-end justify-between sm:justify-start gap-3 sm:space-y-3 sm:text-right">
-                  <div className="text-xl sm:text-2xl font-bold text-primary">
+                <div className="flex sm:flex-col items-center sm:items-end justify-between sm:justify-start gap-3 sm:space-y-2 lg:space-y-3 sm:text-right">
+                  <div className="text-lg sm:text-xl lg:text-2xl font-bold text-primary whitespace-nowrap">
                     {ticket.price.toFixed(2)} {t('qar')}
                   </div>
                   <div className="flex items-center gap-2">
@@ -405,30 +405,30 @@ const TicketSelection = () => {
                       type="button"
                       variant="outline"
                       size="icon"
-                      className="h-9 w-9 shrink-0"
+                      className="h-8 w-8 sm:h-9 sm:w-9 shrink-0"
                       onClick={() => decrementQuantity(ticket.id)}
                       disabled={(selections[ticket.id] || 0) === 0}
                     >
-                      <Minus className="h-4 w-4" />
+                      <Minus className="h-3 w-3 sm:h-4 sm:w-4" />
                     </Button>
-                    <div className="w-12 text-center font-semibold text-lg">
+                    <div className="w-10 sm:w-12 text-center font-semibold text-base sm:text-lg">
                       {selections[ticket.id] || 0}
                     </div>
                     <Button
                       type="button"
                       variant="outline"
                       size="icon"
-                      className="h-9 w-9 shrink-0"
+                      className="h-8 w-8 sm:h-9 sm:w-9 shrink-0"
                       onClick={() => incrementQuantity(ticket.id, ticket.type, Math.min(ticket.available_quantity - ticket.sold_quantity, MAX_TICKETS_PER_TYPE))}
                       disabled={
                         (selections[ticket.id] || 0) >= Math.min(ticket.available_quantity - ticket.sold_quantity, MAX_TICKETS_PER_TYPE) ||
                         ((ticket.type === "vip" || ticket.type === "normal") && getAdmissionTicketCount() >= MAX_ADMISSION_TICKETS)
                       }
                     >
-                      <Plus className="h-4 w-4" />
+                      <Plus className="h-3 w-3 sm:h-4 sm:w-4" />
                     </Button>
                   </div>
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-[10px] sm:text-xs lg:text-sm text-muted-foreground text-center sm:text-right">
                     {ticket.type === "parking" ? t('maxParkingLabel') : t('maxAdmissionLabel')}
                   </p>
                 </div>
@@ -438,16 +438,16 @@ const TicketSelection = () => {
           </div>
         </div>
 
-        <Card className="p-4 sm:p-6 bg-primary/5 border-primary/20">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 mb-4">
-            <span className="text-base sm:text-lg font-semibold">{t('totalAmount')}:</span>
-            <span className="text-2xl sm:text-3xl font-bold text-primary">
+        <Card className="p-3 sm:p-4 lg:p-6 bg-primary/5 border-primary/20">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-3 lg:gap-4 mb-3 sm:mb-4">
+            <span className="text-sm sm:text-base lg:text-lg font-semibold">{t('totalAmount')}:</span>
+            <span className="text-xl sm:text-2xl lg:text-3xl font-bold text-primary">
               {calculateTotal().toFixed(2)} {t('qar')}
             </span>
           </div>
           <Button 
             size="lg" 
-            className="w-full"
+            className="w-full text-sm sm:text-base"
             onClick={handleContinue}
             disabled={calculateTotal() === 0}
           >
@@ -456,8 +456,9 @@ const TicketSelection = () => {
           </Button>
         </Card>
 
-        <div className="text-center mt-4 sm:mt-6">
-          <Button variant="ghost" onClick={() => navigate("/")} className="bg-yellow-500 hover:bg-yellow-600 text-black">
+        {/* 250px spacing between buttons */}
+        <div className="text-center" style={{ marginTop: '250px' }}>
+          <Button variant="ghost" onClick={() => navigate("/")} className="bg-yellow-500 hover:bg-yellow-600 text-black text-sm sm:text-base px-4 sm:px-6 py-2 sm:py-3">
             {t('backToEvent')}
           </Button>
         </div>
