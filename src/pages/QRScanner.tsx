@@ -950,11 +950,6 @@ const QRScanner = () => {
                                 onClick={(e) => e.stopPropagation()}
                               />
                               <div className="flex-1 min-w-0">
-                                <div className="flex items-center gap-2 mb-1">
-                                  <span className="bg-primary text-primary-foreground text-xs font-bold px-2 py-0.5 rounded">
-                                    #{ticketNumber}
-                                  </span>
-                                </div>
                                 <div className="font-bold text-sm sm:text-lg truncate">{ticket.name}</div>
                                 {bookingReference && (
                                   <div className="text-xs sm:text-sm mt-1 bg-muted/50 p-1.5 rounded">
