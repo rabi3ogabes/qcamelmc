@@ -443,13 +443,23 @@ export const OrdersTab = ({
             <p className="text-sm text-muted-foreground mb-1">{t("reference")}</p>
             <p className="font-mono font-semibold text-primary text-lg">{order.booking_reference}</p>
           </div>
-          <Badge variant={order.payment_status === "confirmed" ? "default" : order.payment_status === "cancelled" ? "destructive" : "secondary"} className="font-lusail text-base px-4 py-1">
-            {order.payment_status === "confirmed" ? t("confirmed") : order.payment_status === "cancelled" ? t("failed") : t("pending")}
-          </Badge>
+          <div className="flex flex-col gap-2">
+            <Badge variant={order.payment_status === "confirmed" ? "default" : order.payment_status === "cancelled" ? "destructive" : "secondary"} className="font-lusail text-sm px-3 py-0.5">
+              {order.payment_status === "confirmed" ? t("confirmed") : order.payment_status === "cancelled" ? t("failed") : t("pending")}
+            </Badge>
+            <div className="flex items-center gap-2 justify-end">
+              {order.payment_method === 'cash_pos' ? (
+                <Banknote className="w-4 h-4 text-green-600" />
+              ) : (
+                <CreditCard className="w-4 h-4 text-blue-600" />
+              )}
+              <span className="text-xs font-medium capitalize">{order.payment_method}</span>
+            </div>
+          </div>
         </div>
 
         {/* Main Info Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pb-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pb-4">
           <div>
             <p className="text-sm text-muted-foreground mb-1">{t("customer")}</p>
             <p className="font-semibold">{order.customers.name}</p>
@@ -463,18 +473,6 @@ export const OrdersTab = ({
               {order.ticket_type === "vip" ? t("vipAccess") : order.ticket_type === "normal" ? t("generalAdmission") : t("parking")} × {order.quantity}
             </p>
             <p className="text-sm font-semibold text-primary">{order.total_amount.toFixed(2)} {t("qar")}</p>
-          </div>
-          
-          <div>
-            <p className="text-sm text-muted-foreground mb-1">{t("paymentMethod")}</p>
-            <div className="flex items-center gap-2">
-              {order.payment_method === 'cash_pos' ? (
-                <Banknote className="w-5 h-5 text-green-600" />
-              ) : (
-                <CreditCard className="w-5 h-5 text-blue-600" />
-              )}
-              <span className="font-medium capitalize">{order.payment_method}</span>
-            </div>
           </div>
         </div>
 
