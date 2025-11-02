@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Upload, Image as ImageIcon } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useTranslation } from "react-i18next";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -486,6 +487,14 @@ export const SettingsTab = () => {
     <div className="space-y-6 max-w-4xl">
       <h2 className="text-2xl font-bold font-lusail">{t("settings")}</h2>
 
+      <Tabs defaultValue="design" className="w-full">
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="design" className="font-lusail">التصميم والعرض</TabsTrigger>
+          <TabsTrigger value="integrations" className="font-lusail">التكاملات (n8n & Sadad)</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="design" className="space-y-6 mt-6">
+
       {/* Hero Background Image */}
       <Card className="p-6">
         <h3 className="text-lg font-semibold mb-4 font-lusail">صورة خلفية الصفحة الرئيسية</h3>
@@ -635,23 +644,6 @@ export const SettingsTab = () => {
               </p>
             </div>
           </div>
-          
-          <div>
-            <Label htmlFor="webhook-url" className="font-lusail">رابط Webhook (n8n)</Label>
-            <div className="mt-2">
-              <Input 
-                id="webhook-url" 
-                type="url" 
-                placeholder="https://your-n8n-instance.com/webhook/..."
-                value={newWebhookUrl}
-                onChange={(e) => setNewWebhookUrl(e.target.value)}
-                className="font-lusail" 
-              />
-            </div>
-            <p className="text-xs text-muted-foreground mt-2">
-              سيتم استدعاء هذا الرابط بعد كل حجز ناجح لإرسال الفاتورة
-            </p>
-          </div>
 
           <Button onClick={handleSaveLogo} disabled={loading} className="font-lusail">
             <Upload className="w-4 h-4 ml-2" />
@@ -659,6 +651,69 @@ export const SettingsTab = () => {
           </Button>
         </div>
       </Card>
+
+      {/* Delete Customer Button Visibility */}
+      <Card className="p-6">
+        <h3 className="text-lg font-semibold mb-4 font-lusail">إعدادات الأزرار</h3>
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="space-y-1">
+              <Label className="font-lusail">إظهار زر حذف العميل</Label>
+              <p className="text-xs text-muted-foreground">
+                عند التفعيل، سيظهر زر حذف العملاء في صفحة العملاء
+              </p>
+            </div>
+            <Switch
+              checked={showDeleteButton}
+              onCheckedChange={handleToggleDeleteButton}
+              disabled={savingDeleteButton}
+            />
+          </div>
+          <div className="flex items-center justify-between pt-4 border-t">
+            <div className="space-y-1">
+              <Label className="font-lusail">إظهار زر إنشاء رموز QR</Label>
+              <p className="text-xs text-muted-foreground">
+                عند التفعيل، سيظهر زر إنشاء رموز QR في صفحة الطلبات
+              </p>
+            </div>
+            <Switch
+              checked={showGenerateQrButton}
+              onCheckedChange={handleToggleGenerateQrButton}
+              disabled={savingGenerateQrButton}
+            />
+          </div>
+        </div>
+      </Card>
+        </TabsContent>
+
+        <TabsContent value="integrations" className="space-y-6 mt-6">
+          {/* n8n Webhook */}
+          <Card className="p-6">
+            <h3 className="text-lg font-semibold mb-4 font-lusail">رابط Webhook (n8n)</h3>
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="webhook-url-integration" className="font-lusail">رابط Webhook</Label>
+                <div className="mt-2">
+                  <Input 
+                    id="webhook-url-integration" 
+                    type="url" 
+                    placeholder="https://your-n8n-instance.com/webhook/..."
+                    value={newWebhookUrl}
+                    onChange={(e) => setNewWebhookUrl(e.target.value)}
+                    className="font-lusail" 
+                  />
+                </div>
+                <p className="text-xs text-muted-foreground mt-2">
+                  سيتم استدعاء هذا الرابط بعد كل حجز ناجح لإرسال الفاتورة
+                </p>
+              </div>
+              
+              <Button onClick={handleSaveLogo} disabled={loading} className="font-lusail">
+                <Upload className="w-4 h-4 ml-2" />
+                {loading ? t("loading") : t("save")}
+              </Button>
+            </div>
+          </Card>
 
       {/* Auto Invoice Interval */}
       <Card className="p-6">
@@ -849,39 +904,8 @@ export const SettingsTab = () => {
           </Button>
         </div>
       </Card>
-
-      {/* Delete Customer Button Visibility */}
-      <Card className="p-6">
-        <h3 className="text-lg font-semibold mb-4 font-lusail">إعدادات الأزرار</h3>
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div className="space-y-1">
-              <Label className="font-lusail">إظهار زر حذف العميل</Label>
-              <p className="text-xs text-muted-foreground">
-                عند التفعيل، سيظهر زر حذف العملاء في صفحة العملاء
-              </p>
-            </div>
-            <Switch
-              checked={showDeleteButton}
-              onCheckedChange={handleToggleDeleteButton}
-              disabled={savingDeleteButton}
-            />
-          </div>
-          <div className="flex items-center justify-between pt-4 border-t">
-            <div className="space-y-1">
-              <Label className="font-lusail">إظهار زر إنشاء رموز QR</Label>
-              <p className="text-xs text-muted-foreground">
-                عند التفعيل، سيظهر زر إنشاء رموز QR في صفحة الطلبات
-              </p>
-            </div>
-            <Switch
-              checked={showGenerateQrButton}
-              onCheckedChange={handleToggleGenerateQrButton}
-              disabled={savingGenerateQrButton}
-            />
-          </div>
-        </div>
-      </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };
