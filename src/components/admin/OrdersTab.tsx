@@ -7,7 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { CheckCircle, MapPin, Calendar, Eye, QrCode, Loader2, XCircle, Printer, Trash2, Grid3x3, List, Search } from "lucide-react";
+import { CheckCircle, MapPin, Calendar, Eye, QrCode, Loader2, XCircle, Printer, Trash2, Grid3x3, List, Search, Banknote, CreditCard } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { useTranslation } from "react-i18next";
 import { supabase } from "@/integrations/supabase/client";
@@ -467,7 +467,14 @@ export const OrdersTab = ({
           
           <div>
             <p className="text-sm text-muted-foreground mb-1">{t("paymentMethod")}</p>
-            <p className="font-medium capitalize">{order.payment_method}</p>
+            <div className="flex items-center gap-2">
+              {order.payment_method === 'cash_pos' ? (
+                <Banknote className="w-5 h-5 text-green-600" />
+              ) : (
+                <CreditCard className="w-5 h-5 text-blue-600" />
+              )}
+              <span className="font-medium capitalize">{order.payment_method}</span>
+            </div>
           </div>
         </div>
 
