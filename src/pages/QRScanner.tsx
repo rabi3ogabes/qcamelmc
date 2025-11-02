@@ -705,11 +705,15 @@ const QRScanner = () => {
   };
 
   const toggleSelectAll = () => {
-    const notPresentTickets = availableTickets.filter(t => !t.is_present);
-    if (selectedTicketIds.length === notPresentTickets.length) {
+    // In confirm mode, select non-present tickets. In unconfirm mode, select present tickets
+    const selectableTickets = scanMode === 'confirm' 
+      ? availableTickets.filter(t => !t.is_present)
+      : availableTickets.filter(t => t.is_present);
+    
+    if (selectedTicketIds.length === selectableTickets.length && selectableTickets.length > 0) {
       setSelectedTicketIds([]);
     } else {
-      setSelectedTicketIds(notPresentTickets.map(t => t.id));
+      setSelectedTicketIds(selectableTickets.map(t => t.id));
     }
   };
 
@@ -906,12 +910,19 @@ const QRScanner = () => {
                 <div className="mb-4 sm:mb-6 p-3 sm:p-4 bg-blue-50 dark:bg-blue-950/20 rounded-lg border-2 border-blue-300">
                   <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 mb-3">
                     <h3 className="font-bold text-sm sm:text-base lg:text-lg text-blue-900 dark:text-blue-100">
-                      اختر التذاكر ({availableTickets.filter(t => !t.is_present).length} متاحة):
+                      {scanMode === 'confirm' 
+                        ? `اختر التذاكر (${availableTickets.filter(t => !t.is_present).length} متاحة):`
+                        : `اختر التذاكر (${availableTickets.filter(t => t.is_present).length} حاضرة):`
+                      }
                     </h3>
                     <div className="flex items-center gap-2">
                       <Checkbox
                         id="select-all"
-                        checked={selectedTicketIds.length === availableTickets.filter(t => !t.is_present).length && selectedTicketIds.length > 0}
+                        checked={
+                          scanMode === 'confirm'
+                            ? selectedTicketIds.length === availableTickets.filter(t => !t.is_present).length && selectedTicketIds.length > 0
+                            : selectedTicketIds.length === availableTickets.filter(t => t.is_present).length && selectedTicketIds.length > 0
+                        }
                         onCheckedChange={toggleSelectAll}
                       />
                       <label htmlFor="select-all" className="text-sm cursor-pointer">
@@ -933,13 +944,20 @@ const QRScanner = () => {
                       return (
                         <div
                           key={ticket.id}
-                          onClick={() => !ticket.is_present && toggleTicketSelection(ticket.id)}
+                          onClick={() => {
+                            // In confirm mode, only allow selecting non-present tickets
+                            // In unconfirm mode, only allow selecting present tickets
+                            const isSelectable = scanMode === 'confirm' ? !ticket.is_present : ticket.is_present;
+                            if (isSelectable) {
+                              toggleTicketSelection(ticket.id);
+                            }
+                          }}
                           className={`w-full p-2 sm:p-3 rounded-lg border-2 text-right transition-all cursor-pointer ${
                             selectedTicketIds.includes(ticket.id)
                               ? 'border-primary bg-primary/10 shadow-md'
                               : 'border-border bg-card hover:border-primary/50'
                           } ${
-                            ticket.is_present
+                            (scanMode === 'confirm' && ticket.is_present) || (scanMode === 'unconfirm' && !ticket.is_present)
                               ? 'opacity-50 cursor-not-allowed'
                               : ''
                           }`}
@@ -950,7 +968,9 @@ const QRScanner = () => {
                                 id={`ticket-${ticket.id}`}
                                 checked={selectedTicketIds.includes(ticket.id)}
                                 onCheckedChange={() => toggleTicketSelection(ticket.id)}
-                                disabled={ticket.is_present}
+                                disabled={
+                                  scanMode === 'confirm' ? ticket.is_present : !ticket.is_present
+                                }
                                 onClick={(e) => e.stopPropagation()}
                               />
                               <div className="flex-1 min-w-0">
