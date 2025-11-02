@@ -1341,7 +1341,12 @@ export const CustomersTab = () => {
                                         </Badge>
                                       </div>
                                       <div className="text-xs text-muted-foreground space-y-1">
-                                        <div>{holder.country_code || '+974'} {holder.phone} • {holder.nationality}</div>
+                                        <div className="flex items-center gap-2" dir="ltr">
+                                          <span>{holder.phone}</span>
+                                          <span>{holder.country_code || '+974'}</span>
+                                          <span>•</span>
+                                          <span>{holder.nationality}</span>
+                                        </div>
                                         {holder.id_number && (
                                           <div className="flex items-center gap-1">
                                             <CreditCard className="w-3 h-3" />
