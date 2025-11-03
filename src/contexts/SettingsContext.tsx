@@ -10,6 +10,8 @@ interface Settings {
   auto_invoice_interval_seconds: number;
   invoice_batch_min: number;
   invoice_batch_max: number;
+  invoice_send_delay_min: number;
+  invoice_send_delay_max: number;
 }
 
 interface SettingsContextType {
@@ -36,7 +38,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
     try {
       const { data, error } = await supabase
         .from("settings")
-        .select("logo_url, hero_image_url, header_bg_color, hero_text, copyright_text, auto_invoice_interval_seconds, invoice_batch_min, invoice_batch_max")
+        .select("logo_url, hero_image_url, header_bg_color, hero_text, copyright_text, auto_invoice_interval_seconds, invoice_batch_min, invoice_batch_max, invoice_send_delay_min, invoice_send_delay_max")
         .maybeSingle();
 
       if (error) throw error;
@@ -50,6 +52,8 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
         auto_invoice_interval_seconds: data?.auto_invoice_interval_seconds || 60,
         invoice_batch_min: data?.invoice_batch_min || 1,
         invoice_batch_max: data?.invoice_batch_max || 10,
+        invoice_send_delay_min: data?.invoice_send_delay_min || 300,
+        invoice_send_delay_max: data?.invoice_send_delay_max || 600,
       });
     } catch (error) {
       console.error("Error fetching settings:", error);

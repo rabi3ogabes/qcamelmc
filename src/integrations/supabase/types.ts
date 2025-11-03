@@ -233,6 +233,8 @@ export type Database = {
           id: string
           invoice_batch_max: number | null
           invoice_batch_min: number | null
+          invoice_send_delay_max: number | null
+          invoice_send_delay_min: number | null
           last_invoice_sent_at: string | null
           logo_url: string | null
           sadad_api_key: string | null
@@ -255,6 +257,8 @@ export type Database = {
           id?: string
           invoice_batch_max?: number | null
           invoice_batch_min?: number | null
+          invoice_send_delay_max?: number | null
+          invoice_send_delay_min?: number | null
           last_invoice_sent_at?: string | null
           logo_url?: string | null
           sadad_api_key?: string | null
@@ -277,6 +281,8 @@ export type Database = {
           id?: string
           invoice_batch_max?: number | null
           invoice_batch_min?: number | null
+          invoice_send_delay_max?: number | null
+          invoice_send_delay_min?: number | null
           last_invoice_sent_at?: string | null
           logo_url?: string | null
           sadad_api_key?: string | null

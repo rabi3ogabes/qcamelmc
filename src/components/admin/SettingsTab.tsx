@@ -43,6 +43,9 @@ export const SettingsTab = () => {
   const [invoiceBatchMin, setInvoiceBatchMin] = useState(1);
   const [invoiceBatchMax, setInvoiceBatchMax] = useState(10);
   const [savingBatchSettings, setSavingBatchSettings] = useState(false);
+  const [invoiceSendDelayMin, setInvoiceSendDelayMin] = useState(300);
+  const [invoiceSendDelayMax, setInvoiceSendDelayMax] = useState(600);
+  const [savingDelaySettings, setSavingDelaySettings] = useState(false);
 
   useEffect(() => {
     fetchSettings();
@@ -51,7 +54,7 @@ export const SettingsTab = () => {
   const fetchSettings = async () => {
     const { data, error } = await supabase
       .from("settings")
-      .select("logo_url, hero_image_url, header_bg_color, hero_text, copyright_text, webhook_url, admin_phone, sadad_merchant_id, sadad_api_key, sadad_secret, sadad_website_domain, show_delete_customer_button, show_generate_qr_button, auto_invoice_interval_seconds, invoice_batch_min, invoice_batch_max")
+      .select("logo_url, hero_image_url, header_bg_color, hero_text, copyright_text, webhook_url, admin_phone, sadad_merchant_id, sadad_api_key, sadad_secret, sadad_website_domain, show_delete_customer_button, show_generate_qr_button, auto_invoice_interval_seconds, invoice_batch_min, invoice_batch_max, invoice_send_delay_min, invoice_send_delay_max")
       .maybeSingle();
 
     if (error) {
@@ -103,6 +106,8 @@ export const SettingsTab = () => {
     if (data?.auto_invoice_interval_seconds !== undefined) setAutoInvoiceInterval(data.auto_invoice_interval_seconds);
     if (data?.invoice_batch_min !== undefined) setInvoiceBatchMin(data.invoice_batch_min);
     if (data?.invoice_batch_max !== undefined) setInvoiceBatchMax(data.invoice_batch_max);
+    if (data?.invoice_send_delay_min !== undefined) setInvoiceSendDelayMin(data.invoice_send_delay_min);
+    if (data?.invoice_send_delay_max !== undefined) setInvoiceSendDelayMax(data.invoice_send_delay_max);
   };
 
   const handleSaveLogo = async () => {
@@ -535,6 +540,53 @@ export const SettingsTab = () => {
     }
   };
 
+  const handleSaveDelaySettings = async () => {
+    if (invoiceSendDelayMin < 1) {
+      toast.error("يجب أن يكون الحد الأدنى ثانية واحدة على الأقل");
+      return;
+    }
+    if (invoiceSendDelayMax < invoiceSendDelayMin) {
+      toast.error("يجب أن يكون الحد الأقصى أكبر من أو يساوي الحد الأدنى");
+      return;
+    }
+
+    setSavingDelaySettings(true);
+    try {
+      const { data: settings } = await supabase
+        .from("settings")
+        .select("id")
+        .maybeSingle();
+
+      if (settings) {
+        const { error } = await supabase
+          .from("settings")
+          .update({ 
+            invoice_send_delay_min: invoiceSendDelayMin,
+            invoice_send_delay_max: invoiceSendDelayMax
+          })
+          .eq("id", settings.id);
+
+        if (error) throw error;
+      } else {
+        const { error } = await supabase
+          .from("settings")
+          .insert({ 
+            invoice_send_delay_min: invoiceSendDelayMin,
+            invoice_send_delay_max: invoiceSendDelayMax
+          });
+
+        if (error) throw error;
+      }
+
+      toast.success(t("savedSuccessfully"));
+    } catch (error) {
+      console.error("Error saving delay settings:", error);
+      toast.error("فشل في حفظ الإعداد");
+    } finally {
+      setSavingDelaySettings(false);
+    }
+  };
+
   return (
     <div className="space-y-6 max-w-4xl">
       <h2 className="text-2xl font-bold font-lusail">{t("settings")}</h2>
@@ -832,6 +884,49 @@ export const SettingsTab = () => {
           
           <Button onClick={handleSaveBatchSettings} disabled={savingBatchSettings} className="font-lusail">
             {savingBatchSettings ? t("loading") : t("save")}
+          </Button>
+        </div>
+      </Card>
+
+      {/* Invoice Send Delay Range */}
+      <Card className="p-6">
+        <h3 className="text-lg font-semibold mb-4 font-lusail">التأخير بين إرسال الفواتير (بالثواني)</h3>
+        <div className="space-y-4">
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="invoice-delay-min" className="font-lusail">الحد الأدنى (ثانية)</Label>
+              <Input 
+                id="invoice-delay-min" 
+                type="number" 
+                min="1"
+                placeholder="300"
+                value={invoiceSendDelayMin}
+                onChange={(e) => setInvoiceSendDelayMin(parseInt(e.target.value) || 300)}
+                className="mt-2 font-lusail" 
+              />
+            </div>
+            <div>
+              <Label htmlFor="invoice-delay-max" className="font-lusail">الحد الأقصى (ثانية)</Label>
+              <Input 
+                id="invoice-delay-max" 
+                type="number" 
+                min="1"
+                placeholder="600"
+                value={invoiceSendDelayMax}
+                onChange={(e) => setInvoiceSendDelayMax(parseInt(e.target.value) || 600)}
+                className="mt-2 font-lusail" 
+              />
+            </div>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            الوقت العشوائي للانتظار بين إرسال كل فاتورة والتالية (بالثواني)
+          </p>
+          <p className="text-xs text-yellow-600">
+            مثال: إذا كانت القيمة من 300 إلى 600 ثانية، سيتم الانتظار بين 5 إلى 10 دقائق بين كل فاتورة
+          </p>
+          
+          <Button onClick={handleSaveDelaySettings} disabled={savingDelaySettings} className="font-lusail">
+            {savingDelaySettings ? t("loading") : t("save")}
           </Button>
         </div>
       </Card>

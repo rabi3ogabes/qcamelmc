@@ -50,12 +50,15 @@ export const InvoiceTab = () => {
   const [isCountdownActive, setIsCountdownActive] = useState(false);
   const [batchMin, setBatchMin] = useState<number>(1);
   const [batchMax, setBatchMax] = useState<number>(10);
+  const [delayMin, setDelayMin] = useState<number>(300);
+  const [delayMax, setDelayMax] = useState<number>(600);
 
   useEffect(() => {
     fetchOrders();
     fetchWebhookUrl();
     fetchAutoInvoiceInterval();
     fetchBatchSettings();
+    fetchDelaySettings();
 
     // Subscribe to realtime updates for n8n responses
     const channel = supabase
@@ -141,6 +144,21 @@ export const InvoiceTab = () => {
 
     setBatchMin(data?.invoice_batch_min || 1);
     setBatchMax(data?.invoice_batch_max || 10);
+  };
+
+  const fetchDelaySettings = async () => {
+    const { data, error } = await supabase
+      .from("settings")
+      .select("invoice_send_delay_min, invoice_send_delay_max")
+      .maybeSingle();
+
+    if (error) {
+      console.error("Error fetching delay settings:", error);
+      return;
+    }
+
+    setDelayMin(data?.invoice_send_delay_min || 300);
+    setDelayMax(data?.invoice_send_delay_max || 600);
   };
 
   const fetchOrders = async () => {
@@ -291,11 +309,11 @@ export const InvoiceTab = () => {
 
       // Only wait if there are more orders to send
       if (i < ordersToSend.length - 1) {
-        const minDelay = 300000; // 5 minutes
-        const maxDelay = 600000; // 10 minutes
-        const randomDelay = Math.floor(Math.random() * (maxDelay - minDelay + 1)) + minDelay;
-        const delayMinutes = Math.round(randomDelay / 60000);
-        toast.info(`انتظار ${delayMinutes} دقائق قبل إرسال الفاتورة التالية...`);
+        const minDelayMs = delayMin * 1000; // Convert seconds to milliseconds
+        const maxDelayMs = delayMax * 1000;
+        const randomDelay = Math.floor(Math.random() * (maxDelayMs - minDelayMs + 1)) + minDelayMs;
+        const delaySeconds = Math.round(randomDelay / 1000);
+        toast.info(`انتظار ${delaySeconds} ثانية قبل إرسال الفاتورة التالية...`);
         await new Promise(resolve => setTimeout(resolve, randomDelay));
       }
     }
