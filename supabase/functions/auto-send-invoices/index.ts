@@ -151,7 +151,18 @@ Deno.serve(async (req) => {
       // Construct webhook payload
       const countryCode = typedOrder.customers.country_code?.replace('+', '') || '974';
       const fullPhone = `${countryCode}${typedOrder.customers.phone}`;
-      const ticketQrCodes = typedOrder.ticket_holders?.map(holder => holder.qr_code).filter(Boolean) || [];
+      
+      // Convert QR codes to full URLs if they're not already
+      const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+      const ticketQrCodes = typedOrder.ticket_holders?.map(holder => {
+        if (!holder.qr_code) return null;
+        // If it's already a full URL, return it as is
+        if (holder.qr_code.startsWith('http')) {
+          return holder.qr_code;
+        }
+        // Otherwise, construct the full URL
+        return `${supabaseUrl}/storage/v1/object/public/qr-codes/${holder.qr_code}.png`;
+      }).filter(Boolean) || [];
       const ticketTypes = typedOrder.ticket_holders?.map(holder => holder.ticket_type) || [];
 
       const payload = {

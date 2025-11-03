@@ -192,7 +192,17 @@ export const InvoiceTab = () => {
       const fullPhone = `${countryCode}${order.customers.phone}`;
 
       // Extract all ticket holder QR codes and ticket types
-      const ticketQrCodes = order.ticket_holders?.map(holder => holder.qr_code).filter(Boolean) || [];
+      // Convert QR codes to full URLs if they're not already
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const ticketQrCodes = order.ticket_holders?.map(holder => {
+        if (!holder.qr_code) return null;
+        // If it's already a full URL, return it as is
+        if (holder.qr_code.startsWith('http')) {
+          return holder.qr_code;
+        }
+        // Otherwise, construct the full URL
+        return `${supabaseUrl}/storage/v1/object/public/qr-codes/${holder.qr_code}.png`;
+      }).filter(Boolean) || [];
       const ticketTypes = order.ticket_holders?.map(holder => holder.ticket_type) || [];
 
       const payload = {
