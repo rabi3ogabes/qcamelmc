@@ -48,11 +48,14 @@ export const InvoiceTab = () => {
   const [autoInvoiceInterval, setAutoInvoiceInterval] = useState<number>(60);
   const [countdown, setCountdown] = useState<number>(60);
   const [isCountdownActive, setIsCountdownActive] = useState(false);
+  const [batchMin, setBatchMin] = useState<number>(1);
+  const [batchMax, setBatchMax] = useState<number>(10);
 
   useEffect(() => {
     fetchOrders();
     fetchWebhookUrl();
     fetchAutoInvoiceInterval();
+    fetchBatchSettings();
 
     // Subscribe to realtime updates for n8n responses
     const channel = supabase
@@ -123,6 +126,21 @@ export const InvoiceTab = () => {
     const interval = data?.auto_invoice_interval_seconds || 60;
     setAutoInvoiceInterval(interval);
     setCountdown(interval);
+  };
+
+  const fetchBatchSettings = async () => {
+    const { data, error } = await supabase
+      .from("settings")
+      .select("invoice_batch_min, invoice_batch_max")
+      .maybeSingle();
+
+    if (error) {
+      console.error("Error fetching batch settings:", error);
+      return;
+    }
+
+    setBatchMin(data?.invoice_batch_min || 1);
+    setBatchMax(data?.invoice_batch_max || 10);
   };
 
   const fetchOrders = async () => {
@@ -231,15 +249,21 @@ export const InvoiceTab = () => {
     const newSentOrders = new Map(sentOrders);
 
     // Filter orders that need to be sent (exclude those with n8n response)
-    const ordersToSend = orders.filter(
+    const allOrdersToSend = orders.filter(
       order => !sentOrders.has(order.id) && !order.n8n_response_message && !order.n8n_responded_at
     );
 
-    if (ordersToSend.length === 0) {
+    if (allOrdersToSend.length === 0) {
       setSending(false);
       toast.info("جميع الطلبات تم إرسالها بالفعل");
       return;
     }
+
+    // Limit to batch size range (between batchMin and batchMax)
+    const batchSize = Math.min(batchMax, Math.max(batchMin, allOrdersToSend.length));
+    const ordersToSend = allOrdersToSend.slice(0, batchSize);
+
+    toast.info(`سيتم إرسال ${ordersToSend.length} فاتورة من أصل ${allOrdersToSend.length}`);
 
     // Calculate total quantity of all tickets being sent
     const totalQuantity = ordersToSend.reduce((sum, order) => sum + order.quantity, 0);

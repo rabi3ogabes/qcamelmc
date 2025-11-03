@@ -40,6 +40,9 @@ export const SettingsTab = () => {
   const [savingGenerateQrButton, setSavingGenerateQrButton] = useState(false);
   const [autoInvoiceInterval, setAutoInvoiceInterval] = useState(60);
   const [savingAutoInvoice, setSavingAutoInvoice] = useState(false);
+  const [invoiceBatchMin, setInvoiceBatchMin] = useState(1);
+  const [invoiceBatchMax, setInvoiceBatchMax] = useState(10);
+  const [savingBatchSettings, setSavingBatchSettings] = useState(false);
 
   useEffect(() => {
     fetchSettings();
@@ -48,7 +51,7 @@ export const SettingsTab = () => {
   const fetchSettings = async () => {
     const { data, error } = await supabase
       .from("settings")
-      .select("logo_url, hero_image_url, header_bg_color, hero_text, copyright_text, webhook_url, admin_phone, sadad_merchant_id, sadad_api_key, sadad_secret, sadad_website_domain, show_delete_customer_button, show_generate_qr_button, auto_invoice_interval_seconds")
+      .select("logo_url, hero_image_url, header_bg_color, hero_text, copyright_text, webhook_url, admin_phone, sadad_merchant_id, sadad_api_key, sadad_secret, sadad_website_domain, show_delete_customer_button, show_generate_qr_button, auto_invoice_interval_seconds, invoice_batch_min, invoice_batch_max")
       .maybeSingle();
 
     if (error) {
@@ -98,6 +101,8 @@ export const SettingsTab = () => {
     if (data?.show_delete_customer_button !== undefined) setShowDeleteButton(data.show_delete_customer_button);
     if (data?.show_generate_qr_button !== undefined) setShowGenerateQrButton(data.show_generate_qr_button);
     if (data?.auto_invoice_interval_seconds !== undefined) setAutoInvoiceInterval(data.auto_invoice_interval_seconds);
+    if (data?.invoice_batch_min !== undefined) setInvoiceBatchMin(data.invoice_batch_min);
+    if (data?.invoice_batch_max !== undefined) setInvoiceBatchMax(data.invoice_batch_max);
   };
 
   const handleSaveLogo = async () => {
@@ -483,6 +488,53 @@ export const SettingsTab = () => {
     }
   };
 
+  const handleSaveBatchSettings = async () => {
+    if (invoiceBatchMin < 1) {
+      toast.error("يجب أن يكون الحد الأدنى 1 على الأقل");
+      return;
+    }
+    if (invoiceBatchMax < invoiceBatchMin) {
+      toast.error("يجب أن يكون الحد الأقصى أكبر من أو يساوي الحد الأدنى");
+      return;
+    }
+
+    setSavingBatchSettings(true);
+    try {
+      const { data: settings } = await supabase
+        .from("settings")
+        .select("id")
+        .maybeSingle();
+
+      if (settings) {
+        const { error } = await supabase
+          .from("settings")
+          .update({ 
+            invoice_batch_min: invoiceBatchMin,
+            invoice_batch_max: invoiceBatchMax
+          })
+          .eq("id", settings.id);
+
+        if (error) throw error;
+      } else {
+        const { error } = await supabase
+          .from("settings")
+          .insert({ 
+            invoice_batch_min: invoiceBatchMin,
+            invoice_batch_max: invoiceBatchMax
+          });
+
+        if (error) throw error;
+      }
+
+      toast.success(t("savedSuccessfully"));
+    } catch (error) {
+      console.error("Error saving batch settings:", error);
+      toast.error("فشل في حفظ الإعداد");
+    } finally {
+      setSavingBatchSettings(false);
+    }
+  };
+
   return (
     <div className="space-y-6 max-w-4xl">
       <h2 className="text-2xl font-bold font-lusail">{t("settings")}</h2>
@@ -740,6 +792,46 @@ export const SettingsTab = () => {
           
           <Button onClick={handleSaveAutoInvoiceInterval} disabled={savingAutoInvoice} className="font-lusail">
             {savingAutoInvoice ? t("loading") : t("save")}
+          </Button>
+        </div>
+      </Card>
+
+      {/* Invoice Batch Size Range */}
+      <Card className="p-6">
+        <h3 className="text-lg font-semibold mb-4 font-lusail">نطاق عدد الفواتير المرسلة</h3>
+        <div className="space-y-4">
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="invoice-batch-min" className="font-lusail">الحد الأدنى</Label>
+              <Input 
+                id="invoice-batch-min" 
+                type="number" 
+                min="1"
+                placeholder="1"
+                value={invoiceBatchMin}
+                onChange={(e) => setInvoiceBatchMin(parseInt(e.target.value) || 1)}
+                className="mt-2 font-lusail" 
+              />
+            </div>
+            <div>
+              <Label htmlFor="invoice-batch-max" className="font-lusail">الحد الأقصى</Label>
+              <Input 
+                id="invoice-batch-max" 
+                type="number" 
+                min="1"
+                placeholder="10"
+                value={invoiceBatchMax}
+                onChange={(e) => setInvoiceBatchMax(parseInt(e.target.value) || 10)}
+                className="mt-2 font-lusail" 
+              />
+            </div>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            عند الضغط على "بدء العد التنازلي" أو "إرسال الفواتير"، سيتم إرسال عدد الفواتير بين الحد الأدنى والأقصى
+          </p>
+          
+          <Button onClick={handleSaveBatchSettings} disabled={savingBatchSettings} className="font-lusail">
+            {savingBatchSettings ? t("loading") : t("save")}
           </Button>
         </div>
       </Card>

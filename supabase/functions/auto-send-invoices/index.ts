@@ -39,6 +39,8 @@ interface Settings {
   webhook_url: string | null;
   auto_invoice_interval_seconds: number;
   last_invoice_sent_at: string | null;
+  invoice_batch_min: number;
+  invoice_batch_max: number;
 }
 
 Deno.serve(async (req) => {
@@ -57,7 +59,7 @@ Deno.serve(async (req) => {
     // Fetch settings including webhook URL, interval, and last sent time
     const { data: settings, error: settingsError } = await supabaseClient
       .from('settings')
-      .select('webhook_url, auto_invoice_interval_seconds, last_invoice_sent_at')
+      .select('webhook_url, auto_invoice_interval_seconds, last_invoice_sent_at, invoice_batch_min, invoice_batch_max')
       .maybeSingle();
 
     if (settingsError) {
@@ -79,6 +81,8 @@ Deno.serve(async (req) => {
 
     // Check if enough time has passed since last send
     const intervalSeconds = (settings as Settings)?.auto_invoice_interval_seconds || 60;
+    const batchMin = (settings as Settings)?.invoice_batch_min || 1;
+    const batchMax = (settings as Settings)?.invoice_batch_max || 10;
     const lastSentAt = (settings as Settings)?.last_invoice_sent_at;
     
     if (lastSentAt) {
@@ -111,7 +115,7 @@ Deno.serve(async (req) => {
       .eq('payment_status', 'confirmed')
       .is('n8n_response_message', null)
       .order('created_at', { ascending: true })
-      .limit(1); // Only send one invoice at a time
+      .limit(batchMax); // Limit to batch max
 
     if (ordersError) {
       console.error('Error fetching orders:', ordersError);
@@ -129,45 +133,65 @@ Deno.serve(async (req) => {
       );
     }
 
-    const order = orders[0] as Order;
-    console.log('Sending invoice for order:', order.booking_reference);
+    // Determine actual batch size (between min and max)
+    const batchSize = Math.min(batchMax, Math.max(batchMin, orders.length));
+    const ordersToSend = orders.slice(0, batchSize);
+    
+    console.log(`Sending ${ordersToSend.length} invoices (batch range: ${batchMin}-${batchMax})`);
 
-    // Construct webhook payload
-    const countryCode = order.customers.country_code?.replace('+', '') || '974';
-    const fullPhone = `${countryCode}${order.customers.phone}`;
-    const ticketQrCodes = order.ticket_holders?.map(holder => holder.qr_code).filter(Boolean) || [];
-    const ticketTypes = order.ticket_holders?.map(holder => holder.ticket_type) || [];
+    // Calculate total quantity across all orders being sent
+    const totalQuantity = ordersToSend.reduce((sum, order) => sum + (order as Order).quantity, 0);
 
-    const payload = {
-      booking_reference: order.booking_reference,
-      customer_name: order.customers.name,
-      customer_phone: order.customers.phone,
-      customer_phone_whatsapp: fullPhone,
-      customer_email: order.customers.email,
-      nationality: order.customers.nationality,
-      ticket_type: order.ticket_type,
-      quantity: order.quantity,
-      total_amount: order.total_amount,
-      payment_status: order.payment_status,
-      qr_codes: ticketQrCodes,
-      ticket_types: ticketTypes,
-      event_title: order.events?.title,
-      event_date: order.events?.event_date,
-      event_location: order.events?.location,
-      created_at: order.created_at,
-    };
+    // Send all invoices in the batch
+    const results = [];
+    for (const order of ordersToSend) {
+      const typedOrder = order as Order;
+      console.log('Sending invoice for order:', typedOrder.booking_reference);
 
-    // Send to webhook
-    const webhookResponse = await fetch(webhookUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(payload),
-    });
+      // Construct webhook payload
+      const countryCode = typedOrder.customers.country_code?.replace('+', '') || '974';
+      const fullPhone = `${countryCode}${typedOrder.customers.phone}`;
+      const ticketQrCodes = typedOrder.ticket_holders?.map(holder => holder.qr_code).filter(Boolean) || [];
+      const ticketTypes = typedOrder.ticket_holders?.map(holder => holder.ticket_type) || [];
 
-    const responseData = await webhookResponse.json();
-    console.log('Webhook response:', responseData);
+      const payload = {
+        booking_reference: typedOrder.booking_reference,
+        customer_name: typedOrder.customers.name,
+        customer_phone: typedOrder.customers.phone,
+        customer_phone_whatsapp: fullPhone,
+        customer_email: typedOrder.customers.email,
+        nationality: typedOrder.customers.nationality,
+        ticket_type: typedOrder.ticket_type,
+        quantity: typedOrder.quantity,
+        total_quantity: totalQuantity,
+        total_amount: typedOrder.total_amount,
+        payment_status: typedOrder.payment_status,
+        qr_codes: ticketQrCodes,
+        ticket_types: ticketTypes,
+        event_title: typedOrder.events?.title,
+        event_date: typedOrder.events?.event_date,
+        event_location: typedOrder.events?.location,
+        created_at: typedOrder.created_at,
+      };
+
+      // Send to webhook
+      const webhookResponse = await fetch(webhookUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+      });
+
+      const responseData = await webhookResponse.json();
+      console.log('Webhook response for', typedOrder.booking_reference, ':', responseData);
+      
+      results.push({
+        order_id: typedOrder.id,
+        booking_reference: typedOrder.booking_reference,
+        success: webhookResponse.ok && responseData.success !== false
+      });
+    }
 
     // Update last_invoice_sent_at timestamp in settings
     const { error: updateError } = await supabaseClient
@@ -179,30 +203,21 @@ Deno.serve(async (req) => {
       console.error('Error updating last_invoice_sent_at:', updateError);
     }
 
-    // Return success/failure based on webhook response
-    if (webhookResponse.ok && responseData.success !== false) {
-      console.log('Invoice sent successfully for order:', order.booking_reference);
-      return new Response(
-        JSON.stringify({ 
-          success: true, 
-          message: 'Invoice sent successfully',
-          order_id: order.id,
-          booking_reference: order.booking_reference,
-          next_send_in_seconds: intervalSeconds
-        }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
-      );
-    } else {
-      console.error('Failed to send invoice:', responseData);
-      return new Response(
-        JSON.stringify({ 
-          success: false, 
-          message: responseData.message || 'Failed to send invoice',
-          order_id: order.id
-        }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
-      );
-    }
+    // Return success/failure based on results
+    const successCount = results.filter(r => r.success).length;
+    console.log(`Invoice batch completed: ${successCount}/${results.length} sent successfully`);
+    
+    return new Response(
+      JSON.stringify({ 
+        success: true, 
+        message: `Sent ${successCount}/${results.length} invoices successfully`,
+        batch_size: results.length,
+        total_quantity: totalQuantity,
+        results: results,
+        next_send_in_seconds: intervalSeconds
+      }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
+    );
 
   } catch (error) {
     console.error('Error in auto-send-invoices function:', error);

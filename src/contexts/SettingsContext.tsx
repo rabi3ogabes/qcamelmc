@@ -8,6 +8,8 @@ interface Settings {
   hero_text: string;
   copyright_text: string;
   auto_invoice_interval_seconds: number;
+  invoice_batch_min: number;
+  invoice_batch_max: number;
 }
 
 interface SettingsContextType {
@@ -34,7 +36,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
     try {
       const { data, error } = await supabase
         .from("settings")
-        .select("logo_url, hero_image_url, header_bg_color, hero_text, copyright_text, auto_invoice_interval_seconds")
+        .select("logo_url, hero_image_url, header_bg_color, hero_text, copyright_text, auto_invoice_interval_seconds, invoice_batch_min, invoice_batch_max")
         .maybeSingle();
 
       if (error) throw error;
@@ -46,6 +48,8 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
         hero_text: data?.hero_text || "",
         copyright_text: data?.copyright_text || "جميع الحقوق محفوظة",
         auto_invoice_interval_seconds: data?.auto_invoice_interval_seconds || 60,
+        invoice_batch_min: data?.invoice_batch_min || 1,
+        invoice_batch_max: data?.invoice_batch_max || 10,
       });
     } catch (error) {
       console.error("Error fetching settings:", error);

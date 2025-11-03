@@ -231,6 +231,8 @@ export type Database = {
           hero_image_url: string | null
           hero_text: string | null
           id: string
+          invoice_batch_max: number | null
+          invoice_batch_min: number | null
           last_invoice_sent_at: string | null
           logo_url: string | null
           sadad_api_key: string | null
@@ -251,6 +253,8 @@ export type Database = {
           hero_image_url?: string | null
           hero_text?: string | null
           id?: string
+          invoice_batch_max?: number | null
+          invoice_batch_min?: number | null
           last_invoice_sent_at?: string | null
           logo_url?: string | null
           sadad_api_key?: string | null
@@ -271,6 +275,8 @@ export type Database = {
           hero_image_url?: string | null
           hero_text?: string | null
           id?: string
+          invoice_batch_max?: number | null
+          invoice_batch_min?: number | null
           last_invoice_sent_at?: string | null
           logo_url?: string | null
           sadad_api_key?: string | null
