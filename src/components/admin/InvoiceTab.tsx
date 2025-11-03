@@ -144,7 +144,7 @@ export const InvoiceTab = () => {
     }
   };
 
-  const sendInvoiceToWebhook = async (order: Order): Promise<{ success: boolean; message: string }> => {
+  const sendInvoiceToWebhook = async (order: Order, totalQuantity: number): Promise<{ success: boolean; message: string }> => {
     if (!webhookUrl) {
       toast.error("لم يتم تكوين رابط الويب هوك. يرجى تحديثه في الإعدادات");
       return { success: false, message: "لم يتم تكوين رابط الويب هوك" };
@@ -168,6 +168,7 @@ export const InvoiceTab = () => {
         nationality: order.customers.nationality,
         ticket_type: order.ticket_type,
         quantity: order.quantity,
+        total_quantity: totalQuantity,
         total_amount: order.total_amount,
         payment_status: order.payment_status,
         qr_codes: ticketQrCodes,
@@ -240,13 +241,16 @@ export const InvoiceTab = () => {
       return;
     }
 
+    // Calculate total quantity of all tickets being sent
+    const totalQuantity = ordersToSend.reduce((sum, order) => sum + order.quantity, 0);
+
     for (let i = 0; i < ordersToSend.length; i++) {
       const order = ordersToSend[i];
 
       setCurrentlySending(order.id);
       toast.info(`إرسال فاتورة ${i + 1} من ${ordersToSend.length}...`);
       
-      const result = await sendInvoiceToWebhook(order);
+      const result = await sendInvoiceToWebhook(order, totalQuantity);
       
       if (result.success) {
         const sentTime = new Date();
