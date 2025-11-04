@@ -413,13 +413,10 @@ export const OrdersTab = ({
     }
   };
   const filterOrders = (status: string) => {
-    // Only exclude pending orders (they need manual verification or are incomplete)
-    const filteredOrders = orders.filter(o => o.payment_status !== 'pending');
-    
     // Apply status filter
-    let statusFiltered = filteredOrders;
-    if (status === "success") statusFiltered = filteredOrders.filter(o => o.payment_status === "confirmed");
-    if (status === "failed") statusFiltered = filteredOrders.filter(o => o.payment_status === "cancelled");
+    let statusFiltered = orders;
+    if (status === "success") statusFiltered = orders.filter(o => o.payment_status === "confirmed");
+    if (status === "failed") statusFiltered = orders.filter(o => o.payment_status === "cancelled" || o.payment_status === "pending");
     
     // Apply search filter
     if (!searchQuery.trim()) return statusFiltered;
@@ -606,11 +603,10 @@ export const OrdersTab = ({
     </Card>;
   const filteredOrders = filterOrders(activeTab);
   
-  // Calculate stats from filtered orders (excluding those waiting for manual verification)
-  const ordersForStats = orders.filter(o => !(o.sadad_manually_verified && o.payment_status === 'pending'));
+  // Calculate stats - pending and cancelled go to failed
   const stats = {
-    success: ordersForStats.filter(o => o.payment_status === "confirmed").length,
-    failed: ordersForStats.filter(o => o.payment_status === "cancelled").length,
+    success: orders.filter(o => o.payment_status === "confirmed").length,
+    failed: orders.filter(o => o.payment_status === "cancelled" || o.payment_status === "pending").length,
   };
   return <div className="space-y-6">
       {/* Generate QR Codes Button */}
