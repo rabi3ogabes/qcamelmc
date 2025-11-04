@@ -278,17 +278,20 @@ export const CustomersTab = () => {
       if (error) throw error;
 
       // Filter out customers with no orders and flatten event data
+      // Only include confirmed orders
       const customersWithOrders = (data || []).filter(
         (customer) => customer.orders && customer.orders.length > 0
       ).map(customer => ({
         ...customer,
-        orders: customer.orders.map((order: any) => ({
-          ...order,
-          event_title: order.events?.title || "",
-          event_location: order.events?.location || "",
-          event_date: order.events?.event_date || "",
-        }))
-      }));
+        orders: customer.orders
+          .filter((order: any) => order.payment_status === 'confirmed') // Only confirmed orders
+          .map((order: any) => ({
+            ...order,
+            event_title: order.events?.title || "",
+            event_location: order.events?.location || "",
+            event_date: order.events?.event_date || "",
+          }))
+      })).filter(customer => customer.orders.length > 0); // Remove customers with no confirmed orders
 
       setCustomers(customersWithOrders);
     } catch (error) {
