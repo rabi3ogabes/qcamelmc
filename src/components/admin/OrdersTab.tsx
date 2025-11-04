@@ -679,9 +679,23 @@ export const OrdersTab = ({
           </div>
         </div>
         
-        <TabsContent value={activeTab} className="mt-6">
+        <TabsContent value="success" className="mt-6">
           {filteredOrders.length === 0 ? <Card className="p-12 text-center">
-              <p className="text-muted-foreground font-lusail">{t("noOrders")}</p>
+              <p className="text-muted-foreground font-lusail">لا توجد حجوزات ناجحة</p>
+            </Card> : viewMode === "grid" ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {filteredOrders.map(order => <OrderCard key={order.id} order={order} />)}
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {filteredOrders.map(order => <OrderCard key={order.id} order={order} />)}
+              </div>
+            )}
+        </TabsContent>
+        
+        <TabsContent value="failed" className="mt-6">
+          {filteredOrders.length === 0 ? <Card className="p-12 text-center">
+              <p className="text-muted-foreground font-lusail">لا توجد حجوزات ملغية</p>
             </Card> : viewMode === "grid" ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {filteredOrders.map(order => <OrderCard key={order.id} order={order} />)}
