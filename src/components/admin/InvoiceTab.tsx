@@ -92,10 +92,9 @@ export const InvoiceTab = () => {
         setCountdown(countdown - 1);
       }, 1000);
     } else if (countdown === 0 && isCountdownActive && !sending) {
-      // Countdown reached 0, just stop (don't auto-send)
-      setIsCountdownActive(false);
+      // Countdown reached 0, send invoices automatically
+      sendInvoices();
       setCountdown(autoInvoiceInterval);
-      toast.info("انتهى العد التنازلي");
     }
 
     return () => clearTimeout(timer);
