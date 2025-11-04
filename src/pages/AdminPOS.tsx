@@ -599,7 +599,8 @@ const AdminPOS = () => {
             nationality: holder.nationality,
             ticket_type: holder.ticketType,
             qr_code: qrData?.url || ticketRef,
-            id_number: holder.idNumber
+            id_number: holder.idNumber,
+            is_present: true
           };
         } catch (error) {
           console.error('QR generation failed:', error);
@@ -611,7 +612,8 @@ const AdminPOS = () => {
             nationality: holder.nationality,
             ticket_type: holder.ticketType,
             qr_code: ticketRef,
-            id_number: holder.idNumber
+            id_number: holder.idNumber,
+            is_present: true
           };
         }
       }));
