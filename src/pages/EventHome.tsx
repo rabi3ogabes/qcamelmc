@@ -52,7 +52,9 @@ const EventHome = () => {
         .select("*")
         .eq("is_active", true)
         .gte("event_date", new Date().toISOString())
-        .order("event_date", { ascending: true });
+        .order("event_date", { ascending: true })
+        .order("display_order", { ascending: true })
+        .order("start_time", { ascending: true });
 
       if (error) throw error;
       
