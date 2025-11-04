@@ -13,6 +13,7 @@ import { SettingsTab } from "@/components/admin/SettingsTab";
 import { PopupBannersTab } from "@/components/admin/PopupBannersTab";
 import { CustomersTab } from "@/components/admin/CustomersTab";
 import { InvoiceTab } from "@/components/admin/InvoiceTab";
+import { ReportsTab } from "@/components/admin/ReportsTab";
 import "../i18n/config";
 
 interface Order {
@@ -234,13 +235,17 @@ const AdminDashboard = () => {
 
             <TabsContent value="settings">
               <Tabs defaultValue="general" className="w-full">
-                <TabsList className="grid w-full grid-cols-1 sm:grid-cols-2 mb-6 gap-2 h-auto">
+                <TabsList className="grid w-full grid-cols-1 sm:grid-cols-3 mb-6 gap-2 h-auto">
                   <TabsTrigger value="general" className="font-lusail text-xs sm:text-sm">
                     الإعدادات العامة
                   </TabsTrigger>
                   <TabsTrigger value="popups" className="flex items-center gap-2 font-lusail text-xs sm:text-sm">
                     <Image className="w-3 h-3 sm:w-4 sm:h-4" />
                     إعلانات البوب أب
+                  </TabsTrigger>
+                  <TabsTrigger value="reports" className="flex items-center gap-2 font-lusail text-xs sm:text-sm">
+                    <FileText className="w-3 h-3 sm:w-4 sm:h-4" />
+                    التقارير
                   </TabsTrigger>
                 </TabsList>
 
@@ -250,6 +255,10 @@ const AdminDashboard = () => {
 
                 <TabsContent value="popups">
                   <PopupBannersTab />
+                </TabsContent>
+
+                <TabsContent value="reports">
+                  <ReportsTab />
                 </TabsContent>
               </Tabs>
             </TabsContent>
