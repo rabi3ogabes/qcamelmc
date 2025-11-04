@@ -51,7 +51,29 @@ export const TicketsTab = () => {
         .order("price", { ascending: false });
 
       if (error) throw error;
-      setTickets(data || []);
+      
+      // Fetch confirmed orders to calculate actual sold quantities
+      const { data: ordersData } = await supabase
+        .from("orders")
+        .select("event_id, ticket_type, quantity")
+        .eq("payment_status", "confirmed");
+      
+      // Calculate sold quantities from confirmed orders only
+      const ticketsWithCorrectSold = (data || []).map(ticket => {
+        const confirmedSales = (ordersData || [])
+          .filter(order => 
+            order.event_id === ticket.event_id && 
+            order.ticket_type === ticket.type
+          )
+          .reduce((sum, order) => sum + order.quantity, 0);
+        
+        return {
+          ...ticket,
+          sold_quantity: confirmedSales
+        };
+      });
+      
+      setTickets(ticketsWithCorrectSold);
     } catch (error) {
       toast.error(t("failedToLoad"));
     } finally {
