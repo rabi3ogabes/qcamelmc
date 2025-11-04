@@ -1028,7 +1028,7 @@ export const CustomersTab = () => {
                     {mainTicket && (
                       <div className="flex-1 text-center">
                         <p className="text-xs text-muted-foreground font-lusail mb-1">رمز التذكرة:</p>
-                        <p className="text-xs font-bold font-mono text-primary">{mainTicket.orderRef}</p>
+                        <p className="text-[10px] font-bold font-mono text-primary">{mainTicket.orderRef}</p>
                       </div>
                     )}
                     <div className="flex-1 text-right">
