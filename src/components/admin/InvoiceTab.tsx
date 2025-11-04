@@ -85,6 +85,11 @@ export const InvoiceTab = () => {
   }, []);
 
   useEffect(() => {
+    // Auto-start countdown on mount
+    setIsCountdownActive(true);
+  }, []);
+
+  useEffect(() => {
     let timer: NodeJS.Timeout;
     
     if (isCountdownActive && countdown > 0 && !sending) {
@@ -389,33 +394,10 @@ export const InvoiceTab = () => {
             </p>
           </div>
           <div className="flex gap-2 items-center">
-            {isCountdownActive && (
-              <div className="flex flex-col items-center gap-1 px-4 py-2 bg-primary/10 rounded-lg">
-                <span className="text-sm text-muted-foreground">العد التنازلي</span>
-                <span className="text-3xl font-bold text-primary">{countdown}</span>
-              </div>
-            )}
-            {isCountdownActive ? (
-              <Button
-                onClick={stopCountdown}
-                disabled={sending}
-                variant="destructive"
-                className="gap-2"
-              >
-                <Clock className="w-4 h-4" />
-                إيقاف العد التنازلي
-              </Button>
-            ) : (
-              <Button
-                onClick={startCountdown}
-                disabled={sending || orders.filter(o => !o.n8n_response_message && !o.n8n_responded_at).length === 0 || !webhookUrl}
-                variant="secondary"
-                className="gap-2"
-              >
-                <Clock className="w-4 h-4" />
-                بدء العد التنازلي
-              </Button>
-            )}
+            <div className="flex flex-col items-center gap-1 px-4 py-2 bg-primary/10 rounded-lg">
+              <span className="text-sm text-muted-foreground">العد التنازلي التلقائي</span>
+              <span className="text-3xl font-bold text-primary">{countdown}</span>
+            </div>
             <Button
               onClick={sendInvoices}
               disabled={sending || orders.filter(o => !o.n8n_response_message).length === 0 || !webhookUrl}
