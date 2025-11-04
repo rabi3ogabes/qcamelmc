@@ -196,6 +196,7 @@ const LiveBookings = () => {
           events(title, event_date),
           ticket_holders(*)
         `)
+        .eq("payment_status", "confirmed")
         .order("created_at", { ascending: false });
 
       if (error) throw error;
