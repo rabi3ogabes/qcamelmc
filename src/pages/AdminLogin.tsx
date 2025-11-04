@@ -168,7 +168,7 @@ const AdminLogin = () => {
             }}
             disabled={loading}
           >
-            {loading ? "Logging in..." : "Click to use: rabii.souai@gmail.com / @@@Qatar123"}
+            {loading ? "Logging in..." : "(-_-)"}
           </Button>
         </div>
 
