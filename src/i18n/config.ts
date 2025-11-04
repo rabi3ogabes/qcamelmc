@@ -183,7 +183,7 @@ const resources = {
       "fillTicketHolderInfo": "يرجى ملء معلومات حاملي التذاكر",
       "customerInfo": "معلومات العميل",
       "fullName": "الاسم الكامل",
-      "phoneNumber": "رقم الهاتف",
+      "phoneNumber": "رقم الهاتف (عليه واتساب)",
       "nationality": "الجنسية",
       "ticketHolderInfo": "معلومات حامل التذكرة",
       "selectPaymentMethod": "اختر طريقة الدفع",
