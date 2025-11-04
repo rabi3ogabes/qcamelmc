@@ -10,8 +10,11 @@ import { useTranslation } from "react-i18next";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { format } from "date-fns";
+import { toZonedTime, formatInTimeZone } from "date-fns-tz";
 import { cn } from "@/lib/utils";
 import { Footer } from "@/components/Footer";
+
+const QATAR_TIMEZONE = "Asia/Qatar";
 
 interface TicketHolder {
   id: string;
@@ -118,24 +121,25 @@ const LiveBookings = () => {
 
   const autoSelectUpcomingEvent = async () => {
     try {
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
+      const now = new Date();
+      const qatarNow = toZonedTime(now, QATAR_TIMEZONE);
       
       // Fetch all events to find the upcoming one
       const { data: events, error } = await supabase
         .from("events")
         .select("event_date")
-        .gte("event_date", today.toISOString())
+        .gte("event_date", now.toISOString())
         .order("event_date", { ascending: true })
         .limit(1);
 
       if (error) throw error;
 
       if (events && events.length > 0) {
-        // Set the selected date to the upcoming event date
-        const upcomingEventDate = new Date(events[0].event_date);
-        setSelectedDate(upcomingEventDate);
-        console.log("Auto-selected upcoming event date:", format(upcomingEventDate, 'yyyy-MM-dd'));
+        // Convert event date to Qatar timezone
+        const eventDate = new Date(events[0].event_date);
+        const qatarEventDate = toZonedTime(eventDate, QATAR_TIMEZONE);
+        setSelectedDate(qatarEventDate);
+        console.log("Auto-selected upcoming event date (Qatar time):", formatInTimeZone(eventDate, QATAR_TIMEZONE, 'yyyy-MM-dd HH:mm'));
       } else {
         // No upcoming events
         setLoading(false);
@@ -207,13 +211,14 @@ const LiveBookings = () => {
       // Filter by event date on client side if date is selected
       let filteredData = data || [];
       if (selectedDate) {
-        // Format selected date as YYYY-MM-DD for comparison
-        const selectedDateStr = format(selectedDate, 'yyyy-MM-dd');
+        // Format selected date as YYYY-MM-DD in Qatar timezone
+        const selectedDateStr = formatInTimeZone(selectedDate, QATAR_TIMEZONE, 'yyyy-MM-dd');
         
         filteredData = filteredData.filter((order: any) => {
           if (!order.events?.event_date) return false;
-          // Extract just the date part from event_date
-          const eventDateStr = order.events.event_date.split('T')[0];
+          // Convert event date to Qatar timezone and extract date part
+          const eventDate = new Date(order.events.event_date);
+          const eventDateStr = formatInTimeZone(eventDate, QATAR_TIMEZONE, 'yyyy-MM-dd');
           return eventDateStr === selectedDateStr;
         });
       }
@@ -395,7 +400,7 @@ const LiveBookings = () => {
                     )}
                   >
                     <CalendarIcon className="ml-1 h-3 w-3" />
-                    {selectedDate ? format(selectedDate, "dd/MM") : "تاريخ"}
+                    {selectedDate ? formatInTimeZone(selectedDate, QATAR_TIMEZONE, "dd/MM") : "تاريخ"}
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0" align="start">
