@@ -78,6 +78,7 @@ export const InvoiceTab = () => {
   const [delayMin, setDelayMin] = useState<number>(300);
   const [delayMax, setDelayMax] = useState<number>(600);
   const [filterTab, setFilterTab] = useState<"all" | "pending" | "sent">("all");
+  const [sendingIndividual, setSendingIndividual] = useState<string | null>(null);
 
   useEffect(() => {
     fetchOrders();
@@ -401,6 +402,40 @@ export const InvoiceTab = () => {
     }
   };
 
+  const sendSingleInvoice = async (order: Order) => {
+    if (!webhookUrl) {
+      toast.error("لم يتم تكوين رابط الويب هوك. يرجى تحديثه في الإعدادات");
+      return;
+    }
+
+    setSendingIndividual(order.id);
+    
+    try {
+      toast.info(`جاري إرسال فاتورة ${order.booking_reference}...`);
+      
+      const result = await sendInvoiceToWebhook(order, order.quantity);
+      
+      if (result.success) {
+        const sentTime = new Date();
+        const newSentOrders = new Map(sentOrders);
+        newSentOrders.set(order.id, { sentAt: sentTime, message: result.message });
+        setSentOrders(newSentOrders);
+        toast.success(`تم إرسال الفاتورة بنجاح لـ ${order.customers.name}`);
+        fetchOrders(); // Refresh to get n8n response
+      } else {
+        const newSentOrders = new Map(sentOrders);
+        newSentOrders.set(order.id, { sentAt: new Date(), message: result.message });
+        setSentOrders(newSentOrders);
+        toast.error(`فشل إرسال الفاتورة: ${result.message}`);
+      }
+    } catch (error) {
+      console.error("Error sending single invoice:", error);
+      toast.error("حدث خطأ أثناء إرسال الفاتورة");
+    } finally {
+      setSendingIndividual(null);
+    }
+  };
+
   // Filter orders based on selected tab
   const filteredOrders = orders.filter((order) => {
     if (filterTab === "pending") {
@@ -491,7 +526,7 @@ export const InvoiceTab = () => {
                 <TableHead className="text-right">الفعالية</TableHead>
                 <TableHead className="text-right">تاريخ الطلب</TableHead>
                 <TableHead className="text-right">رد n8n</TableHead>
-                <TableHead className="text-right">إعادة الإرسال</TableHead>
+                <TableHead className="text-right">إجراءات</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -581,18 +616,41 @@ export const InvoiceTab = () => {
                       )}
                     </TableCell>
                     <TableCell>
-                      {(order.n8n_response_message || sentOrders.has(order.id)) && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => resetOrderStatus(order.id)}
-                          disabled={sending || currentlySending === order.id}
-                          className="gap-2"
-                        >
-                          <RotateCcw className="w-4 h-4" />
-                          إعادة
-                        </Button>
-                      )}
+                      <div className="flex gap-2">
+                        {!order.n8n_response_message && !sentOrders.has(order.id) && (
+                          <Button
+                            variant="default"
+                            size="sm"
+                            onClick={() => sendSingleInvoice(order)}
+                            disabled={sending || currentlySending === order.id || sendingIndividual === order.id || !webhookUrl}
+                            className="gap-2"
+                          >
+                            {sendingIndividual === order.id ? (
+                              <>
+                                <Loader2 className="w-4 h-4 animate-spin" />
+                                جاري الإرسال...
+                              </>
+                            ) : (
+                              <>
+                                <Send className="w-4 h-4" />
+                                إرسال
+                              </>
+                            )}
+                          </Button>
+                        )}
+                        {(order.n8n_response_message || sentOrders.has(order.id)) && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => resetOrderStatus(order.id)}
+                            disabled={sending || currentlySending === order.id || sendingIndividual === order.id}
+                            className="gap-2"
+                          >
+                            <RotateCcw className="w-4 h-4" />
+                            إعادة
+                          </Button>
+                        )}
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))
