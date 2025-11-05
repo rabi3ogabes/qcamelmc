@@ -931,9 +931,14 @@ const AdminPOS = () => {
                     {ticketHolders.map((holder, index) => (
                       <div key={index} className="p-4 border rounded-lg space-y-3 bg-muted/50">
                         <div className="flex justify-between items-center">
-                          <h4 className="font-bold text-primary">
-                            التذكرة الإضافية #{index + 1} - {getTicketTypeName(holder.ticketType)}
-                          </h4>
+                          <div>
+                            <h4 className="font-bold text-primary">
+                              التذكرة الإضافية #{index + 1} - {getTicketTypeName(holder.ticketType)}
+                            </h4>
+                            <p className="text-sm text-muted-foreground mt-1">
+                              السعر: {tickets.find(t => t.type === holder.ticketType)?.price.toFixed(2) || '0.00'} {t("qar")}
+                            </p>
+                          </div>
                           <Button
                             type="button"
                             variant="destructive"
