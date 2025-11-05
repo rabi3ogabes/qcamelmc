@@ -1,9 +1,10 @@
-import { Shield, Hand } from "lucide-react";
+import { Shield } from "lucide-react";
 import { Link } from "react-router-dom";
 import visaLogo from "@/assets/visa-logo.png";
 import mastercardLogo from "@/assets/mastercard-logo.png";
 import applePayLogo from "@/assets/applepay-logo.png";
 import sadadLogo from "@/assets/sadad-logo.png";
+import handCursor from "@/assets/hand-cursor.png";
 import { useSettings } from "@/contexts/SettingsContext";
 export const Footer = () => {
   const {
@@ -27,7 +28,7 @@ export const Footer = () => {
                 rel="noopener noreferrer"
                 className="underline hover:text-white/80 transition-colors inline-flex items-center gap-1"
               >
-                <Hand className="w-4 h-4" />
+                <img src={handCursor} alt="Click" className="w-4 h-4" />
                 66625167
               </a>
             </p>
