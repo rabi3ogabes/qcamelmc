@@ -291,7 +291,7 @@ export const EditEventDialog = ({ event, open, onOpenChange, onEventUpdated }: E
               
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="vip_quantity" className="font-lusail">عدد تذاكر VIP</Label>
+                  <Label htmlFor="vip_quantity" className="font-lusail">الحد الأقصى لتذاكر VIP</Label>
                   <Input
                     id="vip_quantity"
                     type="number"
@@ -319,7 +319,7 @@ export const EditEventDialog = ({ event, open, onOpenChange, onEventUpdated }: E
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="normal_quantity" className="font-lusail">عدد تذاكر عادية</Label>
+                  <Label htmlFor="normal_quantity" className="font-lusail">الحد الأقصى لتذاكر عادية</Label>
                   <Input
                     id="normal_quantity"
                     type="number"
@@ -347,7 +347,7 @@ export const EditEventDialog = ({ event, open, onOpenChange, onEventUpdated }: E
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="parking_quantity" className="font-lusail">عدد تذاكر مواقف</Label>
+                  <Label htmlFor="parking_quantity" className="font-lusail">الحد الأقصى لتذاكر مواقف</Label>
                   <Input
                     id="parking_quantity"
                     type="number"
