@@ -8,6 +8,30 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { format } from "date-fns";
 
+const COUNTRY_FLAGS: Record<string, string> = {
+  "السعودية": "🇸🇦",
+  "الإمارات": "🇦🇪",
+  "قطر": "🇶🇦",
+  "الكويت": "🇰🇼",
+  "البحرين": "🇧🇭",
+  "عمان": "🇴🇲",
+  "مصر": "🇪🇬",
+  "الأردن": "🇯🇴",
+  "لبنان": "🇱🇧",
+  "العراق": "🇮🇶",
+  "سوريا": "🇸🇾",
+  "اليمن": "🇾🇪",
+  "ليبيا": "🇱🇾",
+  "السودان": "🇸🇩",
+  "الجزائر": "🇩🇿",
+  "المغرب": "🇲🇦",
+  "تونس": "🇹🇳",
+  "موريتانيا": "🇲🇷",
+  "الصومال": "🇸🇴",
+  "جيبوتي": "🇩🇯",
+  "فلسطين": "🇵🇸"
+};
+
 interface Order {
   id: string;
   booking_reference: string;
@@ -433,6 +457,7 @@ export const InvoiceTab = () => {
                 <TableHead className="text-right">الحالة</TableHead>
                 <TableHead className="text-right">رقم الحجز</TableHead>
                 <TableHead className="text-right">اسم العميل</TableHead>
+                <TableHead className="text-right">الدولة</TableHead>
                 <TableHead className="text-right">الهاتف</TableHead>
                 <TableHead className="text-right">نوع التذكرة</TableHead>
                 <TableHead className="text-right">الكمية</TableHead>
@@ -500,6 +525,7 @@ export const InvoiceTab = () => {
                     </TableCell>
                     <TableCell className="font-mono">{order.booking_reference}</TableCell>
                     <TableCell>{order.customers.name}</TableCell>
+                    <TableCell className="text-2xl">{COUNTRY_FLAGS[order.customers.nationality || "قطر"] || "🇶🇦"}</TableCell>
                     <TableCell dir="ltr" className="text-right">{order.customers.phone}</TableCell>
                     <TableCell>{order.ticket_type}</TableCell>
                     <TableCell>{order.quantity}</TableCell>
