@@ -429,6 +429,11 @@ const TicketSelection = () => {
                   </div>
                   
                   <div className="flex-1 min-w-0">
+                    <div className="mb-2">
+                      <span className="inline-block px-3 py-1 bg-primary/10 text-primary rounded-md text-xs sm:text-sm font-bold">
+                        {ticket.type === 'vip' ? 'VIP' : ticket.type === 'normal' ? 'عادي' : 'موقف'}
+                      </span>
+                    </div>
                     <p className="text-xs sm:text-sm lg:text-base text-muted-foreground mb-1.5 sm:mb-2 break-words">
                       {getTicketDescription(ticket)}
                     </p>
