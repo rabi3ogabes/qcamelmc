@@ -3,6 +3,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Send, Loader2, CheckCircle, Clock, RotateCcw } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -76,6 +77,7 @@ export const InvoiceTab = () => {
   const [batchMax, setBatchMax] = useState<number>(10);
   const [delayMin, setDelayMin] = useState<number>(300);
   const [delayMax, setDelayMax] = useState<number>(600);
+  const [filterTab, setFilterTab] = useState<"all" | "pending" | "sent">("all");
 
   useEffect(() => {
     fetchOrders();
@@ -399,6 +401,16 @@ export const InvoiceTab = () => {
     }
   };
 
+  // Filter orders based on selected tab
+  const filteredOrders = orders.filter((order) => {
+    if (filterTab === "pending") {
+      return !order.n8n_response_message;
+    } else if (filterTab === "sent") {
+      return !!order.n8n_response_message;
+    }
+    return true; // "all" tab shows everything
+  });
+
   if (loading) {
     return (
       <div className="flex justify-center items-center py-12">
@@ -450,7 +462,21 @@ export const InvoiceTab = () => {
           </div>
         )}
 
-        <div className="rounded-md border">
+        <Tabs value={filterTab} onValueChange={(v) => setFilterTab(v as "all" | "pending" | "sent")} className="w-full">
+          <TabsList className="grid w-full grid-cols-3 mb-4">
+            <TabsTrigger value="all">
+              الكل ({orders.length})
+            </TabsTrigger>
+            <TabsTrigger value="pending">
+              قيد الإرسال ({orders.filter(o => !o.n8n_response_message).length})
+            </TabsTrigger>
+            <TabsTrigger value="sent">
+              تم الإرسال ({orders.filter(o => !!o.n8n_response_message).length})
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value={filterTab} className="mt-0">
+            <div className="rounded-md border">
           <Table>
             <TableHeader>
               <TableRow>
@@ -469,14 +495,16 @@ export const InvoiceTab = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {orders.length === 0 ? (
+              {filteredOrders.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={11} className="text-center py-8 text-muted-foreground">
-                    لا توجد طلبات مدفوعة عبر سداد
+                  <TableCell colSpan={12} className="text-center py-8 text-muted-foreground">
+                    {filterTab === "pending" && "لا توجد طلبات قيد الإرسال"}
+                    {filterTab === "sent" && "لا توجد طلبات تم إرسالها"}
+                    {filterTab === "all" && "لا توجد طلبات مدفوعة عبر سداد"}
                   </TableCell>
                 </TableRow>
               ) : (
-                orders.map((order) => (
+                filteredOrders.map((order) => (
                 <TableRow key={order.id}>
                     <TableCell>
                       {order.n8n_response_message ? (
@@ -569,9 +597,11 @@ export const InvoiceTab = () => {
                   </TableRow>
                 ))
               )}
-            </TableBody>
-          </Table>
-        </div>
+              </TableBody>
+            </Table>
+          </div>
+          </TabsContent>
+        </Tabs>
       </Card>
     </div>
   );
