@@ -280,6 +280,42 @@ const Checkout = () => {
       return;
     }
 
+    // Validate ticket availability before processing
+    const selectedEventId = localStorage.getItem("selectedEventId");
+    if (!selectedEventId) {
+      toast.error("لم يتم العثور على الفعالية المحددة");
+      navigate("/");
+      return;
+    }
+
+    // Check ticket availability
+    const { data: availableTickets, error: ticketsError } = await supabase
+      .from("tickets")
+      .select("id, type, available_quantity, sold_quantity")
+      .eq("event_id", selectedEventId);
+
+    if (ticketsError) {
+      toast.error("فشل في التحقق من توفر التذاكر");
+      return;
+    }
+
+    // Validate each selection against availability
+    for (const selection of selections) {
+      const ticket = availableTickets?.find(t => t.id === selection.ticketId);
+      if (!ticket) {
+        toast.error(`لم يتم العثور على تذكرة ${selection.type}`);
+        return;
+      }
+
+      const remaining = ticket.available_quantity - ticket.sold_quantity;
+      if (remaining < selection.quantity) {
+        toast.error(`عذراً، تذاكر ${selection.type} غير متوفرة بالكمية المطلوبة. المتبقي: ${remaining} فقط`);
+        // Redirect back to ticket selection
+        setTimeout(() => navigate(`/tickets/${selectedEventId}`), 2000);
+        return;
+      }
+    }
+
     // Validate all ticket holders - all must have complete information
     const allHoldersFilled = ticketHolders.every((holder, index) => {
       return holder.name && holder.phone && holder.nationality && holder.idNumber;
