@@ -196,7 +196,6 @@ export const TicketsTab = () => {
               <thead>
                 <tr className="bg-muted/50">
                   <th className="text-right py-3 px-4 font-lusail border font-bold" rowSpan={2}>التاريخ</th>
-                  <th className="text-right py-3 px-4 font-lusail border font-bold" rowSpan={2}>الفعالية</th>
                   <th className="text-center py-3 px-4 font-lusail border font-bold" colSpan={3}>VIP</th>
                   <th className="text-center py-3 px-4 font-lusail border font-bold" colSpan={3}>عادي</th>
                   <th className="text-center py-3 px-4 font-lusail border font-bold" colSpan={3}>مواقف</th>
@@ -224,9 +223,6 @@ export const TicketsTab = () => {
                         day: 'numeric',
                         weekday: 'long'
                       })}
-                    </td>
-                    <td className="py-3 px-4 font-lusail border font-semibold">
-                      {summary.event_title}
                     </td>
                     <td className="py-3 px-4 font-lusail border text-center font-bold">
                       {summary.vip_count || '-'}
@@ -261,7 +257,7 @@ export const TicketsTab = () => {
                   </tr>
                 ))}
                 <tr className="bg-primary/10 font-bold">
-                  <td colSpan={2} className="py-4 px-4 font-lusail border text-right text-lg">
+                  <td className="py-4 px-4 font-lusail border text-right text-lg">
                     الإجمالي الكلي
                   </td>
                   <td className="py-4 px-4 font-lusail border text-center text-lg">
