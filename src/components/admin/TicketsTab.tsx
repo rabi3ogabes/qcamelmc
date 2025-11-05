@@ -215,7 +215,7 @@ export const TicketsTab = () => {
                 {dailySummaries.map((summary, index) => (
                   <tr key={index} className="hover:bg-muted/30 transition-colors">
                     <td className="py-3 px-4 font-lusail border">
-                      {new Date(summary.date).toLocaleDateString('ar-QA', { 
+                      {new Date(summary.date).toLocaleDateString('en-US', { 
                         year: 'numeric', 
                         month: 'long', 
                         day: 'numeric',
