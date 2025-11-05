@@ -30,10 +30,23 @@ interface DailyBooking {
   total_amount: number;
 }
 
+interface DailySummary {
+  date: string;
+  event_title: string;
+  vip_count: number;
+  vip_amount: number;
+  normal_count: number;
+  normal_amount: number;
+  parking_count: number;
+  parking_amount: number;
+  daily_total: number;
+}
+
 export const TicketsTab = () => {
   const { t } = useTranslation();
   const [tickets, setTickets] = useState<TicketType[]>([]);
   const [dailyBookings, setDailyBookings] = useState<DailyBooking[]>([]);
+  const [dailySummaries, setDailySummaries] = useState<DailySummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [editingTicket, setEditingTicket] = useState<TicketType | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
@@ -85,37 +98,54 @@ export const TicketsTab = () => {
     try {
       const { data, error } = await supabase
         .from("orders")
-        .select("created_at, ticket_type, quantity, total_amount")
+        .select("created_at, ticket_type, quantity, total_amount, event_id, events(title, event_date)")
         .eq("payment_status", "confirmed")
         .order("created_at", { ascending: false });
 
       if (error) throw error;
 
-      // Group by date and ticket type
-      const grouped = (data || []).reduce((acc: Record<string, DailyBooking>, order) => {
-        const date = new Date(order.created_at).toLocaleDateString('en-CA');
-        const key = `${date}-${order.ticket_type}`;
+      // Group by event date
+      const grouped = (data || []).reduce((acc: Record<string, DailySummary>, order) => {
+        const eventDate = order.events?.event_date || order.created_at;
+        const date = new Date(eventDate).toLocaleDateString('en-CA');
         
-        if (!acc[key]) {
-          acc[key] = {
+        if (!acc[date]) {
+          acc[date] = {
             date,
-            ticket_type: order.ticket_type,
-            count: 0,
-            total_amount: 0
+            event_title: order.events?.title || 'Unknown Event',
+            vip_count: 0,
+            vip_amount: 0,
+            normal_count: 0,
+            normal_amount: 0,
+            parking_count: 0,
+            parking_amount: 0,
+            daily_total: 0
           };
         }
         
-        acc[key].count += order.quantity;
-        acc[key].total_amount += parseFloat(order.total_amount.toString());
+        const amount = parseFloat(order.total_amount.toString());
+        
+        if (order.ticket_type === 'vip') {
+          acc[date].vip_count += order.quantity;
+          acc[date].vip_amount += amount;
+        } else if (order.ticket_type === 'normal') {
+          acc[date].normal_count += order.quantity;
+          acc[date].normal_amount += amount;
+        } else if (order.ticket_type === 'parking') {
+          acc[date].parking_count += order.quantity;
+          acc[date].parking_amount += amount;
+        }
+        
+        acc[date].daily_total += amount;
         
         return acc;
       }, {});
 
-      const bookingsArray = Object.values(grouped).sort((a, b) => 
+      const summariesArray = Object.values(grouped).sort((a, b) => 
         new Date(b.date).getTime() - new Date(a.date).getTime()
       );
       
-      setDailyBookings(bookingsArray);
+      setDailySummaries(summariesArray);
     } catch (error) {
       console.error("Error fetching daily bookings:", error);
     }
@@ -156,42 +186,94 @@ export const TicketsTab = () => {
 
       {/* Daily Bookings Statistics */}
       <Card className="p-6">
-        <h3 className="text-xl font-bold font-lusail mb-4">الحجوزات اليومية حسب نوع التذكرة</h3>
+        <h3 className="text-xl font-bold font-lusail mb-4">إحصائيات المبيعات اليومية</h3>
         
-        {dailyBookings.length === 0 ? (
+        {dailySummaries.length === 0 ? (
           <p className="text-muted-foreground text-center py-8 font-lusail">لا توجد حجوزات مؤكدة</p>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full">
+            <table className="w-full border-collapse">
               <thead>
-                <tr className="border-b">
-                  <th className="text-right py-3 px-4 font-lusail">التاريخ</th>
-                  <th className="text-right py-3 px-4 font-lusail">نوع التذكرة</th>
-                  <th className="text-right py-3 px-4 font-lusail">عدد التذاكر</th>
-                  <th className="text-right py-3 px-4 font-lusail">المبلغ الإجمالي</th>
+                <tr className="bg-muted/50">
+                  <th className="text-right py-3 px-4 font-lusail border font-bold" rowSpan={2}>التاريخ</th>
+                  <th className="text-right py-3 px-4 font-lusail border font-bold" rowSpan={2}>الفعالية</th>
+                  <th className="text-center py-3 px-4 font-lusail border font-bold" colSpan={2}>VIP</th>
+                  <th className="text-center py-3 px-4 font-lusail border font-bold" colSpan={2}>عادي</th>
+                  <th className="text-center py-3 px-4 font-lusail border font-bold" colSpan={2}>مواقف</th>
+                  <th className="text-right py-3 px-4 font-lusail border font-bold" rowSpan={2}>الإجمالي اليومي</th>
+                </tr>
+                <tr className="bg-muted/30">
+                  <th className="text-center py-2 px-3 font-lusail border text-sm">العدد</th>
+                  <th className="text-center py-2 px-3 font-lusail border text-sm">المبلغ</th>
+                  <th className="text-center py-2 px-3 font-lusail border text-sm">العدد</th>
+                  <th className="text-center py-2 px-3 font-lusail border text-sm">المبلغ</th>
+                  <th className="text-center py-2 px-3 font-lusail border text-sm">العدد</th>
+                  <th className="text-center py-2 px-3 font-lusail border text-sm">المبلغ</th>
                 </tr>
               </thead>
               <tbody>
-                {dailyBookings.map((booking, index) => (
-                  <tr key={index} className="border-b hover:bg-muted/50">
-                    <td className="py-3 px-4 font-lusail">
-                      {new Date(booking.date).toLocaleDateString('en-US', { 
+                {dailySummaries.map((summary, index) => (
+                  <tr key={index} className="hover:bg-muted/30 transition-colors">
+                    <td className="py-3 px-4 font-lusail border">
+                      {new Date(summary.date).toLocaleDateString('ar-QA', { 
                         year: 'numeric', 
                         month: 'long', 
-                        day: 'numeric' 
+                        day: 'numeric',
+                        weekday: 'long'
                       })}
                     </td>
-                    <td className="py-3 px-4 font-lusail">
-                      <Badge variant={booking.ticket_type === 'vip' ? 'default' : 'secondary'}>
-                        {getTicketTypeName(booking.ticket_type)}
-                      </Badge>
+                    <td className="py-3 px-4 font-lusail border font-semibold">
+                      {summary.event_title}
                     </td>
-                    <td className="py-3 px-4 font-lusail font-bold">{booking.count}</td>
-                    <td className="py-3 px-4 font-lusail font-bold text-primary">
-                      {booking.total_amount.toFixed(2)} {t("qar")}
+                    <td className="py-3 px-4 font-lusail border text-center font-bold">
+                      {summary.vip_count || '-'}
+                    </td>
+                    <td className="py-3 px-4 font-lusail border text-center text-primary font-semibold">
+                      {summary.vip_amount > 0 ? `${summary.vip_amount.toFixed(2)}` : '-'}
+                    </td>
+                    <td className="py-3 px-4 font-lusail border text-center font-bold">
+                      {summary.normal_count || '-'}
+                    </td>
+                    <td className="py-3 px-4 font-lusail border text-center text-primary font-semibold">
+                      {summary.normal_amount > 0 ? `${summary.normal_amount.toFixed(2)}` : '-'}
+                    </td>
+                    <td className="py-3 px-4 font-lusail border text-center font-bold">
+                      {summary.parking_count || '-'}
+                    </td>
+                    <td className="py-3 px-4 font-lusail border text-center text-primary font-semibold">
+                      {summary.parking_amount > 0 ? `${summary.parking_amount.toFixed(2)}` : '-'}
+                    </td>
+                    <td className="py-3 px-4 font-lusail border text-right font-bold text-lg text-primary">
+                      {summary.daily_total.toFixed(2)} {t("qar")}
                     </td>
                   </tr>
                 ))}
+                <tr className="bg-primary/10 font-bold">
+                  <td colSpan={2} className="py-4 px-4 font-lusail border text-right text-lg">
+                    الإجمالي الكلي
+                  </td>
+                  <td className="py-4 px-4 font-lusail border text-center text-lg">
+                    {dailySummaries.reduce((sum, s) => sum + s.vip_count, 0)}
+                  </td>
+                  <td className="py-4 px-4 font-lusail border text-center text-lg text-primary">
+                    {dailySummaries.reduce((sum, s) => sum + s.vip_amount, 0).toFixed(2)}
+                  </td>
+                  <td className="py-4 px-4 font-lusail border text-center text-lg">
+                    {dailySummaries.reduce((sum, s) => sum + s.normal_count, 0)}
+                  </td>
+                  <td className="py-4 px-4 font-lusail border text-center text-lg text-primary">
+                    {dailySummaries.reduce((sum, s) => sum + s.normal_amount, 0).toFixed(2)}
+                  </td>
+                  <td className="py-4 px-4 font-lusail border text-center text-lg">
+                    {dailySummaries.reduce((sum, s) => sum + s.parking_count, 0)}
+                  </td>
+                  <td className="py-4 px-4 font-lusail border text-center text-lg text-primary">
+                    {dailySummaries.reduce((sum, s) => sum + s.parking_amount, 0).toFixed(2)}
+                  </td>
+                  <td className="py-4 px-4 font-lusail border text-right text-xl font-bold text-primary">
+                    {dailySummaries.reduce((sum, s) => sum + s.daily_total, 0).toFixed(2)} {t("qar")}
+                  </td>
+                </tr>
               </tbody>
             </table>
           </div>
