@@ -35,10 +35,13 @@ interface DailySummary {
   event_title: string;
   vip_count: number;
   vip_amount: number;
+  vip_price?: number;
   normal_count: number;
   normal_amount: number;
+  normal_price?: number;
   parking_count: number;
   parking_amount: number;
+  parking_price?: number;
   daily_total: number;
 }
 
@@ -104,8 +107,22 @@ export const TicketsTab = () => {
 
       if (error) throw error;
 
+      // Fetch all ticket prices
+      const { data: ticketPrices, error: ticketError } = await supabase
+        .from("tickets")
+        .select("event_id, type, price");
+
+      if (ticketError) throw ticketError;
+
+      // Create a map of ticket prices by event_id and type
+      const priceMap = (ticketPrices || []).reduce((acc, ticket) => {
+        const key = `${ticket.event_id}-${ticket.type}`;
+        acc[key] = ticket.price;
+        return acc;
+      }, {} as Record<string, number>);
+
       // Group by event date
-      const grouped = (data || []).reduce((acc: Record<string, DailySummary>, order) => {
+      const grouped = (data || []).reduce((acc: Record<string, DailySummary & { vip_price?: number, normal_price?: number, parking_price?: number }>, order) => {
         const eventDate = order.events?.event_date || order.created_at;
         const date = new Date(eventDate).toLocaleDateString('en-CA');
         
@@ -128,12 +145,15 @@ export const TicketsTab = () => {
         if (order.ticket_type === 'vip') {
           acc[date].vip_count += order.quantity;
           acc[date].vip_amount += amount;
+          acc[date].vip_price = priceMap[`${order.event_id}-vip`] || (amount / order.quantity);
         } else if (order.ticket_type === 'normal') {
           acc[date].normal_count += order.quantity;
           acc[date].normal_amount += amount;
+          acc[date].normal_price = priceMap[`${order.event_id}-normal`] || (amount / order.quantity);
         } else if (order.ticket_type === 'parking') {
           acc[date].parking_count += order.quantity;
           acc[date].parking_amount += amount;
+          acc[date].parking_price = priceMap[`${order.event_id}-parking`] || (amount / order.quantity);
         }
         
         acc[date].daily_total += amount;
@@ -228,7 +248,7 @@ export const TicketsTab = () => {
                       {summary.vip_count || '-'}
                     </td>
                     <td className="py-3 px-4 font-lusail border text-center text-muted-foreground">
-                      {summary.vip_count > 0 ? `${(summary.vip_amount / summary.vip_count).toFixed(2)}` : '-'}
+                      {summary.vip_price ? `${summary.vip_price.toFixed(2)}` : '-'}
                     </td>
                     <td className="py-3 px-4 font-lusail border text-center text-primary font-semibold">
                       {summary.vip_amount > 0 ? `${summary.vip_amount.toFixed(2)}` : '-'}
@@ -237,7 +257,7 @@ export const TicketsTab = () => {
                       {summary.normal_count || '-'}
                     </td>
                     <td className="py-3 px-4 font-lusail border text-center text-muted-foreground">
-                      {summary.normal_count > 0 ? `${(summary.normal_amount / summary.normal_count).toFixed(2)}` : '-'}
+                      {summary.normal_price ? `${summary.normal_price.toFixed(2)}` : '-'}
                     </td>
                     <td className="py-3 px-4 font-lusail border text-center text-primary font-semibold">
                       {summary.normal_amount > 0 ? `${summary.normal_amount.toFixed(2)}` : '-'}
@@ -246,7 +266,7 @@ export const TicketsTab = () => {
                       {summary.parking_count || '-'}
                     </td>
                     <td className="py-3 px-4 font-lusail border text-center text-muted-foreground">
-                      {summary.parking_count > 0 ? `${(summary.parking_amount / summary.parking_count).toFixed(2)}` : '-'}
+                      {summary.parking_price ? `${summary.parking_price.toFixed(2)}` : '-'}
                     </td>
                     <td className="py-3 px-4 font-lusail border text-center text-primary font-semibold">
                       {summary.parking_amount > 0 ? `${summary.parking_amount.toFixed(2)}` : '-'}
@@ -264,9 +284,7 @@ export const TicketsTab = () => {
                     {dailySummaries.reduce((sum, s) => sum + s.vip_count, 0)}
                   </td>
                   <td className="py-4 px-4 font-lusail border text-center text-lg text-muted-foreground">
-                    {dailySummaries.reduce((sum, s) => sum + s.vip_count, 0) > 0 
-                      ? (dailySummaries.reduce((sum, s) => sum + s.vip_amount, 0) / dailySummaries.reduce((sum, s) => sum + s.vip_count, 0)).toFixed(2)
-                      : '-'}
+                    {dailySummaries.length > 0 && dailySummaries[0].vip_price ? dailySummaries[0].vip_price.toFixed(2) : '-'}
                   </td>
                   <td className="py-4 px-4 font-lusail border text-center text-lg text-primary">
                     {dailySummaries.reduce((sum, s) => sum + s.vip_amount, 0).toFixed(2)}
@@ -275,9 +293,7 @@ export const TicketsTab = () => {
                     {dailySummaries.reduce((sum, s) => sum + s.normal_count, 0)}
                   </td>
                   <td className="py-4 px-4 font-lusail border text-center text-lg text-muted-foreground">
-                    {dailySummaries.reduce((sum, s) => sum + s.normal_count, 0) > 0 
-                      ? (dailySummaries.reduce((sum, s) => sum + s.normal_amount, 0) / dailySummaries.reduce((sum, s) => sum + s.normal_count, 0)).toFixed(2)
-                      : '-'}
+                    {dailySummaries.length > 0 && dailySummaries[0].normal_price ? dailySummaries[0].normal_price.toFixed(2) : '-'}
                   </td>
                   <td className="py-4 px-4 font-lusail border text-center text-lg text-primary">
                     {dailySummaries.reduce((sum, s) => sum + s.normal_amount, 0).toFixed(2)}
@@ -286,9 +302,7 @@ export const TicketsTab = () => {
                     {dailySummaries.reduce((sum, s) => sum + s.parking_count, 0)}
                   </td>
                   <td className="py-4 px-4 font-lusail border text-center text-lg text-muted-foreground">
-                    {dailySummaries.reduce((sum, s) => sum + s.parking_count, 0) > 0 
-                      ? (dailySummaries.reduce((sum, s) => sum + s.parking_amount, 0) / dailySummaries.reduce((sum, s) => sum + s.parking_count, 0)).toFixed(2)
-                      : '-'}
+                    {dailySummaries.length > 0 && dailySummaries[0].parking_price ? dailySummaries[0].parking_price.toFixed(2) : '-'}
                   </td>
                   <td className="py-4 px-4 font-lusail border text-center text-lg text-primary">
                     {dailySummaries.reduce((sum, s) => sum + s.parking_amount, 0).toFixed(2)}
