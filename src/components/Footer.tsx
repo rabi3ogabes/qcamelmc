@@ -11,7 +11,7 @@ export const Footer = () => {
     settings
   } = useSettings();
   return <footer className="border-t backdrop-blur-sm mt-16" style={{
-    backgroundColor: settings?.header_bg_color || "hsl(var(--card) / 0.5)"
+    backgroundColor: "#a85740"
   }} dir="rtl">
       <div className="container mx-auto px-4 py-8">
         <div className="flex flex-col md:flex-row justify-between items-center gap-6">
