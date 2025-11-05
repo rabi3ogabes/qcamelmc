@@ -278,12 +278,12 @@ const LiveBookings = () => {
       .on(
         'postgres_changes',
         {
-          event: 'UPDATE',
+          event: '*',
           schema: 'public',
           table: 'ticket_holders'
         },
         (payload) => {
-          console.log('Ticket holder update:', payload);
+          console.log('Ticket holder change:', payload);
           fetchBookings();
         }
       )
