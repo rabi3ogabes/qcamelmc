@@ -99,13 +99,25 @@ export const TicketsTab = () => {
 
   const fetchDailyBookings = async () => {
     try {
-      const { data, error } = await supabase
-        .from("orders")
-        .select("created_at, ticket_type, quantity, total_amount, event_id, events(title, event_date)")
-        .eq("payment_status", "confirmed")
-        .order("created_at", { ascending: false });
+      // Fetch ticket holders with their orders and events (source of truth for mixed ticket types)
+      const { data: ticketHolders, error: thError } = await supabase
+        .from("ticket_holders")
+        .select(`
+          id,
+          ticket_type,
+          order_id,
+          orders!inner(
+            payment_status,
+            event_id,
+            events!inner(
+              title,
+              event_date
+            )
+          )
+        `)
+        .eq("orders.payment_status", "confirmed");
 
-      if (error) throw error;
+      if (thError) throw thError;
 
       // Fetch all ticket prices
       const { data: ticketPrices, error: ticketError } = await supabase
@@ -121,15 +133,17 @@ export const TicketsTab = () => {
         return acc;
       }, {} as Record<string, number>);
 
-      // Group by event date
-      const grouped = (data || []).reduce((acc: Record<string, DailySummary & { vip_price?: number, normal_price?: number, parking_price?: number }>, order) => {
-        const eventDate = order.events?.event_date || order.created_at;
+      // Group by event date and calculate from actual ticket holders
+      const grouped = (ticketHolders || []).reduce((acc: Record<string, DailySummary & { vip_price?: number, normal_price?: number, parking_price?: number }>, holder: any) => {
+        const eventDate = holder.orders.events.event_date;
         const date = new Date(eventDate).toLocaleDateString('en-CA');
+        const eventId = holder.orders.event_id;
+        const ticketType = holder.ticket_type;
         
         if (!acc[date]) {
           acc[date] = {
             date,
-            event_title: order.events?.title || 'Unknown Event',
+            event_title: holder.orders.events.title || 'Unknown Event',
             vip_count: 0,
             vip_amount: 0,
             normal_count: 0,
@@ -140,23 +154,23 @@ export const TicketsTab = () => {
           };
         }
         
-        const amount = parseFloat(order.total_amount.toString());
+        const price = priceMap[`${eventId}-${ticketType}`] || 0;
         
-        if (order.ticket_type === 'vip') {
-          acc[date].vip_count += order.quantity;
-          acc[date].vip_amount += amount;
-          acc[date].vip_price = priceMap[`${order.event_id}-vip`] || (amount / order.quantity);
-        } else if (order.ticket_type === 'normal') {
-          acc[date].normal_count += order.quantity;
-          acc[date].normal_amount += amount;
-          acc[date].normal_price = priceMap[`${order.event_id}-normal`] || (amount / order.quantity);
-        } else if (order.ticket_type === 'parking') {
-          acc[date].parking_count += order.quantity;
-          acc[date].parking_amount += amount;
-          acc[date].parking_price = priceMap[`${order.event_id}-parking`] || (amount / order.quantity);
+        if (ticketType === 'vip') {
+          acc[date].vip_count += 1;
+          acc[date].vip_amount += price;
+          acc[date].vip_price = price;
+        } else if (ticketType === 'normal') {
+          acc[date].normal_count += 1;
+          acc[date].normal_amount += price;
+          acc[date].normal_price = price;
+        } else if (ticketType === 'parking') {
+          acc[date].parking_count += 1;
+          acc[date].parking_amount += price;
+          acc[date].parking_price = price;
         }
         
-        acc[date].daily_total += amount;
+        acc[date].daily_total += price;
         
         return acc;
       }, {});
