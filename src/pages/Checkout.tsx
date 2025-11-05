@@ -578,10 +578,27 @@ const Checkout = () => {
                           </SelectItem>)}
                       </SelectContent>
                     </Select>
-                    <Input id="phone" type="tel" value={customerInfo.phone} onChange={e => setCustomerInfo({
-                    ...customerInfo,
-                    phone: e.target.value
-                  })} required className="flex-1" />
+                    <Input 
+                      id="phone" 
+                      type="tel" 
+                      value={customerInfo.phone} 
+                      onChange={e => {
+                        // Remove any + or country code that user might try to add
+                        let value = e.target.value.replace(/[+\s]/g, '');
+                        // For Qatar (+974), remove it if user tries to add it
+                        if (customerInfo.countryCode === '+974' && value.startsWith('974')) {
+                          value = value.substring(3);
+                        }
+                        setCustomerInfo({
+                          ...customerInfo,
+                          phone: value
+                        });
+                      }} 
+                      required 
+                      className="flex-1"
+                      placeholder={customerInfo.countryCode === '+974' ? '8 أرقام' : t('phoneNumber')}
+                      maxLength={customerInfo.countryCode === '+974' ? 8 : undefined}
+                    />
                   </div>
                 </div>
                 <div>
@@ -655,10 +672,24 @@ const Checkout = () => {
                           </div>
                           <div>
                             <Label htmlFor={`holder-phone-${index}`}>{t('phone')} *</Label>
-                            <Input id={`holder-phone-${index}`} type="tel" value={holder.phone.replace(/^\+\d+\s*/, "")} onChange={e => {
-                        const countryCode = COUNTRY_CODES[holder.nationality] || "+974";
-                        updateTicketHolder(index, 'phone', `${countryCode} ${e.target.value}`);
-                      }} required placeholder={t('phone')} />
+                            <Input 
+                              id={`holder-phone-${index}`} 
+                              type="tel" 
+                              value={holder.phone.replace(/^\+\d+\s*/, "")} 
+                              onChange={e => {
+                                const countryCode = COUNTRY_CODES[holder.nationality] || "+974";
+                                // Remove any + or country code that user might try to add
+                                let value = e.target.value.replace(/[+\s]/g, '');
+                                // For Qatar (+974), remove it if user tries to add it
+                                if (countryCode === '+974' && value.startsWith('974')) {
+                                  value = value.substring(3);
+                                }
+                                updateTicketHolder(index, 'phone', `${countryCode} ${value}`);
+                              }} 
+                              required 
+                              placeholder={COUNTRY_CODES[holder.nationality] === '+974' ? '8 أرقام' : t('phone')}
+                              maxLength={COUNTRY_CODES[holder.nationality] === '+974' ? 8 : undefined}
+                            />
                           </div>
                         </div>
                       </div>;
