@@ -195,83 +195,125 @@ export const TicketsTab = () => {
             <table className="w-full border-collapse">
               <thead>
                 <tr className="bg-muted/50">
-                  <th className="text-right py-3 px-4 font-lusail border font-bold" rowSpan={2}>التاريخ</th>
-                  <th className="text-right py-3 px-4 font-lusail border font-bold" rowSpan={2}>الفعالية</th>
-                  <th className="text-center py-3 px-4 font-lusail border font-bold" colSpan={2}>VIP</th>
-                  <th className="text-center py-3 px-4 font-lusail border font-bold" colSpan={2}>عادي</th>
-                  <th className="text-center py-3 px-4 font-lusail border font-bold" colSpan={2}>مواقف</th>
-                  <th className="text-right py-3 px-4 font-lusail border font-bold" rowSpan={2}>الإجمالي اليومي</th>
-                </tr>
-                <tr className="bg-muted/30">
-                  <th className="text-center py-2 px-3 font-lusail border text-sm">العدد</th>
-                  <th className="text-center py-2 px-3 font-lusail border text-sm">المبلغ</th>
-                  <th className="text-center py-2 px-3 font-lusail border text-sm">العدد</th>
-                  <th className="text-center py-2 px-3 font-lusail border text-sm">المبلغ</th>
-                  <th className="text-center py-2 px-3 font-lusail border text-sm">العدد</th>
-                  <th className="text-center py-2 px-3 font-lusail border text-sm">المبلغ</th>
+                  <th className="text-right py-3 px-4 font-lusail border font-bold">نوع التذكرة / التاريخ</th>
+                  {dailySummaries.map((summary, index) => (
+                    <th key={index} className="text-center py-3 px-4 font-lusail border font-bold min-w-[150px]">
+                      <div className="flex flex-col gap-1">
+                        <div className="text-sm">{summary.event_title}</div>
+                        <div className="text-xs text-muted-foreground font-normal">
+                          {new Date(summary.date).toLocaleDateString('ar-QA', { 
+                            month: 'short', 
+                            day: 'numeric',
+                            year: 'numeric'
+                          })}
+                        </div>
+                      </div>
+                    </th>
+                  ))}
+                  <th className="text-center py-3 px-4 font-lusail border font-bold bg-primary/10">الإجمالي</th>
                 </tr>
               </thead>
               <tbody>
-                {dailySummaries.map((summary, index) => (
-                  <tr key={index} className="hover:bg-muted/30 transition-colors">
-                    <td className="py-3 px-4 font-lusail border">
-                      {new Date(summary.date).toLocaleDateString('ar-QA', { 
-                        year: 'numeric', 
-                        month: 'long', 
-                        day: 'numeric',
-                        weekday: 'long'
-                      })}
-                    </td>
-                    <td className="py-3 px-4 font-lusail border font-semibold">
-                      {summary.event_title}
-                    </td>
-                    <td className="py-3 px-4 font-lusail border text-center font-bold">
-                      {summary.vip_count || '-'}
-                    </td>
-                    <td className="py-3 px-4 font-lusail border text-center text-primary font-semibold">
-                      {summary.vip_amount > 0 ? `${summary.vip_amount.toFixed(2)}` : '-'}
-                    </td>
-                    <td className="py-3 px-4 font-lusail border text-center font-bold">
-                      {summary.normal_count || '-'}
-                    </td>
-                    <td className="py-3 px-4 font-lusail border text-center text-primary font-semibold">
-                      {summary.normal_amount > 0 ? `${summary.normal_amount.toFixed(2)}` : '-'}
-                    </td>
-                    <td className="py-3 px-4 font-lusail border text-center font-bold">
-                      {summary.parking_count || '-'}
-                    </td>
-                    <td className="py-3 px-4 font-lusail border text-center text-primary font-semibold">
-                      {summary.parking_amount > 0 ? `${summary.parking_amount.toFixed(2)}` : '-'}
-                    </td>
-                    <td className="py-3 px-4 font-lusail border text-right font-bold text-lg text-primary">
-                      {summary.daily_total.toFixed(2)} {t("qar")}
-                    </td>
-                  </tr>
-                ))}
-                <tr className="bg-primary/10 font-bold">
-                  <td colSpan={2} className="py-4 px-4 font-lusail border text-right text-lg">
-                    الإجمالي الكلي
+                {/* VIP Row */}
+                <tr className="hover:bg-muted/30 transition-colors">
+                  <td className="py-3 px-4 font-lusail border font-bold bg-muted/30">
+                    <div className="flex items-center gap-2">
+                      <Badge variant="default">VIP</Badge>
+                      <span className="text-sm text-muted-foreground">العدد / المبلغ</span>
+                    </div>
                   </td>
-                  <td className="py-4 px-4 font-lusail border text-center text-lg">
-                    {dailySummaries.reduce((sum, s) => sum + s.vip_count, 0)}
+                  {dailySummaries.map((summary, index) => (
+                    <td key={index} className="py-3 px-4 font-lusail border text-center">
+                      <div className="flex flex-col gap-1">
+                        <div className="font-bold">{summary.vip_count || '-'}</div>
+                        <div className="text-sm text-primary font-semibold">
+                          {summary.vip_amount > 0 ? `${summary.vip_amount.toFixed(2)}` : '-'}
+                        </div>
+                      </div>
+                    </td>
+                  ))}
+                  <td className="py-3 px-4 font-lusail border text-center bg-primary/10">
+                    <div className="flex flex-col gap-1">
+                      <div className="font-bold text-lg">{dailySummaries.reduce((sum, s) => sum + s.vip_count, 0)}</div>
+                      <div className="text-sm text-primary font-bold">
+                        {dailySummaries.reduce((sum, s) => sum + s.vip_amount, 0).toFixed(2)}
+                      </div>
+                    </div>
                   </td>
-                  <td className="py-4 px-4 font-lusail border text-center text-lg text-primary">
-                    {dailySummaries.reduce((sum, s) => sum + s.vip_amount, 0).toFixed(2)}
+                </tr>
+
+                {/* Normal Row */}
+                <tr className="hover:bg-muted/30 transition-colors">
+                  <td className="py-3 px-4 font-lusail border font-bold bg-muted/30">
+                    <div className="flex items-center gap-2">
+                      <Badge variant="secondary">عادي</Badge>
+                      <span className="text-sm text-muted-foreground">العدد / المبلغ</span>
+                    </div>
                   </td>
-                  <td className="py-4 px-4 font-lusail border text-center text-lg">
-                    {dailySummaries.reduce((sum, s) => sum + s.normal_count, 0)}
+                  {dailySummaries.map((summary, index) => (
+                    <td key={index} className="py-3 px-4 font-lusail border text-center">
+                      <div className="flex flex-col gap-1">
+                        <div className="font-bold">{summary.normal_count || '-'}</div>
+                        <div className="text-sm text-primary font-semibold">
+                          {summary.normal_amount > 0 ? `${summary.normal_amount.toFixed(2)}` : '-'}
+                        </div>
+                      </div>
+                    </td>
+                  ))}
+                  <td className="py-3 px-4 font-lusail border text-center bg-primary/10">
+                    <div className="flex flex-col gap-1">
+                      <div className="font-bold text-lg">{dailySummaries.reduce((sum, s) => sum + s.normal_count, 0)}</div>
+                      <div className="text-sm text-primary font-bold">
+                        {dailySummaries.reduce((sum, s) => sum + s.normal_amount, 0).toFixed(2)}
+                      </div>
+                    </div>
                   </td>
-                  <td className="py-4 px-4 font-lusail border text-center text-lg text-primary">
-                    {dailySummaries.reduce((sum, s) => sum + s.normal_amount, 0).toFixed(2)}
+                </tr>
+
+                {/* Parking Row */}
+                <tr className="hover:bg-muted/30 transition-colors">
+                  <td className="py-3 px-4 font-lusail border font-bold bg-muted/30">
+                    <div className="flex items-center gap-2">
+                      <Badge variant="outline">مواقف</Badge>
+                      <span className="text-sm text-muted-foreground">العدد / المبلغ</span>
+                    </div>
                   </td>
-                  <td className="py-4 px-4 font-lusail border text-center text-lg">
-                    {dailySummaries.reduce((sum, s) => sum + s.parking_count, 0)}
+                  {dailySummaries.map((summary, index) => (
+                    <td key={index} className="py-3 px-4 font-lusail border text-center">
+                      <div className="flex flex-col gap-1">
+                        <div className="font-bold">{summary.parking_count || '-'}</div>
+                        <div className="text-sm text-primary font-semibold">
+                          {summary.parking_amount > 0 ? `${summary.parking_amount.toFixed(2)}` : '-'}
+                        </div>
+                      </div>
+                    </td>
+                  ))}
+                  <td className="py-3 px-4 font-lusail border text-center bg-primary/10">
+                    <div className="flex flex-col gap-1">
+                      <div className="font-bold text-lg">{dailySummaries.reduce((sum, s) => sum + s.parking_count, 0)}</div>
+                      <div className="text-sm text-primary font-bold">
+                        {dailySummaries.reduce((sum, s) => sum + s.parking_amount, 0).toFixed(2)}
+                      </div>
+                    </div>
                   </td>
-                  <td className="py-4 px-4 font-lusail border text-center text-lg text-primary">
-                    {dailySummaries.reduce((sum, s) => sum + s.parking_amount, 0).toFixed(2)}
+                </tr>
+
+                {/* Total Row */}
+                <tr className="bg-primary/20 font-bold">
+                  <td className="py-4 px-4 font-lusail border text-right text-lg">
+                    الإجمالي اليومي
                   </td>
-                  <td className="py-4 px-4 font-lusail border text-right text-xl font-bold text-primary">
-                    {dailySummaries.reduce((sum, s) => sum + s.daily_total, 0).toFixed(2)} {t("qar")}
+                  {dailySummaries.map((summary, index) => (
+                    <td key={index} className="py-4 px-4 font-lusail border text-center">
+                      <div className="text-lg font-bold text-primary">
+                        {summary.daily_total.toFixed(2)} {t("qar")}
+                      </div>
+                    </td>
+                  ))}
+                  <td className="py-4 px-4 font-lusail border text-center bg-primary/30">
+                    <div className="text-xl font-bold text-primary">
+                      {dailySummaries.reduce((sum, s) => sum + s.daily_total, 0).toFixed(2)} {t("qar")}
+                    </div>
                   </td>
                 </tr>
               </tbody>
