@@ -22,12 +22,7 @@ export const Footer = () => {
             </p>
             <p className="text-sm text-white mt-2">
               الدعم الفني عبر الواتس اب{" "}
-              <a 
-                href="https://wa.me/97466625167" 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="underline hover:text-white/80 transition-colors inline-flex items-center gap-1"
-              >
+              <a href="https://wa.me/97466625167" target="_blank" rel="noopener noreferrer" className="underline hover:text-white/80 transition-colors inline-flex items-center gap-1">
                 <img src={handCursor} alt="Click" className="w-4 h-4" />
                 66625167
               </a>
@@ -36,7 +31,7 @@ export const Footer = () => {
 
           {/* Version */}
           <div className="text-center">
-            <p className="text-xs text-white/70">v1.0</p>
+            <p className="text-xs text-white/70">v1.1</p>
           </div>
 
           {/* Payment Security */}
