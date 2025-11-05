@@ -404,13 +404,22 @@ const TicketSelection = () => {
 
           {/* Right Column - Ticket Selection */}
           <div className="space-y-3 sm:space-y-4 lg:space-y-6 w-full sm:w-[90%] lg:w-[80%] mx-auto">
-          {tickets.map((ticket) => (
-            <Card key={ticket.id} className="overflow-hidden shadow-md hover:shadow-lg transition-shadow flex flex-col min-h-[160px] sm:min-h-[180px] border-0">
+          {tickets.map((ticket) => {
+            const remainingTickets = ticket.available_quantity - ticket.sold_quantity;
+            const isSoldOut = remainingTickets <= 0;
+            
+            return (
+            <Card key={ticket.id} className={`overflow-hidden shadow-md hover:shadow-lg transition-shadow flex flex-col min-h-[160px] sm:min-h-[180px] border-0 ${isSoldOut ? 'opacity-60' : ''}`}>
               {/* Header Banner */}
-              <div className="px-3 sm:px-4 py-2" style={{ backgroundColor: headerBgColor }}>
+              <div className="px-3 sm:px-4 py-2 flex items-center justify-center gap-2" style={{ backgroundColor: headerBgColor }}>
                 <h3 className="text-sm sm:text-base lg:text-lg font-bold text-white text-center">
                   {getTicketTitle(ticket.type)}
                 </h3>
+                {isSoldOut && (
+                  <span className="bg-destructive text-destructive-foreground text-xs px-2 py-1 rounded-md font-bold">
+                    نفذت الكمية
+                  </span>
+                )}
               </div>
               
               <div className="p-3 sm:p-4 lg:p-6 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 lg:gap-6 flex-1">
@@ -423,9 +432,15 @@ const TicketSelection = () => {
                     <p className="text-xs sm:text-sm lg:text-base text-muted-foreground mb-1.5 sm:mb-2 break-words">
                       {getTicketDescription(ticket)}
                     </p>
-                    <p className="text-xs sm:text-sm lg:text-base text-muted-foreground">
-                      {t('availableTickets')}: {ticket.available_quantity - ticket.sold_quantity}
-                    </p>
+                    {isSoldOut ? (
+                      <p className="text-xs sm:text-sm lg:text-base text-destructive font-bold">
+                        نفذت الكمية - غير متوفر
+                      </p>
+                    ) : (
+                      <p className="text-xs sm:text-sm lg:text-base text-muted-foreground">
+                        {t('availableTickets')}: {remainingTickets}
+                      </p>
+                    )}
                   </div>
                 </div>
 
@@ -433,41 +448,50 @@ const TicketSelection = () => {
                   <div className="text-lg sm:text-xl lg:text-2xl font-bold text-primary whitespace-nowrap">
                     {ticket.price.toFixed(2)} {t('qar')}
                   </div>
-                  <div className="flex items-center gap-2">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="icon"
-                      className="h-8 w-8 sm:h-9 sm:w-9 shrink-0"
-                      onClick={() => decrementQuantity(ticket.id)}
-                      disabled={(selections[ticket.id] || 0) === 0}
-                    >
-                      <Minus className="h-3 w-3 sm:h-4 sm:w-4" />
-                    </Button>
-                    <div className="w-10 sm:w-12 text-center font-semibold text-base sm:text-lg">
-                      {selections[ticket.id] || 0}
+                  {isSoldOut ? (
+                    <div className="text-sm sm:text-base text-destructive font-bold">
+                      غير متاح
                     </div>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="icon"
-                      className="h-8 w-8 sm:h-9 sm:w-9 shrink-0"
-                      onClick={() => incrementQuantity(ticket.id, ticket.type, Math.min(ticket.available_quantity - ticket.sold_quantity, MAX_TICKETS_PER_TYPE))}
-                      disabled={
-                        (selections[ticket.id] || 0) >= Math.min(ticket.available_quantity - ticket.sold_quantity, MAX_TICKETS_PER_TYPE) ||
-                        ((ticket.type === "vip" || ticket.type === "normal") && getAdmissionTicketCount() >= MAX_ADMISSION_TICKETS)
-                      }
-                    >
-                      <Plus className="h-3 w-3 sm:h-4 sm:w-4" />
-                    </Button>
-                  </div>
-                  <p className="text-[10px] sm:text-xs lg:text-sm text-muted-foreground text-center sm:text-right">
-                    {ticket.type === "parking" ? t('maxParkingLabel') : t('maxAdmissionLabel')}
-                  </p>
+                  ) : (
+                    <>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="icon"
+                          className="h-8 w-8 sm:h-9 sm:w-9 shrink-0"
+                          onClick={() => decrementQuantity(ticket.id)}
+                          disabled={(selections[ticket.id] || 0) === 0}
+                        >
+                          <Minus className="h-3 w-3 sm:h-4 sm:w-4" />
+                        </Button>
+                        <div className="w-10 sm:w-12 text-center font-semibold text-base sm:text-lg">
+                          {selections[ticket.id] || 0}
+                        </div>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="icon"
+                          className="h-8 w-8 sm:h-9 sm:w-9 shrink-0"
+                          onClick={() => incrementQuantity(ticket.id, ticket.type, Math.min(remainingTickets, MAX_TICKETS_PER_TYPE))}
+                          disabled={
+                            (selections[ticket.id] || 0) >= Math.min(remainingTickets, MAX_TICKETS_PER_TYPE) ||
+                            ((ticket.type === "vip" || ticket.type === "normal") && getAdmissionTicketCount() >= MAX_ADMISSION_TICKETS)
+                          }
+                        >
+                          <Plus className="h-3 w-3 sm:h-4 sm:w-4" />
+                        </Button>
+                      </div>
+                      <p className="text-[10px] sm:text-xs lg:text-sm text-muted-foreground text-center sm:text-right">
+                        {ticket.type === "parking" ? t('maxParkingLabel') : t('maxAdmissionLabel')}
+                      </p>
+                    </>
+                  )}
                 </div>
               </div>
             </Card>
-          ))}
+            );
+          })}
           </div>
         </div>
 
