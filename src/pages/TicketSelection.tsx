@@ -64,19 +64,39 @@ const TicketSelection = () => {
       const qatarTime = toZonedTime(new Date(), "Asia/Qatar");
       const qatarISOString = fromZonedTime(qatarTime, "Asia/Qatar").toISOString();
       
-      // Check if the selected event is a valid upcoming event
+      // Check if the selected event exists and is active
       const { data: selectedEvent, error: eventError } = await supabase
         .from("events")
         .select("id, event_date")
         .eq("id", eventId)
         .eq("is_active", true)
-        .gte("event_date", qatarISOString)
         .maybeSingle();
 
       if (eventError) throw eventError;
 
-      // If event doesn't exist or is not upcoming, redirect to home
+      // If event doesn't exist, redirect to home
       if (!selectedEvent) {
+        toast.error("لا يمكن حجز تذاكر لهذا التاريخ");
+        navigate("/");
+        return;
+      }
+
+      // Check if event is in the past
+      const eventDate = toZonedTime(new Date(selectedEvent.event_date), "Asia/Qatar");
+      const currentQatarTime = toZonedTime(new Date(), "Asia/Qatar");
+      
+      // Check if the event date has passed
+      if (eventDate < currentQatarTime) {
+        toast.error("لا يمكن حجز تذاكر لهذا التاريخ");
+        navigate("/");
+        return;
+      }
+      
+      // Check if it's the same day and past 6PM Qatar time
+      const isSameDay = eventDate.toDateString() === currentQatarTime.toDateString();
+      const currentHour = currentQatarTime.getHours();
+      
+      if (isSameDay && currentHour >= 18) {
         toast.error("لا يمكن حجز تذاكر لهذا التاريخ");
         navigate("/");
         return;
