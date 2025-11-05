@@ -432,13 +432,9 @@ const TicketSelection = () => {
                     <p className="text-xs sm:text-sm lg:text-base text-muted-foreground mb-1.5 sm:mb-2 break-words">
                       {getTicketDescription(ticket)}
                     </p>
-                    {isSoldOut ? (
+                    {isSoldOut && (
                       <p className="text-xs sm:text-sm lg:text-base text-destructive font-bold">
                         نفذت الكمية - غير متوفر
-                      </p>
-                    ) : (
-                      <p className="text-xs sm:text-sm lg:text-base text-muted-foreground">
-                        {t('availableTickets')}: {remainingTickets}
                       </p>
                     )}
                   </div>
