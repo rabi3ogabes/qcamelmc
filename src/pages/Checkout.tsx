@@ -600,6 +600,7 @@ const Checkout = () => {
                       maxLength={customerInfo.countryCode === '+974' ? 8 : undefined}
                     />
                   </div>
+                  <p className="text-xs text-muted-foreground mt-1">بدون رمز الدولة</p>
                 </div>
                 <div>
                   <Label htmlFor="idNumber">رقم الهوية *</Label>
@@ -690,6 +691,7 @@ const Checkout = () => {
                               placeholder={COUNTRY_CODES[holder.nationality] === '+974' ? '8 أرقام' : t('phone')}
                               maxLength={COUNTRY_CODES[holder.nationality] === '+974' ? 8 : undefined}
                             />
+                            <p className="text-xs text-muted-foreground mt-1">بدون رمز الدولة</p>
                           </div>
                         </div>
                       </div>;
