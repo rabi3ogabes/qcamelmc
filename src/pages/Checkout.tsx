@@ -303,21 +303,18 @@ const Checkout = () => {
       }).select().single();
       if (customerError) throw customerError;
 
-      // Get event ID
-      const {
-        data: event,
-        error: eventError
-      } = await supabase.from("events").select("id").eq("is_active", true).order("event_date", {
-        ascending: true
-      }).limit(1).single();
-      if (eventError) throw eventError;
+      // Get event ID from localStorage (stored during ticket selection)
+      const selectedEventId = localStorage.getItem("selectedEventId");
+      if (!selectedEventId) {
+        throw new Error("No event selected");
+      }
 
       // Create order
       const bookingRef = `QTR-${Math.random().toString(36).substring(2, 10).toUpperCase()}`;
       const totalQuantity = selections.reduce((sum, s) => sum + s.quantity, 0);
       const orderData = {
         customer_id: customer.id,
-        event_id: event.id,
+        event_id: selectedEventId,
         ticket_type: selections[0].type as "vip" | "normal" | "parking",
         quantity: totalQuantity,
         total_amount: calculateTotal(),
@@ -418,6 +415,7 @@ const Checkout = () => {
       // For cash/POS, proceed directly
       localStorage.setItem("orderIds", JSON.stringify([order.id]));
       localStorage.removeItem("ticketSelection");
+      localStorage.removeItem("selectedEventId");
 
       // Call webhook asynchronously (non-blocking)
       (async () => {

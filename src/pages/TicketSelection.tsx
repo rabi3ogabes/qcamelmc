@@ -290,7 +290,9 @@ const TicketSelection = () => {
       return;
     }
 
+    // Store both ticket selections AND the event ID
     localStorage.setItem("ticketSelection", JSON.stringify(selectedTickets));
+    localStorage.setItem("selectedEventId", eventId || "");
     navigate("/checkout");
   };
 
