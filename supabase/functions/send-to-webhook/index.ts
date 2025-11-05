@@ -57,11 +57,15 @@ Deno.serve(async (req) => {
     // Get the ticket data from request body
     const ticketData = await req.json();
     
-    // Format phone numbers for webhook (country_code + phone without +)
+    // Format phone numbers for webhook (country_code + phone without + and leading 0)
     const formatPhoneForWebhook = (countryCode: string, phone: string) => {
       const cleanCode = countryCode.replace('+', '').trim();
-      const cleanPhone = phone.replace(/[\s+]/g, '').trim();
-      return `${cleanCode} ${cleanPhone}`;
+      let cleanPhone = phone.replace(/[\s+]/g, '').trim();
+      // Remove leading 0 if present
+      if (cleanPhone.startsWith('0')) {
+        cleanPhone = cleanPhone.substring(1);
+      }
+      return `${cleanCode}${cleanPhone}`;
     };
     
     // Format customer phone
