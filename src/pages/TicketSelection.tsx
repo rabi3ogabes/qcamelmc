@@ -64,19 +64,19 @@ const TicketSelection = () => {
       const qatarTime = toZonedTime(new Date(), "Asia/Qatar");
       const qatarISOString = fromZonedTime(qatarTime, "Asia/Qatar").toISOString();
       
-      // Get the next upcoming event
-      const { data: upcomingEvents, error: upcomingError } = await supabase
+      // Check if the selected event is a valid upcoming event
+      const { data: selectedEvent, error: eventError } = await supabase
         .from("events")
-        .select("id")
+        .select("id, event_date")
+        .eq("id", eventId)
         .eq("is_active", true)
         .gte("event_date", qatarISOString)
-        .order("event_date", { ascending: true })
-        .limit(1);
+        .maybeSingle();
 
-      if (upcomingError) throw upcomingError;
+      if (eventError) throw eventError;
 
-      // If the requested event is not the next upcoming event, redirect to home
-      if (!upcomingEvents || upcomingEvents.length === 0 || upcomingEvents[0].id !== eventId) {
+      // If event doesn't exist or is not upcoming, redirect to home
+      if (!selectedEvent) {
         toast.error("لا يمكن حجز تذاكر لهذا التاريخ");
         navigate("/");
         return;
