@@ -247,7 +247,19 @@ const AdminPOS = () => {
     console.log("addToCart called with:", { ticket, quantity });
     console.log("Current cart:", cart);
     
+    // Check if adding would exceed maximum available tickets
+    const remainingTickets = ticket.available_quantity - ticket.sold_quantity;
     const existingItem = cart.find(item => item.ticketId === ticket.id);
+    const currentInCart = existingItem ? existingItem.quantity : 0;
+    
+    if (currentInCart + quantity > remainingTickets) {
+      toast({
+        title: "خطأ",
+        description: `لا يمكن إضافة هذا العدد. المتبقي: ${remainingTickets - currentInCart} تذاكر فقط`,
+        variant: "destructive",
+      });
+      return;
+    }
     
     // Calculate what the new total would be
     let totalVipNormalAfterAdd = getTotalVipNormalInCart();
@@ -324,6 +336,20 @@ const AdminPOS = () => {
 
     const item = cart.find(i => i.ticketId === ticketId);
     if (!item) return;
+
+    // Check if new quantity exceeds maximum available
+    const ticket = tickets.find(t => t.id === ticketId);
+    if (ticket) {
+      const remainingTickets = ticket.available_quantity - ticket.sold_quantity;
+      if (newQuantity > remainingTickets) {
+        toast({
+          title: "خطأ",
+          description: `لا يمكن تجاوز الحد الأقصى. المتبقي: ${remainingTickets} تذاكر`,
+          variant: "destructive",
+        });
+        return;
+      }
+    }
 
     const otherVipNormal = cart.reduce((total, i) => {
       if (i.ticketId !== ticketId && (i.ticketType === "vip" || i.ticketType === "normal")) {
@@ -532,6 +558,23 @@ const AdminPOS = () => {
     setProcessing(true);
 
     try {
+      // Validate ticket availability before processing
+      for (const cartItem of cart) {
+        const ticket = tickets.find(t => t.id === cartItem.ticketId);
+        if (ticket) {
+          const remainingTickets = ticket.available_quantity - ticket.sold_quantity;
+          if (cartItem.quantity > remainingTickets) {
+            toast({
+              title: "خطأ",
+              description: `عدد تذاكر ${getTicketTypeName(ticket.type)} المطلوب (${cartItem.quantity}) يتجاوز المتاح (${remainingTickets})`,
+              variant: "destructive",
+            });
+            setProcessing(false);
+            return;
+          }
+        }
+      }
+
       // Create customer
       const { data: customerData, error: customerError } = await supabase
         .from("customers")

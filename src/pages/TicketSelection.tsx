@@ -202,6 +202,12 @@ const TicketSelection = () => {
     setSelections(prev => {
       const current = prev[ticketId] || 0;
       
+      // Check if we've reached the maximum available
+      if (current >= maxAvailable) {
+        toast.error("تم الوصول للحد الأقصى من التذاكر المتاحة");
+        return prev;
+      }
+      
       // Check combined limit for VIP and General admission
       if (ticketType === "vip" || ticketType === "normal") {
         const currentAdmissionCount = getAdmissionTicketCount();
