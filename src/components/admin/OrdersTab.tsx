@@ -23,6 +23,7 @@ interface TicketHolder {
   ticket_type: string;
   qr_code: string | null;
   is_present: boolean | null;
+  price?: number;
 }
 interface Order {
   id: string;
@@ -213,13 +214,50 @@ export const OrdersTab = ({
   const viewOrderDetails = async (orderId: string) => {
     setSelectedOrder(orderId);
     try {
+      // First get the order to know which event_id
+      const { data: orderData, error: orderError } = await supabase
+        .from("orders")
+        .select("event_id")
+        .eq("id", orderId)
+        .single();
+      
+      if (orderError) throw orderError;
+      
+      // Fetch ticket holders with ticket prices
       const {
         data,
         error
-      } = await supabase.from("ticket_holders").select("*").eq("order_id", orderId);
+      } = await supabase
+        .from("ticket_holders")
+        .select(`
+          *,
+          orders!inner(event_id)
+        `)
+        .eq("order_id", orderId);
+      
       if (error) throw error;
-      console.log("Ticket holders data:", data);
-      setTicketHolders(data || []);
+      
+      // Fetch ticket prices for this event
+      const { data: ticketsData, error: ticketsError } = await supabase
+        .from("tickets")
+        .select("type, price")
+        .eq("event_id", orderData.event_id);
+      
+      if (ticketsError) throw ticketsError;
+      
+      // Add prices to ticket holders
+      const ticketPriceMap = ticketsData?.reduce((acc, ticket) => {
+        acc[ticket.type] = ticket.price;
+        return acc;
+      }, {} as Record<string, number>) || {};
+      
+      const holdersWithPrices = (data || []).map(holder => ({
+        ...holder,
+        price: ticketPriceMap[holder.ticket_type] || 0
+      }));
+      
+      console.log("Ticket holders data with prices:", holdersWithPrices);
+      setTicketHolders(holdersWithPrices as any);
     } catch (error) {
       console.error("Error fetching ticket holders:", error);
       toast.error(t("failedToLoad"));
@@ -779,6 +817,7 @@ export const OrdersTab = ({
                     <TableHead className="text-right font-lusail">{t("holderPhone")}</TableHead>
                     <TableHead className="text-right font-lusail">{t("holderNationality")}</TableHead>
                     <TableHead className="text-right font-lusail">{t("ticketType")}</TableHead>
+                    <TableHead className="text-right font-lusail">السعر</TableHead>
                     <TableHead className="text-right font-lusail">QR Code</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -792,6 +831,9 @@ export const OrdersTab = ({
                         <Badge variant="outline" className="capitalize font-lusail">
                           {holder.ticket_type}
                         </Badge>
+                      </TableCell>
+                      <TableCell className="font-semibold text-primary">
+                        {holder.price ? `${holder.price.toFixed(2)} ${t("qar")}` : '-'}
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-2">
