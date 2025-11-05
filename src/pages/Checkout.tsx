@@ -290,14 +290,21 @@ const Checkout = () => {
     }
     setLoading(true);
     try {
-      // Create customer
+      // Create customer - clean phone number first
+      let cleanPhone = customerInfo.phone.replace(/[\s+]/g, '');
+      const cleanCountryCode = customerInfo.countryCode.replace('+', '');
+      if (cleanPhone.startsWith(cleanCountryCode)) {
+        cleanPhone = cleanPhone.substring(cleanCountryCode.length);
+      }
+      
       const {
         data: customer,
         error: customerError
       } = await supabase.from("customers").insert({
         name: customerInfo.name,
         email: customerInfo.email,
-        phone: customerInfo.phone,
+        phone: cleanPhone,
+        country_code: customerInfo.countryCode,
         nationality: customerInfo.nationality,
         id_number: customerInfo.idNumber
       }).select().single();
@@ -330,11 +337,26 @@ const Checkout = () => {
       // Create ticket holders first without QR codes for faster processing
       const holdersToInsert = ticketHolders.map((holder, index) => {
         const ticketRef = `${bookingRef}-TKT${(index + 1).toString().padStart(2, '0')}`;
+        
+        // Extract country code and clean phone number
+        let holderPhone = holder.phone;
+        let holderCountryCode = '+974';
+        
+        // Check if phone contains country code pattern (e.g., "+974 123", "974123", etc.)
+        const phoneMatch = holderPhone.match(/^(\+?\d{2,4})[\s-]?(.+)$/);
+        if (phoneMatch) {
+          holderCountryCode = phoneMatch[1].startsWith('+') ? phoneMatch[1] : `+${phoneMatch[1]}`;
+          holderPhone = phoneMatch[2].replace(/[\s-]/g, '');
+        } else {
+          // Clean any spaces/special chars
+          holderPhone = holderPhone.replace(/[\s+]/g, '');
+        }
+        
         return {
           order_id: order.id,
           name: holder.name,
-          phone: holder.phone,
-          country_code: '+974',
+          phone: holderPhone,
+          country_code: holderCountryCode,
           nationality: holder.nationality,
           ticket_type: holder.ticketType,
           qr_code: ticketRef,

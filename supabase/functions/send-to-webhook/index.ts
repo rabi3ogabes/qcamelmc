@@ -57,6 +57,39 @@ Deno.serve(async (req) => {
     // Get the ticket data from request body
     const ticketData = await req.json();
     
+    // Format phone numbers for webhook (country_code + phone without +)
+    const formatPhoneForWebhook = (countryCode: string, phone: string) => {
+      const cleanCode = countryCode.replace('+', '').trim();
+      const cleanPhone = phone.replace(/[\s+]/g, '').trim();
+      return `${cleanCode} ${cleanPhone}`;
+    };
+    
+    // Format customer phone
+    if (ticketData.customers?.country_code && ticketData.customers?.phone) {
+      ticketData.customers.phone = formatPhoneForWebhook(
+        ticketData.customers.country_code, 
+        ticketData.customers.phone
+      );
+    }
+    
+    // Format ticket holder phones
+    if (ticketData.ticket_holders && Array.isArray(ticketData.ticket_holders)) {
+      ticketData.ticket_holders = ticketData.ticket_holders.map((holder: any) => ({
+        ...holder,
+        phone: holder.country_code && holder.phone 
+          ? formatPhoneForWebhook(holder.country_code, holder.phone)
+          : holder.phone
+      }));
+    }
+    
+    // Format holder phone if present
+    if (ticketData.holder?.country_code && ticketData.holder?.phone) {
+      ticketData.holder.phone = formatPhoneForWebhook(
+        ticketData.holder.country_code,
+        ticketData.holder.phone
+      );
+    }
+    
     console.log('=== Ticket Data to Send ===');
     console.log('Booking Reference:', ticketData.booking_reference);
     console.log('Event Location:', ticketData.event_location);
