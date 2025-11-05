@@ -25,6 +25,7 @@ interface Order {
   quantity: number;
   total_amount: number;
   created_at: string;
+  event_id: string;
   customers: { name: string; email: string; phone: string };
   events: { title: string; event_date: string; location: string };
 }

@@ -9,6 +9,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { CheckCircle, MapPin, Calendar, Eye, QrCode, Loader2, XCircle, Printer, Trash2, Grid3x3, List, Search, Banknote, CreditCard } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useTranslation } from "react-i18next";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -32,6 +33,7 @@ interface Order {
   quantity: number;
   total_amount: number;
   created_at: string;
+  event_id: string;
   sadad_manually_verified?: boolean;
   customers: {
     name: string;
@@ -70,6 +72,7 @@ export const OrdersTab = ({
   const [orderToDelete, setOrderToDelete] = useState<string | null>(null);
   const [showDeleteButton, setShowDeleteButton] = useState(false);
   const [showGenerateQrButton, setShowGenerateQrButton] = useState(false);
+  const [availableEvents, setAvailableEvents] = useState<Array<{ id: string; title: string; event_date: string }>>([]);
 
   // Generate QR code image when selectedHolder changes
   useEffect(() => {
@@ -99,6 +102,7 @@ export const OrdersTab = ({
 
   useEffect(() => {
     fetchSettings();
+    fetchAvailableEvents();
   }, []);
 
   const fetchSettings = async () => {
@@ -115,6 +119,38 @@ export const OrdersTab = ({
       }
     } catch (error) {
       console.error("Error fetching settings:", error);
+    }
+  };
+
+  const fetchAvailableEvents = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("events")
+        .select("id, title, event_date")
+        .eq("is_active", true)
+        .order("event_date", { ascending: true });
+
+      if (error) throw error;
+      setAvailableEvents(data || []);
+    } catch (error) {
+      console.error("Error fetching events:", error);
+    }
+  };
+
+  const changeOrderEvent = async (orderId: string, newEventId: string) => {
+    try {
+      const { error } = await supabase
+        .from("orders")
+        .update({ event_id: newEventId })
+        .eq("id", orderId);
+
+      if (error) throw error;
+      
+      toast.success("تم تغيير تاريخ الفعالية بنجاح");
+      onRefresh();
+    } catch (error) {
+      console.error("Error changing event:", error);
+      toast.error("فشل في تغيير تاريخ الفعالية");
     }
   };
 
@@ -521,12 +557,32 @@ export const OrdersTab = ({
         {/* Event & Booking Info */}
         <div className="space-y-2">
           {order.events && (
-            <div className="flex items-center gap-2 text-sm">
-              <Calendar className="w-4 h-4 text-primary" />
-              <span className="font-semibold text-primary">تاريخ الفعالية:</span>
-              <span className="font-medium">
-                {format(new Date(order.events.event_date), 'dd/MM/yyyy')}
-              </span>
+            <div className="flex flex-col gap-2">
+              <div className="flex items-center gap-2 text-sm">
+                <Calendar className="w-4 h-4 text-primary" />
+                <span className="font-semibold text-primary">تاريخ الفعالية:</span>
+                <span className="font-medium">
+                  {format(new Date(order.events.event_date), 'dd/MM/yyyy')}
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-muted-foreground">تغيير التاريخ:</span>
+                <Select
+                  value={order.event_id}
+                  onValueChange={(newEventId) => changeOrderEvent(order.id, newEventId)}
+                >
+                  <SelectTrigger className="w-[280px] h-8 text-xs font-lusail">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {availableEvents.map((event) => (
+                      <SelectItem key={event.id} value={event.id} className="font-lusail text-xs">
+                        {format(new Date(event.event_date), 'dd/MM/yyyy')} - {event.title}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
           )}
           
