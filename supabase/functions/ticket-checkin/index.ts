@@ -1,10 +1,34 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.58.0";
+import { toZonedTime } from "https://esm.sh/date-fns-tz@3.2.0";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
+
+// Check if event has expired (after 6PM Qatar time on event day)
+function isEventExpired(eventDate: string): boolean {
+  const qatarTimeZone = "Asia/Qatar";
+  const eventDateTime = toZonedTime(new Date(eventDate), qatarTimeZone);
+  const currentQatarTime = toZonedTime(new Date(), qatarTimeZone);
+  
+  // Check if event date has passed
+  if (eventDateTime < currentQatarTime) {
+    const isSameDay = eventDateTime.toDateString() === currentQatarTime.toDateString();
+    
+    // If same day, check if it's past 6PM
+    if (isSameDay) {
+      const currentHour = currentQatarTime.getHours();
+      return currentHour >= 18; // 6PM or later
+    }
+    
+    // If it's a past day, it's expired
+    return true;
+  }
+  
+  return false;
+}
 
 interface CheckInRequest {
   booking_reference: string;
@@ -174,6 +198,36 @@ serve(async (req) => {
 
       const order: any = Array.isArray(ticketHolder.orders) ? ticketHolder.orders[0] : ticketHolder.orders;
 
+      // Check if event has expired (after 6PM on event day)
+      const eventDate = (Array.isArray(order.events) ? order.events[0]?.event_date : order.events?.event_date);
+      if (eventDate && isEventExpired(eventDate)) {
+        console.warn(`[Ticket Check-in] Event expired for: ${booking_reference}`);
+        return new Response(
+          JSON.stringify({
+            success: false,
+            error: 'Event expired',
+            message: '⏰ انتهت صلاحية التذكرة - الحدث انتهى',
+            ticket_info: {
+              booking_reference: order.booking_reference,
+              customer_name: (Array.isArray(order.customers) ? order.customers[0]?.name : order.customers?.name) || 'غير معروف',
+              event_title: (Array.isArray(order.events) ? order.events[0]?.title : order.events?.title) || 'غير معروف',
+              ticket_type: ticketHolder.ticket_type,
+              ticket_holder_name: ticketHolder.name,
+              ticket_holder_phone: ticketHolder.phone,
+              ticket_holder_nationality: ticketHolder.nationality,
+              ticket_holder_id_number: ticketHolder.id_number,
+              quantity: 1,
+              payment_status: order.payment_status,
+              is_present: ticketHolder.is_present,
+            }
+          } as CheckInResponse),
+          { 
+            status: 200,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+          }
+        );
+      }
+
       // Check if already checked in first
       if (ticketHolder.is_present) {
         console.warn(`[Ticket Check-in] Already checked in: ${booking_reference}`);
@@ -307,6 +361,31 @@ serve(async (req) => {
         } as CheckInResponse),
         { 
           status: 404, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      );
+    }
+
+    // Check if event has expired (after 6PM on event day)
+    if (order.events?.event_date && isEventExpired(order.events.event_date)) {
+      console.warn(`[Ticket Check-in] Event expired for: ${booking_reference}`);
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: 'Event expired',
+          message: '⏰ انتهت صلاحية التذكرة - الحدث انتهى',
+          ticket_info: {
+            booking_reference: order.booking_reference,
+            customer_name: order.customers?.name || 'غير معروف',
+            event_title: order.events?.title || 'غير معروف',
+            ticket_type: order.ticket_type,
+            quantity: order.quantity,
+            payment_status: order.payment_status,
+            is_present: order.is_present,
+          }
+        } as CheckInResponse),
+        { 
+          status: 200,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
         }
       );
