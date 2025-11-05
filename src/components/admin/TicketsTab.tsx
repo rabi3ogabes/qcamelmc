@@ -197,17 +197,20 @@ export const TicketsTab = () => {
                 <tr className="bg-muted/50">
                   <th className="text-right py-3 px-4 font-lusail border font-bold" rowSpan={2}>التاريخ</th>
                   <th className="text-right py-3 px-4 font-lusail border font-bold" rowSpan={2}>الفعالية</th>
-                  <th className="text-center py-3 px-4 font-lusail border font-bold" colSpan={2}>VIP</th>
-                  <th className="text-center py-3 px-4 font-lusail border font-bold" colSpan={2}>عادي</th>
-                  <th className="text-center py-3 px-4 font-lusail border font-bold" colSpan={2}>مواقف</th>
+                  <th className="text-center py-3 px-4 font-lusail border font-bold" colSpan={3}>VIP</th>
+                  <th className="text-center py-3 px-4 font-lusail border font-bold" colSpan={3}>عادي</th>
+                  <th className="text-center py-3 px-4 font-lusail border font-bold" colSpan={3}>مواقف</th>
                   <th className="text-right py-3 px-4 font-lusail border font-bold" rowSpan={2}>الإجمالي اليومي</th>
                 </tr>
                 <tr className="bg-muted/30">
                   <th className="text-center py-2 px-3 font-lusail border text-sm">العدد</th>
+                  <th className="text-center py-2 px-3 font-lusail border text-sm">السعر</th>
                   <th className="text-center py-2 px-3 font-lusail border text-sm">المبلغ</th>
                   <th className="text-center py-2 px-3 font-lusail border text-sm">العدد</th>
+                  <th className="text-center py-2 px-3 font-lusail border text-sm">السعر</th>
                   <th className="text-center py-2 px-3 font-lusail border text-sm">المبلغ</th>
                   <th className="text-center py-2 px-3 font-lusail border text-sm">العدد</th>
+                  <th className="text-center py-2 px-3 font-lusail border text-sm">السعر</th>
                   <th className="text-center py-2 px-3 font-lusail border text-sm">المبلغ</th>
                 </tr>
               </thead>
@@ -228,17 +231,26 @@ export const TicketsTab = () => {
                     <td className="py-3 px-4 font-lusail border text-center font-bold">
                       {summary.vip_count || '-'}
                     </td>
+                    <td className="py-3 px-4 font-lusail border text-center text-muted-foreground">
+                      {summary.vip_count > 0 ? `${(summary.vip_amount / summary.vip_count).toFixed(2)}` : '-'}
+                    </td>
                     <td className="py-3 px-4 font-lusail border text-center text-primary font-semibold">
                       {summary.vip_amount > 0 ? `${summary.vip_amount.toFixed(2)}` : '-'}
                     </td>
                     <td className="py-3 px-4 font-lusail border text-center font-bold">
                       {summary.normal_count || '-'}
                     </td>
+                    <td className="py-3 px-4 font-lusail border text-center text-muted-foreground">
+                      {summary.normal_count > 0 ? `${(summary.normal_amount / summary.normal_count).toFixed(2)}` : '-'}
+                    </td>
                     <td className="py-3 px-4 font-lusail border text-center text-primary font-semibold">
                       {summary.normal_amount > 0 ? `${summary.normal_amount.toFixed(2)}` : '-'}
                     </td>
                     <td className="py-3 px-4 font-lusail border text-center font-bold">
                       {summary.parking_count || '-'}
+                    </td>
+                    <td className="py-3 px-4 font-lusail border text-center text-muted-foreground">
+                      {summary.parking_count > 0 ? `${(summary.parking_amount / summary.parking_count).toFixed(2)}` : '-'}
                     </td>
                     <td className="py-3 px-4 font-lusail border text-center text-primary font-semibold">
                       {summary.parking_amount > 0 ? `${summary.parking_amount.toFixed(2)}` : '-'}
@@ -255,17 +267,32 @@ export const TicketsTab = () => {
                   <td className="py-4 px-4 font-lusail border text-center text-lg">
                     {dailySummaries.reduce((sum, s) => sum + s.vip_count, 0)}
                   </td>
+                  <td className="py-4 px-4 font-lusail border text-center text-lg text-muted-foreground">
+                    {dailySummaries.reduce((sum, s) => sum + s.vip_count, 0) > 0 
+                      ? (dailySummaries.reduce((sum, s) => sum + s.vip_amount, 0) / dailySummaries.reduce((sum, s) => sum + s.vip_count, 0)).toFixed(2)
+                      : '-'}
+                  </td>
                   <td className="py-4 px-4 font-lusail border text-center text-lg text-primary">
                     {dailySummaries.reduce((sum, s) => sum + s.vip_amount, 0).toFixed(2)}
                   </td>
                   <td className="py-4 px-4 font-lusail border text-center text-lg">
                     {dailySummaries.reduce((sum, s) => sum + s.normal_count, 0)}
                   </td>
+                  <td className="py-4 px-4 font-lusail border text-center text-lg text-muted-foreground">
+                    {dailySummaries.reduce((sum, s) => sum + s.normal_count, 0) > 0 
+                      ? (dailySummaries.reduce((sum, s) => sum + s.normal_amount, 0) / dailySummaries.reduce((sum, s) => sum + s.normal_count, 0)).toFixed(2)
+                      : '-'}
+                  </td>
                   <td className="py-4 px-4 font-lusail border text-center text-lg text-primary">
                     {dailySummaries.reduce((sum, s) => sum + s.normal_amount, 0).toFixed(2)}
                   </td>
                   <td className="py-4 px-4 font-lusail border text-center text-lg">
                     {dailySummaries.reduce((sum, s) => sum + s.parking_count, 0)}
+                  </td>
+                  <td className="py-4 px-4 font-lusail border text-center text-lg text-muted-foreground">
+                    {dailySummaries.reduce((sum, s) => sum + s.parking_count, 0) > 0 
+                      ? (dailySummaries.reduce((sum, s) => sum + s.parking_amount, 0) / dailySummaries.reduce((sum, s) => sum + s.parking_count, 0)).toFixed(2)
+                      : '-'}
                   </td>
                   <td className="py-4 px-4 font-lusail border text-center text-lg text-primary">
                     {dailySummaries.reduce((sum, s) => sum + s.parking_amount, 0).toFixed(2)}
