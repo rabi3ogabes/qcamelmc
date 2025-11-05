@@ -10,6 +10,7 @@ import { toast } from "sonner";
 import { Crown, Users, Car, ArrowRight, Plus, Minus } from "lucide-react";
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
+import { toZonedTime, fromZonedTime } from "date-fns-tz";
 import { PopupBanner } from "@/components/PopupBanner";
 import { Footer } from "@/components/Footer";
 
@@ -59,12 +60,16 @@ const TicketSelection = () => {
     if (!eventId) return;
 
     try {
+      // Get current time in Qatar timezone (GMT+3)
+      const qatarTime = toZonedTime(new Date(), "Asia/Qatar");
+      const qatarISOString = fromZonedTime(qatarTime, "Asia/Qatar").toISOString();
+      
       // Get the next upcoming event
       const { data: upcomingEvents, error: upcomingError } = await supabase
         .from("events")
         .select("id")
         .eq("is_active", true)
-        .gte("event_date", new Date().toISOString())
+        .gte("event_date", qatarISOString)
         .order("event_date", { ascending: true })
         .limit(1);
 
