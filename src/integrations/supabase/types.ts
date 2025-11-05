@@ -113,6 +113,33 @@ export type Database = {
         }
         Relationships: []
       }
+      expired_qr_codes: {
+        Row: {
+          created_at: string
+          expired_at: string
+          id: string
+          order_id: string
+          qr_code: string
+          reason: string
+        }
+        Insert: {
+          created_at?: string
+          expired_at?: string
+          id?: string
+          order_id: string
+          qr_code: string
+          reason?: string
+        }
+        Update: {
+          created_at?: string
+          expired_at?: string
+          id?: string
+          order_id?: string
+          qr_code?: string
+          reason?: string
+        }
+        Relationships: []
+      }
       orders: {
         Row: {
           booking_reference: string

@@ -30,6 +30,22 @@ function isEventExpired(eventDate: string): boolean {
   return false;
 }
 
+// Check if QR code is expired (due to event date change)
+async function isQRCodeExpired(supabaseClient: any, qrCode: string): Promise<boolean> {
+  const { data, error } = await supabaseClient
+    .from('expired_qr_codes')
+    .select('qr_code')
+    .eq('qr_code', qrCode)
+    .maybeSingle();
+  
+  if (error) {
+    console.error('Error checking expired QR code:', error);
+    return false;
+  }
+  
+  return data !== null;
+}
+
 interface CheckInRequest {
   booking_reference: string;
   admin_id?: string;
@@ -81,6 +97,23 @@ serve(async (req) => {
         } as CheckInResponse),
         { 
           status: 400, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      );
+    }
+
+    // Check if QR code is expired (event date was changed)
+    const isExpired = await isQRCodeExpired(supabase, booking_reference);
+    if (isExpired) {
+      console.warn(`[Ticket Check-in] Expired QR code used: ${booking_reference}`);
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: 'QR code expired',
+          message: '❌ لا يمكن استخدام هذا الرمز - تم تغيير موعد الفعالية. يرجى الحصول على رمز QR جديد من لوحة الإدارة',
+        } as CheckInResponse),
+        { 
+          status: 200,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
         }
       );

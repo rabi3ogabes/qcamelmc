@@ -139,15 +139,19 @@ export const OrdersTab = ({
 
   const changeOrderEvent = async (orderId: string, newEventId: string) => {
     try {
-      const { error } = await supabase
-        .from("orders")
-        .update({ event_id: newEventId })
-        .eq("id", orderId);
+      // Call edge function to change event and regenerate QR codes
+      const { data, error } = await supabase.functions.invoke('change-order-event', {
+        body: { order_id: orderId, new_event_id: newEventId }
+      });
 
       if (error) throw error;
       
-      toast.success("تم تغيير تاريخ الفعالية بنجاح");
-      onRefresh();
+      if (data?.success) {
+        toast.success(`تم تغيير تاريخ الفعالية بنجاح وإنشاء ${data.expired_qr_codes} رموز QR جديدة`);
+        onRefresh();
+      } else {
+        throw new Error(data?.error || 'Failed to change event');
+      }
     } catch (error) {
       console.error("Error changing event:", error);
       toast.error("فشل في تغيير تاريخ الفعالية");
