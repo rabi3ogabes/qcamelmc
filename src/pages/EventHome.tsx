@@ -47,19 +47,21 @@ const EventHome = () => {
 
   const fetchEvents = async () => {
     try {
-      // Fetch all upcoming events
+      // Fetch all active events
       const { data, error } = await supabase
         .from("events")
         .select("*")
         .eq("is_active", true)
-        .gte("event_date", new Date().toISOString())
         .order("event_date", { ascending: true })
         .order("display_order", { ascending: true })
         .order("start_time", { ascending: true });
 
       if (error) throw error;
       
-      setEvents(data || []);
+      // Filter out expired events (past 6 PM on event day)
+      const availableEvents = (data || []).filter(event => !canPurchaseTickets(event.event_date) ? false : true);
+      
+      setEvents(availableEvents);
     } catch (error) {
       console.error("Error fetching events:", error);
     } finally {
