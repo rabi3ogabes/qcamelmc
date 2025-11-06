@@ -887,12 +887,10 @@ const QRScanner = () => {
             {showManualSearch && (
               <form onSubmit={handleManualSearch} className="space-y-3">
                 <Input
-                  type="tel"
-                  inputMode="numeric"
-                  pattern="[0-9]*"
+                  type="text"
                   placeholder="أدخل رقم الحجز أو رقم الهاتف"
                   value={manualSearch}
-                  onChange={(e) => setManualSearch(e.target.value.replace(/\D/g, ''))}
+                  onChange={(e) => setManualSearch(e.target.value.toUpperCase())}
                   className="text-center font-mono"
                   disabled={processing}
                 />
