@@ -328,7 +328,7 @@ export const TicketsTab = () => {
           <TabsList className="w-full justify-start flex-wrap h-auto">
             {sortedEventDates.map((event) => (
               <TabsTrigger key={event.date} value={event.date} className="font-lusail">
-                {new Date(event.date).toLocaleDateString('ar-QA', { 
+                {new Date(event.date).toLocaleDateString('en-US', { 
                   year: 'numeric', 
                   month: 'long', 
                   day: 'numeric',
