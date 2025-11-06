@@ -13,6 +13,7 @@ import { ar } from "date-fns/locale";
 import { toZonedTime, fromZonedTime } from "date-fns-tz";
 import { PopupBanner } from "@/components/PopupBanner";
 import { Footer } from "@/components/Footer";
+import { isEventExpired } from "@/lib/eventUtils";
 
 interface Ticket {
   id: string;
@@ -81,22 +82,8 @@ const TicketSelection = () => {
         return;
       }
 
-      // Check if event is in the past
-      const eventDate = toZonedTime(new Date(selectedEvent.event_date), "Asia/Qatar");
-      const currentQatarTime = toZonedTime(new Date(), "Asia/Qatar");
-      
-      // Check if the event date has passed
-      if (eventDate < currentQatarTime) {
-        toast.error("لا يمكن حجز تذاكر لهذا التاريخ");
-        navigate("/");
-        return;
-      }
-      
-      // Check if it's the same day and past 6PM Qatar time
-      const isSameDay = eventDate.toDateString() === currentQatarTime.toDateString();
-      const currentHour = currentQatarTime.getHours();
-      
-      if (isSameDay && currentHour >= 18) {
+      // Check if event booking has expired using the utility function
+      if (isEventExpired(selectedEvent.event_date)) {
         toast.error("لا يمكن حجز تذاكر لهذا التاريخ");
         navigate("/");
         return;
