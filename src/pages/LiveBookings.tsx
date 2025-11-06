@@ -71,6 +71,7 @@ const LiveBookings = () => {
     totalTicketHolders: 0,
     presentTicketHolders: 0
   });
+  const [ticketTypeStats, setTicketTypeStats] = useState<{ [key: string]: number }>({});
 
   const getNationalityFlag = (nationality: string) => {
     const flagMap: { [key: string]: string } = {
@@ -306,7 +307,15 @@ const LiveBookings = () => {
     const totalTicketHolders = ticketHoldersData.length;
     const presentTicketHolders = ticketHoldersData.filter(h => h.is_present).length;
 
+    // Calculate ticket type breakdown
+    const typeBreakdown: { [key: string]: number } = {};
+    ticketHoldersData.forEach(holder => {
+      const type = holder.ticket_type;
+      typeBreakdown[type] = (typeBreakdown[type] || 0) + 1;
+    });
+
     setStats({ total, confirmed, present, totalTickets, totalTicketHolders, presentTicketHolders });
+    setTicketTypeStats(typeBreakdown);
   };
 
   const togglePresence = async (bookingId: string, currentStatus: boolean | null | undefined) => {
@@ -466,6 +475,28 @@ const LiveBookings = () => {
             </div>
           </Card>
         </div>
+
+        {/* Ticket Type Breakdown */}
+        {Object.keys(ticketTypeStats).length > 0 && (
+          <div className="mb-8">
+            <h3 className="text-lg font-semibold mb-4">التذاكر حسب النوع</h3>
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
+              {Object.entries(ticketTypeStats)
+                .sort((a, b) => b[1] - a[1])
+                .map(([type, count]) => (
+                  <Card key={type} className="p-4 bg-gradient-to-br from-primary/10 to-primary/5 border-primary/20">
+                    <div className="text-center">
+                      <Badge variant="outline" className="mb-2 text-xs font-bold">
+                        {type.toUpperCase()}
+                      </Badge>
+                      <p className="text-3xl font-bold text-primary">{count}</p>
+                      <p className="text-xs text-muted-foreground mt-1">تذكرة</p>
+                    </div>
+                  </Card>
+                ))}
+            </div>
+          </div>
+        )}
 
         {/* Ticket Holders Display */}
         {viewType === "cards" ? (
