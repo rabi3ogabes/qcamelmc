@@ -364,6 +364,7 @@ const QRScanner = () => {
             orders!inner (
               booking_reference,
               payment_status,
+              payment_method,
               quantity,
               customers!inner (name),
               events!inner (title)
@@ -389,6 +390,7 @@ const QRScanner = () => {
               orders!inner (
                 booking_reference,
                 payment_status,
+                payment_method,
                 quantity,
                 customers!inner (name),
                 events!inner (title)
@@ -419,10 +421,13 @@ const QRScanner = () => {
 
         const order: any = orderData.orders;
         
+        console.log('=== Specific Ticket Scan Debug ===');
+        console.log('Scanned code:', scannedCode);
         console.log('Order data:', orderData);
         console.log('Payment status from order:', order.payment_status);
         console.log('Payment method:', order.payment_method);
         console.log('Booking reference:', order.booking_reference);
+        console.log('Is ticket present:', orderData.is_present);
         
         // Force confirmed status for POS orders
         const isPOSOrder = order.booking_reference?.startsWith('POS-') || order.payment_method === 'cash_pos';
@@ -430,6 +435,7 @@ const QRScanner = () => {
         
         console.log('Is POS order:', isPOSOrder);
         console.log('Effective payment status:', effectivePaymentStatus);
+        console.log('=== End Debug ===');
         
         setTicketInfo({
           booking_reference: order.booking_reference,
@@ -465,6 +471,7 @@ const QRScanner = () => {
             id,
             booking_reference,
             payment_status,
+            payment_method,
             quantity,
             customers!inner (name),
             events!inner (title)
@@ -487,6 +494,11 @@ const QRScanner = () => {
           return;
         }
 
+        console.log('=== Booking Reference Scan Debug ===');
+        console.log('Scanned booking:', scannedCode);
+        console.log('Order payment status:', orderData.payment_status);
+        console.log('Order payment method:', orderData.payment_method);
+        
         // Fetch all tickets for this order
         const { data: ticketsData, error: ticketsError } = await supabase
           .from('ticket_holders')
