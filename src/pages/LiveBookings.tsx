@@ -71,7 +71,7 @@ const LiveBookings = () => {
     totalTicketHolders: 0,
     presentTicketHolders: 0
   });
-  const [ticketTypeStats, setTicketTypeStats] = useState<{ [key: string]: number }>({});
+  const [ticketTypeStats, setTicketTypeStats] = useState<{ [key: string]: { total: number; present: number } }>({});
 
   const getNationalityFlag = (nationality: string) => {
     const flagMap: { [key: string]: string } = {
@@ -308,10 +308,16 @@ const LiveBookings = () => {
     const presentTicketHolders = ticketHoldersData.filter(h => h.is_present).length;
 
     // Calculate ticket type breakdown
-    const typeBreakdown: { [key: string]: number } = {};
+    const typeBreakdown: { [key: string]: { total: number; present: number } } = {};
     ticketHoldersData.forEach(holder => {
       const type = holder.ticket_type;
-      typeBreakdown[type] = (typeBreakdown[type] || 0) + 1;
+      if (!typeBreakdown[type]) {
+        typeBreakdown[type] = { total: 0, present: 0 };
+      }
+      typeBreakdown[type].total += 1;
+      if (holder.is_present) {
+        typeBreakdown[type].present += 1;
+      }
     });
 
     setStats({ total, confirmed, present, totalTickets, totalTicketHolders, presentTicketHolders });
@@ -482,15 +488,21 @@ const LiveBookings = () => {
             <h3 className="text-lg font-semibold mb-4">التذاكر حسب النوع</h3>
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
               {Object.entries(ticketTypeStats)
-                .sort((a, b) => b[1] - a[1])
-                .map(([type, count]) => (
+                .sort((a, b) => b[1].total - a[1].total)
+                .map(([type, stats]) => (
                   <Card key={type} className="p-4 bg-gradient-to-br from-primary/10 to-primary/5 border-primary/20">
-                    <div className="text-center">
-                      <Badge variant="outline" className="mb-2 text-xs font-bold">
+                    <div className="text-center space-y-2">
+                      <Badge variant="outline" className="text-xs font-bold">
                         {type.toUpperCase()}
                       </Badge>
-                      <p className="text-3xl font-bold text-primary">{count}</p>
-                      <p className="text-xs text-muted-foreground mt-1">تذكرة</p>
+                      <div>
+                        <p className="text-3xl font-bold text-primary">{stats.total}</p>
+                        <p className="text-xs text-muted-foreground">إجمالي التذاكر</p>
+                      </div>
+                      <div className="pt-2 border-t">
+                        <p className="text-2xl font-bold text-green-600">{stats.present}</p>
+                        <p className="text-xs text-muted-foreground">حاضر</p>
+                      </div>
                     </div>
                   </Card>
                 ))}
