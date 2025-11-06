@@ -304,12 +304,20 @@ const QRScanner = () => {
           setScanResult('success');
           toast.info(`تم العثور على ${ticketsData.length} تذكرة لهذا الرقم - اختر التذكرة المراد تأكيدها`);
         } else {
-          // Single ticket found
+          // Single ticket found - auto-select it
           const ticket = ticketsData[0];
           const order: any = ticket.orders;
           
           const isPOSOrder = order.booking_reference?.startsWith('POS-') || order.payment_method === 'cash_pos';
           const effectivePaymentStatus = isPOSOrder ? 'confirmed' : order.payment_status;
+          
+          // Set as available ticket and auto-select it if not already present
+          setAvailableTickets([ticket]);
+          if (!ticket.is_present && scanMode === 'confirm') {
+            setSelectedTicketIds([ticket.id]);
+          } else if (ticket.is_present && scanMode === 'unconfirm') {
+            setSelectedTicketIds([ticket.id]);
+          }
           
           setTicketInfo({
             booking_reference: order.booking_reference,
@@ -500,6 +508,15 @@ const QRScanner = () => {
         console.log('Booking reference scan - Effective status:', effectiveBookingPaymentStatus);
         
         setAvailableTickets(ticketsData);
+        
+        // Auto-select single ticket or all unpresent/present tickets based on mode
+        if (ticketsData.length === 1) {
+          const ticket = ticketsData[0];
+          if ((!ticket.is_present && scanMode === 'confirm') || (ticket.is_present && scanMode === 'unconfirm')) {
+            setSelectedTicketIds([ticket.id]);
+          }
+        }
+        
         setTicketInfo({
           booking_reference: orderData.booking_reference,
           customer_name: orderData.customers.name,
@@ -510,7 +527,12 @@ const QRScanner = () => {
           is_present: false,
         });
         setScanResult('success');
-        toast.info(`تم العثور على ${ticketsData.length} تذكرة - اختر التذكرة المراد تأكيدها`);
+        
+        if (ticketsData.length === 1) {
+          toast.success('تم العثور على التذكرة - جاهز للتأكيد');
+        } else {
+          toast.info(`تم العثور على ${ticketsData.length} تذكرة - اختر التذكرة المراد تأكيدها`);
+        }
       }
     } catch (error) {
       console.error("Error validating ticket:", error);
