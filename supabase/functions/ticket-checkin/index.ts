@@ -142,6 +142,9 @@ serve(async (req) => {
       .eq('qr_code', booking_reference)
       .maybeSingle();
 
+    console.log('[Ticket Check-in] Ticket holder search result:', ticketHolder ? 'FOUND' : 'NOT FOUND');
+    console.log('[Ticket Check-in] Ticket holder search error:', holderError);
+    
     // If found a ticket holder, process it
     if (ticketHolder) {
       console.log('[Ticket Check-in] Found ticket holder');
