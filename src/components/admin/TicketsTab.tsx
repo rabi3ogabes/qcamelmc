@@ -315,9 +315,99 @@ export const TicketsTab = () => {
     );
   };
 
+  // Calculate totals across all dates
+  const grandTotals = dailySummaries.reduce((acc, summary) => ({
+    vip_count: acc.vip_count + summary.vip_count,
+    vip_amount: acc.vip_amount + summary.vip_amount,
+    normal_count: acc.normal_count + summary.normal_count,
+    normal_amount: acc.normal_amount + summary.normal_amount,
+    parking_count: acc.parking_count + summary.parking_count,
+    parking_amount: acc.parking_amount + summary.parking_amount,
+    daily_total: acc.daily_total + summary.daily_total,
+  }), { vip_count: 0, vip_amount: 0, normal_count: 0, normal_amount: 0, parking_count: 0, parking_amount: 0, daily_total: 0 });
+
   return (
     <div className="space-y-8">
       <h2 className="text-2xl font-bold font-lusail">{t("ticketManagement")}</h2>
+
+      {/* Daily Sales Statistics Table */}
+      {dailySummaries.length > 0 && (
+        <Card className="p-6">
+          <h3 className="text-xl font-bold font-lusail mb-4">إحصائيات المبيعات اليومية</h3>
+          <div className="overflow-x-auto">
+            <table className="w-full border-collapse">
+              <thead>
+                <tr className="border-b-2">
+                  <th className="text-center p-3 font-lusail font-bold">التاريخ</th>
+                  <th colSpan={3} className="text-center p-3 font-lusail font-bold border-x">VIP</th>
+                  <th colSpan={3} className="text-center p-3 font-lusail font-bold border-x">عادي</th>
+                  <th colSpan={3} className="text-center p-3 font-lusail font-bold border-x">مواقف</th>
+                  <th className="text-center p-3 font-lusail font-bold">الإجمالي اليومي</th>
+                </tr>
+                <tr className="border-b bg-muted/30">
+                  <th className="p-2"></th>
+                  <th className="text-center p-2 font-lusail text-sm">العدد</th>
+                  <th className="text-center p-2 font-lusail text-sm">السعر</th>
+                  <th className="text-center p-2 font-lusail text-sm border-l">المبلغ</th>
+                  <th className="text-center p-2 font-lusail text-sm">العدد</th>
+                  <th className="text-center p-2 font-lusail text-sm">السعر</th>
+                  <th className="text-center p-2 font-lusail text-sm border-l">المبلغ</th>
+                  <th className="text-center p-2 font-lusail text-sm">العدد</th>
+                  <th className="text-center p-2 font-lusail text-sm">السعر</th>
+                  <th className="text-center p-2 font-lusail text-sm border-l">المبلغ</th>
+                  <th className="p-2"></th>
+                </tr>
+              </thead>
+              <tbody>
+                {dailySummaries.map((summary) => (
+                  <tr key={summary.date} className="border-b hover:bg-muted/20">
+                    <td className="p-3 font-lusail">
+                      {new Date(summary.date).toLocaleDateString('en-US', { 
+                        weekday: 'long',
+                        year: 'numeric', 
+                        month: 'long', 
+                        day: 'numeric'
+                      })}
+                    </td>
+                    {/* VIP */}
+                    <td className="text-center p-3 font-lusail font-bold">{summary.vip_count || '-'}</td>
+                    <td className="text-center p-3 font-lusail">{summary.vip_price ? summary.vip_price.toFixed(2) : '-'}</td>
+                    <td className="text-center p-3 font-lusail font-bold text-destructive border-l">{summary.vip_amount > 0 ? summary.vip_amount.toFixed(2) : '-'}</td>
+                    {/* Normal */}
+                    <td className="text-center p-3 font-lusail font-bold">{summary.normal_count || '-'}</td>
+                    <td className="text-center p-3 font-lusail">{summary.normal_price ? summary.normal_price.toFixed(2) : '-'}</td>
+                    <td className="text-center p-3 font-lusail font-bold text-destructive border-l">{summary.normal_amount > 0 ? summary.normal_amount.toFixed(2) : '-'}</td>
+                    {/* Parking */}
+                    <td className="text-center p-3 font-lusail font-bold">{summary.parking_count || '-'}</td>
+                    <td className="text-center p-3 font-lusail">{summary.parking_price ? summary.parking_price.toFixed(2) : '-'}</td>
+                    <td className="text-center p-3 font-lusail font-bold text-destructive border-l">{summary.parking_amount > 0 ? summary.parking_amount.toFixed(2) : '-'}</td>
+                    {/* Daily Total */}
+                    <td className="text-center p-3 font-lusail font-bold text-lg text-primary">
+                      {summary.daily_total.toFixed(2)} <span className="text-sm">ريال قطري</span>
+                    </td>
+                  </tr>
+                ))}
+                {/* Grand Total Row */}
+                <tr className="bg-muted/50 font-bold border-t-2">
+                  <td className="p-3 font-lusail text-lg">الإجمالي الكلي</td>
+                  <td className="text-center p-3 font-lusail text-lg">{grandTotals.vip_count}</td>
+                  <td className="text-center p-3 font-lusail">{dailySummaries[0]?.vip_price ? dailySummaries[0].vip_price.toFixed(2) : '-'}</td>
+                  <td className="text-center p-3 font-lusail text-lg text-destructive border-l">{grandTotals.vip_amount.toFixed(2)}</td>
+                  <td className="text-center p-3 font-lusail text-lg">{grandTotals.normal_count}</td>
+                  <td className="text-center p-3 font-lusail">{dailySummaries[0]?.normal_price ? dailySummaries[0].normal_price.toFixed(2) : '-'}</td>
+                  <td className="text-center p-3 font-lusail text-lg text-destructive border-l">{grandTotals.normal_amount.toFixed(2)}</td>
+                  <td className="text-center p-3 font-lusail text-lg">{grandTotals.parking_count}</td>
+                  <td className="text-center p-3 font-lusail">{dailySummaries[0]?.parking_price ? dailySummaries[0].parking_price.toFixed(2) : '-'}</td>
+                  <td className="text-center p-3 font-lusail text-lg text-destructive border-l">{grandTotals.parking_amount.toFixed(2)}</td>
+                  <td className="text-center p-3 font-lusail text-xl text-primary">
+                    {grandTotals.daily_total.toFixed(2)} <span className="text-sm">ريال قطري</span>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </Card>
+      )}
 
       {sortedEventDates.length === 0 ? (
         <Card className="p-8 text-center">
