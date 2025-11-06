@@ -565,7 +565,7 @@ const QRScanner = () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       
-      // Get selected tickets and construct proper QR codes
+      // Get selected tickets
       const selectedTickets = selectedTicketIds.length > 0
         ? availableTickets.filter(t => selectedTicketIds.includes(t.id))
         : [];
@@ -575,19 +575,8 @@ const QRScanner = () => {
         return;
       }
       
-      // Construct proper QR codes in the format the edge function expects
-      const qrCodes = selectedTickets.map(ticket => {
-        const bookingRef = ticketInfo.booking_reference;
-        
-        // If the stored qr_code already has the correct format (contains -TKT), use it
-        if (ticket.qr_code && ticket.qr_code.includes('-TKT')) {
-          return ticket.qr_code;
-        }
-        
-        // Otherwise, construct the proper format: BOOKING-REF-TKT01
-        // For simplicity, we'll use TKT01 for now since we're processing individual tickets
-        return `${bookingRef}-TKT01`;
-      });
+      // Use the actual QR codes from the database
+      const qrCodes = selectedTickets.map(ticket => ticket.qr_code);
 
       let successCount = 0;
       let errorCount = 0;

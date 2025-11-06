@@ -102,132 +102,50 @@ serve(async (req) => {
       );
     }
 
-    // Check if QR code is expired (event date was changed)
-    const isExpired = await isQRCodeExpired(supabase, booking_reference);
-    if (isExpired) {
-      console.warn(`[Ticket Check-in] Expired QR code used: ${booking_reference}`);
-      return new Response(
-        JSON.stringify({
-          success: false,
-          error: 'QR code expired',
-          message: '❌ لا يمكن استخدام هذا الرمز - تم تغيير موعد الفعالية. يرجى الحصول على رمز QR جديد من لوحة الإدارة',
-        } as CheckInResponse),
-        { 
-          status: 200,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-        }
-      );
-    }
-
-    // Check if this is a ticket holder QR code (format: QTR-XXXXXXXX-TKT01)
-    const isTicketHolderQR = booking_reference.includes('-TKT');
+    // First, always try to find a ticket holder with this exact QR code
+    console.log('[Ticket Check-in] Searching for ticket holder with QR code:', booking_reference);
     
-    if (isTicketHolderQR) {
-      // Handle individual ticket holder check-in
-      console.log('[Ticket Check-in] Processing individual ticket holder');
-      console.log('[Ticket Check-in] QR code:', booking_reference);
-      
-      // Query ticket holder by QR code with proper foreign key syntax
-      // First try exact match
-      let { data: ticketHolder, error: holderError } = await supabase
-        .from('ticket_holders')
-        .select(`
+    let { data: ticketHolder, error: holderError } = await supabase
+      .from('ticket_holders')
+      .select(`
+        id,
+        name,
+        phone,
+        nationality,
+        ticket_type,
+        qr_code,
+        is_present,
+        confirmed_at,
+        confirmed_by,
+        order_id,
+        id_number,
+        orders!inner (
           id,
-          name,
-          phone,
-          nationality,
+          booking_reference,
+          payment_status,
+          payment_method,
+          total_amount,
+          quantity,
           ticket_type,
-          qr_code,
-          is_present,
-          confirmed_at,
-          confirmed_by,
-          order_id,
-          id_number,
-          orders!inner (
-            id,
-            booking_reference,
-            payment_status,
-            payment_method,
-            total_amount,
-            quantity,
-            ticket_type,
-            customers!inner (
-              name,
-              email,
-              phone
-            ),
-            events!inner (
-              title,
-              event_date,
-              location
-            )
-          )
-        `)
-        .eq('qr_code', booking_reference)
-        .maybeSingle();
-
-      // If not found, try searching by QR code that contains the booking reference (handles URL vs plain code mismatch)
-      if (!ticketHolder) {
-        console.log('[Ticket Check-in] Exact match failed, trying partial match');
-        const { data: ticketsData, error: ticketsError } = await supabase
-          .from('ticket_holders')
-          .select(`
-            id,
+          customers!inner (
             name,
-            phone,
-            nationality,
-            ticket_type,
-            qr_code,
-            is_present,
-            confirmed_at,
-            confirmed_by,
-            order_id,
-            id_number,
-            orders!inner (
-              id,
-              booking_reference,
-              payment_status,
-              payment_method,
-              total_amount,
-              quantity,
-              ticket_type,
-              customers!inner (
-                name,
-                email,
-                phone
-              ),
-              events!inner (
-                title,
-                event_date,
-                location
-              )
-            )
-          `)
-          .ilike('qr_code', `%${booking_reference}%`);
+            email,
+            phone
+          ),
+          events!inner (
+            title,
+            event_date,
+            location
+          )
+        )
+      `)
+      .eq('qr_code', booking_reference)
+      .maybeSingle();
 
-        if (ticketsData && ticketsData.length > 0) {
-          ticketHolder = ticketsData[0];
-          holderError = ticketsError;
-        }
-      }
-
+    // If found a ticket holder, process it
+    if (ticketHolder) {
+      console.log('[Ticket Check-in] Found ticket holder');
       console.log('[Ticket Check-in] Query result:', JSON.stringify(ticketHolder, null, 2));
-      console.log('[Ticket Check-in] Query error:', JSON.stringify(holderError, null, 2));
-
-      if (holderError || !ticketHolder) {
-        console.error('[Ticket Check-in] Ticket holder not found:', holderError);
-        return new Response(
-          JSON.stringify({
-            success: false,
-            error: 'Ticket not found',
-            message: 'تذكرة غير موجودة'
-          } as CheckInResponse),
-          { 
-            status: 404, 
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-          }
-        );
-      }
 
       const order: any = Array.isArray(ticketHolder.orders) ? ticketHolder.orders[0] : ticketHolder.orders;
 
