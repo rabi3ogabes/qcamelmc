@@ -630,6 +630,10 @@ const QRScanner = () => {
             successCount++;
           } else {
             errorCount++;
+            // Show the specific error message from the edge function
+            if (response.message) {
+              toast.error(response.message);
+            }
           }
         } catch (err) {
           console.error('Error confirming ticket:', qrCode, err);
