@@ -292,6 +292,23 @@ const QRScanner = () => {
           const isPOSOrder = order.booking_reference?.startsWith('POS-') || order.payment_method === 'cash_pos';
           const effectivePaymentStatus = isPOSOrder ? 'confirmed' : order.payment_status;
           
+          // Don't show tickets with pending payment (unless POS)
+          if (effectivePaymentStatus !== 'confirmed') {
+            setScanResult('error');
+            setTicketInfo({
+              booking_reference: order.booking_reference,
+              customer_name: order.customers.name,
+              event_title: order.events.title,
+              ticket_type: "-",
+              quantity: 0,
+              payment_status: effectivePaymentStatus,
+              is_present: false,
+            });
+            toast.error('⚠️ حالة الدفع: قيد الانتظار - لا يمكن عرض التذاكر');
+            setProcessing(false);
+            return;
+          }
+          
           setTicketInfo({
             booking_reference: `${ticketsData.length} تذكرة`,
             customer_name: order.customers.name,
@@ -310,6 +327,23 @@ const QRScanner = () => {
           
           const isPOSOrder = order.booking_reference?.startsWith('POS-') || order.payment_method === 'cash_pos';
           const effectivePaymentStatus = isPOSOrder ? 'confirmed' : order.payment_status;
+          
+          // Don't show tickets with pending payment (unless POS)
+          if (effectivePaymentStatus !== 'confirmed') {
+            setScanResult('error');
+            setTicketInfo({
+              booking_reference: order.booking_reference,
+              customer_name: order.customers.name,
+              event_title: order.events.title,
+              ticket_type: "-",
+              quantity: 0,
+              payment_status: effectivePaymentStatus,
+              is_present: false,
+            });
+            toast.error('⚠️ حالة الدفع: قيد الانتظار - لا يمكن عرض التذاكر');
+            setProcessing(false);
+            return;
+          }
           
           // Set as available ticket and auto-select it if not already present
           setAvailableTickets([ticket]);
@@ -437,6 +471,22 @@ const QRScanner = () => {
         console.log('Effective payment status:', effectivePaymentStatus);
         console.log('=== End Debug ===');
         
+        // Don't show tickets with pending payment (unless POS)
+        if (effectivePaymentStatus !== 'confirmed') {
+          setScanResult('error');
+          setTicketInfo({
+            booking_reference: order.booking_reference,
+            customer_name: order.customers.name,
+            event_title: order.events.title,
+            ticket_type: "-",
+            quantity: 0,
+            payment_status: effectivePaymentStatus,
+            is_present: false,
+          });
+          toast.error('⚠️ حالة الدفع: قيد الانتظار - لا يمكن عرض التذاكر');
+          return;
+        }
+        
         setTicketInfo({
           booking_reference: order.booking_reference,
           customer_name: order.customers.name,
@@ -536,6 +586,23 @@ const QRScanner = () => {
         
         console.log('Booking reference scan - Is POS:', isPOSBooking);
         console.log('Booking reference scan - Effective status:', effectiveBookingPaymentStatus);
+        
+        // Don't show tickets with pending payment (unless POS)
+        if (effectiveBookingPaymentStatus !== 'confirmed') {
+          setScanResult('error');
+          setTicketInfo({
+            booking_reference: orderData.booking_reference,
+            customer_name: orderData.customers.name,
+            event_title: orderData.events.title,
+            ticket_type: "-",
+            quantity: 0,
+            payment_status: effectiveBookingPaymentStatus,
+            is_present: false,
+          });
+          toast.error('⚠️ حالة الدفع: قيد الانتظار - لا يمكن عرض التذاكر');
+          return;
+        }
+        
         console.log('Setting available tickets count:', ticketsData.length);
         
         setAvailableTickets(ticketsData);
