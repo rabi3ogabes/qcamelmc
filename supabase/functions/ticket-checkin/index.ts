@@ -30,6 +30,19 @@ function isEventExpired(eventDate: string): boolean {
   return false;
 }
 
+// Check if current date (Qatar timezone) matches event date
+function isEventDateToday(eventDate: string): boolean {
+  const qatarTimeZone = "Asia/Qatar";
+  const eventDateTime = toZonedTime(new Date(eventDate), qatarTimeZone);
+  const currentQatarTime = toZonedTime(new Date(), qatarTimeZone);
+  
+  // Extract just the dates (without time) for comparison
+  const eventDateOnly = new Date(eventDateTime.getFullYear(), eventDateTime.getMonth(), eventDateTime.getDate());
+  const currentDateOnly = new Date(currentQatarTime.getFullYear(), currentQatarTime.getMonth(), currentQatarTime.getDate());
+  
+  return eventDateOnly.getTime() === currentDateOnly.getTime();
+}
+
 // Check if QR code is expired (due to event date change)
 async function isQRCodeExpired(supabaseClient: any, qrCode: string): Promise<boolean> {
   const { data, error } = await supabaseClient
@@ -161,6 +174,35 @@ serve(async (req) => {
             success: false,
             error: 'Event expired',
             message: '⏰ انتهت صلاحية التذكرة - الحدث انتهى',
+            ticket_info: {
+              booking_reference: order.booking_reference,
+              customer_name: (Array.isArray(order.customers) ? order.customers[0]?.name : order.customers?.name) || 'غير معروف',
+              event_title: (Array.isArray(order.events) ? order.events[0]?.title : order.events?.title) || 'غير معروف',
+              ticket_type: ticketHolder.ticket_type,
+              ticket_holder_name: ticketHolder.name,
+              ticket_holder_phone: ticketHolder.phone,
+              ticket_holder_nationality: ticketHolder.nationality,
+              ticket_holder_id_number: ticketHolder.id_number,
+              quantity: 1,
+              payment_status: order.payment_status,
+              is_present: ticketHolder.is_present,
+            }
+          } as CheckInResponse),
+          { 
+            status: 200,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+          }
+        );
+      }
+
+      // Check if ticket can only be checked in on event day
+      if (eventDate && !isEventDateToday(eventDate)) {
+        console.warn(`[Ticket Check-in] Ticket can only be checked in on event date: ${booking_reference}`);
+        return new Response(
+          JSON.stringify({
+            success: false,
+            error: 'Wrong date',
+            message: '📅 لا يمكن تسجيل الدخول - التذكرة صالحة فقط في يوم الحدث',
             ticket_info: {
               booking_reference: order.booking_reference,
               customer_name: (Array.isArray(order.customers) ? order.customers[0]?.name : order.customers?.name) || 'غير معروف',
@@ -328,6 +370,31 @@ serve(async (req) => {
           success: false,
           error: 'Event expired',
           message: '⏰ انتهت صلاحية التذكرة - الحدث انتهى',
+          ticket_info: {
+            booking_reference: order.booking_reference,
+            customer_name: order.customers?.name || 'غير معروف',
+            event_title: order.events?.title || 'غير معروف',
+            ticket_type: order.ticket_type,
+            quantity: order.quantity,
+            payment_status: order.payment_status,
+            is_present: order.is_present,
+          }
+        } as CheckInResponse),
+        { 
+          status: 200,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      );
+    }
+
+    // Check if ticket can only be checked in on event day
+    if (order.events?.event_date && !isEventDateToday(order.events.event_date)) {
+      console.warn(`[Ticket Check-in] Ticket can only be checked in on event date: ${booking_reference}`);
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: 'Wrong date',
+          message: '📅 لا يمكن تسجيل الدخول - التذكرة صالحة فقط في يوم الحدث',
           ticket_info: {
             booking_reference: order.booking_reference,
             customer_name: order.customers?.name || 'غير معروف',
