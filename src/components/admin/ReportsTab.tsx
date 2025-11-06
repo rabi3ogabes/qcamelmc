@@ -14,66 +14,88 @@ export const ReportsTab = () => {
   const handleExportReport = async () => {
     setLoading(true);
     try {
-      // Fetch all ticket holders with related order and event data
-      const { data: ticketHolders, error } = await supabase
-        .from("ticket_holders")
+      // Fetch all orders with related customer, event, and ticket holders data
+      const { data: orders, error } = await supabase
+        .from("orders")
         .select(`
           *,
-          orders (
-            booking_reference,
-            payment_method,
-            payment_status,
-            total_amount,
-            created_at,
-            events (
-              title,
-              event_date,
-              location
-            )
+          customers (
+            name,
+            email,
+            phone,
+            nationality,
+            id_number,
+            country_code
+          ),
+          events (
+            title,
+            event_date,
+            location
+          ),
+          ticket_holders (
+            name,
+            phone,
+            nationality,
+            id_number,
+            ticket_type,
+            is_present,
+            qr_code,
+            country_code
           )
         `)
         .order("created_at", { ascending: false });
 
       if (error) throw error;
 
-      if (!ticketHolders || ticketHolders.length === 0) {
+      if (!orders || orders.length === 0) {
         toast.error("لا توجد بيانات للتصدير");
         return;
       }
 
-      // Group ticket holders by event date
+      // Group orders by event date
       const groupedByEventDate: { [key: string]: any[] } = {};
 
-      ticketHolders.forEach((holder: any) => {
-        if (holder.orders?.events?.event_date) {
-          const eventDate = holder.orders.events.event_date;
+      orders.forEach((order: any) => {
+        if (order.events?.event_date) {
+          const eventDate = order.events.event_date;
           const dateKey = format(new Date(eventDate), "yyyy-MM-dd");
           
           if (!groupedByEventDate[dateKey]) {
             groupedByEventDate[dateKey] = [];
           }
+
+          // Count present ticket holders
+          const presentCount = order.ticket_holders?.filter((th: any) => th.is_present).length || 0;
+          const totalTickets = order.ticket_holders?.length || order.quantity || 0;
+          
+          // Get all ticket holder names
+          const ticketHolderNames = order.ticket_holders?.map((th: any) => th.name).join(", ") || "-";
           
           groupedByEventDate[dateKey].push({
-            "اسم حامل التذكرة": holder.name,
-            "رقم الهاتف": holder.phone,
-            "الجنسية": holder.nationality,
-            "رقم الهوية": holder.id_number || "-",
-            "نوع التذكرة": holder.ticket_type,
-            "رمز الحجز": holder.orders?.booking_reference || "-",
-            "حالة الدفع": holder.orders?.payment_status || "-",
-            "طريقة الدفع": holder.orders?.payment_method || "-",
-            "المبلغ الإجمالي": holder.orders?.total_amount || 0,
-            "اسم الفعالية": holder.orders?.events?.title || "-",
-            "تاريخ الفعالية": holder.orders?.events?.event_date 
-              ? format(new Date(holder.orders.events.event_date), "dd/MM/yyyy", { locale: ar })
+            "رمز الحجز": order.booking_reference,
+            "اسم العميل": order.customers?.name || "-",
+            "البريد الإلكتروني": order.customers?.email || "-",
+            "رقم الهاتف": order.customers?.phone || "-",
+            "الجنسية": order.customers?.nationality || "-",
+            "رقم الهوية": order.customers?.id_number || "-",
+            "نوع التذكرة": order.ticket_type,
+            "عدد التذاكر": totalTickets,
+            "حالة الدفع": order.payment_status || "-",
+            "طريقة الدفع": order.payment_method || "-",
+            "المبلغ الإجمالي": order.total_amount || 0,
+            "اسم الفعالية": order.events?.title || "-",
+            "تاريخ الفعالية": order.events?.event_date 
+              ? format(new Date(order.events.event_date), "dd/MM/yyyy", { locale: ar })
               : "-",
-            "الموقع": holder.orders?.events?.location || "-",
-            "الحضور": holder.is_present ? "نعم" : "لا",
-            "تاريخ التأكيد": holder.confirmed_at 
-              ? format(new Date(holder.confirmed_at), "dd/MM/yyyy HH:mm", { locale: ar })
+            "الموقع": order.events?.location || "-",
+            "عدد الحضور": presentCount,
+            "أسماء حاملي التذاكر": ticketHolderNames,
+            "تاريخ التأكيد": order.confirmed_at 
+              ? format(new Date(order.confirmed_at), "dd/MM/yyyy HH:mm", { locale: ar })
               : "-",
-            "تاريخ الإنشاء": format(new Date(holder.created_at), "dd/MM/yyyy HH:mm", { locale: ar }),
-            "رمز الاستجابة السريعة": holder.qr_code || "-"
+            "تاريخ الإنشاء": format(new Date(order.created_at), "dd/MM/yyyy HH:mm", { locale: ar }),
+            "معرف الدفع": order.payment_id || "-",
+            "رمز الاستجابة السريعة": order.qr_code || "-"
           });
         }
       });
@@ -94,21 +116,25 @@ export const ReportsTab = () => {
         
         // Set column widths
         const colWidths = [
-          { wch: 20 }, // اسم حامل التذكرة
+          { wch: 15 }, // رمز الحجز
+          { wch: 20 }, // اسم العميل
+          { wch: 25 }, // البريد الإلكتروني
           { wch: 15 }, // رقم الهاتف
           { wch: 15 }, // الجنسية
           { wch: 15 }, // رقم الهوية
           { wch: 15 }, // نوع التذكرة
-          { wch: 15 }, // رمز الحجز
+          { wch: 12 }, // عدد التذاكر
           { wch: 15 }, // حالة الدفع
           { wch: 15 }, // طريقة الدفع
           { wch: 12 }, // المبلغ الإجمالي
           { wch: 25 }, // اسم الفعالية
           { wch: 15 }, // تاريخ الفعالية
           { wch: 20 }, // الموقع
-          { wch: 10 }, // الحضور
+          { wch: 12 }, // عدد الحضور
+          { wch: 40 }, // أسماء حاملي التذاكر
           { wch: 18 }, // تاريخ التأكيد
           { wch: 18 }, // تاريخ الإنشاء
+          { wch: 20 }, // معرف الدفع
           { wch: 30 }  // رمز الاستجابة السريعة
         ];
         ws['!cols'] = colWidths;
@@ -137,26 +163,25 @@ export const ReportsTab = () => {
       <Card className="p-6">
         <div className="space-y-4">
           <div>
-            <h3 className="text-xl font-bold mb-2">تصدير تقرير التذاكر</h3>
+            <h3 className="text-xl font-bold mb-2">تصدير تقرير الطلبات</h3>
             <p className="text-muted-foreground mb-4">
-              سيتم تصدير جميع بيانات التذاكر في ملف Excel واحد، حيث يمثل كل ورقة عمل يومًا من أيام الفعاليات
+              سيتم تصدير جميع بيانات الطلبات في ملف Excel واحد، حيث يمثل كل ورقة عمل يومًا من أيام الفعاليات
             </p>
           </div>
 
           <div className="bg-muted/50 p-4 rounded-lg space-y-2">
             <p className="text-sm font-semibold">البيانات المصدرة تشمل:</p>
             <ul className="text-sm space-y-1 mr-4">
-              <li>• اسم حامل التذكرة</li>
-              <li>• رقم الهاتف</li>
-              <li>• الجنسية</li>
-              <li>• رقم الهوية</li>
-              <li>• نوع التذكرة</li>
               <li>• رمز الحجز</li>
+              <li>• بيانات العميل (الاسم، البريد، الهاتف، الجنسية، رقم الهوية)</li>
+              <li>• نوع التذكرة وعدد التذاكر</li>
               <li>• حالة الدفع وطريقة الدفع</li>
+              <li>• المبلغ الإجمالي</li>
               <li>• تفاصيل الفعالية (الاسم، التاريخ، الموقع)</li>
-              <li>• حالة الحضور</li>
+              <li>• عدد الحضور</li>
+              <li>• أسماء حاملي التذاكر</li>
               <li>• التواريخ (الإنشاء، التأكيد)</li>
-              <li>• رمز الاستجابة السريعة (QR Code)</li>
+              <li>• معرف الدفع ورمز الاستجابة السريعة</li>
             </ul>
           </div>
 
