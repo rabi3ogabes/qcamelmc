@@ -12,6 +12,7 @@ import heroImage from "@/assets/qatar-event-hero.jpg";
 import { PopupBanner } from "@/components/PopupBanner";
 import { Footer } from "@/components/Footer";
 import { useSettings } from "@/contexts/SettingsContext";
+import { canPurchaseTickets } from "@/lib/eventUtils";
 
 interface Event {
   id: string;
@@ -204,15 +205,27 @@ const EventHome = () => {
                     </div>
                     
                     <div className="p-6 pt-0">
-                      <Button 
-                        className="w-full"
-                        size="lg"
-                        onClick={() => navigate(`/tickets/${event.id}`)}
-                        style={{ backgroundColor: '#A85740', color: '#FFFFFF', border: 'none' }}
-                      >
-                        <Ticket className="w-5 h-5 ml-2" />
-                        {t('bookTicketsNow')}
-                      </Button>
+                      {canPurchaseTickets(event.event_date) ? (
+                        <Button 
+                          className="w-full"
+                          size="lg"
+                          onClick={() => navigate(`/tickets/${event.id}`)}
+                          style={{ backgroundColor: '#A85740', color: '#FFFFFF', border: 'none' }}
+                        >
+                          <Ticket className="w-5 h-5 ml-2" />
+                          {t('bookTicketsNow')}
+                        </Button>
+                      ) : (
+                        <Button 
+                          className="w-full"
+                          size="lg"
+                          disabled
+                          style={{ backgroundColor: '#6B4E3D', color: '#FFFFFF', border: 'none', opacity: 0.6 }}
+                        >
+                          <Lock className="w-5 h-5 ml-2" />
+                          انتهى وقت الحجز
+                        </Button>
+                      )}
                     </div>
                   </Card>
                 ))}
