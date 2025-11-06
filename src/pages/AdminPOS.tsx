@@ -13,6 +13,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useTranslation } from "react-i18next";
 import { TicketAddItem } from "@/components/admin/TicketAddItem";
 import { format } from "date-fns";
+import { canPurchaseTickets } from "@/lib/eventUtils";
 
 interface Ticket {
   id: string;
@@ -70,10 +71,8 @@ const AdminPOS = () => {
         const { data, error } = await supabase
           .from("events")
           .select("id, event_date")
-          .gte("event_date", new Date().toISOString())
-          .order("event_date", { ascending: true })
-          .limit(1)
-          .maybeSingle();
+          .eq("is_active", true)
+          .order("event_date", { ascending: true });
 
         if (error) {
           console.error("Error fetching upcoming event:", error);
@@ -82,12 +81,15 @@ const AdminPOS = () => {
         
         console.log("Upcoming event data:", data);
         
-        if (data) {
-          setSelectedDate(new Date(data.event_date));
-          setCurrentEventId(data.id);
+        // Filter to find the first event that still allows ticket purchases
+        const availableEvent = data?.find(event => canPurchaseTickets(event.event_date));
+        
+        if (availableEvent) {
+          setSelectedDate(new Date(availableEvent.event_date));
+          setCurrentEventId(availableEvent.id);
           // Store the event ID to fetch tickets for this specific event
-          fetchTicketsForEvent(data.id);
-          console.log("Selected date set to:", new Date(data.event_date));
+          fetchTicketsForEvent(availableEvent.id);
+          console.log("Selected date set to:", new Date(availableEvent.event_date));
         } else {
           console.log("No upcoming events found");
         }
