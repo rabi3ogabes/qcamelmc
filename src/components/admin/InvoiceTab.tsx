@@ -436,6 +436,35 @@ export const InvoiceTab = () => {
     }
   };
 
+  const markAllAsSent = async () => {
+    try {
+      const pendingOrders = orders.filter(order => !order.n8n_response_message);
+      
+      if (pendingOrders.length === 0) {
+        toast.info("لا توجد طلبات قيد الإرسال");
+        return;
+      }
+
+      toast.info(`جاري تحديد ${pendingOrders.length} طلب كمرسل...`);
+
+      const { error } = await supabase
+        .from("orders")
+        .update({
+          n8n_response_message: "تم التحديد كمرسل يدويًا",
+          n8n_responded_at: new Date().toISOString(),
+        })
+        .in("id", pendingOrders.map(o => o.id));
+
+      if (error) throw error;
+
+      toast.success(`تم تحديد ${pendingOrders.length} طلب كمرسل بنجاح`);
+      fetchOrders(); // Refresh the orders list
+    } catch (error) {
+      console.error("Error marking all as sent:", error);
+      toast.error("فشل في تحديد الطلبات كمرسلة");
+    }
+  };
+
   // Filter orders based on selected tab
   const filteredOrders = orders.filter((order) => {
     if (filterTab === "pending") {
@@ -498,17 +527,30 @@ export const InvoiceTab = () => {
         )}
 
         <Tabs value={filterTab} onValueChange={(v) => setFilterTab(v as "all" | "pending" | "sent")} className="w-full">
-          <TabsList className="grid w-full grid-cols-3 mb-4">
-            <TabsTrigger value="all">
-              الكل ({orders.length})
-            </TabsTrigger>
-            <TabsTrigger value="pending">
-              قيد الإرسال ({orders.filter(o => !o.n8n_response_message).length})
-            </TabsTrigger>
-            <TabsTrigger value="sent">
-              تم الإرسال ({orders.filter(o => !!o.n8n_response_message).length})
-            </TabsTrigger>
-          </TabsList>
+          <div className="flex items-center justify-between mb-4">
+            <TabsList className="grid grid-cols-3">
+              <TabsTrigger value="all">
+                الكل ({orders.length})
+              </TabsTrigger>
+              <TabsTrigger value="pending">
+                قيد الإرسال ({orders.filter(o => !o.n8n_response_message).length})
+              </TabsTrigger>
+              <TabsTrigger value="sent">
+                تم الإرسال ({orders.filter(o => !!o.n8n_response_message).length})
+              </TabsTrigger>
+            </TabsList>
+            {filterTab === "pending" && orders.filter(o => !o.n8n_response_message).length > 0 && (
+              <Button
+                onClick={markAllAsSent}
+                disabled={sending}
+                variant="outline"
+                className="gap-2"
+              >
+                <CheckCircle className="w-4 h-4" />
+                تحديد الكل كمرسل ({orders.filter(o => !o.n8n_response_message).length})
+              </Button>
+            )}
+          </div>
 
           <TabsContent value={filterTab} className="mt-0">
             <div className="rounded-md border">
