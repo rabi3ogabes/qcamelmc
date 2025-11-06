@@ -20,7 +20,7 @@ interface TicketAddItemProps {
 
 export const TicketAddItem = ({ ticket, onAddToCart, getTicketTypeName }: TicketAddItemProps) => {
   const [tempQty, setTempQty] = useState(1);
-  const available = ticket.available_quantity - (ticket.sold_quantity || 0);
+  const available = Math.max(0, ticket.available_quantity - (ticket.sold_quantity || 0));
   const isSoldOut = available === 0;
 
   const handleQuantityChange = (value: string) => {
