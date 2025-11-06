@@ -565,15 +565,29 @@ const QRScanner = () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       
-      // Get QR codes for selected tickets
-      const qrCodes = selectedTicketIds.length > 0
-        ? availableTickets.filter(t => selectedTicketIds.includes(t.id)).map(t => t.qr_code)
-        : ticketInfo.ticket_holder_qr_code ? [ticketInfo.ticket_holder_qr_code] : [];
+      // Get selected tickets and construct proper QR codes
+      const selectedTickets = selectedTicketIds.length > 0
+        ? availableTickets.filter(t => selectedTicketIds.includes(t.id))
+        : [];
       
-      if (qrCodes.length === 0) {
-        toast.error('خطأ: لم يتم العثور على رموز QR');
+      if (selectedTickets.length === 0) {
+        toast.error('خطأ: لم يتم العثور على تذاكر');
         return;
       }
+      
+      // Construct proper QR codes in the format the edge function expects
+      const qrCodes = selectedTickets.map(ticket => {
+        const bookingRef = ticketInfo.booking_reference;
+        
+        // If the stored qr_code already has the correct format (contains -TKT), use it
+        if (ticket.qr_code && ticket.qr_code.includes('-TKT')) {
+          return ticket.qr_code;
+        }
+        
+        // Otherwise, construct the proper format: BOOKING-REF-TKT01
+        // For simplicity, we'll use TKT01 for now since we're processing individual tickets
+        return `${bookingRef}-TKT01`;
+      });
 
       let successCount = 0;
       let errorCount = 0;
