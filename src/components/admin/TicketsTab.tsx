@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Ticket, Edit } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { supabase } from "@/integrations/supabase/client";
@@ -214,212 +215,213 @@ export const TicketsTab = () => {
     fetchTickets();
   };
 
+  // Group tickets by event date
+  const ticketsByDate = tickets.reduce((acc, ticket) => {
+    if (!ticket.events) return acc;
+    const date = ticket.events.event_date;
+    if (!acc[date]) {
+      acc[date] = {
+        date,
+        title: ticket.events.title,
+        location: ticket.events.location,
+        tickets: []
+      };
+    }
+    acc[date].tickets.push(ticket);
+    return acc;
+  }, {} as Record<string, { date: string; title: string; location: string; tickets: TicketType[] }>);
+
+  const sortedEventDates = Object.values(ticketsByDate).sort((a, b) => 
+    new Date(a.date).getTime() - new Date(b.date).getTime()
+  );
+
+  // Group tickets by type within each event
+  const groupTicketsByType = (tickets: TicketType[]) => {
+    const vip = tickets.filter(t => t.type === 'vip');
+    const normal = tickets.filter(t => t.type === 'normal');
+    const parking = tickets.filter(t => t.type === 'parking');
+    return { vip, normal, parking };
+  };
+
+  const renderTicketCard = (ticket: TicketType) => {
+    const remaining = ticket.available_quantity - ticket.sold_quantity;
+    const soldPercentage = ((ticket.sold_quantity / ticket.available_quantity) * 100).toFixed(0);
+    
+    return (
+      <Card key={ticket.id} className="p-6 hover:shadow-lg transition-shadow">
+        <div className="flex items-start justify-between mb-4">
+          <div className="flex items-center gap-3">
+            <div className="p-3 bg-primary/10 rounded-lg">
+              <Ticket className="w-6 h-6 text-primary" />
+            </div>
+            <div>
+              <h3 className="text-lg font-bold font-lusail">
+                {getTicketTypeName(ticket.type)}
+              </h3>
+              <p className="text-2xl font-bold text-primary font-lusail">
+                {ticket.price.toFixed(2)} {t("qar")}
+              </p>
+            </div>
+          </div>
+          <Button 
+            variant="ghost" 
+            size="icon"
+            onClick={() => handleEditTicket(ticket)}
+            className="shrink-0"
+          >
+            <Edit className="w-4 h-4" />
+          </Button>
+        </div>
+
+        <div className="space-y-3">
+          <div className="flex justify-between items-center">
+            <span className="text-sm text-muted-foreground font-lusail">{t("available")}</span>
+            <span className={`font-bold font-lusail ${getAvailabilityColor(ticket.available_quantity, ticket.sold_quantity)}`}>
+              {remaining}
+            </span>
+          </div>
+          
+          <div className="flex justify-between items-center">
+            <span className="text-sm text-muted-foreground font-lusail">{t("sold")}</span>
+            <span className="font-bold font-lusail">{ticket.sold_quantity}</span>
+          </div>
+          
+          <div className="pt-3 border-t">
+            <div className="flex justify-between items-center mb-2">
+              <span className="text-sm text-muted-foreground font-lusail">المباع</span>
+              <span className="font-semibold font-lusail">{soldPercentage}%</span>
+            </div>
+            <div className="w-full bg-secondary rounded-full h-2">
+              <div 
+                className="bg-primary h-2 rounded-full transition-all duration-300"
+                style={{ width: `${soldPercentage}%` }}
+              />
+            </div>
+          </div>
+        </div>
+
+        {remaining <= 10 && remaining > 0 && (
+          <Badge variant="destructive" className="mt-4 w-full justify-center font-lusail">
+            تذاكر محدودة متبقية!
+          </Badge>
+        )}
+        
+        {remaining === 0 && (
+          <Badge variant="secondary" className="mt-4 w-full justify-center font-lusail">
+            نفذت الكمية
+          </Badge>
+        )}
+      </Card>
+    );
+  };
+
   return (
     <div className="space-y-8">
       <h2 className="text-2xl font-bold font-lusail">{t("ticketManagement")}</h2>
 
-      {/* Daily Bookings Statistics */}
-      <Card className="p-6">
-        <h3 className="text-xl font-bold font-lusail mb-4">إحصائيات المبيعات اليومية</h3>
-        
-        {dailySummaries.length === 0 ? (
-          <p className="text-muted-foreground text-center py-8 font-lusail">لا توجد حجوزات مؤكدة</p>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full border-collapse">
-              <thead>
-                <tr className="bg-muted/50">
-                  <th className="text-right py-3 px-4 font-lusail border font-bold" rowSpan={2}>التاريخ</th>
-                  <th className="text-center py-3 px-4 font-lusail border font-bold" colSpan={3}>VIP</th>
-                  <th className="text-center py-3 px-4 font-lusail border font-bold" colSpan={3}>عادي</th>
-                  <th className="text-center py-3 px-4 font-lusail border font-bold" colSpan={3}>مواقف</th>
-                  <th className="text-right py-3 px-4 font-lusail border font-bold" rowSpan={2}>الإجمالي اليومي</th>
-                </tr>
-                <tr className="bg-muted/30">
-                  <th className="text-center py-2 px-3 font-lusail border text-sm">العدد</th>
-                  <th className="text-center py-2 px-3 font-lusail border text-sm">السعر</th>
-                  <th className="text-center py-2 px-3 font-lusail border text-sm">المبلغ</th>
-                  <th className="text-center py-2 px-3 font-lusail border text-sm">العدد</th>
-                  <th className="text-center py-2 px-3 font-lusail border text-sm">السعر</th>
-                  <th className="text-center py-2 px-3 font-lusail border text-sm">المبلغ</th>
-                  <th className="text-center py-2 px-3 font-lusail border text-sm">العدد</th>
-                  <th className="text-center py-2 px-3 font-lusail border text-sm">السعر</th>
-                  <th className="text-center py-2 px-3 font-lusail border text-sm">المبلغ</th>
-                </tr>
-              </thead>
-              <tbody>
-                {dailySummaries.map((summary, index) => (
-                  <tr key={index} className="hover:bg-muted/30 transition-colors">
-                    <td className="py-3 px-4 font-lusail border">
-                      {new Date(summary.date).toLocaleDateString('en-US', { 
-                        year: 'numeric', 
-                        month: 'long', 
-                        day: 'numeric',
-                        weekday: 'long'
-                      })}
-                    </td>
-                    <td className="py-3 px-4 font-lusail border text-center font-bold">
-                      {summary.vip_count || '-'}
-                    </td>
-                    <td className="py-3 px-4 font-lusail border text-center text-muted-foreground">
-                      {summary.vip_price ? `${summary.vip_price.toFixed(2)}` : '-'}
-                    </td>
-                    <td className="py-3 px-4 font-lusail border text-center text-primary font-semibold">
-                      {summary.vip_amount > 0 ? `${summary.vip_amount.toFixed(2)}` : '-'}
-                    </td>
-                    <td className="py-3 px-4 font-lusail border text-center font-bold">
-                      {summary.normal_count || '-'}
-                    </td>
-                    <td className="py-3 px-4 font-lusail border text-center text-muted-foreground">
-                      {summary.normal_price ? `${summary.normal_price.toFixed(2)}` : '-'}
-                    </td>
-                    <td className="py-3 px-4 font-lusail border text-center text-primary font-semibold">
-                      {summary.normal_amount > 0 ? `${summary.normal_amount.toFixed(2)}` : '-'}
-                    </td>
-                    <td className="py-3 px-4 font-lusail border text-center font-bold">
-                      {summary.parking_count || '-'}
-                    </td>
-                    <td className="py-3 px-4 font-lusail border text-center text-muted-foreground">
-                      {summary.parking_price ? `${summary.parking_price.toFixed(2)}` : '-'}
-                    </td>
-                    <td className="py-3 px-4 font-lusail border text-center text-primary font-semibold">
-                      {summary.parking_amount > 0 ? `${summary.parking_amount.toFixed(2)}` : '-'}
-                    </td>
-                    <td className="py-3 px-4 font-lusail border text-right font-bold text-lg text-primary">
-                      {summary.daily_total.toFixed(2)} {t("qar")}
-                    </td>
-                  </tr>
-                ))}
-                <tr className="bg-primary/10 font-bold">
-                  <td className="py-4 px-4 font-lusail border text-right text-lg">
-                    الإجمالي الكلي
-                  </td>
-                  <td className="py-4 px-4 font-lusail border text-center text-lg">
-                    {dailySummaries.reduce((sum, s) => sum + s.vip_count, 0)}
-                  </td>
-                  <td className="py-4 px-4 font-lusail border text-center text-lg text-muted-foreground">
-                    {dailySummaries.length > 0 && dailySummaries[0].vip_price ? dailySummaries[0].vip_price.toFixed(2) : '-'}
-                  </td>
-                  <td className="py-4 px-4 font-lusail border text-center text-lg text-primary">
-                    {dailySummaries.reduce((sum, s) => sum + s.vip_amount, 0).toFixed(2)}
-                  </td>
-                  <td className="py-4 px-4 font-lusail border text-center text-lg">
-                    {dailySummaries.reduce((sum, s) => sum + s.normal_count, 0)}
-                  </td>
-                  <td className="py-4 px-4 font-lusail border text-center text-lg text-muted-foreground">
-                    {dailySummaries.length > 0 && dailySummaries[0].normal_price ? dailySummaries[0].normal_price.toFixed(2) : '-'}
-                  </td>
-                  <td className="py-4 px-4 font-lusail border text-center text-lg text-primary">
-                    {dailySummaries.reduce((sum, s) => sum + s.normal_amount, 0).toFixed(2)}
-                  </td>
-                  <td className="py-4 px-4 font-lusail border text-center text-lg">
-                    {dailySummaries.reduce((sum, s) => sum + s.parking_count, 0)}
-                  </td>
-                  <td className="py-4 px-4 font-lusail border text-center text-lg text-muted-foreground">
-                    {dailySummaries.length > 0 && dailySummaries[0].parking_price ? dailySummaries[0].parking_price.toFixed(2) : '-'}
-                  </td>
-                  <td className="py-4 px-4 font-lusail border text-center text-lg text-primary">
-                    {dailySummaries.reduce((sum, s) => sum + s.parking_amount, 0).toFixed(2)}
-                  </td>
-                  <td className="py-4 px-4 font-lusail border text-right text-xl font-bold text-primary">
-                    {dailySummaries.reduce((sum, s) => sum + s.daily_total, 0).toFixed(2)} {t("qar")}
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        )}
-      </Card>
+      {sortedEventDates.length === 0 ? (
+        <Card className="p-8 text-center">
+          <p className="text-muted-foreground font-lusail">لا توجد تذاكر</p>
+        </Card>
+      ) : (
+        <Tabs defaultValue={sortedEventDates[0]?.date} className="w-full">
+          <TabsList className="w-full justify-start flex-wrap h-auto">
+            {sortedEventDates.map((event) => (
+              <TabsTrigger key={event.date} value={event.date} className="font-lusail">
+                {new Date(event.date).toLocaleDateString('ar-QA', { 
+                  year: 'numeric', 
+                  month: 'long', 
+                  day: 'numeric',
+                  weekday: 'long'
+                })}
+              </TabsTrigger>
+            ))}
+          </TabsList>
 
-      {/* Ticket Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {tickets.map((ticket) => {
-          const remaining = ticket.available_quantity - ticket.sold_quantity;
-          const soldPercentage = ((ticket.sold_quantity / ticket.available_quantity) * 100).toFixed(0);
-          
-          return (
-            <Card key={ticket.id} className="p-6 hover:shadow-lg transition-shadow">
-              {ticket.events && (
-                <div className="mb-4 pb-4 border-b">
-                  <h4 className="font-bold text-base font-lusail mb-1">{ticket.events.title}</h4>
-                  <p className="text-sm text-muted-foreground font-lusail">
-                    {new Date(ticket.events.event_date).toLocaleDateString("en-US", {
-                      year: "numeric",
-                      month: "long",
-                      day: "numeric",
-                    })}
-                  </p>
-                  <p className="text-xs text-muted-foreground font-lusail mt-1">
-                    {ticket.events.location}
-                  </p>
-                </div>
-              )}
-              <div className="flex items-start justify-between mb-4">
-                <div className="flex items-center gap-3">
-                  <div className="p-3 bg-primary/10 rounded-lg">
-                    <Ticket className="w-6 h-6 text-primary" />
-                  </div>
+          {sortedEventDates.map((event) => {
+            const eventSummary = dailySummaries.find(s => s.date === new Date(event.date).toLocaleDateString('en-CA'));
+            const { vip, normal, parking } = groupTicketsByType(event.tickets);
+
+            return (
+              <TabsContent key={event.date} value={event.date} className="space-y-6">
+                {/* Event Info */}
+                <Card className="p-6">
+                  <h3 className="text-xl font-bold font-lusail mb-2">{event.title}</h3>
+                  <p className="text-muted-foreground font-lusail">{event.location}</p>
+                </Card>
+
+                {/* Daily Statistics for this event */}
+                {eventSummary && (
+                  <Card className="p-6">
+                    <h3 className="text-lg font-bold font-lusail mb-4">إحصائيات المبيعات</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                      <div className="text-center p-4 bg-muted/30 rounded-lg">
+                        <p className="text-sm text-muted-foreground font-lusail mb-1">VIP</p>
+                        <p className="text-2xl font-bold font-lusail">{eventSummary.vip_count}</p>
+                        <p className="text-sm text-primary font-lusail mt-1">{eventSummary.vip_amount.toFixed(2)} {t("qar")}</p>
+                      </div>
+                      <div className="text-center p-4 bg-muted/30 rounded-lg">
+                        <p className="text-sm text-muted-foreground font-lusail mb-1">عادي</p>
+                        <p className="text-2xl font-bold font-lusail">{eventSummary.normal_count}</p>
+                        <p className="text-sm text-primary font-lusail mt-1">{eventSummary.normal_amount.toFixed(2)} {t("qar")}</p>
+                      </div>
+                      <div className="text-center p-4 bg-muted/30 rounded-lg">
+                        <p className="text-sm text-muted-foreground font-lusail mb-1">مواقف</p>
+                        <p className="text-2xl font-bold font-lusail">{eventSummary.parking_count}</p>
+                        <p className="text-sm text-primary font-lusail mt-1">{eventSummary.parking_amount.toFixed(2)} {t("qar")}</p>
+                      </div>
+                      <div className="text-center p-4 bg-primary/10 rounded-lg">
+                        <p className="text-sm text-muted-foreground font-lusail mb-1">الإجمالي اليومي</p>
+                        <p className="text-3xl font-bold text-primary font-lusail">{eventSummary.daily_total.toFixed(2)}</p>
+                        <p className="text-sm font-lusail mt-1">{t("qar")}</p>
+                      </div>
+                    </div>
+                  </Card>
+                )}
+
+                {/* VIP Tickets */}
+                {vip.length > 0 && (
                   <div>
-                    <h3 className="text-lg font-bold font-lusail">
-                      {getTicketTypeName(ticket.type)}
-                    </h3>
-                    <p className="text-2xl font-bold text-primary font-lusail">
-                      {ticket.price.toFixed(2)} {t("qar")}
-                    </p>
+                    <h4 className="text-lg font-bold font-lusail mb-4 flex items-center gap-2">
+                      <Badge variant="default" className="font-lusail">VIP</Badge>
+                      {getTicketTypeName('vip')}
+                    </h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                      {vip.map(renderTicketCard)}
+                    </div>
                   </div>
-                </div>
-                <Button 
-                  variant="ghost" 
-                  size="icon"
-                  onClick={() => handleEditTicket(ticket)}
-                  className="shrink-0"
-                >
-                  <Edit className="w-4 h-4" />
-                </Button>
-              </div>
+                )}
 
-              <div className="space-y-3">
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-muted-foreground font-lusail">{t("available")}</span>
-                  <span className={`font-bold font-lusail ${getAvailabilityColor(ticket.available_quantity, ticket.sold_quantity)}`}>
-                    {remaining}
-                  </span>
-                </div>
-                
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-muted-foreground font-lusail">{t("sold")}</span>
-                  <span className="font-bold font-lusail">{ticket.sold_quantity}</span>
-                </div>
-                
-                <div className="pt-3 border-t">
-                  <div className="flex justify-between items-center mb-2">
-                    <span className="text-sm text-muted-foreground font-lusail">المباع</span>
-                    <span className="font-semibold font-lusail">{soldPercentage}%</span>
+                {/* Normal Tickets */}
+                {normal.length > 0 && (
+                  <div>
+                    <h4 className="text-lg font-bold font-lusail mb-4 flex items-center gap-2">
+                      <Badge variant="secondary" className="font-lusail">عادي</Badge>
+                      {getTicketTypeName('normal')}
+                    </h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                      {normal.map(renderTicketCard)}
+                    </div>
                   </div>
-                  <div className="w-full bg-secondary rounded-full h-2">
-                    <div 
-                      className="bg-primary h-2 rounded-full transition-all duration-300"
-                      style={{ width: `${soldPercentage}%` }}
-                    />
-                  </div>
-                </div>
-              </div>
+                )}
 
-              {remaining <= 10 && remaining > 0 && (
-                <Badge variant="destructive" className="mt-4 w-full justify-center font-lusail">
-                  تذاكر محدودة متبقية!
-                </Badge>
-              )}
-              
-              {remaining === 0 && (
-                <Badge variant="secondary" className="mt-4 w-full justify-center font-lusail">
-                  نفذت الكمية
-                </Badge>
-              )}
-            </Card>
-          );
-        })}
-      </div>
+                {/* Parking Tickets */}
+                {parking.length > 0 && (
+                  <div>
+                    <h4 className="text-lg font-bold font-lusail mb-4 flex items-center gap-2">
+                      <Badge variant="outline" className="font-lusail">مواقف</Badge>
+                      {getTicketTypeName('parking')}
+                    </h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                      {parking.map(renderTicketCard)}
+                    </div>
+                  </div>
+                )}
+              </TabsContent>
+            );
+          })}
+        </Tabs>
+      )}
 
       <EditTicketDialog
         ticket={editingTicket}
