@@ -499,14 +499,32 @@ const QRScanner = () => {
         console.log('Order payment status:', orderData.payment_status);
         console.log('Order payment method:', orderData.payment_method);
         
-        // Fetch all tickets for this order
+        // Fetch all tickets for this order with orders relation for display
         const { data: ticketsData, error: ticketsError } = await supabase
           .from('ticket_holders')
-          .select('*')
+          .select(`
+            *,
+            orders!inner (
+              id,
+              booking_reference,
+              payment_status,
+              payment_method,
+              quantity,
+              customers (name),
+              events (title, event_date)
+            )
+          `)
           .eq('order_id', orderData.id)
           .order('qr_code');
 
+        console.log('=== Booking Reference Tickets Debug ===');
+        console.log('Order ID:', orderData.id);
+        console.log('Booking Reference:', orderData.booking_reference);
+        console.log('Tickets found:', ticketsData?.length);
+        console.log('Tickets data:', ticketsData);
+
         if (ticketsError || !ticketsData || ticketsData.length === 0) {
+          console.error('Tickets error:', ticketsError);
           setScanResult('error');
           toast.error('لا توجد تذاكر لهذا الحجز');
           return;
@@ -518,6 +536,7 @@ const QRScanner = () => {
         
         console.log('Booking reference scan - Is POS:', isPOSBooking);
         console.log('Booking reference scan - Effective status:', effectiveBookingPaymentStatus);
+        console.log('Setting available tickets count:', ticketsData.length);
         
         setAvailableTickets(ticketsData);
         
@@ -970,6 +989,12 @@ const QRScanner = () => {
                     </div>
                   </div>
                   <div className="space-y-2">
+                    {(() => {
+                      console.log('=== Rendering Tickets ===');
+                      console.log('Total tickets in availableTickets:', availableTickets.length);
+                      console.log('Tickets being rendered:', availableTickets.map(t => ({ id: t.id, name: t.name, qr: t.qr_code, is_present: t.is_present })));
+                      return null;
+                    })()}
                     {availableTickets.map((ticket, index) => {
                       const bookingReference = (ticket as any).orders?.booking_reference || '';
                       
