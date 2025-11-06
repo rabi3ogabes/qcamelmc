@@ -857,14 +857,15 @@ const AdminPOS = () => {
                 </Card>
               )}
 
-              <Card>
-                <CardHeader>
-                  <CardTitle>معلومات العميل (التذكرة الرئيسية)</CardTitle>
-                  <p className="text-sm text-muted-foreground mt-2">
-                    هذه المعلومات ستُستخدم للتذكرة الأولى وللتواصل مع العميل
-                  </p>
-                </CardHeader>
-                <CardContent className="space-y-4">
+              {cart.length > 0 && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle>معلومات العميل (التذكرة الرئيسية)</CardTitle>
+                    <p className="text-sm text-muted-foreground mt-2">
+                      هذه المعلومات ستُستخدم للتذكرة الأولى وللتواصل مع العميل
+                    </p>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
                   <div>
                     <Label htmlFor="name">الاسم *</Label>
                     <Input
@@ -960,6 +961,7 @@ const AdminPOS = () => {
                   </div>
                 </CardContent>
               </Card>
+              )}
 
               {/* Ticket Holders Details */}
               {ticketHolders.length > 0 && (
