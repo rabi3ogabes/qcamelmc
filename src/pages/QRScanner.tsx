@@ -320,7 +320,7 @@ const QRScanner = () => {
             customer_name: order.customers.name,
             event_title: order.events.title,
             ticket_type: firstTicket.ticket_type,
-            quantity: ticketsData.length,
+            quantity: filteredTickets.length,
             payment_status: effectivePaymentStatus,
             is_present: false,
           });
