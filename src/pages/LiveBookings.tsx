@@ -78,6 +78,10 @@ const LiveBookings = () => {
   });
   const [ticketTypeStats, setTicketTypeStats] = useState<{ [key: string]: { total: number; present: number } }>({});
   const [paymentMethodStats, setPaymentMethodStats] = useState<{ sadad: number; pos: number }>({ sadad: 0, pos: 0 });
+  const [paymentMethodByTypeStats, setPaymentMethodByTypeStats] = useState<{
+    sadad: { [key: string]: { total: number; present: number } };
+    pos: { [key: string]: { total: number; present: number } };
+  }>({ sadad: {}, pos: {} });
 
   const getNationalityFlag = (nationality: string) => {
     const flagMap: { [key: string]: string } = {
@@ -298,18 +302,39 @@ const LiveBookings = () => {
     // Calculate payment method breakdown
     let sadadCount = 0;
     let posCount = 0;
+    const paymentByType: {
+      sadad: { [key: string]: { total: number; present: number } };
+      pos: { [key: string]: { total: number; present: number } };
+    } = { sadad: {}, pos: {} };
+
     bookingsData.forEach(booking => {
       const ticketCount = booking.quantity || 0;
+      const paymentKey = booking.payment_method === 'sadad' ? 'sadad' : 'pos';
+      
       if (booking.payment_method === 'sadad') {
         sadadCount += ticketCount;
       } else if (booking.payment_method === 'cash_pos') {
         posCount += ticketCount;
       }
+
+      // Get ticket holders for this booking
+      const holders = booking.ticket_holders || [];
+      holders.forEach((holder: any) => {
+        const ticketType = holder.ticket_type;
+        if (!paymentByType[paymentKey][ticketType]) {
+          paymentByType[paymentKey][ticketType] = { total: 0, present: 0 };
+        }
+        paymentByType[paymentKey][ticketType].total += 1;
+        if (holder.is_present) {
+          paymentByType[paymentKey][ticketType].present += 1;
+        }
+      });
     });
 
     setStats({ total, confirmed, present, totalTickets, totalTicketHolders, presentTicketHolders });
     setTicketTypeStats(typeBreakdown);
     setPaymentMethodStats({ sadad: sadadCount, pos: posCount });
+    setPaymentMethodByTypeStats(paymentByType);
   };
 
   const togglePresence = async (bookingId: string, currentStatus: boolean | null | undefined) => {
@@ -475,33 +500,71 @@ const LiveBookings = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Online (Sadad) - Left Side */}
             <Card className="p-6 bg-gradient-to-br from-blue-500/10 to-blue-500/5 border-blue-500/20">
-              <div className="text-center space-y-3">
+              <div className="space-y-4">
                 <div className="flex items-center justify-center gap-2">
                   <Globe className="w-5 h-5 text-blue-600" />
                   <Badge variant="outline" className="text-sm font-bold bg-blue-500/10">
                     أونلاين
                   </Badge>
                 </div>
-                <div>
+                <div className="text-center">
                   <p className="text-4xl font-bold text-blue-600">{paymentMethodStats.sadad}</p>
-                  <p className="text-sm text-muted-foreground">تذاكر سداد</p>
+                  <p className="text-sm text-muted-foreground">إجمالي تذاكر سداد</p>
                 </div>
+                {Object.keys(paymentMethodByTypeStats.sadad).length > 0 && (
+                  <div className="pt-3 border-t border-blue-500/20 space-y-2">
+                    {Object.entries(paymentMethodByTypeStats.sadad)
+                      .sort((a, b) => b[1].total - a[1].total)
+                      .map(([type, stats]) => (
+                        <div key={type} className="flex justify-between items-center text-sm">
+                          <span className="font-medium">{type}</span>
+                          <div className="flex gap-3 items-center">
+                            <span className="text-muted-foreground">
+                              {stats.total} حجز
+                            </span>
+                            <span className="text-blue-600 font-bold">
+                              {stats.present} حضور
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                  </div>
+                )}
               </div>
             </Card>
             
             {/* POS - Right Side */}
             <Card className="p-6 bg-gradient-to-br from-orange-500/10 to-orange-500/5 border-orange-500/20">
-              <div className="text-center space-y-3">
+              <div className="space-y-4">
                 <div className="flex items-center justify-center gap-2">
                   <Store className="w-5 h-5 text-orange-600" />
                   <Badge variant="outline" className="text-sm font-bold bg-orange-500/10">
                     نقاط البيع
                   </Badge>
                 </div>
-                <div>
+                <div className="text-center">
                   <p className="text-4xl font-bold text-orange-600">{paymentMethodStats.pos}</p>
-                  <p className="text-sm text-muted-foreground">تذاكر POS</p>
+                  <p className="text-sm text-muted-foreground">إجمالي تذاكر POS</p>
                 </div>
+                {Object.keys(paymentMethodByTypeStats.pos).length > 0 && (
+                  <div className="pt-3 border-t border-orange-500/20 space-y-2">
+                    {Object.entries(paymentMethodByTypeStats.pos)
+                      .sort((a, b) => b[1].total - a[1].total)
+                      .map(([type, stats]) => (
+                        <div key={type} className="flex justify-between items-center text-sm">
+                          <span className="font-medium">{type}</span>
+                          <div className="flex gap-3 items-center">
+                            <span className="text-muted-foreground">
+                              {stats.total} حجز
+                            </span>
+                            <span className="text-orange-600 font-bold">
+                              {stats.present} حضور
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                  </div>
+                )}
               </div>
             </Card>
           </div>
