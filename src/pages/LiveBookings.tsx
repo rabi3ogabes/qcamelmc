@@ -59,7 +59,11 @@ const LiveBookings = () => {
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [ticketHolders, setTicketHolders] = useState<TicketHolder[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(() => {
+    // Initialize with today's date in Qatar timezone
+    const now = new Date();
+    return toZonedTime(now, QATAR_TIMEZONE);
+  });
   const [viewType, setViewType] = useState<"cards" | "table">("cards");
   const [logoUrl, setLogoUrl] = useState<string>("");
   const [headerBgColor, setHeaderBgColor] = useState<string>("hsl(var(--card) / 0.5)");
@@ -113,7 +117,6 @@ const LiveBookings = () => {
 
   useEffect(() => {
     fetchSettings();
-    autoSelectUpcomingEvent();
     const cleanup = setupRealtimeSubscription();
     return cleanup;
   }, []);
@@ -122,36 +125,6 @@ const LiveBookings = () => {
     fetchBookings();
   }, [selectedDate]);
 
-  const autoSelectUpcomingEvent = async () => {
-    try {
-      const now = new Date();
-      const qatarNow = toZonedTime(now, QATAR_TIMEZONE);
-      
-      // Fetch all events to find the upcoming one
-      const { data: events, error } = await supabase
-        .from("events")
-        .select("event_date")
-        .gte("event_date", now.toISOString())
-        .order("event_date", { ascending: true })
-        .limit(1);
-
-      if (error) throw error;
-
-      if (events && events.length > 0) {
-        // Convert event date to Qatar timezone
-        const eventDate = new Date(events[0].event_date);
-        const qatarEventDate = toZonedTime(eventDate, QATAR_TIMEZONE);
-        setSelectedDate(qatarEventDate);
-        console.log("Auto-selected upcoming event date (Qatar time):", formatInTimeZone(eventDate, QATAR_TIMEZONE, 'yyyy-MM-dd HH:mm'));
-      } else {
-        // No upcoming events
-        setLoading(false);
-      }
-    } catch (error) {
-      console.error("Error auto-selecting event:", error);
-      setLoading(false);
-    }
-  };
 
   useEffect(() => {
     const handleFullscreenChange = () => {
