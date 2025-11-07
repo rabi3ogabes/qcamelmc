@@ -255,6 +255,7 @@ const QRScanner = () => {
             )
           `)
           .or(`phone.ilike.%${cleanPhone}%,phone.ilike.%${scannedCode}%`)
+          .or(`orders.payment_status.eq.confirmed,orders.payment_method.eq.cash_pos`)
           .order('created_at', { ascending: false });
 
         if (ticketsError || !ticketsData || ticketsData.length === 0) {
