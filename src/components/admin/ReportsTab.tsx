@@ -68,6 +68,16 @@ export const ReportsTab = () => {
           const presentCount = order.ticket_holders?.filter((th: any) => th.is_present).length || 0;
           const totalTickets = order.ticket_holders?.length || order.quantity || 0;
           
+          // Calculate detailed quantity breakdown by ticket type
+          const ticketTypeBreakdown: { [key: string]: number } = {};
+          order.ticket_holders?.forEach((th: any) => {
+            const type = th.ticket_type;
+            ticketTypeBreakdown[type] = (ticketTypeBreakdown[type] || 0) + 1;
+          });
+          const detailedQuantity = Object.entries(ticketTypeBreakdown)
+            .map(([type, count]) => `${count} ${type}`)
+            .join(" + ") || `${totalTickets} ${order.ticket_type}`;
+          
           // Get all ticket holder names
           const ticketHolderNames = order.ticket_holders?.map((th: any) => th.name).join(", ") || "-";
           
@@ -79,7 +89,7 @@ export const ReportsTab = () => {
             "الجنسية": order.customers?.nationality || "-",
             "رقم الهوية": order.customers?.id_number || "-",
             "نوع التذكرة": order.ticket_type,
-            "عدد التذاكر": totalTickets,
+            "عدد التذاكر": detailedQuantity,
             "حالة الدفع": order.payment_status || "-",
             "طريقة الدفع": order.payment_method || "-",
             "المبلغ الإجمالي": order.total_amount || 0,
