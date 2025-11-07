@@ -34,6 +34,7 @@ interface Booking {
   id: string;
   booking_reference: string;
   payment_status: string;
+  payment_method: string;
   ticket_type: string;
   quantity: number;
   total_amount: number;
@@ -72,6 +73,7 @@ const LiveBookings = () => {
     presentTicketHolders: 0
   });
   const [ticketTypeStats, setTicketTypeStats] = useState<{ [key: string]: { total: number; present: number } }>({});
+  const [paymentMethodStats, setPaymentMethodStats] = useState<{ sadad: number; pos: number }>({ sadad: 0, pos: 0 });
 
   const getNationalityFlag = (nationality: string) => {
     const flagMap: { [key: string]: string } = {
@@ -320,8 +322,21 @@ const LiveBookings = () => {
       }
     });
 
+    // Calculate payment method breakdown
+    let sadadCount = 0;
+    let posCount = 0;
+    bookingsData.forEach(booking => {
+      const ticketCount = booking.quantity || 0;
+      if (booking.payment_method === 'sadad') {
+        sadadCount += ticketCount;
+      } else if (booking.payment_method === 'cash_pos') {
+        posCount += ticketCount;
+      }
+    });
+
     setStats({ total, confirmed, present, totalTickets, totalTicketHolders, presentTicketHolders });
     setTicketTypeStats(typeBreakdown);
+    setPaymentMethodStats({ sadad: sadadCount, pos: posCount });
   };
 
   const togglePresence = async (bookingId: string, currentStatus: boolean | null | undefined) => {
@@ -506,6 +521,31 @@ const LiveBookings = () => {
                     </div>
                   </Card>
                 ))}
+              
+              {/* Payment Method Breakdown */}
+              <Card className="p-4 bg-gradient-to-br from-blue-500/10 to-blue-500/5 border-blue-500/20">
+                <div className="text-center space-y-2">
+                  <Badge variant="outline" className="text-xs font-bold bg-blue-500/10">
+                    أونلاين
+                  </Badge>
+                  <div>
+                    <p className="text-3xl font-bold text-blue-600">{paymentMethodStats.sadad}</p>
+                    <p className="text-xs text-muted-foreground">تذاكر سداد</p>
+                  </div>
+                </div>
+              </Card>
+              
+              <Card className="p-4 bg-gradient-to-br from-orange-500/10 to-orange-500/5 border-orange-500/20">
+                <div className="text-center space-y-2">
+                  <Badge variant="outline" className="text-xs font-bold bg-orange-500/10">
+                    نقاط البيع
+                  </Badge>
+                  <div>
+                    <p className="text-3xl font-bold text-orange-600">{paymentMethodStats.pos}</p>
+                    <p className="text-xs text-muted-foreground">تذاكر POS</p>
+                  </div>
+                </div>
+              </Card>
             </div>
           </div>
         )}
