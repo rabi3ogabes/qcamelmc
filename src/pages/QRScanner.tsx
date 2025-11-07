@@ -255,10 +255,15 @@ const QRScanner = () => {
             )
           `)
           .or(`phone.ilike.%${cleanPhone}%,phone.ilike.%${scannedCode}%`)
-          .or(`orders.payment_status.eq.confirmed,orders.payment_method.eq.cash_pos`)
           .order('created_at', { ascending: false });
+        
+        // Filter to show only successful payments
+        const filteredTickets = ticketsData?.filter((ticket: any) => 
+          ticket.orders?.payment_status === 'confirmed' || 
+          ticket.orders?.payment_method === 'cash_pos'
+        );
 
-        if (ticketsError || !ticketsData || ticketsData.length === 0) {
+        if (ticketsError || !filteredTickets || filteredTickets.length === 0) {
           setScanResult('error');
           setTicketInfo({
             booking_reference: scannedCode,
@@ -276,7 +281,7 @@ const QRScanner = () => {
 
         // Group tickets by order
         const orderGroups = new Map();
-        ticketsData.forEach(ticket => {
+        filteredTickets.forEach(ticket => {
           const orderId = ticket.order_id;
           if (!orderGroups.has(orderId)) {
             orderGroups.set(orderId, []);
@@ -285,9 +290,9 @@ const QRScanner = () => {
         });
 
         // If multiple orders, show all tickets to choose from
-        if (orderGroups.size > 1 || ticketsData.length > 1) {
-          setAvailableTickets(ticketsData);
-          const firstTicket = ticketsData[0];
+        if (orderGroups.size > 1 || filteredTickets.length > 1) {
+          setAvailableTickets(filteredTickets);
+          const firstTicket = filteredTickets[0];
           const order: any = firstTicket.orders;
           
           const isPOSOrder = order.booking_reference?.startsWith('POS-') || order.payment_method === 'cash_pos';
@@ -311,7 +316,7 @@ const QRScanner = () => {
           }
           
           setTicketInfo({
-            booking_reference: `${ticketsData.length} تذكرة`,
+            booking_reference: `${filteredTickets.length} تذكرة`,
             customer_name: order.customers.name,
             event_title: order.events.title,
             ticket_type: firstTicket.ticket_type,
@@ -320,10 +325,10 @@ const QRScanner = () => {
             is_present: false,
           });
           setScanResult('success');
-          toast.info(`تم العثور على ${ticketsData.length} تذكرة لهذا الرقم - اختر التذكرة المراد تأكيدها`);
+          toast.info(`تم العثور على ${filteredTickets.length} تذكرة لهذا الرقم - اختر التذكرة المراد تأكيدها`);
         } else {
           // Single ticket found - auto-select it
-          const ticket = ticketsData[0];
+          const ticket = filteredTickets[0];
           const order: any = ticket.orders;
           
           const isPOSOrder = order.booking_reference?.startsWith('POS-') || order.payment_method === 'cash_pos';
