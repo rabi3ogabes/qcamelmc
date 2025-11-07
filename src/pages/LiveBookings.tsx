@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { CalendarIcon, CheckCircle, XCircle, Users, LayoutGrid, Table as TableIcon, User, Phone, CreditCard, Hash, Maximize, Minimize } from "lucide-react";
+import { CalendarIcon, CheckCircle, XCircle, Users, LayoutGrid, Table as TableIcon, User, Phone, CreditCard, Hash, Maximize, Minimize, Globe, Store } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -497,12 +497,48 @@ const LiveBookings = () => {
           </Card>
         </div>
 
+        {/* Payment Method Breakdown */}
+        <div className="mb-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Online (Sadad) - Left Side */}
+            <Card className="p-6 bg-gradient-to-br from-blue-500/10 to-blue-500/5 border-blue-500/20">
+              <div className="text-center space-y-3">
+                <div className="flex items-center justify-center gap-2">
+                  <Globe className="w-5 h-5 text-blue-600" />
+                  <Badge variant="outline" className="text-sm font-bold bg-blue-500/10">
+                    أونلاين
+                  </Badge>
+                </div>
+                <div>
+                  <p className="text-4xl font-bold text-blue-600">{paymentMethodStats.sadad}</p>
+                  <p className="text-sm text-muted-foreground">تذاكر سداد</p>
+                </div>
+              </div>
+            </Card>
+            
+            {/* POS - Right Side */}
+            <Card className="p-6 bg-gradient-to-br from-orange-500/10 to-orange-500/5 border-orange-500/20">
+              <div className="text-center space-y-3">
+                <div className="flex items-center justify-center gap-2">
+                  <Store className="w-5 h-5 text-orange-600" />
+                  <Badge variant="outline" className="text-sm font-bold bg-orange-500/10">
+                    نقاط البيع
+                  </Badge>
+                </div>
+                <div>
+                  <p className="text-4xl font-bold text-orange-600">{paymentMethodStats.pos}</p>
+                  <p className="text-sm text-muted-foreground">تذاكر POS</p>
+                </div>
+              </div>
+            </Card>
+          </div>
+        </div>
+
         {/* Ticket Type Breakdown */}
         {Object.keys(ticketTypeStats).length > 0 && (
           <div className="mb-8">
             <h3 className="text-lg font-semibold mb-4">التذاكر حسب النوع</h3>
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
-              {/* Ticket Types - First */}
               {Object.entries(ticketTypeStats)
                 .sort((a, b) => b[1].total - a[1].total)
                 .map(([type, stats]) => (
@@ -522,31 +558,6 @@ const LiveBookings = () => {
                     </div>
                   </Card>
                 ))}
-              
-              {/* Payment Method Breakdown - Last (right side) */}
-              <Card className="p-4 bg-gradient-to-br from-blue-500/10 to-blue-500/5 border-blue-500/20">
-                <div className="text-center space-y-2">
-                  <Badge variant="outline" className="text-xs font-bold bg-blue-500/10">
-                    أونلاين
-                  </Badge>
-                  <div>
-                    <p className="text-3xl font-bold text-blue-600">{paymentMethodStats.sadad}</p>
-                    <p className="text-xs text-muted-foreground">تذاكر سداد</p>
-                  </div>
-                </div>
-              </Card>
-              
-              <Card className="p-4 bg-gradient-to-br from-orange-500/10 to-orange-500/5 border-orange-500/20">
-                <div className="text-center space-y-2">
-                  <Badge variant="outline" className="text-xs font-bold bg-orange-500/10">
-                    نقاط البيع
-                  </Badge>
-                  <div>
-                    <p className="text-3xl font-bold text-orange-600">{paymentMethodStats.pos}</p>
-                    <p className="text-xs text-muted-foreground">تذاكر POS</p>
-                  </div>
-                </div>
-              </Card>
             </div>
           </div>
         )}
