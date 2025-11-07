@@ -502,27 +502,7 @@ const LiveBookings = () => {
           <div className="mb-8">
             <h3 className="text-lg font-semibold mb-4">التذاكر حسب النوع</h3>
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
-              {Object.entries(ticketTypeStats)
-                .sort((a, b) => b[1].total - a[1].total)
-                .map(([type, stats]) => (
-                  <Card key={type} className="p-4 bg-gradient-to-br from-primary/10 to-primary/5 border-primary/20">
-                    <div className="text-center space-y-2">
-                      <Badge variant="outline" className="text-xs font-bold">
-                        {type.toUpperCase()}
-                      </Badge>
-                      <div>
-                        <p className="text-3xl font-bold text-primary">{stats.total}</p>
-                        <p className="text-xs text-muted-foreground">إجمالي التذاكر</p>
-                      </div>
-                      <div className="pt-2 border-t">
-                        <p className="text-2xl font-bold text-green-600">{stats.present}</p>
-                        <p className="text-xs text-muted-foreground">حاضر</p>
-                      </div>
-                    </div>
-                  </Card>
-                ))}
-              
-              {/* Payment Method Breakdown */}
+              {/* Payment Method Breakdown - First */}
               <Card className="p-4 bg-gradient-to-br from-blue-500/10 to-blue-500/5 border-blue-500/20">
                 <div className="text-center space-y-2">
                   <Badge variant="outline" className="text-xs font-bold bg-blue-500/10">
@@ -546,6 +526,27 @@ const LiveBookings = () => {
                   </div>
                 </div>
               </Card>
+              
+              {/* Ticket Types - After payment methods */}
+              {Object.entries(ticketTypeStats)
+                .sort((a, b) => b[1].total - a[1].total)
+                .map(([type, stats]) => (
+                  <Card key={type} className="p-4 bg-gradient-to-br from-primary/10 to-primary/5 border-primary/20">
+                    <div className="text-center space-y-2">
+                      <Badge variant="outline" className="text-xs font-bold">
+                        {type.toUpperCase()}
+                      </Badge>
+                      <div>
+                        <p className="text-3xl font-bold text-primary">{stats.total}</p>
+                        <p className="text-xs text-muted-foreground">إجمالي التذاكر</p>
+                      </div>
+                      <div className="pt-2 border-t">
+                        <p className="text-2xl font-bold text-green-600">{stats.present}</p>
+                        <p className="text-xs text-muted-foreground">حاضر</p>
+                      </div>
+                    </div>
+                  </Card>
+                ))}
             </div>
           </div>
         )}
