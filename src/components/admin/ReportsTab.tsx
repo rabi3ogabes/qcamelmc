@@ -113,7 +113,44 @@ export const ReportsTab = () => {
       // Create a new workbook
       const wb = XLSX.utils.book_new();
 
-      // Sort dates and create sheets
+      // Create a sheet with ALL records first
+      const allRecordsData = Object.keys(groupedByEventDate)
+        .sort()
+        .flatMap(dateKey => groupedByEventDate[dateKey]);
+      
+      if (allRecordsData.length > 0) {
+        const allRecordsSheet = XLSX.utils.json_to_sheet(allRecordsData);
+        
+        // Set column widths
+        const colWidths = [
+          { wch: 25 }, // اسم الفعالية
+          { wch: 20 }, // معرف الدفع
+          { wch: 15 }, // طريقة الدفع
+          { wch: 12 }, // عدد التذاكر
+          { wch: 15 }, // حالة الدفع
+          { wch: 12 }, // المبلغ الإجمالي
+          { wch: 15 }, // رمز الحجز
+          { wch: 20 }, // اسم العميل
+          { wch: 25 }, // البريد الإلكتروني
+          { wch: 15 }, // رقم الهاتف
+          { wch: 15 }, // الجنسية
+          { wch: 15 }, // رقم الهوية
+          { wch: 15 }, // نوع التذكرة
+          { wch: 15 }, // تاريخ الفعالية
+          { wch: 20 }, // الموقع
+          { wch: 12 }, // عدد الحضور
+          { wch: 40 }, // أسماء حاملي التذاكر
+          { wch: 18 }, // تاريخ التأكيد
+          { wch: 18 }, // تاريخ الإنشاء
+          { wch: 30 }  // رمز الاستجابة السريعة
+        ];
+        allRecordsSheet['!cols'] = colWidths;
+        
+        // Add all records sheet as first sheet
+        XLSX.utils.book_append_sheet(wb, allRecordsSheet, "جميع السجلات");
+      }
+
+      // Sort dates and create sheets for each day
       const sortedDates = Object.keys(groupedByEventDate).sort();
       
       sortedDates.forEach((dateKey, index) => {
