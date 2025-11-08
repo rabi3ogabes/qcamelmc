@@ -9,6 +9,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { ArrowLeft, CheckCircle2, XCircle, Loader2, Search, Camera, AlertCircle, LogOut } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
+import { useActivityLog } from "@/hooks/useActivityLog";
 
 interface TicketHolder {
   id: string;
@@ -41,6 +42,7 @@ interface TicketInfo {
 const QRScanner = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const { logActivity } = useActivityLog();
   const [scanning, setScanning] = useState(false);
   const [processing, setProcessing] = useState(false);
   const [ticketInfo, setTicketInfo] = useState<TicketInfo | null>(null);
@@ -219,6 +221,17 @@ const QRScanner = () => {
     setScanning(false);
     setAvailableTickets([]);
     setSelectedTicketIds([]);
+
+    // Log search activity
+    await logActivity({
+      activityType: 'qr_search',
+      userType: 'admin',
+      actionData: {
+        search_query: scannedCode,
+        search_type: /^[\d\s+\-()]+$/.test(scannedCode) ? 'phone' : 
+                     scannedCode.includes('-TKT') ? 'ticket_code' : 'booking_reference'
+      }
+    });
 
     try {
       // Check if it's a phone number (contains only digits, +, spaces, or hyphens)

@@ -14,6 +14,7 @@ import { useTranslation } from "react-i18next";
 import { TicketAddItem } from "@/components/admin/TicketAddItem";
 import { format } from "date-fns";
 import { canPurchaseTickets } from "@/lib/eventUtils";
+import { useActivityLog } from "@/hooks/useActivityLog";
 
 interface Ticket {
   id: string;
@@ -45,6 +46,7 @@ const AdminPOS = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { logActivity } = useActivityLog();
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
@@ -718,6 +720,33 @@ const AdminPOS = () => {
       toast({
         title: "نجح",
         description: "تم إنشاء الطلبات بنجاح",
+      });
+
+      // Log activity
+      await logActivity({
+        activityType: 'pos_form',
+        userType: 'admin',
+        userIdentifier: customerPhone,
+        actionData: {
+          booking_reference: bookingRef,
+          customer_name: customerName,
+          customer_email: customerEmail,
+          customer_phone: customerPhone,
+          customer_nationality: customerNationality,
+          customer_id_number: customerIdNumber,
+          total_amount: totalAmount,
+          ticket_count: cart.reduce((sum, item) => sum + item.quantity, 0),
+          cart_items: cart.map(item => ({
+            ticket_type: item.ticketType,
+            quantity: item.quantity,
+            price: item.price
+          })),
+          ticket_holders: allHoldersData.map(h => ({
+            name: h.name,
+            nationality: h.nationality,
+            id_number: h.idNumber
+          }))
+        }
       });
 
       // Reset form

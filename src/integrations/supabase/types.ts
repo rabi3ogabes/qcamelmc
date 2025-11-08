@@ -14,6 +14,42 @@ export type Database = {
   }
   public: {
     Tables: {
+      activity_logs: {
+        Row: {
+          action_data: Json
+          activity_type: string
+          created_at: string
+          id: string
+          ip_address: string | null
+          metadata: Json | null
+          user_agent: string | null
+          user_identifier: string | null
+          user_type: string
+        }
+        Insert: {
+          action_data?: Json
+          activity_type: string
+          created_at?: string
+          id?: string
+          ip_address?: string | null
+          metadata?: Json | null
+          user_agent?: string | null
+          user_identifier?: string | null
+          user_type: string
+        }
+        Update: {
+          action_data?: Json
+          activity_type?: string
+          created_at?: string
+          id?: string
+          ip_address?: string | null
+          metadata?: Json | null
+          user_agent?: string | null
+          user_identifier?: string | null
+          user_type?: string
+        }
+        Relationships: []
+      }
       admin_users: {
         Row: {
           created_at: string | null

@@ -14,6 +14,7 @@ import { PopupBannersTab } from "@/components/admin/PopupBannersTab";
 import { CustomersTab } from "@/components/admin/CustomersTab";
 import { InvoiceTab } from "@/components/admin/InvoiceTab";
 import { ReportsTab } from "@/components/admin/ReportsTab";
+import { ActivityLogsTab } from "@/components/admin/ActivityLogsTab";
 import "../i18n/config";
 
 interface Order {
@@ -236,7 +237,7 @@ const AdminDashboard = () => {
 
             <TabsContent value="settings">
               <Tabs defaultValue="general" className="w-full">
-                <TabsList className="grid w-full grid-cols-1 sm:grid-cols-3 mb-6 gap-2 h-auto">
+                <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 mb-6 gap-2 h-auto">
                   <TabsTrigger value="general" className="font-lusail text-xs sm:text-sm">
                     الإعدادات العامة
                   </TabsTrigger>
@@ -247,6 +248,10 @@ const AdminDashboard = () => {
                   <TabsTrigger value="reports" className="flex items-center gap-2 font-lusail text-xs sm:text-sm">
                     <FileText className="w-3 h-3 sm:w-4 sm:h-4" />
                     التقارير
+                  </TabsTrigger>
+                  <TabsTrigger value="activity_logs" className="flex items-center gap-2 font-lusail text-xs sm:text-sm">
+                    <FileText className="w-3 h-3 sm:w-4 sm:h-4" />
+                    سجلات النشاط
                   </TabsTrigger>
                 </TabsList>
 
@@ -260,6 +265,10 @@ const AdminDashboard = () => {
 
                 <TabsContent value="reports">
                   <ReportsTab />
+                </TabsContent>
+
+                <TabsContent value="activity_logs">
+                  <ActivityLogsTab />
                 </TabsContent>
               </Tabs>
             </TabsContent>
