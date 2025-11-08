@@ -636,6 +636,8 @@ const AdminPOS = () => {
           payment_method: "cash_pos" as const,
           payment_status: "confirmed" as const,
           booking_reference: bookingRef,
+          n8n_response_message: "طلب من نقطة البيع - POS",
+          n8n_responded_at: new Date().toISOString(),
         })
         .select()
         .single();
