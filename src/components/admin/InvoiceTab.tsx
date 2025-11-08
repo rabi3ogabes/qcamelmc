@@ -112,8 +112,8 @@ export const InvoiceTab = () => {
   }, []);
 
   useEffect(() => {
-    // Auto-start countdown on mount
-    setIsCountdownActive(true);
+    // Don't auto-start countdown - wait for admin to start manually
+    setIsCountdownActive(false);
   }, []);
 
   useEffect(() => {
@@ -488,20 +488,47 @@ export const InvoiceTab = () => {
       <Card className="p-6">
         <div className="flex justify-between items-center mb-6">
           <div>
-            <h2 className="text-2xl font-bold mb-2">إرسال الفواتير</h2>
+            <h2 className="text-2xl font-bold mb-2">إرسال الفواتير (يدوي)</h2>
             <p className="text-muted-foreground">
-              إرسال الفواتير للطلبات المدفوعة عبر سداد إلى n8n (5-10 دقائق بشكل عشوائي بين كل رسالة)
+              إرسال يدوي للفواتير - قم بتفعيل العد التنازلي للإرسال التلقائي
             </p>
           </div>
           <div className="flex gap-2 items-center">
             <div className="flex flex-col items-center gap-1 px-4 py-2 bg-primary/10 rounded-lg">
-              <span className="text-sm text-muted-foreground">العد التنازلي التلقائي</span>
+              <span className="text-sm text-muted-foreground font-bold">
+                {isCountdownActive ? "العد التنازلي نشط ⏱️" : "العد التنازلي متوقف ⏸️"}
+              </span>
               <span className="text-3xl font-bold text-primary">{countdown}</span>
             </div>
+            
+            {!isCountdownActive ? (
+              <Button
+                onClick={startCountdown}
+                disabled={sending}
+                variant="default"
+                size="lg"
+                className="bg-green-600 hover:bg-green-700"
+              >
+                <Clock className="w-4 h-4 ml-2" />
+                تفعيل العد التنازلي
+              </Button>
+            ) : (
+              <Button
+                onClick={stopCountdown}
+                disabled={sending}
+                variant="destructive"
+                size="lg"
+              >
+                <Clock className="w-4 h-4 ml-2" />
+                إيقاف العد التنازلي
+              </Button>
+            )}
+            
             <Button
               onClick={sendInvoices}
               disabled={sending || orders.filter(o => !o.n8n_response_message).length === 0 || !webhookUrl}
               className="gap-2"
+              size="lg"
             >
               {sending ? (
                 <>
