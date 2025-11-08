@@ -905,7 +905,7 @@ const AdminPOS = () => {
                     />
                   </div>
 
-                  <div>
+                  <div className="hidden">
                     <Label htmlFor="email">البريد الإلكتروني</Label>
                     <Input
                       id="email"
