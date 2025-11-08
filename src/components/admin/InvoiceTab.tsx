@@ -484,64 +484,71 @@ export const InvoiceTab = () => {
   }
 
   return (
-    <div className="space-y-6">
-      <Card className="p-6">
-        <div className="flex justify-between items-center mb-6">
+    <div className="space-y-4 md:space-y-6">
+      <Card className="p-4 md:p-6">
+        <div className="flex flex-col lg:flex-row lg:justify-between lg:items-center gap-4 mb-6">
           <div>
-            <h2 className="text-2xl font-bold mb-2">إرسال الفواتير (يدوي)</h2>
-            <p className="text-muted-foreground">
+            <h2 className="text-xl md:text-2xl font-bold mb-2">إرسال الفواتير (يدوي)</h2>
+            <p className="text-sm md:text-base text-muted-foreground">
               إرسال يدوي للفواتير - قم بتفعيل العد التنازلي للإرسال التلقائي
             </p>
           </div>
-          <div className="flex gap-2 items-center">
-            <div className="flex flex-col items-center gap-1 px-4 py-2 bg-primary/10 rounded-lg">
-              <span className="text-sm text-muted-foreground font-bold">
+          
+          {/* Mobile & Tablet Layout */}
+          <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center">
+            {/* Countdown Display */}
+            <div className="flex flex-col items-center gap-1 px-4 py-3 bg-primary/10 rounded-lg">
+              <span className="text-xs md:text-sm text-muted-foreground font-bold text-center">
                 {isCountdownActive ? "العد التنازلي نشط ⏱️" : "العد التنازلي متوقف ⏸️"}
               </span>
-              <span className="text-3xl font-bold text-primary">{countdown}</span>
+              <span className="text-2xl md:text-3xl font-bold text-primary">{countdown}</span>
             </div>
             
-            {!isCountdownActive ? (
-              <Button
-                onClick={startCountdown}
-                disabled={sending}
-                variant="default"
-                size="lg"
-                className="bg-green-600 hover:bg-green-700"
-              >
-                <Clock className="w-4 h-4 ml-2" />
-                تفعيل العد التنازلي
-              </Button>
-            ) : (
-              <Button
-                onClick={stopCountdown}
-                disabled={sending}
-                variant="destructive"
-                size="lg"
-              >
-                <Clock className="w-4 h-4 ml-2" />
-                إيقاف العد التنازلي
-              </Button>
-            )}
-            
-            <Button
-              onClick={sendInvoices}
-              disabled={sending || orders.filter(o => !o.n8n_response_message).length === 0 || !webhookUrl}
-              className="gap-2"
-              size="lg"
-            >
-              {sending ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  جاري الإرسال...
-                </>
+            {/* Control Buttons - Stack on mobile, row on tablet+ */}
+            <div className="flex flex-col sm:flex-row gap-2">
+              {!isCountdownActive ? (
+                <Button
+                  onClick={startCountdown}
+                  disabled={sending}
+                  variant="default"
+                  size="default"
+                  className="bg-green-600 hover:bg-green-700 w-full sm:w-auto"
+                >
+                  <Clock className="w-4 h-4 ml-2" />
+                  <span className="text-sm md:text-base">تفعيل العد التنازلي</span>
+                </Button>
               ) : (
-                <>
-                  <Send className="w-4 h-4" />
-                  إرسال الفواتير ({orders.filter(o => !o.n8n_response_message).length})
-                </>
+                <Button
+                  onClick={stopCountdown}
+                  disabled={sending}
+                  variant="destructive"
+                  size="default"
+                  className="w-full sm:w-auto"
+                >
+                  <Clock className="w-4 h-4 ml-2" />
+                  <span className="text-sm md:text-base">إيقاف العد التنازلي</span>
+                </Button>
               )}
-            </Button>
+              
+              <Button
+                onClick={sendInvoices}
+                disabled={sending || orders.filter(o => !o.n8n_response_message).length === 0 || !webhookUrl}
+                className="gap-2 w-full sm:w-auto"
+                size="default"
+              >
+                {sending ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span className="text-sm md:text-base">جاري الإرسال...</span>
+                  </>
+                ) : (
+                  <>
+                    <Send className="w-4 h-4" />
+                    <span className="text-sm md:text-base">إرسال ({orders.filter(o => !o.n8n_response_message).length})</span>
+                  </>
+                )}
+              </Button>
+            </div>
           </div>
         </div>
 
@@ -554,16 +561,19 @@ export const InvoiceTab = () => {
         )}
 
         <Tabs value={filterTab} onValueChange={(v) => setFilterTab(v as "all" | "pending" | "sent")} className="w-full">
-          <div className="flex items-center justify-between mb-4">
-            <TabsList className="grid grid-cols-3">
-              <TabsTrigger value="all">
-                الكل ({orders.length})
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+            <TabsList className="grid grid-cols-3 w-full sm:w-auto">
+              <TabsTrigger value="all" className="text-xs sm:text-sm">
+                <span className="hidden sm:inline">الكل</span>
+                <span className="sm:hidden">الكل</span> ({orders.length})
               </TabsTrigger>
-              <TabsTrigger value="pending">
-                قيد الإرسال ({orders.filter(o => !o.n8n_response_message).length})
+              <TabsTrigger value="pending" className="text-xs sm:text-sm">
+                <span className="hidden sm:inline">قيد الإرسال</span>
+                <span className="sm:hidden">قيد</span> ({orders.filter(o => !o.n8n_response_message).length})
               </TabsTrigger>
-              <TabsTrigger value="sent">
-                تم الإرسال ({orders.filter(o => !!o.n8n_response_message).length})
+              <TabsTrigger value="sent" className="text-xs sm:text-sm">
+                <span className="hidden sm:inline">تم الإرسال</span>
+                <span className="sm:hidden">مرسل</span> ({orders.filter(o => !!o.n8n_response_message).length})
               </TabsTrigger>
             </TabsList>
             {filterTab === "pending" && orders.filter(o => !o.n8n_response_message).length > 0 && (
@@ -571,31 +581,33 @@ export const InvoiceTab = () => {
                 onClick={markAllAsSent}
                 disabled={sending}
                 variant="outline"
-                className="gap-2"
+                className="gap-2 w-full sm:w-auto text-xs sm:text-sm"
+                size="sm"
               >
                 <CheckCircle className="w-4 h-4" />
-                تحديد الكل كمرسل ({orders.filter(o => !o.n8n_response_message).length})
+                <span className="hidden sm:inline">تحديد الكل كمرسل ({orders.filter(o => !o.n8n_response_message).length})</span>
+                <span className="sm:hidden">تحديد الكل ({orders.filter(o => !o.n8n_response_message).length})</span>
               </Button>
             )}
           </div>
 
           <TabsContent value={filterTab} className="mt-0">
-            <div className="rounded-md border">
-          <Table>
+            <div className="rounded-md border overflow-x-auto">
+          <Table className="min-w-[1200px]">
             <TableHeader>
               <TableRow>
-                <TableHead className="text-right">الحالة</TableHead>
-                <TableHead className="text-right">رقم الحجز</TableHead>
-                <TableHead className="text-right">اسم العميل</TableHead>
-                <TableHead className="text-right">الدولة</TableHead>
-                <TableHead className="text-right">الهاتف</TableHead>
-                <TableHead className="text-right">نوع التذكرة</TableHead>
-                <TableHead className="text-right">الكمية</TableHead>
-                <TableHead className="text-right">المبلغ</TableHead>
-                <TableHead className="text-right">الفعالية</TableHead>
-                <TableHead className="text-right">تاريخ الطلب</TableHead>
-                <TableHead className="text-right">رد n8n</TableHead>
-                <TableHead className="text-right">إجراءات</TableHead>
+                <TableHead className="text-right whitespace-nowrap">الحالة</TableHead>
+                <TableHead className="text-right whitespace-nowrap">رقم الحجز</TableHead>
+                <TableHead className="text-right whitespace-nowrap">اسم العميل</TableHead>
+                <TableHead className="text-right whitespace-nowrap">الدولة</TableHead>
+                <TableHead className="text-right whitespace-nowrap">الهاتف</TableHead>
+                <TableHead className="text-right whitespace-nowrap">نوع التذكرة</TableHead>
+                <TableHead className="text-right whitespace-nowrap">الكمية</TableHead>
+                <TableHead className="text-right whitespace-nowrap">المبلغ</TableHead>
+                <TableHead className="text-right whitespace-nowrap">الفعالية</TableHead>
+                <TableHead className="text-right whitespace-nowrap">تاريخ الطلب</TableHead>
+                <TableHead className="text-right whitespace-nowrap">رد n8n</TableHead>
+                <TableHead className="text-right whitespace-nowrap">إجراءات</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -685,23 +697,23 @@ export const InvoiceTab = () => {
                       )}
                     </TableCell>
                     <TableCell>
-                      <div className="flex gap-2">
+                      <div className="flex gap-2 whitespace-nowrap">
                         {!order.n8n_response_message && !sentOrders.has(order.id) && (
                           <Button
                             variant="default"
                             size="sm"
                             onClick={() => sendSingleInvoice(order)}
                             disabled={sending || currentlySending === order.id || sendingIndividual === order.id || !webhookUrl}
-                            className="gap-2"
+                            className="gap-1 text-xs"
                           >
                             {sendingIndividual === order.id ? (
                               <>
-                                <Loader2 className="w-4 h-4 animate-spin" />
-                                جاري الإرسال...
+                                <Loader2 className="w-3 h-3 animate-spin" />
+                                جاري...
                               </>
                             ) : (
                               <>
-                                <Send className="w-4 h-4" />
+                                <Send className="w-3 h-3" />
                                 إرسال
                               </>
                             )}
@@ -713,9 +725,9 @@ export const InvoiceTab = () => {
                             size="sm"
                             onClick={() => resetOrderStatus(order.id)}
                             disabled={sending || currentlySending === order.id || sendingIndividual === order.id}
-                            className="gap-2"
+                            className="gap-1 text-xs"
                           >
-                            <RotateCcw className="w-4 h-4" />
+                            <RotateCcw className="w-3 h-3" />
                             إعادة
                           </Button>
                         )}
