@@ -118,6 +118,8 @@ export const ReportsTab = () => {
         .sort()
         .flatMap(dateKey => groupedByEventDate[dateKey]);
       
+      console.log("All records count:", allRecordsData.length);
+      
       if (allRecordsData.length > 0) {
         const allRecordsSheet = XLSX.utils.json_to_sheet(allRecordsData);
         
@@ -148,6 +150,9 @@ export const ReportsTab = () => {
         
         // Add all records sheet as first sheet
         XLSX.utils.book_append_sheet(wb, allRecordsSheet, "جميع السجلات");
+        console.log("All records sheet added successfully");
+      } else {
+        console.log("No records to add to all records sheet");
       }
 
       // Sort dates and create sheets for each day
