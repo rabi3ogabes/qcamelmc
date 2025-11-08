@@ -82,6 +82,12 @@ export const ReportsTab = () => {
           const ticketHolderNames = order.ticket_holders?.map((th: any) => th.name).join(", ") || "-";
           
           groupedByEventDate[dateKey].push({
+            "اسم الفعالية": order.events?.title || "-",
+            "معرف الدفع": order.payment_id || "-",
+            "طريقة الدفع": order.payment_method || "-",
+            "عدد التذاكر": detailedQuantity,
+            "حالة الدفع": order.payment_status || "-",
+            "المبلغ الإجمالي": order.total_amount || 0,
             "رمز الحجز": order.booking_reference,
             "اسم العميل": order.customers?.name || "-",
             "البريد الإلكتروني": order.customers?.email || "-",
@@ -89,11 +95,6 @@ export const ReportsTab = () => {
             "الجنسية": order.customers?.nationality || "-",
             "رقم الهوية": order.customers?.id_number || "-",
             "نوع التذكرة": order.ticket_type,
-            "عدد التذاكر": detailedQuantity,
-            "حالة الدفع": order.payment_status || "-",
-            "طريقة الدفع": order.payment_method || "-",
-            "المبلغ الإجمالي": order.total_amount || 0,
-            "اسم الفعالية": order.events?.title || "-",
             "تاريخ الفعالية": order.events?.event_date 
               ? format(new Date(order.events.event_date), "dd/MM/yyyy", { locale: ar })
               : "-",
@@ -104,7 +105,6 @@ export const ReportsTab = () => {
               ? format(new Date(order.confirmed_at), "dd/MM/yyyy HH:mm", { locale: ar })
               : "-",
             "تاريخ الإنشاء": format(new Date(order.created_at), "dd/MM/yyyy HH:mm", { locale: ar }),
-            "معرف الدفع": order.payment_id || "-",
             "رمز الاستجابة السريعة": order.qr_code || "-"
           });
         }
@@ -126,6 +126,12 @@ export const ReportsTab = () => {
         
         // Set column widths
         const colWidths = [
+          { wch: 25 }, // اسم الفعالية
+          { wch: 20 }, // معرف الدفع
+          { wch: 15 }, // طريقة الدفع
+          { wch: 12 }, // عدد التذاكر
+          { wch: 15 }, // حالة الدفع
+          { wch: 12 }, // المبلغ الإجمالي
           { wch: 15 }, // رمز الحجز
           { wch: 20 }, // اسم العميل
           { wch: 25 }, // البريد الإلكتروني
@@ -133,18 +139,12 @@ export const ReportsTab = () => {
           { wch: 15 }, // الجنسية
           { wch: 15 }, // رقم الهوية
           { wch: 15 }, // نوع التذكرة
-          { wch: 12 }, // عدد التذاكر
-          { wch: 15 }, // حالة الدفع
-          { wch: 15 }, // طريقة الدفع
-          { wch: 12 }, // المبلغ الإجمالي
-          { wch: 25 }, // اسم الفعالية
           { wch: 15 }, // تاريخ الفعالية
           { wch: 20 }, // الموقع
           { wch: 12 }, // عدد الحضور
           { wch: 40 }, // أسماء حاملي التذاكر
           { wch: 18 }, // تاريخ التأكيد
           { wch: 18 }, // تاريخ الإنشاء
-          { wch: 20 }, // معرف الدفع
           { wch: 30 }  // رمز الاستجابة السريعة
         ];
         ws['!cols'] = colWidths;
