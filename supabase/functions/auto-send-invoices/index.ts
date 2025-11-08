@@ -59,7 +59,7 @@ Deno.serve(async (req) => {
     // Fetch settings including webhook URL, interval, and last sent time
     const { data: settings, error: settingsError } = await supabaseClient
       .from('settings')
-      .select('webhook_url, auto_invoice_interval_seconds, last_invoice_sent_at, invoice_batch_min, invoice_batch_max')
+      .select('id, webhook_url, auto_invoice_interval_seconds, last_invoice_sent_at, invoice_batch_min, invoice_batch_max')
       .maybeSingle();
 
     if (settingsError) {
