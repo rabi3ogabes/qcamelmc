@@ -160,6 +160,26 @@ const AdminPOS = () => {
     return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
   }, []);
 
+  // Auto-populate phone and ID number from customer info to all ticket holders
+  useEffect(() => {
+    if (ticketHolders.length > 0 && customerPhone) {
+      setTicketHolders(ticketHolders.map(holder => ({
+        ...holder,
+        phone: customerPhone,
+        countryCode: customerCountryCode
+      })));
+    }
+  }, [customerPhone, customerCountryCode]);
+
+  useEffect(() => {
+    if (ticketHolders.length > 0 && customerIdNumber) {
+      setTicketHolders(ticketHolders.map(holder => ({
+        ...holder,
+        idNumber: customerIdNumber
+      })));
+    }
+  }, [customerIdNumber]);
+
   const toggleFullscreen = () => {
     if (!document.fullscreenElement) {
       document.documentElement.requestFullscreen().catch(err => {
