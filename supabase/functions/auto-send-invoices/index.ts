@@ -102,7 +102,7 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Fetch orders that need to be sent (confirmed, sadad/cash_pos, not yet sent to n8n)
+    // Fetch orders that need to be sent (confirmed, sadad only, not yet sent to n8n)
     const { data: orders, error: ordersError } = await supabaseClient
       .from('orders')
       .select(`
@@ -111,7 +111,7 @@ Deno.serve(async (req) => {
         events(title, event_date, location),
         ticket_holders(qr_code, ticket_type)
       `)
-      .in('payment_method', ['sadad', 'cash_pos'])
+      .eq('payment_method', 'sadad')
       .eq('payment_status', 'confirmed')
       .is('n8n_response_message', null)
       .order('created_at', { ascending: true })

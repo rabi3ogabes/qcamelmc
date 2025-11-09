@@ -96,7 +96,7 @@ export const InvoiceTab = () => {
           event: 'UPDATE',
           schema: 'public',
           table: 'orders',
-          filter: 'payment_method=in.(sadad,cash_pos)'
+          filter: 'payment_method=eq.sadad'
         },
         (payload) => {
           console.log('Order updated:', payload);
@@ -194,12 +194,12 @@ export const InvoiceTab = () => {
 
   const fetchOrders = async () => {
     try {
-      const { data, error } = await supabase
-        .from("orders")
-        .select("*, customers(name, email, phone, country_code, nationality), events(title, event_date, location), ticket_holders(qr_code, ticket_type)")
-        .in("payment_method", ["sadad", "cash_pos"])
-        .eq("payment_status", "confirmed")
-        .order("created_at", { ascending: false });
+    const { data, error } = await supabase
+      .from("orders")
+      .select("*, customers(name, email, phone, country_code, nationality), events(title, event_date, location), ticket_holders(qr_code, ticket_type)")
+      .eq("payment_method", "sadad")
+      .eq("payment_status", "confirmed")
+      .order("created_at", { ascending: false });
 
       if (error) throw error;
       setOrders(data || []);
