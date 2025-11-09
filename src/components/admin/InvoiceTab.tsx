@@ -194,15 +194,32 @@ export const InvoiceTab = () => {
 
   const fetchOrders = async () => {
     try {
-    const { data, error } = await supabase
-      .from("orders")
-      .select("*, customers(name, email, phone, country_code, nationality), events(title, event_date, location), ticket_holders(qr_code, ticket_type)")
-      .eq("payment_method", "sadad")
-      .eq("payment_status", "confirmed")
-      .order("created_at", { ascending: false });
+      const { data, error } = await supabase
+        .from("orders")
+        .select("*, customers(name, email, phone, country_code, nationality), events(title, event_date, location), ticket_holders(qr_code, ticket_type)")
+        .eq("payment_method", "sadad")
+        .eq("payment_status", "confirmed")
+        .order("created_at", { ascending: false });
 
       if (error) throw error;
-      setOrders(data || []);
+      
+      // Filter out orders from November 6, 7, 8, 2025
+      const filteredData = (data || []).filter(order => {
+        const orderDate = new Date(order.created_at);
+        const year = orderDate.getFullYear();
+        const month = orderDate.getMonth(); // 0-indexed (10 = November)
+        const day = orderDate.getDate();
+        
+        // Exclude November 6, 7, 8, 2025
+        if (year === 2025 && month === 10) {
+          if (day === 6 || day === 7 || day === 8) {
+            return false;
+          }
+        }
+        return true;
+      });
+      
+      setOrders(filteredData);
     } catch (error) {
       console.error("Failed to load orders:", error);
       toast.error("فشل في تحميل الطلبات");

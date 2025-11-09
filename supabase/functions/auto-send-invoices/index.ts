@@ -103,7 +103,7 @@ Deno.serve(async (req) => {
     }
 
     // Fetch orders that need to be sent (confirmed, sadad only, not yet sent to n8n)
-    const { data: orders, error: ordersError } = await supabaseClient
+    const { data: allOrders, error: ordersError } = await supabaseClient
       .from('orders')
       .select(`
         *,
@@ -115,7 +115,7 @@ Deno.serve(async (req) => {
       .eq('payment_status', 'confirmed')
       .is('n8n_response_message', null)
       .order('created_at', { ascending: true })
-      .limit(batchMax); // Limit to batch max
+      .limit(batchMax * 2); // Fetch more to account for filtering
 
     if (ordersError) {
       console.error('Error fetching orders:', ordersError);
@@ -125,8 +125,24 @@ Deno.serve(async (req) => {
       );
     }
 
+    // Filter out orders from November 6, 7, 8, 2025
+    const orders = (allOrders || []).filter(order => {
+      const orderDate = new Date(order.created_at);
+      const year = orderDate.getFullYear();
+      const month = orderDate.getMonth(); // 0-indexed (10 = November)
+      const day = orderDate.getDate();
+      
+      // Exclude November 6, 7, 8, 2025
+      if (year === 2025 && month === 10) {
+        if (day === 6 || day === 7 || day === 8) {
+          return false;
+        }
+      }
+      return true;
+    }).slice(0, batchMax); // Apply the original batch limit after filtering
+
     if (!orders || orders.length === 0) {
-      console.log('No orders to send');
+      console.log('No orders to send after filtering');
       return new Response(
         JSON.stringify({ message: 'No orders to send' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
