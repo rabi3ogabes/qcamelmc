@@ -191,15 +191,19 @@ const LiveBookings = () => {
       // Filter by event date on client side if date is selected
       let filteredData = data || [];
       if (selectedDate) {
-        // Format selected date as YYYY-MM-DD in Qatar timezone
-        const selectedDateStr = formatInTimeZone(selectedDate, QATAR_TIMEZONE, 'yyyy-MM-dd');
+        // Extract date components from selected date (ignoring time)
+        const selectedYear = selectedDate.getFullYear();
+        const selectedMonth = selectedDate.getMonth();
+        const selectedDay = selectedDate.getDate();
         
         filteredData = filteredData.filter((order: any) => {
           if (!order.events?.event_date) return false;
-          // Convert event date to Qatar timezone and extract date part
-          const eventDate = new Date(order.events.event_date);
-          const eventDateStr = formatInTimeZone(eventDate, QATAR_TIMEZONE, 'yyyy-MM-dd');
-          return eventDateStr === selectedDateStr;
+          // Convert event date to Qatar timezone
+          const eventDate = toZonedTime(new Date(order.events.event_date), QATAR_TIMEZONE);
+          // Compare year, month, and day only
+          return eventDate.getFullYear() === selectedYear &&
+                 eventDate.getMonth() === selectedMonth &&
+                 eventDate.getDate() === selectedDay;
         });
       }
 
