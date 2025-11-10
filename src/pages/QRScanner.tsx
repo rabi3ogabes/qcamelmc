@@ -1085,6 +1085,7 @@ const QRScanner = () => {
                     })()}
                     {availableTickets.map((ticket, index) => {
                       const bookingReference = (ticket as any).orders?.booking_reference || '';
+                      const eventTitle = (ticket as any).orders?.events?.title || '';
                       
                       // Calculate ticket position within the same booking reference
                       const ticketsWithSameBooking = availableTickets.filter(
@@ -1133,6 +1134,11 @@ const QRScanner = () => {
                                   </span>
                                   <div className="font-bold text-sm sm:text-base lg:text-lg truncate flex-1 min-w-0">{ticket.name}</div>
                                 </div>
+                                {eventTitle && (
+                                  <div className="text-xs sm:text-sm mt-1 bg-primary/10 p-1.5 sm:p-2 rounded">
+                                    <span className="font-semibold">الفعالية:</span> <span className="font-medium">{eventTitle}</span>
+                                  </div>
+                                )}
                                 {bookingReference && (
                                   <div className="text-xs sm:text-sm mt-1.5 bg-muted/50 p-1.5 sm:p-2 rounded">
                                     <span className="font-semibold">الرقم المرجعي:</span>
