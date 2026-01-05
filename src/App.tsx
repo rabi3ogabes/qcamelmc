@@ -8,9 +8,9 @@ import { lazy, Suspense } from "react";
 import i18n from "./i18n/config";
 import { SettingsProvider } from "./contexts/SettingsContext";
 import ChunkLoadErrorBoundary from "@/components/ChunkLoadErrorBoundary";
+import EventHome from "./pages/EventHome";
 
-// Lazy load route components
-const EventHome = lazy(() => import("./pages/EventHome"));
+// Lazy load route components (keep the homepage in the main bundle for reliability)
 const TicketSelection = lazy(() => import("./pages/TicketSelection"));
 const Checkout = lazy(() => import("./pages/Checkout"));
 const Confirmation = lazy(() => import("./pages/Confirmation"));
