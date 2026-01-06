@@ -65,6 +65,79 @@ export const SettingsTab = () => {
   const [deleteCustomersDialog, setDeleteCustomersDialog] = useState(false);
   const [isBackingUp, setIsBackingUp] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isImporting, setIsImporting] = useState(false);
+
+  const handleDownloadEventsTemplate = () => {
+    const templateData = [{
+      title: "اسم الفعالية",
+      description: "وصف الفعالية",
+      event_date: "2025-01-15T18:00:00",
+      location: "الموقع",
+      image_url: "https://example.com/image.jpg",
+      video_url: "https://example.com/video.mp4",
+      display_order: 1,
+      start_time: "18:00",
+      end_time: "22:00",
+      is_active: true
+    }];
+
+    const ws = XLSX.utils.json_to_sheet(templateData);
+    ws['!cols'] = [
+      { wch: 20 }, { wch: 30 }, { wch: 25 }, { wch: 20 },
+      { wch: 40 }, { wch: 40 }, { wch: 12 }, { wch: 10 }, { wch: 10 }, { wch: 10 }
+    ];
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Events Template");
+    XLSX.writeFile(wb, "events_template.xlsx");
+    toast.success("تم تحميل القالب بنجاح");
+  };
+
+  const handleImportEvents = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsImporting(true);
+    try {
+      const data = await file.arrayBuffer();
+      const workbook = XLSX.read(data);
+      const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+      const jsonData = XLSX.utils.sheet_to_json(worksheet) as any[];
+
+      if (jsonData.length === 0) {
+        toast.error("الملف فارغ");
+        return;
+      }
+
+      let successCount = 0;
+      for (const row of jsonData) {
+        const eventData = {
+          title: row.title || row["اسم الفعالية"] || "",
+          description: row.description || row["وصف الفعالية"] || null,
+          event_date: row.event_date || row["تاريخ الفعالية"] || new Date().toISOString(),
+          location: row.location || row["الموقع"] || "",
+          image_url: row.image_url || row["رابط الصورة"] || null,
+          video_url: row.video_url || row["رابط الفيديو"] || null,
+          display_order: Number(row.display_order) || Number(row["ترتيب العرض"]) || 0,
+          start_time: row.start_time || row["وقت البداية"] || null,
+          end_time: row.end_time || row["وقت النهاية"] || null,
+          is_active: row.is_active !== undefined ? row.is_active : (row["نشط"] !== undefined ? row["نشط"] : true)
+        };
+
+        if (!eventData.title || !eventData.location) continue;
+
+        const { error } = await supabase.from("events").insert(eventData);
+        if (!error) successCount++;
+      }
+
+      toast.success(`تم استيراد ${successCount} فعالية بنجاح`);
+      e.target.value = "";
+    } catch (error) {
+      console.error("Error importing events:", error);
+      toast.error("فشل في استيراد الفعاليات");
+    } finally {
+      setIsImporting(false);
+    }
+  };
   useEffect(() => {
     fetchSettings();
   }, []);
@@ -1415,6 +1488,30 @@ export const SettingsTab = () => {
             <div className="space-y-4 mb-6">
               <h4 className="font-semibold font-lusail border-b pb-2">إدارة الفعاليات</h4>
               <div className="flex gap-3 flex-wrap">
+                <Button 
+                  variant="outline" 
+                  onClick={handleDownloadEventsTemplate}
+                  className="font-lusail"
+                >
+                  <Download className="w-4 h-4 ml-2" />
+                  تحميل القالب
+                </Button>
+                <Button 
+                  variant="outline" 
+                  onClick={() => document.getElementById('import-events-file')?.click()}
+                  disabled={isImporting}
+                  className="font-lusail"
+                >
+                  <Upload className="w-4 h-4 ml-2" />
+                  {isImporting ? "جاري الاستيراد..." : "استيراد فعاليات"}
+                </Button>
+                <input
+                  id="import-events-file"
+                  type="file"
+                  accept=".xlsx,.xls"
+                  onChange={handleImportEvents}
+                  className="hidden"
+                />
                 <Button 
                   variant="outline" 
                   onClick={handleBackupEvents}
