@@ -3,14 +3,24 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Upload, Image as ImageIcon } from "lucide-react";
+import { Upload, Image as ImageIcon, Download, Trash2, AlertTriangle } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useTranslation } from "react-i18next";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { SadadDiagnostic } from "./SadadDiagnostic";
-
+import * as XLSX from "xlsx";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 export const SettingsTab = () => {
   const { t } = useTranslation();
   const [logoUrl, setLogoUrl] = useState("");
@@ -48,7 +58,13 @@ export const SettingsTab = () => {
   const [invoiceSendDelayMin, setInvoiceSendDelayMin] = useState(300);
   const [invoiceSendDelayMax, setInvoiceSendDelayMax] = useState(600);
   const [savingDelaySettings, setSavingDelaySettings] = useState(false);
-
+  
+  // Data management states
+  const [deleteEventsDialog, setDeleteEventsDialog] = useState(false);
+  const [deleteTicketsDialog, setDeleteTicketsDialog] = useState(false);
+  const [deleteCustomersDialog, setDeleteCustomersDialog] = useState(false);
+  const [isBackingUp, setIsBackingUp] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   useEffect(() => {
     fetchSettings();
   }, []);
@@ -666,14 +682,192 @@ export const SettingsTab = () => {
     }
   };
 
+  // Backup and Delete Functions
+  const downloadAsExcel = (data: any[], filename: string) => {
+    const worksheet = XLSX.utils.json_to_sheet(data);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Data");
+    XLSX.writeFile(workbook, `${filename}_${new Date().toISOString().split('T')[0]}.xlsx`);
+  };
+
+  const handleBackupEvents = async () => {
+    setIsBackingUp(true);
+    try {
+      const { data, error } = await supabase
+        .from("events")
+        .select("*")
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+      
+      if (!data || data.length === 0) {
+        toast.error("لا توجد بيانات للتصدير");
+        return;
+      }
+
+      downloadAsExcel(data, "events_backup");
+      toast.success(`تم تصدير ${data.length} فعالية بنجاح`);
+    } catch (error) {
+      console.error("Error backing up events:", error);
+      toast.error("فشل في تصدير البيانات");
+    } finally {
+      setIsBackingUp(false);
+    }
+  };
+
+  const handleDeleteAllEvents = async () => {
+    setIsDeleting(true);
+    try {
+      // First delete all tickets (they reference events)
+      const { error: ticketsError } = await supabase
+        .from("tickets")
+        .delete()
+        .neq("id", "00000000-0000-0000-0000-000000000000");
+
+      if (ticketsError) throw ticketsError;
+
+      // Then delete all events
+      const { error: eventsError } = await supabase
+        .from("events")
+        .delete()
+        .neq("id", "00000000-0000-0000-0000-000000000000");
+
+      if (eventsError) throw eventsError;
+
+      toast.success("تم حذف جميع الفعاليات بنجاح");
+      setDeleteEventsDialog(false);
+    } catch (error) {
+      console.error("Error deleting events:", error);
+      toast.error("فشل في حذف الفعاليات");
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const handleBackupTickets = async () => {
+    setIsBackingUp(true);
+    try {
+      const { data, error } = await supabase
+        .from("tickets")
+        .select("*, events(title, event_date)")
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+      
+      if (!data || data.length === 0) {
+        toast.error("لا توجد بيانات للتصدير");
+        return;
+      }
+
+      // Flatten the data for Excel
+      const flatData = data.map(ticket => ({
+        ...ticket,
+        event_title: ticket.events?.title,
+        event_date: ticket.events?.event_date,
+        events: undefined
+      }));
+
+      downloadAsExcel(flatData, "tickets_backup");
+      toast.success(`تم تصدير ${data.length} تذكرة بنجاح`);
+    } catch (error) {
+      console.error("Error backing up tickets:", error);
+      toast.error("فشل في تصدير البيانات");
+    } finally {
+      setIsBackingUp(false);
+    }
+  };
+
+  const handleDeleteAllTickets = async () => {
+    setIsDeleting(true);
+    try {
+      const { error } = await supabase
+        .from("tickets")
+        .delete()
+        .neq("id", "00000000-0000-0000-0000-000000000000");
+
+      if (error) throw error;
+
+      toast.success("تم حذف جميع التذاكر بنجاح");
+      setDeleteTicketsDialog(false);
+    } catch (error) {
+      console.error("Error deleting tickets:", error);
+      toast.error("فشل في حذف التذاكر");
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const handleBackupCustomers = async () => {
+    setIsBackingUp(true);
+    try {
+      const { data, error } = await supabase
+        .from("customers")
+        .select("*")
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+      
+      if (!data || data.length === 0) {
+        toast.error("لا توجد بيانات للتصدير");
+        return;
+      }
+
+      downloadAsExcel(data, "customers_backup");
+      toast.success(`تم تصدير ${data.length} عميل بنجاح`);
+    } catch (error) {
+      console.error("Error backing up customers:", error);
+      toast.error("فشل في تصدير البيانات");
+    } finally {
+      setIsBackingUp(false);
+    }
+  };
+
+  const handleDeleteAllCustomers = async () => {
+    setIsDeleting(true);
+    try {
+      // First delete ticket_holders (they reference orders which reference customers)
+      const { error: holdersError } = await supabase
+        .from("ticket_holders")
+        .delete()
+        .neq("id", "00000000-0000-0000-0000-000000000000");
+
+      if (holdersError) throw holdersError;
+
+      // Then delete orders
+      const { error: ordersError } = await supabase
+        .from("orders")
+        .delete()
+        .neq("id", "00000000-0000-0000-0000-000000000000");
+
+      if (ordersError) throw ordersError;
+
+      // Finally delete customers
+      const { error: customersError } = await supabase
+        .from("customers")
+        .delete()
+        .neq("id", "00000000-0000-0000-0000-000000000000");
+
+      if (customersError) throw customersError;
+
+      toast.success("تم حذف جميع العملاء بنجاح");
+      setDeleteCustomersDialog(false);
+    } catch (error) {
+      console.error("Error deleting customers:", error);
+      toast.error("فشل في حذف العملاء");
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   return (
     <div className="space-y-6 max-w-4xl">
       <h2 className="text-2xl font-bold font-lusail">{t("settings")}</h2>
 
       <Tabs defaultValue="design" className="w-full">
-        <TabsList className="grid w-full grid-cols-2">
+        <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="design" className="font-lusail">التصميم والعرض</TabsTrigger>
           <TabsTrigger value="integrations" className="font-lusail">التكاملات (n8n & Sadad)</TabsTrigger>
+          <TabsTrigger value="data" className="font-lusail">إدارة البيانات</TabsTrigger>
         </TabsList>
 
         <TabsContent value="design" className="space-y-6 mt-6">
@@ -1205,7 +1399,169 @@ export const SettingsTab = () => {
         </div>
       </Card>
         </TabsContent>
+
+        {/* Data Management Tab */}
+        <TabsContent value="data" className="space-y-6 mt-6">
+          <Card className="p-6 border-red-200 bg-red-50/50">
+            <div className="flex items-center gap-2 mb-4">
+              <AlertTriangle className="w-5 h-5 text-red-600" />
+              <h3 className="text-lg font-semibold font-lusail text-red-900">تحذير: منطقة خطرة</h3>
+            </div>
+            <p className="text-sm text-red-800 mb-6">
+              العمليات التالية لا يمكن التراجع عنها. يرجى التأكد من عمل نسخة احتياطية قبل الحذف.
+            </p>
+
+            {/* Events Backup & Delete */}
+            <div className="space-y-4 mb-6">
+              <h4 className="font-semibold font-lusail border-b pb-2">إدارة الفعاليات</h4>
+              <div className="flex gap-3 flex-wrap">
+                <Button 
+                  variant="outline" 
+                  onClick={handleBackupEvents}
+                  disabled={isBackingUp}
+                  className="font-lusail"
+                >
+                  <Download className="w-4 h-4 ml-2" />
+                  {isBackingUp ? "جاري التصدير..." : "تصدير الفعاليات"}
+                </Button>
+                <Button 
+                  variant="destructive" 
+                  onClick={() => setDeleteEventsDialog(true)}
+                  disabled={isDeleting}
+                  className="font-lusail"
+                >
+                  <Trash2 className="w-4 h-4 ml-2" />
+                  حذف جميع الفعاليات
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                ⚠️ حذف الفعاليات سيحذف أيضاً جميع التذاكر المرتبطة بها
+              </p>
+            </div>
+
+            {/* Tickets Backup & Delete */}
+            <div className="space-y-4 mb-6">
+              <h4 className="font-semibold font-lusail border-b pb-2">إدارة التذاكر</h4>
+              <div className="flex gap-3 flex-wrap">
+                <Button 
+                  variant="outline" 
+                  onClick={handleBackupTickets}
+                  disabled={isBackingUp}
+                  className="font-lusail"
+                >
+                  <Download className="w-4 h-4 ml-2" />
+                  {isBackingUp ? "جاري التصدير..." : "تصدير التذاكر"}
+                </Button>
+                <Button 
+                  variant="destructive" 
+                  onClick={() => setDeleteTicketsDialog(true)}
+                  disabled={isDeleting}
+                  className="font-lusail"
+                >
+                  <Trash2 className="w-4 h-4 ml-2" />
+                  حذف جميع التذاكر
+                </Button>
+              </div>
+            </div>
+
+            {/* Customers Backup & Delete */}
+            <div className="space-y-4">
+              <h4 className="font-semibold font-lusail border-b pb-2">إدارة العملاء</h4>
+              <div className="flex gap-3 flex-wrap">
+                <Button 
+                  variant="outline" 
+                  onClick={handleBackupCustomers}
+                  disabled={isBackingUp}
+                  className="font-lusail"
+                >
+                  <Download className="w-4 h-4 ml-2" />
+                  {isBackingUp ? "جاري التصدير..." : "تصدير العملاء"}
+                </Button>
+                <Button 
+                  variant="destructive" 
+                  onClick={() => setDeleteCustomersDialog(true)}
+                  disabled={isDeleting}
+                  className="font-lusail"
+                >
+                  <Trash2 className="w-4 h-4 ml-2" />
+                  حذف جميع العملاء
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                ⚠️ حذف العملاء سيحذف أيضاً جميع الطلبات وحاملي التذاكر المرتبطين بهم
+              </p>
+            </div>
+          </Card>
+        </TabsContent>
       </Tabs>
+
+      {/* Delete Events Confirmation Dialog */}
+      <AlertDialog open={deleteEventsDialog} onOpenChange={setDeleteEventsDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="font-lusail">تأكيد حذف جميع الفعاليات</AlertDialogTitle>
+            <AlertDialogDescription>
+              هل أنت متأكد من حذف جميع الفعاليات؟ سيتم أيضاً حذف جميع التذاكر المرتبطة بها.
+              هذا الإجراء لا يمكن التراجع عنه.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="font-lusail">إلغاء</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleDeleteAllEvents} 
+              className="bg-red-600 hover:bg-red-700 font-lusail"
+              disabled={isDeleting}
+            >
+              {isDeleting ? "جاري الحذف..." : "نعم، احذف الكل"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Delete Tickets Confirmation Dialog */}
+      <AlertDialog open={deleteTicketsDialog} onOpenChange={setDeleteTicketsDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="font-lusail">تأكيد حذف جميع التذاكر</AlertDialogTitle>
+            <AlertDialogDescription>
+              هل أنت متأكد من حذف جميع التذاكر؟ هذا الإجراء لا يمكن التراجع عنه.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="font-lusail">إلغاء</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleDeleteAllTickets} 
+              className="bg-red-600 hover:bg-red-700 font-lusail"
+              disabled={isDeleting}
+            >
+              {isDeleting ? "جاري الحذف..." : "نعم، احذف الكل"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Delete Customers Confirmation Dialog */}
+      <AlertDialog open={deleteCustomersDialog} onOpenChange={setDeleteCustomersDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="font-lusail">تأكيد حذف جميع العملاء</AlertDialogTitle>
+            <AlertDialogDescription>
+              هل أنت متأكد من حذف جميع العملاء؟ سيتم أيضاً حذف جميع الطلبات وحاملي التذاكر.
+              هذا الإجراء لا يمكن التراجع عنه.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="font-lusail">إلغاء</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleDeleteAllCustomers} 
+              className="bg-red-600 hover:bg-red-700 font-lusail"
+              disabled={isDeleting}
+            >
+              {isDeleting ? "جاري الحذف..." : "نعم، احذف الكل"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
