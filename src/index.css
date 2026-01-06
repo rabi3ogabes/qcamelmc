@@ -102,3 +102,22 @@ All colors MUST be HSL.
     @apply bg-background text-foreground;
   }
 }
+
+@layer utilities {
+  /* New booking glow animation */
+  @keyframes new-booking-glow {
+    0%, 100% {
+      box-shadow: 0 0 5px hsl(142 76% 36% / 0.3), 0 0 20px hsl(142 76% 36% / 0.2);
+      border-color: hsl(142 76% 36% / 0.5);
+    }
+    50% {
+      box-shadow: 0 0 20px hsl(142 76% 36% / 0.6), 0 0 40px hsl(142 76% 36% / 0.4);
+      border-color: hsl(142 76% 36% / 0.8);
+    }
+  }
+
+  .animate-new-booking {
+    animation: new-booking-glow 1.5s ease-in-out 3;
+    border: 2px solid hsl(142 76% 36% / 0.5);
+  }
+}
