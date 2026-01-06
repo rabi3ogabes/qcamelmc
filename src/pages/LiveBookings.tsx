@@ -1,11 +1,11 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { CalendarIcon, CheckCircle, XCircle, Users, LayoutGrid, Table as TableIcon, User, Phone, CreditCard, Hash, Maximize, Minimize, Globe, Store } from "lucide-react";
+import { CalendarIcon, CheckCircle, XCircle, Users, LayoutGrid, Table as TableIcon, User, Phone, CreditCard, Hash, Maximize, Minimize, Globe, Store, Volume2, VolumeX } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -13,8 +13,36 @@ import { format } from "date-fns";
 import { toZonedTime, formatInTimeZone } from "date-fns-tz";
 import { cn } from "@/lib/utils";
 import { Footer } from "@/components/Footer";
+import { canPurchaseTickets } from "@/lib/eventUtils";
 
 const QATAR_TIMEZONE = "Asia/Qatar";
+
+// Create audio context for notification sounds
+const playNotificationSound = () => {
+  try {
+    const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+    const oscillator = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+    
+    oscillator.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+    
+    // Pleasant notification tone
+    oscillator.frequency.setValueAtTime(880, audioContext.currentTime); // A5
+    oscillator.frequency.setValueAtTime(1108.73, audioContext.currentTime + 0.1); // C#6
+    oscillator.frequency.setValueAtTime(1318.51, audioContext.currentTime + 0.2); // E6
+    
+    oscillator.type = 'sine';
+    
+    gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
+    
+    oscillator.start(audioContext.currentTime);
+    oscillator.stop(audioContext.currentTime + 0.5);
+  } catch (error) {
+    console.log('Audio not supported:', error);
+  }
+};
 
 interface TicketHolder {
   id: string;
@@ -59,15 +87,14 @@ const LiveBookings = () => {
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [ticketHolders, setTicketHolders] = useState<TicketHolder[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedDate, setSelectedDate] = useState<Date | undefined>(() => {
-    // Initialize with today's date in Qatar timezone
-    const now = new Date();
-    return toZonedTime(now, QATAR_TIMEZONE);
-  });
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
   const [viewType, setViewType] = useState<"cards" | "table">("cards");
   const [logoUrl, setLogoUrl] = useState<string>("");
   const [headerBgColor, setHeaderBgColor] = useState<string>("hsl(var(--card) / 0.5)");
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [soundEnabled, setSoundEnabled] = useState(true);
+  const previousBookingsCountRef = useRef<number>(0);
+  const isInitialLoadRef = useRef(true);
   const [stats, setStats] = useState({
     total: 0,
     confirmed: 0,
@@ -119,14 +146,51 @@ const LiveBookings = () => {
     return flagMap[nationality] || '🌍';
   };
 
+  // Auto-select upcoming event on page load
   useEffect(() => {
+    const fetchUpcomingEvent = async () => {
+      try {
+        const { data, error } = await supabase
+          .from("events")
+          .select("id, event_date")
+          .eq("is_active", true)
+          .order("event_date", { ascending: true });
+
+        if (error) {
+          console.error("Error fetching upcoming event:", error);
+          throw error;
+        }
+        
+        // Find the first event that still allows viewing (upcoming or today)
+        const availableEvent = data?.find(event => canPurchaseTickets(event.event_date));
+        
+        if (availableEvent) {
+          const eventDate = toZonedTime(new Date(availableEvent.event_date), QATAR_TIMEZONE);
+          setSelectedDate(eventDate);
+          console.log("Auto-selected upcoming event date:", eventDate);
+        } else {
+          // Fallback to today if no upcoming events
+          const now = new Date();
+          setSelectedDate(toZonedTime(now, QATAR_TIMEZONE));
+        }
+      } catch (error) {
+        console.error("Failed to fetch upcoming event:", error);
+        // Fallback to today on error
+        const now = new Date();
+        setSelectedDate(toZonedTime(now, QATAR_TIMEZONE));
+      }
+    };
+
+    fetchUpcomingEvent();
     fetchSettings();
     const cleanup = setupRealtimeSubscription();
     return cleanup;
   }, []);
 
   useEffect(() => {
-    fetchBookings();
+    if (selectedDate) {
+      fetchBookings();
+    }
   }, [selectedDate]);
 
 
@@ -230,6 +294,11 @@ const LiveBookings = () => {
       setBookings(filteredData);
       setTicketHolders(allTicketHolders);
       calculateStats(filteredData, allTicketHolders);
+      
+      // Mark initial load as complete after first data fetch
+      if (isInitialLoadRef.current) {
+        isInitialLoadRef.current = false;
+      }
     } catch (error) {
       console.error("Error fetching bookings:", error);
       toast.error(t("failedToLoad"));
@@ -251,6 +320,13 @@ const LiveBookings = () => {
         },
         (payload) => {
           console.log('Order update:', payload);
+          // Play sound for new confirmed orders
+          if (payload.eventType === 'INSERT' && (payload.new as any)?.payment_status === 'confirmed') {
+            if (soundEnabled && !isInitialLoadRef.current) {
+              playNotificationSound();
+              toast.success("🎫 حجز جديد!");
+            }
+          }
           fetchBookings();
         }
       )
@@ -273,9 +349,29 @@ const LiveBookings = () => {
       )
       .subscribe();
 
+    // Subscribe to tickets changes for availability updates
+    const ticketsChannel = supabase
+      .channel('live-bookings-tickets')
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'tickets'
+        },
+        (payload) => {
+          console.log('Ticket availability update:', payload);
+          if (soundEnabled && !isInitialLoadRef.current) {
+            playNotificationSound();
+          }
+        }
+      )
+      .subscribe();
+
     return () => {
       supabase.removeChannel(ordersChannel);
       supabase.removeChannel(ticketHoldersChannel);
+      supabase.removeChannel(ticketsChannel);
     };
   };
 
@@ -399,6 +495,18 @@ const LiveBookings = () => {
                 عرض الجدول
               </Button>
             </div>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setSoundEnabled(!soundEnabled)}
+              title={soundEnabled ? "إيقاف الصوت" : "تفعيل الصوت"}
+            >
+              {soundEnabled ? (
+                <Volume2 className="w-5 h-5 text-green-600" />
+              ) : (
+                <VolumeX className="w-5 h-5 text-muted-foreground" />
+              )}
+            </Button>
             <Button
               variant="ghost"
               size="icon"
