@@ -103,33 +103,69 @@ export const SettingsTab = () => {
       const worksheet = workbook.Sheets[workbook.SheetNames[0]];
       const jsonData = XLSX.utils.sheet_to_json(worksheet) as any[];
 
+      console.log("Parsed Excel data:", jsonData);
+
       if (jsonData.length === 0) {
         toast.error("الملف فارغ");
         return;
       }
 
       let successCount = 0;
+      let errorCount = 0;
+      
       for (const row of jsonData) {
+        // Helper to clean URL values (treat "#" or empty as null)
+        const cleanUrl = (val: any) => {
+          if (!val || val === "#" || val === "" || val === "-") return null;
+          return String(val);
+        };
+
+        // Helper to parse boolean from various formats
+        const parseBoolean = (val: any) => {
+          if (val === true || val === "TRUE" || val === "true" || val === 1 || val === "1") return true;
+          if (val === false || val === "FALSE" || val === "false" || val === 0 || val === "0") return false;
+          return true; // default to active
+        };
+
         const eventData = {
-          title: row.title || row["اسم الفعالية"] || "",
+          title: String(row.title || row["اسم الفعالية"] || "").trim(),
           description: row.description || row["وصف الفعالية"] || null,
           event_date: row.event_date || row["تاريخ الفعالية"] || new Date().toISOString(),
-          location: row.location || row["الموقع"] || "",
-          image_url: row.image_url || row["رابط الصورة"] || null,
-          video_url: row.video_url || row["رابط الفيديو"] || null,
+          location: String(row.location || row["الموقع"] || "").trim(),
+          image_url: cleanUrl(row.image_url || row["رابط الصورة"]),
+          video_url: cleanUrl(row.video_url || row["رابط الفيديو"]),
           display_order: Number(row.display_order) || Number(row["ترتيب العرض"]) || 0,
           start_time: row.start_time || row["وقت البداية"] || null,
           end_time: row.end_time || row["وقت النهاية"] || null,
-          is_active: row.is_active !== undefined ? row.is_active : (row["نشط"] !== undefined ? row["نشط"] : true)
+          is_active: parseBoolean(row.is_active ?? row["نشط"])
         };
 
-        if (!eventData.title || !eventData.location) continue;
+        console.log("Event data to insert:", eventData);
+
+        if (!eventData.title || !eventData.location) {
+          console.log("Skipping row - missing title or location:", row);
+          continue;
+        }
 
         const { error } = await supabase.from("events").insert(eventData);
-        if (!error) successCount++;
+        if (error) {
+          console.error("Error inserting event:", error);
+          errorCount++;
+        } else {
+          successCount++;
+        }
       }
 
-      toast.success(`تم استيراد ${successCount} فعالية بنجاح`);
+      if (successCount > 0) {
+        toast.success(`تم استيراد ${successCount} فعالية بنجاح`);
+      }
+      if (errorCount > 0) {
+        toast.error(`فشل استيراد ${errorCount} فعالية`);
+      }
+      if (successCount === 0 && errorCount === 0) {
+        toast.error("لم يتم العثور على بيانات صالحة للاستيراد");
+      }
+      
       e.target.value = "";
     } catch (error) {
       console.error("Error importing events:", error);
