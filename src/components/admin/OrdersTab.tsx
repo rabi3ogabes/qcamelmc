@@ -65,6 +65,7 @@ export const OrdersTab = ({
     return (saved === "grid" || saved === "list") ? saved : "list";
   });
   const [searchQuery, setSearchQuery] = useState("");
+  const [selectedEventFilter, setSelectedEventFilter] = useState<string>("all");
   const [selectedOrder, setSelectedOrder] = useState<string | null>(null);
   const [ticketHolders, setTicketHolders] = useState<TicketHolder[]>([]);
   const [selectedHolder, setSelectedHolder] = useState<TicketHolder | null>(null);
@@ -492,15 +493,20 @@ export const OrdersTab = ({
   };
   const filterOrders = (status: string) => {
     // Apply status filter
-    let statusFiltered = orders;
-    if (status === "success") statusFiltered = orders.filter(o => o.payment_status === "confirmed");
-    if (status === "failed") statusFiltered = orders.filter(o => o.payment_status === "cancelled" || o.payment_status === "pending");
+    let filtered = orders;
+    if (status === "success") filtered = orders.filter(o => o.payment_status === "confirmed");
+    if (status === "failed") filtered = orders.filter(o => o.payment_status === "cancelled" || o.payment_status === "pending");
+    
+    // Apply event date filter
+    if (selectedEventFilter !== "all") {
+      filtered = filtered.filter(o => o.event_id === selectedEventFilter);
+    }
     
     // Apply search filter
-    if (!searchQuery.trim()) return statusFiltered;
+    if (!searchQuery.trim()) return filtered;
     
     const query = searchQuery.toLowerCase().trim();
-    return statusFiltered.filter(o => 
+    return filtered.filter(o => 
       o.booking_reference.toLowerCase().includes(query) ||
       o.customers.name.toLowerCase().includes(query) ||
       o.customers.phone.toLowerCase().includes(query)
@@ -741,6 +747,20 @@ export const OrdersTab = ({
             <TabsTrigger value="success">{t("success")} ({stats.success})</TabsTrigger>
             <TabsTrigger value="failed">{t("failed")} ({stats.failed})</TabsTrigger>
           </TabsList>
+          
+          <Select value={selectedEventFilter} onValueChange={setSelectedEventFilter}>
+            <SelectTrigger className="w-[200px] font-lusail">
+              <SelectValue placeholder="جميع الفعاليات" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all" className="font-lusail">جميع الفعاليات</SelectItem>
+              {availableEvents.map((event) => (
+                <SelectItem key={event.id} value={event.id} className="font-lusail">
+                  {format(new Date(event.event_date), 'dd/MM/yyyy')}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
           
           <div className="relative flex-1 max-w-md">
             <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
