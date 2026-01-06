@@ -93,7 +93,8 @@ const LiveBookings = () => {
   const [headerBgColor, setHeaderBgColor] = useState<string>("hsl(var(--card) / 0.5)");
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(true);
-  const previousBookingsCountRef = useRef<number>(0);
+  const [newTicketHolderIds, setNewTicketHolderIds] = useState<Set<string>>(new Set());
+  const previousTicketHolderIdsRef = useRef<Set<string>>(new Set());
   const isInitialLoadRef = useRef(true);
   const [stats, setStats] = useState({
     total: 0,
@@ -295,8 +296,24 @@ const LiveBookings = () => {
       setTicketHolders(allTicketHolders);
       calculateStats(filteredData, allTicketHolders);
       
-      // Mark initial load as complete after first data fetch
-      if (isInitialLoadRef.current) {
+      // Track new ticket holders for animation
+      if (!isInitialLoadRef.current) {
+        const currentIds = new Set(allTicketHolders.map(h => h.id));
+        const newIds = new Set<string>();
+        currentIds.forEach(id => {
+          if (!previousTicketHolderIdsRef.current.has(id)) {
+            newIds.add(id);
+          }
+        });
+        if (newIds.size > 0) {
+          setNewTicketHolderIds(newIds);
+          // Clear animation after 5 seconds
+          setTimeout(() => setNewTicketHolderIds(new Set()), 5000);
+        }
+        previousTicketHolderIdsRef.current = currentIds;
+      } else {
+        // Store initial IDs
+        previousTicketHolderIdsRef.current = new Set(allTicketHolders.map(h => h.id));
         isInitialLoadRef.current = false;
       }
     } catch (error) {
@@ -720,7 +737,13 @@ const LiveBookings = () => {
               </Card>
             ) : (
               ticketHolders.map((holder) => (
-                <Card key={holder.id} className="p-4 hover:shadow-xl transition-shadow shadow-md">
+                <Card 
+                  key={holder.id} 
+                  className={cn(
+                    "p-4 hover:shadow-xl transition-shadow shadow-md",
+                    newTicketHolderIds.has(holder.id) && "animate-new-booking"
+                  )}
+                >
                   <div className="flex flex-col gap-3">
                     {/* Name and Flag */}
                     <div className="flex items-center gap-2">
@@ -808,7 +831,13 @@ const LiveBookings = () => {
                     </TableRow>
                   ) : (
                     ticketHolders.map((holder) => (
-                      <TableRow key={holder.id} className={holder.is_present ? 'bg-green-50 dark:bg-green-950/20' : ''}>
+                      <TableRow 
+                        key={holder.id} 
+                        className={cn(
+                          holder.is_present ? 'bg-green-50 dark:bg-green-950/20' : '',
+                          newTicketHolderIds.has(holder.id) && 'animate-new-booking'
+                        )}
+                      >
                         <TableCell className="font-semibold">{holder.name}</TableCell>
                         <TableCell className="font-mono">{holder.phone}</TableCell>
                         <TableCell>
