@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Calendar, MapPin, Ticket, Lock } from "lucide-react";
+import { Calendar, MapPin, Ticket, Lock, ChevronLeft, ChevronRight } from "lucide-react";
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
 import heroImage from "@/assets/qatar-event-hero.jpg";
@@ -26,11 +26,14 @@ interface Event {
   end_time: string | null;
 }
 
+const EVENTS_PER_PAGE = 9;
+
 const EventHome = () => {
   const { t } = useTranslation();
   const { settings } = useSettings();
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
   const navigate = useNavigate();
 
   const formatTime12Hour = (time24: string) => {
@@ -153,8 +156,19 @@ const EventHome = () => {
           {/* Events Grid */}
           <div className="py-16 px-4">
             <div className="max-w-7xl mx-auto">
+              {/* Pagination Info */}
+              {events.length > EVENTS_PER_PAGE && (
+                <div className="text-center mb-8">
+                  <p style={{ color: '#6B4E3D' }}>
+                    صفحة {currentPage} من {Math.ceil(events.length / EVENTS_PER_PAGE)}
+                  </p>
+                </div>
+              )}
+
               <div className="flex flex-wrap justify-center gap-8">
-                {events.map((event) => (
+                {events
+                  .slice((currentPage - 1) * EVENTS_PER_PAGE, currentPage * EVENTS_PER_PAGE)
+                  .map((event) => (
                 <Card key={event.id} className="overflow-hidden hover:shadow-2xl transition-shadow flex flex-col w-full md:w-[calc(50%-1rem)] lg:w-[calc(33.333%-1.334rem)]" style={{ backgroundColor: '#FFFFFF', borderColor: '#D4B78A' }}>
                     <div className="h-2" style={{ backgroundColor: settings?.header_bg_color || "#A85740" }} />
                     {event.image_url && (
@@ -233,6 +247,48 @@ const EventHome = () => {
                   </Card>
                 ))}
               </div>
+
+              {/* Pagination Controls */}
+              {events.length > EVENTS_PER_PAGE && (
+                <div className="flex justify-center items-center gap-4 mt-12">
+                  <Button
+                    variant="outline"
+                    onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                    disabled={currentPage === 1}
+                    style={{ borderColor: '#A85740', color: '#6B4E3D' }}
+                  >
+                    <ChevronRight className="w-5 h-5" />
+                    السابق
+                  </Button>
+                  
+                  <div className="flex gap-2">
+                    {Array.from({ length: Math.ceil(events.length / EVENTS_PER_PAGE) }, (_, i) => i + 1).map((page) => (
+                      <Button
+                        key={page}
+                        variant={currentPage === page ? "default" : "outline"}
+                        onClick={() => setCurrentPage(page)}
+                        className="w-10 h-10"
+                        style={currentPage === page 
+                          ? { backgroundColor: '#A85740', color: '#FFFFFF' }
+                          : { borderColor: '#A85740', color: '#6B4E3D' }
+                        }
+                      >
+                        {page}
+                      </Button>
+                    ))}
+                  </div>
+                  
+                  <Button
+                    variant="outline"
+                    onClick={() => setCurrentPage(prev => Math.min(prev + 1, Math.ceil(events.length / EVENTS_PER_PAGE)))}
+                    disabled={currentPage === Math.ceil(events.length / EVENTS_PER_PAGE)}
+                    style={{ borderColor: '#A85740', color: '#6B4E3D' }}
+                  >
+                    التالي
+                    <ChevronLeft className="w-5 h-5" />
+                  </Button>
+                </div>
+              )}
             </div>
           </div>
 
