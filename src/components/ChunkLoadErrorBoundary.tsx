@@ -31,6 +31,14 @@ function hasRecentlyReloaded() {
   return Date.now() - ts < 30_000;
 }
 
+function hardReloadWithCacheBust() {
+  // If index.html is cached after a deploy, a normal reload can keep pointing to old chunk names.
+  // Adding a unique query param forces a fresh HTML fetch in most hosting/CDN setups.
+  const url = new URL(window.location.href);
+  url.searchParams.set("__cb", String(Date.now()));
+  window.location.replace(url.toString());
+}
+
 export default class ChunkLoadErrorBoundary extends React.Component<Props, State> {
   state: State = { hasError: false };
 
@@ -44,13 +52,13 @@ export default class ChunkLoadErrorBoundary extends React.Component<Props, State
     // Auto-recover once if this looks like a cached/old chunk issue after a deploy.
     if (isLikelyChunkLoadError(this.state.error) && !hasRecentlyReloaded()) {
       sessionStorage.setItem(RELOAD_GUARD_KEY, String(Date.now()));
-      window.location.reload();
+      hardReloadWithCacheBust();
     }
   }
 
   private handleReload = () => {
     sessionStorage.setItem(RELOAD_GUARD_KEY, String(Date.now()));
-    window.location.reload();
+    hardReloadWithCacheBust();
   };
 
   render() {
