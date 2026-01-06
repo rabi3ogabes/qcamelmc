@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { CalendarIcon, CheckCircle, XCircle, Users, LayoutGrid, Table as TableIcon, User, Phone, CreditCard, Hash, Maximize, Minimize, Globe, Store, Volume2, VolumeX } from "lucide-react";
+import { CalendarIcon, CheckCircle, XCircle, Users, LayoutGrid, Table as TableIcon, User, Phone, CreditCard, Hash, Maximize, Minimize, Globe, Store, Volume2, VolumeX, Clock } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -102,7 +102,8 @@ const LiveBookings = () => {
     present: 0,
     totalTickets: 0,
     totalTicketHolders: 0,
-    presentTicketHolders: 0
+    presentTicketHolders: 0,
+    lastHourBookings: 0
   });
   const [ticketTypeStats, setTicketTypeStats] = useState<{ [key: string]: { total: number; present: number } }>({});
   const [paymentMethodStats, setPaymentMethodStats] = useState<{ sadad: number; pos: number }>({ sadad: 0, pos: 0 });
@@ -403,6 +404,13 @@ const LiveBookings = () => {
     const totalTicketHolders = ticketHoldersData.length;
     const presentTicketHolders = ticketHoldersData.filter(h => h.is_present).length;
 
+    // Count bookings from the last hour
+    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
+    const lastHourBookings = bookingsData.filter(b => {
+      const createdAt = new Date(b.created_at);
+      return createdAt >= oneHourAgo;
+    }).length;
+
     // Calculate ticket type breakdown
     const typeBreakdown: { [key: string]: { total: number; present: number } } = {};
     ticketHoldersData.forEach(holder => {
@@ -448,7 +456,7 @@ const LiveBookings = () => {
       });
     });
 
-    setStats({ total, confirmed, present, totalTickets, totalTicketHolders, presentTicketHolders });
+    setStats({ total, confirmed, present, totalTickets, totalTicketHolders, presentTicketHolders, lastHourBookings });
     setTicketTypeStats(typeBreakdown);
     setPaymentMethodStats({ sadad: sadadCount, pos: posCount });
     setPaymentMethodByTypeStats(paymentByType);
@@ -543,7 +551,7 @@ const LiveBookings = () => {
       <div className="w-full py-8 px-[5%] flex-1">
 
         {/* Date Selector and Stats */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 mb-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 mb-8">
           <Card className="p-3">
             <div className="flex flex-col gap-2">
               <Popover>
@@ -619,6 +627,16 @@ const LiveBookings = () => {
               <div>
                 <p className="text-[10px] text-muted-foreground leading-tight">الحاضرون (حاملو التذاكر)</p>
                 <p className="text-lg font-bold text-orange-600">{stats.presentTicketHolders}</p>
+              </div>
+            </div>
+          </Card>
+
+          <Card className="p-3 bg-cyan-50 dark:bg-cyan-950">
+            <div className="flex items-center gap-2">
+              <Clock className="w-5 h-5 text-cyan-600 flex-shrink-0" />
+              <div>
+                <p className="text-[10px] text-muted-foreground leading-tight">حجوزات آخر ساعة</p>
+                <p className="text-lg font-bold text-cyan-600">{stats.lastHourBookings}</p>
               </div>
             </div>
           </Card>
