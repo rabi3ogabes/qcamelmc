@@ -235,6 +235,18 @@ const EventHome = () => {
             </div>
           </div>
 
+          {/* Before Footer Image */}
+          {settings?.before_footer_image_url && (
+            <div className="w-full">
+              <img
+                src={settings.before_footer_image_url}
+                alt="Before Footer"
+                className="w-full h-auto object-contain"
+                loading="lazy"
+              />
+            </div>
+          )}
+
           <Footer />
         </>
       )}

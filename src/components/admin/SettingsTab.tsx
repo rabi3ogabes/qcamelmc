@@ -17,6 +17,8 @@ export const SettingsTab = () => {
   const [newLogoUrl, setNewLogoUrl] = useState("");
   const [heroImageUrl, setHeroImageUrl] = useState("");
   const [newHeroImageUrl, setNewHeroImageUrl] = useState("");
+  const [beforeFooterImageUrl, setBeforeFooterImageUrl] = useState("");
+  const [newBeforeFooterImageUrl, setNewBeforeFooterImageUrl] = useState("");
   const [headerBgColor, setHeaderBgColor] = useState("hsl(var(--card) / 0.5)");
   const [newHeaderBgColor, setNewHeaderBgColor] = useState("hsl(var(--card) / 0.5)");
   const [heroText, setHeroText] = useState("");
@@ -54,7 +56,7 @@ export const SettingsTab = () => {
   const fetchSettings = async () => {
     const { data, error } = await supabase
       .from("settings")
-      .select("logo_url, hero_image_url, header_bg_color, hero_text, copyright_text, webhook_url, admin_phone, sadad_merchant_id, sadad_api_key, sadad_secret, sadad_website_domain, show_delete_customer_button, show_generate_qr_button, auto_invoice_interval_seconds, invoice_batch_min, invoice_batch_max, invoice_send_delay_min, invoice_send_delay_max")
+      .select("logo_url, hero_image_url, before_footer_image_url, header_bg_color, hero_text, copyright_text, webhook_url, admin_phone, sadad_merchant_id, sadad_api_key, sadad_secret, sadad_website_domain, show_delete_customer_button, show_generate_qr_button, auto_invoice_interval_seconds, invoice_batch_min, invoice_batch_max, invoice_send_delay_min, invoice_send_delay_max")
       .maybeSingle();
 
     if (error) {
@@ -70,6 +72,11 @@ export const SettingsTab = () => {
     if (data?.hero_image_url) {
       setHeroImageUrl(data.hero_image_url);
       setNewHeroImageUrl(data.hero_image_url);
+    }
+
+    if (data?.before_footer_image_url) {
+      setBeforeFooterImageUrl(data.before_footer_image_url);
+      setNewBeforeFooterImageUrl(data.before_footer_image_url);
     }
     
     if (data?.header_bg_color) {
@@ -307,6 +314,78 @@ export const SettingsTab = () => {
       e.target.value = '';
     } catch (error) {
       console.error("Error uploading hero image:", error);
+      toast.error("فشل في تحميل الصورة");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleBeforeFooterImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.match(/image\/png/)) {
+      toast.error("يرجى اختيار صورة PNG فقط");
+      return;
+    }
+
+    // Validate file size (10MB max)
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error("حجم الصورة يجب أن يكون أقل من 10 ميغابايت");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      // Create a unique filename
+      const fileName = `before-footer-${Date.now()}.png`;
+      const filePath = `before-footer/${fileName}`;
+
+      // Upload to Supabase storage
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('qr-codes')
+        .upload(filePath, file, {
+          cacheControl: '3600',
+          upsert: true
+        });
+
+      if (uploadError) throw uploadError;
+
+      // Get public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('qr-codes')
+        .getPublicUrl(filePath);
+
+      // Update settings with new before footer image URL
+      const { data: settings } = await supabase
+        .from("settings")
+        .select("id")
+        .single();
+
+      if (settings) {
+        const { error } = await supabase
+          .from("settings")
+          .update({ before_footer_image_url: publicUrl })
+          .eq("id", settings.id);
+
+        if (error) throw error;
+      } else {
+        const { error } = await supabase
+          .from("settings")
+          .insert({ before_footer_image_url: publicUrl });
+
+        if (error) throw error;
+      }
+
+      setBeforeFooterImageUrl(publicUrl);
+      setNewBeforeFooterImageUrl(publicUrl);
+      toast.success("تم تحميل الصورة بنجاح");
+      
+      // Clear the input
+      e.target.value = '';
+    } catch (error) {
+      console.error("Error uploading before footer image:", error);
       toast.error("فشل في تحميل الصورة");
     } finally {
       setLoading(false);
@@ -640,6 +719,40 @@ export const SettingsTab = () => {
               />
               <p className="text-xs text-muted-foreground mt-1 font-lusail">
                 اختر صورة PNG أو JPG (حد أقصى 10 ميغابايت) - يفضل 1920x1080 بكسل
+              </p>
+            </div>
+          </div>
+        </div>
+      </Card>
+
+      {/* Before Footer Image */}
+      <Card className="p-6">
+        <h3 className="text-lg font-semibold mb-4 font-lusail">صورة قبل الفوتر</h3>
+        <div className="space-y-4">
+          <div>
+            <Label className="font-lusail">الصورة الحالية</Label>
+            <div className="mt-2 p-8 border-2 border-dashed rounded-lg flex items-center justify-center bg-muted/50">
+              {beforeFooterImageUrl ? (
+                <img src={beforeFooterImageUrl} alt="Before Footer" className="max-h-48 object-contain rounded" />
+              ) : (
+                <ImageIcon className="w-16 h-16 text-muted-foreground" />
+              )}
+            </div>
+          </div>
+          
+          <div>
+            <Label htmlFor="before-footer-file" className="font-lusail">تحميل صورة PNG</Label>
+            <div className="mt-2">
+              <Input 
+                id="before-footer-file" 
+                type="file" 
+                accept="image/png"
+                onChange={handleBeforeFooterImageUpload}
+                className="font-lusail cursor-pointer" 
+                disabled={loading}
+              />
+              <p className="text-xs text-muted-foreground mt-1 font-lusail">
+                اختر صورة PNG فقط (حد أقصى 10 ميغابايت) - ستظهر قبل الفوتر مباشرة
               </p>
             </div>
           </div>
