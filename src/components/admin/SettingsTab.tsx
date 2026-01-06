@@ -127,6 +127,23 @@ export const SettingsTab = () => {
           return true; // default to active
         };
 
+        // Helper to convert Excel time (decimal fraction of day) to "HH:mm" format
+        const parseExcelTime = (val: any): string | null => {
+          if (!val) return null;
+          // If it's already a string like "11:00", return as-is
+          if (typeof val === 'string' && val.includes(':')) {
+            return val;
+          }
+          // If it's a decimal number (Excel time format)
+          if (typeof val === 'number') {
+            const totalMinutes = Math.round(val * 24 * 60);
+            const hours = Math.floor(totalMinutes / 60);
+            const minutes = totalMinutes % 60;
+            return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+          }
+          return null;
+        };
+
         const eventData = {
           title: String(row.title || row["اسم الفعالية"] || "").trim(),
           description: row.description || row["وصف الفعالية"] || null,
@@ -135,8 +152,8 @@ export const SettingsTab = () => {
           image_url: cleanUrl(row.image_url || row["رابط الصورة"]),
           video_url: cleanUrl(row.video_url || row["رابط الفيديو"]),
           display_order: Number(row.display_order) || Number(row["ترتيب العرض"]) || 0,
-          start_time: row.start_time || row["وقت البداية"] || null,
-          end_time: row.end_time || row["وقت النهاية"] || null,
+          start_time: parseExcelTime(row.start_time || row["وقت البداية"]),
+          end_time: parseExcelTime(row.end_time || row["وقت النهاية"]),
           is_active: parseBoolean(row.is_active ?? row["نشط"])
         };
 
