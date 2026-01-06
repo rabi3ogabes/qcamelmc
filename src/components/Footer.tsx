@@ -20,13 +20,6 @@ export const Footer = () => {
             <p className="text-sm text-white">
               © {new Date().getFullYear()} {settings?.copyright_text || "جميع الحقوق محفوظة"}
             </p>
-            <p className="text-sm text-white mt-2">
-              الدعم الفني عبر الواتس اب{" "}
-              <a href="https://wa.me/97466625167" target="_blank" rel="noopener noreferrer" className="underline hover:text-white/80 transition-colors inline-flex items-center gap-1">
-                <img src={handCursor} alt="Click" className="w-4 h-4" />
-                66625167
-              </a>
-            </p>
           </div>
 
           {/* Version */}
