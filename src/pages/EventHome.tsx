@@ -11,6 +11,7 @@ import { ar } from "date-fns/locale";
 import heroImage from "@/assets/qatar-event-hero.jpg";
 import { PopupBanner } from "@/components/PopupBanner";
 import { Footer } from "@/components/Footer";
+import { WhatsAppButton } from "@/components/WhatsAppButton";
 import { useSettings } from "@/contexts/SettingsContext";
 import { canPurchaseTickets } from "@/lib/eventUtils";
 
@@ -252,6 +253,7 @@ const EventHome = () => {
           )}
 
           <Footer />
+          <WhatsAppButton />
         </>
       )}
     </div>
