@@ -149,9 +149,37 @@ const AdminPOS = () => {
     }
   };
 
+  // Real-time subscription for ticket availability
   useEffect(() => {
-    // Removed - we now fetch tickets directly when fetching the event
-  }, [selectedDate]);
+    if (!currentEventId) return;
+
+    const channel = supabase
+      .channel('tickets-realtime')
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'tickets',
+          filter: `event_id=eq.${currentEventId}`
+        },
+        (payload) => {
+          console.log('Ticket update received:', payload);
+          setTickets(prevTickets => 
+            prevTickets.map(ticket => 
+              ticket.id === payload.new.id 
+                ? { ...ticket, sold_quantity: payload.new.sold_quantity, available_quantity: payload.new.available_quantity }
+                : ticket
+            )
+          );
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [currentEventId]);
 
   useEffect(() => {
     const handleFullscreenChange = () => {
