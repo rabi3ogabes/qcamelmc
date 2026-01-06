@@ -237,7 +237,11 @@ const EventHome = () => {
 
           {/* Before Footer Image */}
           {settings?.before_footer_image_url && (
-            <div className="w-full">
+            <div className="relative w-full">
+              <div 
+                className="absolute inset-0 pointer-events-none"
+                style={{ background: 'linear-gradient(to bottom, rgba(245, 239, 231, 0.8), rgba(245, 239, 231, 0.4))' }}
+              />
               <img
                 src={settings.before_footer_image_url}
                 alt="Before Footer"
