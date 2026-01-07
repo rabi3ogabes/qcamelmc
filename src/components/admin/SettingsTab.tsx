@@ -52,6 +52,8 @@ export const SettingsTab = () => {
   const [savingDeleteButton, setSavingDeleteButton] = useState(false);
   const [showGenerateQrButton, setShowGenerateQrButton] = useState(false);
   const [savingGenerateQrButton, setSavingGenerateQrButton] = useState(false);
+  const [showDeleteEventButton, setShowDeleteEventButton] = useState(false);
+  const [savingDeleteEventButton, setSavingDeleteEventButton] = useState(false);
   const [autoInvoiceInterval, setAutoInvoiceInterval] = useState(60);
   const [savingAutoInvoice, setSavingAutoInvoice] = useState(false);
   const [invoiceBatchMin, setInvoiceBatchMin] = useState(1);
@@ -200,7 +202,7 @@ export const SettingsTab = () => {
   const fetchSettings = async () => {
     const { data, error } = await supabase
       .from("settings")
-      .select("logo_url, hero_image_url, before_footer_image_url, header_bg_color, header_bg_image_url, hero_text, copyright_text, webhook_url, admin_phone, sadad_merchant_id, sadad_api_key, sadad_secret, sadad_website_domain, show_delete_customer_button, show_generate_qr_button, auto_invoice_interval_seconds, invoice_batch_min, invoice_batch_max, invoice_send_delay_min, invoice_send_delay_max")
+      .select("logo_url, hero_image_url, before_footer_image_url, header_bg_color, header_bg_image_url, hero_text, copyright_text, webhook_url, admin_phone, sadad_merchant_id, sadad_api_key, sadad_secret, sadad_website_domain, show_delete_customer_button, show_generate_qr_button, show_delete_event_button, auto_invoice_interval_seconds, invoice_batch_min, invoice_batch_max, invoice_send_delay_min, invoice_send_delay_max")
       .maybeSingle();
 
     if (error) {
@@ -259,6 +261,7 @@ export const SettingsTab = () => {
     if (data?.sadad_website_domain) setSadadWebsiteDomain(data.sadad_website_domain);
     if (data?.show_delete_customer_button !== undefined) setShowDeleteButton(data.show_delete_customer_button);
     if (data?.show_generate_qr_button !== undefined) setShowGenerateQrButton(data.show_generate_qr_button);
+    if (data?.show_delete_event_button !== undefined) setShowDeleteEventButton(data.show_delete_event_button);
     if (data?.auto_invoice_interval_seconds !== undefined) setAutoInvoiceInterval(data.auto_invoice_interval_seconds);
     if (data?.invoice_batch_min !== undefined) setInvoiceBatchMin(data.invoice_batch_min);
     if (data?.invoice_batch_max !== undefined) setInvoiceBatchMax(data.invoice_batch_max);
@@ -754,6 +757,39 @@ export const SettingsTab = () => {
       toast.error("فشل في حفظ الإعداد");
     } finally {
       setSavingGenerateQrButton(false);
+    }
+  };
+
+  const handleToggleDeleteEventButton = async (newValue: boolean) => {
+    setSavingDeleteEventButton(true);
+    try {
+      const { data: settings } = await supabase
+        .from("settings")
+        .select("id")
+        .maybeSingle();
+
+      if (settings) {
+        const { error } = await supabase
+          .from("settings")
+          .update({ show_delete_event_button: newValue })
+          .eq("id", settings.id);
+
+        if (error) throw error;
+      } else {
+        const { error } = await supabase
+          .from("settings")
+          .insert({ show_delete_event_button: newValue });
+
+        if (error) throw error;
+      }
+
+      setShowDeleteEventButton(newValue);
+      toast.success(t("savedSuccessfully"));
+    } catch (error) {
+      console.error("Error saving delete event button setting:", error);
+      toast.error("فشل في حفظ الإعداد");
+    } finally {
+      setSavingDeleteEventButton(false);
     }
   };
 
@@ -1338,6 +1374,19 @@ export const SettingsTab = () => {
               checked={showGenerateQrButton}
               onCheckedChange={handleToggleGenerateQrButton}
               disabled={savingGenerateQrButton}
+            />
+          </div>
+          <div className="flex items-center justify-between pt-4 border-t">
+            <div className="space-y-1">
+              <Label className="font-lusail">إظهار زر حذف الفعالية</Label>
+              <p className="text-xs text-muted-foreground">
+                عند التفعيل، سيظهر زر حذف الفعالية في صفحة الفعاليات
+              </p>
+            </div>
+            <Switch
+              checked={showDeleteEventButton}
+              onCheckedChange={handleToggleDeleteEventButton}
+              disabled={savingDeleteEventButton}
             />
           </div>
         </div>
