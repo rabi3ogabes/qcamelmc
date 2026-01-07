@@ -99,8 +99,8 @@ const Confirmation = () => {
   const isConfirmed = orders.some(order => order.payment_status === 'confirmed');
 
   return (
-    <div className="min-h-screen bg-background py-12 px-4 font-lusail">
-      <div className="max-w-3xl mx-auto">
+    <div className="min-h-screen bg-background py-8 sm:py-12 px-4 sm:px-6 font-lusail">
+      <div className="max-w-3xl mx-auto w-full">
         {logoUrl && (
           <div className="flex justify-center mb-8">
             <img src={logoUrl} alt="Logo" className="h-16 object-contain" />
