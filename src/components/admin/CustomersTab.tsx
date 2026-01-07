@@ -30,6 +30,7 @@ interface Customer {
     quantity: number;
     total_amount: number;
     payment_status: string;
+    payment_method: string;
     created_at: string;
     qr_code?: string;
     event_location?: string;
@@ -253,6 +254,7 @@ export const CustomersTab = () => {
             quantity,
             total_amount,
             payment_status,
+            payment_method,
             created_at,
             qr_code,
             events (
@@ -1007,9 +1009,14 @@ export const CustomersTab = () => {
                 phone: holder.phone,
                 nationality: holder.nationality,
                 orderRef: order.booking_reference,
-                idNumber: holder.id_number
+                idNumber: holder.id_number,
+                paymentMethod: order.payment_method
               })) || []
             );
+
+            // Calculate total tickets and payment method
+            const totalTicketCount = allTickets.length;
+            const paymentMethod = customer.orders[0]?.payment_method;
 
             // Separate main ticket (first) from secondary tickets (rest)
             const mainTicket = allTickets[0];
@@ -1030,7 +1037,15 @@ export const CustomersTab = () => {
                     </div>
                     {mainTicket && (
                       <div className="flex-1 text-center">
-                        <p className="text-xs text-muted-foreground font-lusail mb-1">رمز التذكرة:</p>
+                        <div className="flex items-center justify-center gap-2 mb-1">
+                          <Badge variant={paymentMethod === 'cash_pos' ? 'secondary' : 'default'} className="text-[10px] px-1.5 py-0.5">
+                            {paymentMethod === 'cash_pos' ? 'POS' : 'Online'}
+                          </Badge>
+                          <Badge variant="outline" className="text-[10px] px-1.5 py-0.5">
+                            {totalTicketCount} تذكرة
+                          </Badge>
+                        </div>
+                        <p className="text-xs text-muted-foreground font-lusail">رمز التذكرة:</p>
                         <p className="text-[10px] font-bold font-mono text-primary">{mainTicket.orderRef}</p>
                       </div>
                     )}
