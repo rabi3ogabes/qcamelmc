@@ -1642,27 +1642,32 @@ const QRScanner = () => {
 
                       return sortedDates.map((dateKey, dateIndex) => (
                         <div key={dateKey}>
-                          {/* Date Separator */}
+                          {/* Top Separator Line */}
+                          {dateIndex > 0 && (
+                            <div className="my-4 h-1 bg-gradient-to-r from-amber-200 via-amber-500 to-amber-200 rounded-full"></div>
+                          )}
+                          
+                          {/* Date Header */}
                           <div className="flex items-center gap-3 mb-3">
-                            <div className="flex-1 h-0.5 bg-gradient-to-r from-transparent via-amber-400 to-amber-400"></div>
-                            <div className="flex items-center gap-2 px-4 py-2 bg-amber-200 dark:bg-amber-800 rounded-full shadow-sm">
-                              <Calendar className="w-4 h-4 text-amber-800 dark:text-amber-200" />
+                            <div className="flex-1 h-1 bg-gradient-to-r from-transparent via-amber-400 to-amber-500 rounded-full"></div>
+                            <div className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-amber-300 to-amber-200 dark:from-amber-700 dark:to-amber-800 rounded-full shadow-md border-2 border-amber-400 dark:border-amber-600">
+                              <Calendar className="w-5 h-5 text-amber-800 dark:text-amber-200" />
                               <span className="text-sm font-bold text-amber-900 dark:text-amber-100">
                                 📅 {dateKey !== 'unknown' ? format(new Date(dateKey), 'dd MMMM yyyy') : 'تاريخ غير محدد'}
                               </span>
-                              <span className="text-xs bg-amber-300 dark:bg-amber-700 text-amber-900 dark:text-amber-100 px-2 py-0.5 rounded-full">
+                              <span className="text-xs bg-amber-500 dark:bg-amber-600 text-white px-2.5 py-1 rounded-full font-bold shadow">
                                 {ticketsByDate[dateKey].length} تذكرة
                               </span>
                             </div>
-                            <div className="flex-1 h-0.5 bg-gradient-to-l from-transparent via-amber-400 to-amber-400"></div>
+                            <div className="flex-1 h-1 bg-gradient-to-l from-transparent via-amber-400 to-amber-500 rounded-full"></div>
                           </div>
                           
                           {/* Tickets for this date */}
-                          <div className="space-y-2">
+                          <div className="space-y-2 border-r-4 border-amber-400 pr-3 mr-1">
                             {ticketsByDate[dateKey].map((ticket) => (
                               <div
                                 key={ticket.id}
-                                className="p-2 sm:p-3 rounded-lg border bg-card text-right opacity-70"
+                                className="p-2 sm:p-3 rounded-lg border bg-card text-right opacity-80 hover:opacity-100 transition-opacity"
                               >
                                 <div className="flex justify-between items-start gap-2">
                                   <div className="flex-1">
@@ -1692,6 +1697,9 @@ const QRScanner = () => {
                               </div>
                             ))}
                           </div>
+                          
+                          {/* Bottom Separator Line */}
+                          <div className="mt-3 h-0.5 bg-gradient-to-r from-amber-300 via-amber-400 to-amber-300 rounded-full"></div>
                         </div>
                       ));
                     })()}
