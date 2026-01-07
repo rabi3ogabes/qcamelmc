@@ -73,9 +73,9 @@ const resources = {
       
       // Tickets
       "ticketManagement": "إدارة التذاكر",
-      "vipAccess": "دخول VIP",
-      "generalAdmission": "دخول عام",
-      "parking": "موقف السيارات",
+      "vipAccess": "تذكرة دخول VIP",
+      "generalAdmission": "تذكرة دخول عادية",
+      "parking": "تذكرة موقف السيارات",
       "price": "السعر",
       "available": "متاح",
       "sold": "مُباع",
@@ -162,11 +162,11 @@ const resources = {
       // Ticket Selection Page
       "selectTicketsTitle": "اختر تذكرتك",
       "chooseQuantity": "اختر الكمية لكل نوع تذكرة",
-      "vipAccessTitle": "دخول VIP",
+      "vipAccessTitle": "تذكرة دخول VIP",
       "vipAccessDesc": "مقاعد مميزة، وصول حصري",
-      "generalAdmissionTitle": "دخول عام",
+      "generalAdmissionTitle": "تذكرة دخول عادية",
       "generalAdmissionDesc": "دخول عام لجميع مناطق وأنشطة الفعالية",
-      "parkingPassTitle": "بطاقة موقف السيارات",
+      "parkingPassTitle": "تذكرة موقف السيارات",
       "parkingPassDesc": "موقف سيارات محجوز بالقرب من مدخل المكان",
       "availableTickets": "متاح",
       "totalAmount": "المبلغ الإجمالي",
