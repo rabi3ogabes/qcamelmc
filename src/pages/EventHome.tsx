@@ -79,20 +79,19 @@ const EventHome = () => {
       <PopupBanner />
       
       {/* Header */}
-      <header className="border-b backdrop-blur-sm sticky top-0 z-10 relative overflow-hidden" style={{ backgroundColor: settings?.header_bg_color || "#D4B78A", borderColor: '#A85740' }}>
-        {settings?.header_bg_image_url && (
-          <>
-            <img 
-              src={settings.header_bg_image_url} 
-              alt="" 
-              className="absolute inset-0 w-full h-full object-cover"
-            />
-            <div 
-              className="absolute inset-0" 
-              style={{ background: 'linear-gradient(to left, rgba(0,0,0,0.8), rgba(0,0,0,0.4))' }}
-            />
-          </>
-        )}
+      <header 
+        className="border-b backdrop-blur-sm sticky top-0 z-10 relative overflow-hidden" 
+        style={{ 
+          backgroundColor: settings?.header_bg_color || "#D4B78A", 
+          borderColor: '#A85740',
+          ...(settings?.header_bg_image_url && {
+            backgroundImage: `linear-gradient(to left, rgba(0,0,0,0.8), rgba(0,0,0,0.4)), url(${settings.header_bg_image_url})`,
+            backgroundRepeat: 'repeat-x',
+            backgroundSize: 'auto 100%',
+            backgroundPosition: 'center'
+          })
+        }}
+      >
         <div className="container mx-auto px-4 py-2 flex justify-between items-center relative z-[1]">
           {settings?.logo_url ? (
             <img 
