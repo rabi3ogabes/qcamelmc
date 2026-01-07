@@ -857,7 +857,7 @@ const Checkout = () => {
                     : "bg-red-600 hover:bg-red-700 text-white border-red-600 animate-pulse"
                 }`}
               >
-                {termsAccepted ? "✓ تم الموافقة على التعليمات" : "اضغط هنا للموافقة على التعليمات"}
+                {termsAccepted ? "✓ تم الموافقة على التعليمات" : "اضغط هنا للموافقة وإتمام عملية الدفع"}
               </Button>
             </Card>
 
