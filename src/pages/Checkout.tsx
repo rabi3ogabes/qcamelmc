@@ -847,17 +847,18 @@ const Checkout = () => {
                 <li>2- ممنوع دخول الأطفال دون 10 سنوات</li>
                 <li>3- يكون إستخدام التذاكر للدخول مرة واحدة فقط</li>
               </ul>
-              <div className="flex items-center gap-3 pt-3 border-t border-red-300">
-                <Checkbox 
-                  id="terms" 
-                  checked={termsAccepted}
-                  onCheckedChange={(checked) => setTermsAccepted(checked === true)}
-                  className="border-red-500 data-[state=checked]:bg-red-600 data-[state=checked]:border-red-600"
-                />
-                <Label htmlFor="terms" className="text-red-600 font-medium cursor-pointer">
-                  قرأت و وافقت على التعليمات
-                </Label>
-              </div>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setTermsAccepted(!termsAccepted)}
+                className={`w-full mt-2 py-6 text-base font-bold transition-all ${
+                  termsAccepted 
+                    ? "bg-green-600 hover:bg-green-700 text-white border-green-600" 
+                    : "bg-red-600 hover:bg-red-700 text-white border-red-600 animate-pulse"
+                }`}
+              >
+                {termsAccepted ? "✓ تم الموافقة على التعليمات" : "اضغط هنا للموافقة على التعليمات"}
+              </Button>
             </Card>
 
             {/* Payment Method */}
