@@ -93,7 +93,7 @@ const EventHome = () => {
             />
           </>
         )}
-        <div className="container mx-auto px-4 py-4 flex justify-between items-center relative z-[1]">
+        <div className="container mx-auto px-4 py-2 flex justify-between items-center relative z-[1]">
           {settings?.logo_url ? (
             <img 
               src={settings.logo_url} 
