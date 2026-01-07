@@ -4,7 +4,18 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { Calendar as CalendarIcon, MapPin, Edit, X } from "lucide-react";
+import { Calendar as CalendarIcon, MapPin, Edit, X, Trash2 } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { useTranslation } from "react-i18next";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -94,6 +105,21 @@ export const EventsTab = () => {
       toast.error(t("failedToLoad"));
     } finally {
       setLoading(false);
+    }
+  };
+
+  const deleteEvent = async (eventId: string) => {
+    try {
+      const { error } = await supabase
+        .from("events")
+        .delete()
+        .eq("id", eventId);
+
+      if (error) throw error;
+      toast.success(t("deletedSuccessfully"));
+      fetchEvents();
+    } catch (error) {
+      toast.error(t("failedToLoad"));
     }
   };
 
@@ -262,18 +288,48 @@ export const EventsTab = () => {
               </div>
               
               <div className="flex flex-col gap-3">
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  className="w-full font-lusail"
-                  onClick={() => {
-                    setEditingEvent(event);
-                    setEditDialogOpen(true);
-                  }}
-                >
-                  {t("edit")}
-                  <Edit className="w-4 h-4" />
-                </Button>
+                <div className="flex gap-2">
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="flex-1 font-lusail"
+                    onClick={() => {
+                      setEditingEvent(event);
+                      setEditDialogOpen(true);
+                    }}
+                  >
+                    {t("edit")}
+                    <Edit className="w-4 h-4" />
+                  </Button>
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        className="text-destructive hover:bg-destructive hover:text-destructive-foreground"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle className="font-lusail">حذف الفعالية</AlertDialogTitle>
+                        <AlertDialogDescription className="font-lusail">
+                          هل أنت متأكد من حذف "{event.title}"؟ لا يمكن التراجع عن هذا الإجراء.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel className="font-lusail">إلغاء</AlertDialogCancel>
+                        <AlertDialogAction 
+                          onClick={() => deleteEvent(event.id)}
+                          className="bg-destructive text-destructive-foreground hover:bg-destructive/90 font-lusail"
+                        >
+                          حذف
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                </div>
                 <div className="flex items-center justify-between p-2 border rounded-lg">
                   <Label htmlFor={`active-${event.id}`} className="font-lusail text-sm cursor-pointer">
                     {event.is_active ? t("active") : t("inactive")}
