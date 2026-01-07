@@ -79,6 +79,15 @@ interface TicketHolder {
   ticketType: string;
   idNumber: string;
 }
+
+const getTicketTypeName = (type: string): string => {
+  switch(type) {
+    case "vip": return "تذكرة دخول VIP";
+    case "normal": return "تذكرة دخول عادية";
+    case "parking": return "تذكرة موقف السيارات";
+    default: return type;
+  }
+};
 const Checkout = () => {
   const {
     t
@@ -442,7 +451,7 @@ const Checkout = () => {
       // Handle Sadad payment - redirect to Sadad payment page
       if (paymentMethod === "sadad") {
         const orderItems = selections.map(s => ({
-          name: `تذكرة ${s.type}`,
+          name: getTicketTypeName(s.type),
           price: s.price,
           quantity: s.quantity
         }));
@@ -713,7 +722,7 @@ const Checkout = () => {
                             <span className="w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-sm">
                               {index + 1}
                             </span>
-                            تذكرة #{index + 1} - {holder.ticketType.toUpperCase()}
+                            تذكرة #{index + 1} - {getTicketTypeName(holder.ticketType)}
                           </h3>
                           <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded">QR Code مستقل</span>
                         </div>
@@ -862,7 +871,7 @@ const Checkout = () => {
               <div className="space-y-3 sm:space-y-4">
                 {selections.map((item, index) => <div key={index} className="flex justify-between items-center py-2 sm:py-3 border-b gap-4">
                     <div className="flex-1 min-w-0">
-                      <div className="font-medium capitalize text-sm sm:text-base truncate">{item.type} {t('ticket')}</div>
+                      <div className="font-medium capitalize text-sm sm:text-base truncate">{getTicketTypeName(item.type)}</div>
                       <div className="text-xs sm:text-sm text-muted-foreground">{t('quantity')}: {item.quantity}</div>
                     </div>
                     <div className="flex items-center gap-2">
