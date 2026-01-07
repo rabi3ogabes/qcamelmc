@@ -335,63 +335,7 @@ const TicketSelection = () => {
         </div>
 
         <div className="mb-6 sm:mb-8">
-          {/* Left Column - Availability Summary */}
-          <div>
-            <Card className="overflow-hidden bg-gradient-to-br from-primary/5 to-secondary/5 border-primary/20 h-full">
-              {/* Red Header Banner */}
-              <div className="px-4 py-3 text-center hidden" style={{ backgroundColor: headerBgColor }}>
-                <h3 className="text-lg sm:text-xl font-bold text-white">
-                  التذاكر المتاحة
-                </h3>
-              </div>
-              
-              {/* Content */}
-              <div className="p-4 sm:p-6 hidden">
-                <div className="space-y-3">
-                {tickets.map((ticket) => {
-                  const remaining = ticket.available_quantity - ticket.sold_quantity;
-                  const percentageLeft = (remaining / ticket.available_quantity) * 100;
-                  const isLow = percentageLeft < 20;
-                  
-                  return (
-                    <div key={ticket.id} className="bg-background/50 rounded-lg p-3 backdrop-blur-sm">
-                      <div className="flex items-center justify-between mb-2">
-                        <div className="flex items-center gap-2">
-                          <div className="p-2 bg-muted rounded">
-                            {getTicketIcon(ticket.type)}
-                          </div>
-                          <span className="font-semibold text-sm">
-                            {getTicketTitle(ticket.type)}
-                          </span>
-                        </div>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <span className={`text-2xl font-bold ${isLow ? 'text-destructive' : 'text-primary'}`}>
-                          {remaining}
-                        </span>
-                        <span className="text-xs text-muted-foreground">
-                          من أصل {ticket.available_quantity}
-                        </span>
-                      </div>
-                      {isLow && remaining > 0 && (
-                        <p className="text-xs text-destructive mt-1 font-medium">
-                          ⚠ تذاكر محدودة!
-                        </p>
-                      )}
-                      {remaining === 0 && (
-                        <p className="text-xs text-destructive mt-1 font-medium">
-                          ✕ نفذت الكمية
-                        </p>
-                      )}
-                    </div>
-                  );
-                })}
-                </div>
-              </div>
-            </Card>
-          </div>
-
-          {/* Right Column - Ticket Selection */}
+          {/* Ticket Selection */}
           <div className="space-y-3 sm:space-y-4 lg:space-y-6 w-full sm:w-[90%] lg:w-[80%] mx-auto">
           {tickets.map((ticket) => {
             const remainingTickets = ticket.available_quantity - ticket.sold_quantity;
