@@ -166,7 +166,7 @@ const EventHome = () => {
           </div>
 
           {/* Events Grid */}
-          <div className="py-6 px-4">
+          <div className="pt-0 pb-6 px-4">
             <div className="max-w-7xl mx-auto">
               {/* Pagination Info */}
               {events.length > EVENTS_PER_PAGE && (
