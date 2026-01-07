@@ -6,10 +6,12 @@ import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
-import { ArrowLeft, CheckCircle2, XCircle, Loader2, Search, Camera, AlertCircle, LogOut } from "lucide-react";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { ArrowLeft, CheckCircle2, XCircle, Loader2, Search, Camera, AlertCircle, LogOut, Calendar, Users } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { useActivityLog } from "@/hooks/useActivityLog";
+import { format } from "date-fns";
 
 interface TicketHolder {
   id: string;
@@ -21,6 +23,20 @@ interface TicketHolder {
   id_number: string;
   is_present: boolean;
   confirmed_at?: string;
+}
+
+interface RelatedTicket extends TicketHolder {
+  event_date?: string;
+  event_title?: string;
+  booking_reference?: string;
+  is_same_day: boolean;
+}
+
+interface SuccessData {
+  totalTickets: number;
+  mainName: string;
+  ticketHolders: { name: string; ticketType: string }[];
+  ticketTypes: { type: string; quantity: number }[];
 }
 
 interface TicketInfo {
@@ -56,6 +72,11 @@ const QRScanner = () => {
   const [scanMode, setScanMode] = useState<'confirm' | 'unconfirm'>('confirm');
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
   const [headerBgColor, setHeaderBgColor] = useState<string>("hsl(var(--card) / 0.5)");
+  const [relatedTicketsSameDay, setRelatedTicketsSameDay] = useState<RelatedTicket[]>([]);
+  const [relatedTicketsOtherDays, setRelatedTicketsOtherDays] = useState<RelatedTicket[]>([]);
+  const [sameBookingTickets, setSameBookingTickets] = useState<RelatedTicket[]>([]);
+  const [showSuccessDialog, setShowSuccessDialog] = useState(false);
+  const [successData, setSuccessData] = useState<SuccessData | null>(null);
   const scannerRef = useRef<Html5Qrcode | null>(null);
   const isScanning = useRef(false);
 
@@ -221,6 +242,9 @@ const QRScanner = () => {
     setScanning(false);
     setAvailableTickets([]);
     setSelectedTicketIds([]);
+    setRelatedTicketsSameDay([]);
+    setRelatedTicketsOtherDays([]);
+    setSameBookingTickets([]);
 
     // Log search activity
     await logActivity({
@@ -398,6 +422,11 @@ const QRScanner = () => {
             setScanResult('success');
             toast.success('معلومات التذكرة - جاهز للتأكيد');
           }
+
+          // Fetch related tickets by same phone number
+          if (ticket.phone && order.events?.event_date) {
+            fetchRelatedTickets(ticket.phone, order.events.event_date, [ticket.id]);
+          }
         }
       } else if (isSpecificTicket) {
         // Process specific ticket
@@ -543,7 +572,7 @@ const QRScanner = () => {
             payment_method,
             quantity,
             customers!inner (name),
-            events!inner (title)
+            events!inner (title, event_date)
           `)
           .eq('booking_reference', scannedCode)
           .single();
@@ -650,6 +679,15 @@ const QRScanner = () => {
         } else {
           toast.info(`تم العثور على ${ticketsData.length} تذكرة - اختر التذكرة المراد تأكيدها`);
         }
+
+        // Fetch related tickets by phone for the first ticket holder
+        const firstTicket = ticketsData[0];
+        if (firstTicket?.phone && orderData.events?.event_date) {
+          fetchRelatedTickets(firstTicket.phone, orderData.events.event_date, ticketsData.map(t => t.id));
+        }
+
+        // Fetch same booking reference tickets that might have been already selected
+        fetchSameBookingTickets(orderData.booking_reference, ticketsData.map(t => t.id));
       }
     } catch (error) {
       console.error("Error validating ticket:", error);
@@ -729,7 +767,25 @@ const QRScanner = () => {
 
       // Show results
       if (successCount > 0) {
-        toast.success(`✅ تم تأكيد ${successCount} تذكرة بنجاح`);
+        // Prepare success data for dialog
+        const ticketTypesMap = new Map<string, number>();
+        selectedTickets.forEach(ticket => {
+          const type = ticket.ticket_type;
+          ticketTypesMap.set(type, (ticketTypesMap.get(type) || 0) + 1);
+        });
+
+        const ticketTypeSummary = Array.from(ticketTypesMap.entries()).map(([type, qty]) => ({
+          type: type.toUpperCase(),
+          quantity: qty
+        }));
+
+        setSuccessData({
+          totalTickets: successCount,
+          mainName: selectedTickets[0]?.name || ticketInfo.customer_name,
+          ticketHolders: selectedTickets.map(t => ({ name: t.name, ticketType: t.ticket_type.toUpperCase() })),
+          ticketTypes: ticketTypeSummary
+        });
+        setShowSuccessDialog(true);
       }
       if (errorCount > 0) {
         toast.error(`⚠️ فشل تأكيد ${errorCount} تذكرة`);
@@ -738,6 +794,9 @@ const QRScanner = () => {
       // Clear selections and refresh
       setAvailableTickets([]);
       setSelectedTicketIds([]);
+      setRelatedTicketsSameDay([]);
+      setRelatedTicketsOtherDays([]);
+      setSameBookingTickets([]);
       setTicketInfo(null);
       setScanResult(null);
     } catch (err: any) {
@@ -803,6 +862,9 @@ const QRScanner = () => {
       // Clear selections and refresh
       setAvailableTickets([]);
       setSelectedTicketIds([]);
+      setRelatedTicketsSameDay([]);
+      setRelatedTicketsOtherDays([]);
+      setSameBookingTickets([]);
       setTicketInfo(null);
       setScanResult(null);
     } catch (err: any) {
@@ -837,9 +899,138 @@ const QRScanner = () => {
     setCameraError(null);
     setAvailableTickets([]);
     setSelectedTicketIds([]);
+    setRelatedTicketsSameDay([]);
+    setRelatedTicketsOtherDays([]);
+    setSameBookingTickets([]);
     
     // Restart scanner
     await startScanner();
+  };
+
+  // Fetch related tickets by phone number
+  const fetchRelatedTickets = async (phone: string, currentEventDate: string, currentTicketIds: string[]) => {
+    try {
+      const cleanPhone = phone.replace(/[\s\-()]/g, '');
+      const currentDate = new Date(currentEventDate);
+      const currentDateStr = format(currentDate, 'yyyy-MM-dd');
+
+      const { data: relatedData, error } = await supabase
+        .from('ticket_holders')
+        .select(`
+          id,
+          name,
+          phone,
+          nationality,
+          ticket_type,
+          qr_code,
+          is_present,
+          confirmed_at,
+          id_number,
+          order_id,
+          orders!inner (
+            id,
+            booking_reference,
+            payment_status,
+            payment_method,
+            customers (name),
+            events (title, event_date)
+          )
+        `)
+        .or(`phone.ilike.%${cleanPhone}%`)
+        .order('created_at', { ascending: false });
+
+      if (error || !relatedData) return;
+
+      // Filter out current tickets and unpaid
+      const otherTickets = relatedData.filter((ticket: any) => 
+        !currentTicketIds.includes(ticket.id) &&
+        (ticket.orders?.payment_status === 'confirmed' || ticket.orders?.payment_method === 'cash_pos')
+      );
+
+      // Separate by same day vs other days
+      const sameDay: RelatedTicket[] = [];
+      const otherDays: RelatedTicket[] = [];
+
+      otherTickets.forEach((ticket: any) => {
+        const ticketEventDate = ticket.orders?.events?.event_date;
+        const ticketDateStr = ticketEventDate ? format(new Date(ticketEventDate), 'yyyy-MM-dd') : '';
+        const isSameDay = ticketDateStr === currentDateStr;
+
+        const relatedTicket: RelatedTicket = {
+          id: ticket.id,
+          qr_code: ticket.qr_code,
+          name: ticket.name,
+          phone: ticket.phone,
+          nationality: ticket.nationality,
+          ticket_type: ticket.ticket_type,
+          id_number: ticket.id_number,
+          is_present: ticket.is_present,
+          confirmed_at: ticket.confirmed_at,
+          event_date: ticketEventDate,
+          event_title: ticket.orders?.events?.title,
+          booking_reference: ticket.orders?.booking_reference,
+          is_same_day: isSameDay
+        };
+
+        if (isSameDay) {
+          sameDay.push(relatedTicket);
+        } else {
+          otherDays.push(relatedTicket);
+        }
+      });
+
+      setRelatedTicketsSameDay(sameDay);
+      setRelatedTicketsOtherDays(otherDays);
+    } catch (err) {
+      console.error('Error fetching related tickets:', err);
+    }
+  };
+
+  // Fetch other tickets with same booking reference
+  const fetchSameBookingTickets = async (bookingReference: string, currentTicketIds: string[]) => {
+    try {
+      const { data: orderData } = await supabase
+        .from('orders')
+        .select('id, events(event_date)')
+        .eq('booking_reference', bookingReference)
+        .maybeSingle();
+
+      if (!orderData) return;
+
+      const { data: ticketsData } = await supabase
+        .from('ticket_holders')
+        .select(`
+          id,
+          name,
+          phone,
+          nationality,
+          ticket_type,
+          qr_code,
+          is_present,
+          confirmed_at,
+          id_number,
+          order_id
+        `)
+        .eq('order_id', orderData.id);
+
+      if (!ticketsData) return;
+
+      // Filter out current tickets
+      const otherTickets = ticketsData.filter(t => !currentTicketIds.includes(t.id));
+
+      if (otherTickets.length > 0) {
+        const eventDate = (orderData.events as any)?.event_date;
+        setSameBookingTickets(otherTickets.map(t => ({
+          ...t,
+          event_date: eventDate,
+          event_title: '',
+          booking_reference: bookingReference,
+          is_same_day: true
+        })));
+      }
+    } catch (err) {
+      console.error('Error fetching same booking tickets:', err);
+    }
   };
 
   const toggleTicketSelection = (ticketId: string) => {
@@ -1346,6 +1537,131 @@ const QRScanner = () => {
                 )}
               </div>
 
+              {/* Same Booking Reference - Other Tickets */}
+              {sameBookingTickets.length > 0 && (
+                <div className="mt-4 p-3 sm:p-4 bg-purple-50 dark:bg-purple-950/20 rounded-lg border-2 border-purple-300">
+                  <h3 className="font-bold text-sm sm:text-base text-purple-900 dark:text-purple-100 flex items-center gap-2 mb-3">
+                    <Users className="w-4 h-4" />
+                    تذاكر أخرى بنفس الرقم المرجعي ({sameBookingTickets.length})
+                  </h3>
+                  <div className="space-y-2">
+                    {sameBookingTickets.map((ticket) => (
+                      <div
+                        key={ticket.id}
+                        className="p-2 sm:p-3 rounded-lg border bg-card text-right"
+                      >
+                        <div className="flex justify-between items-start gap-2">
+                          <div className="flex-1">
+                            <div className="font-bold text-sm sm:text-base">{ticket.name}</div>
+                            <div className="text-xs text-muted-foreground mt-1">
+                              <span className="font-semibold">النوع:</span> {ticket.ticket_type.toUpperCase()}
+                            </div>
+                          </div>
+                          <div>
+                            {ticket.is_present ? (
+                              <span className="text-green-600 font-bold text-xs">✅ حاضر</span>
+                            ) : (
+                              <span className="text-muted-foreground text-xs">⭕ غير حاضر</span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Related Tickets - Same Day */}
+              {relatedTicketsSameDay.length > 0 && (
+                <div className="mt-4 p-3 sm:p-4 bg-emerald-50 dark:bg-emerald-950/20 rounded-lg border-2 border-emerald-300">
+                  <h3 className="font-bold text-sm sm:text-base text-emerald-900 dark:text-emerald-100 flex items-center gap-2 mb-3">
+                    <Calendar className="w-4 h-4" />
+                    تذاكر أخرى لنفس رقم الهاتف - نفس اليوم ({relatedTicketsSameDay.length})
+                  </h3>
+                  <div className="space-y-2">
+                    {relatedTicketsSameDay.map((ticket) => (
+                      <div
+                        key={ticket.id}
+                        className="p-2 sm:p-3 rounded-lg border bg-card text-right"
+                      >
+                        <div className="flex justify-between items-start gap-2">
+                          <div className="flex-1">
+                            <div className="font-bold text-sm sm:text-base">{ticket.name}</div>
+                            {ticket.event_title && (
+                              <div className="text-xs text-muted-foreground mt-1">
+                                <span className="font-semibold">الفعالية:</span> {ticket.event_title}
+                              </div>
+                            )}
+                            <div className="text-xs text-muted-foreground mt-0.5">
+                              <span className="font-semibold">النوع:</span> {ticket.ticket_type.toUpperCase()}
+                            </div>
+                            {ticket.booking_reference && (
+                              <div className="text-xs text-muted-foreground mt-0.5 font-mono">
+                                {ticket.booking_reference}
+                              </div>
+                            )}
+                          </div>
+                          <div>
+                            {ticket.is_present ? (
+                              <span className="text-green-600 font-bold text-xs">✅ حاضر</span>
+                            ) : (
+                              <span className="text-muted-foreground text-xs">⭕ غير حاضر</span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Related Tickets - Other Days */}
+              {relatedTicketsOtherDays.length > 0 && (
+                <div className="mt-4 p-3 sm:p-4 bg-amber-50 dark:bg-amber-950/20 rounded-lg border-2 border-amber-300">
+                  <h3 className="font-bold text-sm sm:text-base text-amber-900 dark:text-amber-100 flex items-center gap-2 mb-3">
+                    <Calendar className="w-4 h-4" />
+                    تذاكر أخرى لنفس رقم الهاتف - أيام أخرى ({relatedTicketsOtherDays.length})
+                  </h3>
+                  <p className="text-xs text-amber-700 dark:text-amber-300 mb-3 bg-amber-100 dark:bg-amber-900/30 p-2 rounded">
+                    ⚠️ هذه التذاكر ليوم مختلف - لا يمكن تسجيل الحضور اليوم
+                  </p>
+                  <div className="space-y-2">
+                    {relatedTicketsOtherDays.map((ticket) => (
+                      <div
+                        key={ticket.id}
+                        className="p-2 sm:p-3 rounded-lg border bg-card text-right opacity-70"
+                      >
+                        <div className="flex justify-between items-start gap-2">
+                          <div className="flex-1">
+                            <div className="font-bold text-sm sm:text-base">{ticket.name}</div>
+                            {ticket.event_title && (
+                              <div className="text-xs text-muted-foreground mt-1">
+                                <span className="font-semibold">الفعالية:</span> {ticket.event_title}
+                              </div>
+                            )}
+                            {ticket.event_date && (
+                              <div className="text-xs text-primary font-semibold mt-1">
+                                📅 {format(new Date(ticket.event_date), 'yyyy-MM-dd')}
+                              </div>
+                            )}
+                            <div className="text-xs text-muted-foreground mt-0.5">
+                              <span className="font-semibold">النوع:</span> {ticket.ticket_type.toUpperCase()}
+                            </div>
+                          </div>
+                          <div>
+                            {ticket.is_present ? (
+                              <span className="text-green-600 font-bold text-xs">✅ حاضر</span>
+                            ) : (
+                              <span className="text-muted-foreground text-xs">⭕ غير حاضر</span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {/* Reset Button */}
               <div className="mt-4 sm:mt-6">
                 <Button 
@@ -1370,6 +1686,59 @@ const QRScanner = () => {
         )}
 
       </div>
+
+      {/* Success Dialog */}
+      <Dialog open={showSuccessDialog} onOpenChange={setShowSuccessDialog}>
+        <DialogContent className="sm:max-w-md text-center p-8">
+          <div className="flex flex-col items-center gap-6">
+            <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center">
+              <CheckCircle2 className="w-12 h-12 text-green-600" />
+            </div>
+            
+            <div className="space-y-2">
+              <h2 className="text-2xl font-bold text-green-600">تم تأكيد الحضور!</h2>
+              <p className="text-muted-foreground">تم تسجيل الحضور بنجاح</p>
+            </div>
+
+            {successData && (
+              <div className="w-full space-y-4 text-right bg-muted/50 rounded-lg p-4">
+                <div className="flex justify-between items-center border-b pb-2">
+                  <span className="text-2xl font-bold text-primary">{successData.totalTickets}</span>
+                  <span className="font-medium">عدد التذاكر</span>
+                </div>
+                
+                <div className="space-y-2">
+                  <p className="font-medium text-sm text-muted-foreground">أنواع التذاكر:</p>
+                  {successData.ticketTypes.map((tt, idx) => (
+                    <div key={idx} className="flex justify-between text-sm">
+                      <span className="font-semibold">{tt.quantity}x</span>
+                      <span>{tt.type}</span>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="space-y-2 border-t pt-2">
+                  <p className="font-medium text-sm text-muted-foreground">حاملي التذاكر:</p>
+                  {successData.ticketHolders.map((holder, idx) => (
+                    <div key={idx} className="flex justify-between text-sm">
+                      <span className="text-xs text-muted-foreground">({holder.ticketType})</span>
+                      <span className="font-medium">{idx === 0 ? `👤 ${holder.name}` : holder.name}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <Button 
+              onClick={() => setShowSuccessDialog(false)} 
+              size="lg" 
+              className="w-full h-12 text-lg"
+            >
+              حسناً
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
