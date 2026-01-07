@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 import { CreditCard, Banknote, Loader2, Plus, Minus, X } from "lucide-react";
 import { Footer } from "@/components/Footer";
+import { useSettings } from "@/contexts/SettingsContext";
 const ARABIC_COUNTRIES = ["السعودية", "الإمارات", "قطر", "الكويت", "البحرين", "عمان", "مصر", "الأردن", "لبنان", "العراق", "سوريا", "اليمن", "ليبيا", "السودان", "الجزائر", "المغرب", "تونس", "موريتانيا", "الصومال", "جيبوتي", "فلسطين"];
 const COUNTRY_FLAGS: Record<string, string> = {
   "السعودية": "🇸🇦",
@@ -75,6 +76,7 @@ const Checkout = () => {
   const {
     t
   } = useTranslation();
+  const { settings } = useSettings();
   const [selections, setSelections] = useState<TicketSelection[]>([]);
   const [paymentMethod, setPaymentMethod] = useState<"sadad" | "cash_pos">("sadad");
   const [customerInfo, setCustomerInfo] = useState({
@@ -818,6 +820,22 @@ const Checkout = () => {
           </div>
         </div>
       </div>
+
+      {/* Before Footer Image */}
+      {settings?.before_footer_image_url && (
+        <div className="relative w-full">
+          <div 
+            className="absolute inset-0 pointer-events-none"
+            style={{ background: 'linear-gradient(to bottom, rgba(245, 239, 231, 0.8), rgba(245, 239, 231, 0.4))' }}
+          />
+          <img
+            src={settings.before_footer_image_url}
+            alt="Before Footer"
+            className="w-full h-auto object-contain"
+            loading="lazy"
+          />
+        </div>
+      )}
 
       <Footer />
     </div>;
