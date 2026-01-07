@@ -650,6 +650,14 @@ const Checkout = () => {
                         if (customerInfo.countryCode === '+971' && value.startsWith('0')) {
                           value = value.substring(1);
                         }
+                        // For Kuwait (+965), remove it if user tries to add it
+                        if (customerInfo.countryCode === '+965' && value.startsWith('965')) {
+                          value = value.substring(3);
+                        }
+                        // For Bahrain (+973), remove it if user tries to add it
+                        if (customerInfo.countryCode === '+973' && value.startsWith('973')) {
+                          value = value.substring(3);
+                        }
                         setCustomerInfo({
                           ...customerInfo,
                           phone: value
@@ -657,8 +665,22 @@ const Checkout = () => {
                       }}
                       required 
                       className="flex-1"
-                      placeholder={customerInfo.countryCode === '+974' ? '8 أرقام' : customerInfo.countryCode === '+966' ? 'يبدأ بـ 5 (9 أرقام)' : customerInfo.countryCode === '+971' ? 'يبدأ بـ 5 (9 أرقام)' : t('phoneNumber')}
-                      maxLength={customerInfo.countryCode === '+974' ? 8 : customerInfo.countryCode === '+966' ? 9 : customerInfo.countryCode === '+971' ? 9 : undefined}
+                      placeholder={
+                        customerInfo.countryCode === '+974' ? '8 أرقام' : 
+                        customerInfo.countryCode === '+966' ? 'يبدأ بـ 5 (9 أرقام)' : 
+                        customerInfo.countryCode === '+971' ? 'يبدأ بـ 5 (9 أرقام)' : 
+                        customerInfo.countryCode === '+965' ? 'يبدأ بـ 5، 6، أو 9 (8 أرقام)' : 
+                        customerInfo.countryCode === '+973' ? 'يبدأ بـ 3 (8 أرقام)' : 
+                        t('phoneNumber')
+                      }
+                      maxLength={
+                        customerInfo.countryCode === '+974' ? 8 : 
+                        customerInfo.countryCode === '+966' ? 9 : 
+                        customerInfo.countryCode === '+971' ? 9 : 
+                        customerInfo.countryCode === '+965' ? 8 : 
+                        customerInfo.countryCode === '+973' ? 8 : 
+                        undefined
+                      }
                     />
                   </div>
                   <p className="text-xs text-muted-foreground mt-1">بدون رمز الدولة</p>
@@ -762,11 +784,33 @@ const Checkout = () => {
                                 if (countryCode === '+971' && value.startsWith('0')) {
                                   value = value.substring(1);
                                 }
+                                // For Kuwait (+965), remove it if user tries to add it
+                                if (countryCode === '+965' && value.startsWith('965')) {
+                                  value = value.substring(3);
+                                }
+                                // For Bahrain (+973), remove it if user tries to add it
+                                if (countryCode === '+973' && value.startsWith('973')) {
+                                  value = value.substring(3);
+                                }
                                 updateTicketHolder(index, 'phone', `${countryCode} ${value}`);
                               }}
                               required 
-                              placeholder={COUNTRY_CODES[holder.nationality] === '+974' ? '8 أرقام' : COUNTRY_CODES[holder.nationality] === '+966' ? 'يبدأ بـ 5 (9 أرقام)' : COUNTRY_CODES[holder.nationality] === '+971' ? 'يبدأ بـ 5 (9 أرقام)' : t('phone')}
-                              maxLength={COUNTRY_CODES[holder.nationality] === '+974' ? 8 : COUNTRY_CODES[holder.nationality] === '+966' ? 9 : COUNTRY_CODES[holder.nationality] === '+971' ? 9 : undefined}
+                              placeholder={
+                                COUNTRY_CODES[holder.nationality] === '+974' ? '8 أرقام' : 
+                                COUNTRY_CODES[holder.nationality] === '+966' ? 'يبدأ بـ 5 (9 أرقام)' : 
+                                COUNTRY_CODES[holder.nationality] === '+971' ? 'يبدأ بـ 5 (9 أرقام)' : 
+                                COUNTRY_CODES[holder.nationality] === '+965' ? 'يبدأ بـ 5، 6، أو 9 (8 أرقام)' : 
+                                COUNTRY_CODES[holder.nationality] === '+973' ? 'يبدأ بـ 3 (8 أرقام)' : 
+                                t('phone')
+                              }
+                              maxLength={
+                                COUNTRY_CODES[holder.nationality] === '+974' ? 8 : 
+                                COUNTRY_CODES[holder.nationality] === '+966' ? 9 : 
+                                COUNTRY_CODES[holder.nationality] === '+971' ? 9 : 
+                                COUNTRY_CODES[holder.nationality] === '+965' ? 8 : 
+                                COUNTRY_CODES[holder.nationality] === '+973' ? 8 : 
+                                undefined
+                              }
                             />
                             <p className="text-xs text-muted-foreground mt-1">بدون رمز الدولة</p>
                           </div>
