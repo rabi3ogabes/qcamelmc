@@ -528,7 +528,7 @@ const Checkout = () => {
         <div className="animate-pulse text-lg">{t('loading')}</div>
       </div>;
   }
-  return <div className="min-h-screen bg-background font-lusail">
+  return <div className="min-h-screen font-lusail" style={{ backgroundColor: '#F5EFE7' }}>
       {/* Header */}
       <header className="border-b backdrop-blur-sm sticky top-0 z-10 mb-4 sm:mb-6 md:mb-8" style={{
       backgroundColor: headerBgColor
