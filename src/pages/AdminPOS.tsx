@@ -698,45 +698,26 @@ const AdminPOS = () => {
         ...ticketHolders
       ];
 
-      const holdersToInsert = await Promise.all(allHoldersData.map(async (holder, index) => {
+      // Prepare holders with ticket references (QR codes will be generated in background)
+      const holdersToInsert = allHoldersData.map((holder, index) => {
         const ticketRef = `${bookingRef}-TKT${(index + 1).toString().padStart(2, '0')}`;
-        
-        // Generate QR code and upload to storage
-        try {
-          const { data: qrData, error: qrError } = await supabase.functions.invoke('generate-qr-code', {
-            body: { text: ticketRef, filename: ticketRef }
-          });
+        return {
+          order_id: orderData.id,
+          name: holder.name,
+          phone: holder.phone || customerPhone,
+          country_code: holder.countryCode || customerCountryCode,
+          nationality: holder.nationality,
+          ticket_type: holder.ticketType,
+          qr_code: ticketRef, // Use ticket reference initially, QR will be generated in background
+          id_number: holder.idNumber,
+          is_present: true
+        };
+      });
 
-          return {
-            order_id: orderData.id,
-            name: holder.name,
-            phone: holder.phone || customerPhone,
-            country_code: holder.countryCode || customerCountryCode,
-            nationality: holder.nationality,
-            ticket_type: holder.ticketType,
-            qr_code: qrData?.url || ticketRef,
-            id_number: holder.idNumber,
-            is_present: true
-          };
-        } catch (error) {
-          console.error('QR generation failed:', error);
-          return {
-            order_id: orderData.id,
-            name: holder.name,
-            phone: holder.phone || customerPhone,
-            country_code: holder.countryCode || customerCountryCode,
-            nationality: holder.nationality,
-            ticket_type: holder.ticketType,
-            qr_code: ticketRef,
-            id_number: holder.idNumber,
-            is_present: true
-          };
-        }
-      }));
-
-      const { error: holdersError } = await supabase
+      const { data: insertedHolders, error: holdersError } = await supabase
         .from("ticket_holders")
-        .insert(holdersToInsert);
+        .insert(holdersToInsert)
+        .select('id, qr_code');
 
       if (holdersError) throw holdersError;
 
@@ -753,6 +734,26 @@ const AdminPOS = () => {
 
           if (updateError) throw updateError;
         }
+      }
+
+      // Generate QR codes in background (non-blocking)
+      if (insertedHolders && insertedHolders.length > 0) {
+        // Fire and forget - don't await
+        Promise.all(insertedHolders.map(async (holder) => {
+          try {
+            const { data: qrData } = await supabase.functions.invoke('generate-qr-code', {
+              body: { text: holder.qr_code, filename: holder.qr_code }
+            });
+            if (qrData?.url) {
+              await supabase
+                .from("ticket_holders")
+                .update({ qr_code: qrData.url })
+                .eq("id", holder.id);
+            }
+          } catch (error) {
+            console.error('Background QR generation failed:', error);
+          }
+        })).catch(err => console.error('Background QR generation error:', err));
       }
 
       // Prepare success data for dialog
