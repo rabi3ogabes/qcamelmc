@@ -910,7 +910,7 @@ const Checkout = () => {
             </Card>
 
             <div className="text-center mt-4 sm:mt-6">
-              <Button variant="ghost" onClick={() => navigate("/tickets")} className="w-full text-sm sm:text-base bg-yellow-500 hover:bg-yellow-600 text-black">
+              <Button variant="ghost" onClick={() => navigate(`/tickets/${localStorage.getItem("selectedEventId") || ""}`)} className="w-full text-sm sm:text-base bg-yellow-500 hover:bg-yellow-600 text-black">
                 {t('backToTickets')}
               </Button>
             </div>
