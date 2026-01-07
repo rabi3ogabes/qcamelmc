@@ -10,19 +10,15 @@ export const Footer = () => {
   const {
     settings
   } = useSettings();
-  return <footer 
-    className="border-t backdrop-blur-sm mt-16" 
-    style={{
-      backgroundColor: "#E77E5A",
-      ...(settings?.header_bg_image_url && {
-        backgroundImage: `linear-gradient(to top, rgba(231,126,90,0.8), rgba(231,126,90,0.4)), url(${settings.header_bg_image_url})`,
-        backgroundRepeat: 'repeat-x',
-        backgroundSize: 'auto 100%',
-        backgroundPosition: 'center'
-      })
-    }} 
-    dir="rtl"
-  >
+  return <footer className="border-t backdrop-blur-sm mt-16" style={{
+    backgroundColor: "#E77E5A",
+    ...(settings?.header_bg_image_url && {
+      backgroundImage: `linear-gradient(to top, rgba(231,126,90,0.8), rgba(231,126,90,0.4)), url(${settings.header_bg_image_url})`,
+      backgroundRepeat: 'repeat-x',
+      backgroundSize: 'auto 100%',
+      backgroundPosition: 'center'
+    })
+  }} dir="rtl">
       <div className="container mx-auto px-4 py-8">
         <div className="flex flex-col md:flex-row justify-between items-center gap-6">
           {/* Copyright */}
@@ -34,7 +30,7 @@ export const Footer = () => {
 
           {/* Version */}
           <div className="text-center">
-            <p className="text-xs text-white/70">v1.1</p>
+            <p className="text-xs text-white/70">v1.2</p>
           </div>
 
           {/* Payment Security */}
