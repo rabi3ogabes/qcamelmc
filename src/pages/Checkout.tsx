@@ -634,6 +634,14 @@ const Checkout = () => {
                         if (customerInfo.countryCode === '+974' && value.startsWith('974')) {
                           value = value.substring(3);
                         }
+                        // For Saudi Arabia (+966), remove it if user tries to add it
+                        if (customerInfo.countryCode === '+966' && value.startsWith('966')) {
+                          value = value.substring(3);
+                        }
+                        // For Saudi Arabia, remove leading 0 if present (local format)
+                        if (customerInfo.countryCode === '+966' && value.startsWith('0')) {
+                          value = value.substring(1);
+                        }
                         setCustomerInfo({
                           ...customerInfo,
                           phone: value
@@ -641,8 +649,8 @@ const Checkout = () => {
                       }}
                       required 
                       className="flex-1"
-                      placeholder={customerInfo.countryCode === '+974' ? '8 أرقام' : t('phoneNumber')}
-                      maxLength={customerInfo.countryCode === '+974' ? 8 : undefined}
+                      placeholder={customerInfo.countryCode === '+974' ? '8 أرقام' : customerInfo.countryCode === '+966' ? 'يبدأ بـ 5 (9 أرقام)' : t('phoneNumber')}
+                      maxLength={customerInfo.countryCode === '+974' ? 8 : customerInfo.countryCode === '+966' ? 9 : undefined}
                     />
                   </div>
                   <p className="text-xs text-muted-foreground mt-1">بدون رمز الدولة</p>
@@ -730,11 +738,19 @@ const Checkout = () => {
                                 if (countryCode === '+974' && value.startsWith('974')) {
                                   value = value.substring(3);
                                 }
+                                // For Saudi Arabia (+966), remove it if user tries to add it
+                                if (countryCode === '+966' && value.startsWith('966')) {
+                                  value = value.substring(3);
+                                }
+                                // For Saudi Arabia, remove leading 0 if present (local format)
+                                if (countryCode === '+966' && value.startsWith('0')) {
+                                  value = value.substring(1);
+                                }
                                 updateTicketHolder(index, 'phone', `${countryCode} ${value}`);
                               }}
                               required 
-                              placeholder={COUNTRY_CODES[holder.nationality] === '+974' ? '8 أرقام' : t('phone')}
-                              maxLength={COUNTRY_CODES[holder.nationality] === '+974' ? 8 : undefined}
+                              placeholder={COUNTRY_CODES[holder.nationality] === '+974' ? '8 أرقام' : COUNTRY_CODES[holder.nationality] === '+966' ? 'يبدأ بـ 5 (9 أرقام)' : t('phone')}
+                              maxLength={COUNTRY_CODES[holder.nationality] === '+974' ? 8 : COUNTRY_CODES[holder.nationality] === '+966' ? 9 : undefined}
                             />
                             <p className="text-xs text-muted-foreground mt-1">بدون رمز الدولة</p>
                           </div>
