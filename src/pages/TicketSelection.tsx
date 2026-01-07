@@ -14,6 +14,7 @@ import { toZonedTime, fromZonedTime } from "date-fns-tz";
 import { PopupBanner } from "@/components/PopupBanner";
 import { Footer } from "@/components/Footer";
 import { isEventExpired } from "@/lib/eventUtils";
+import { useSettings } from "@/contexts/SettingsContext";
 
 interface Ticket {
   id: string;
@@ -41,6 +42,7 @@ interface Event {
 
 const TicketSelection = () => {
   const { t } = useTranslation();
+  const { settings } = useSettings();
   const { eventId } = useParams<{ eventId: string }>();
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [event, setEvent] = useState<Event | null>(null);
@@ -508,6 +510,23 @@ const TicketSelection = () => {
           </Button>
         </div>
       </div>
+
+      {/* Before Footer Image */}
+      {settings?.before_footer_image_url && (
+        <div className="relative w-full">
+          <div 
+            className="absolute inset-0 pointer-events-none"
+            style={{ background: 'linear-gradient(to bottom, rgba(245, 239, 231, 0.8), rgba(245, 239, 231, 0.4))' }}
+          />
+          <img
+            src={settings.before_footer_image_url}
+            alt="Before Footer"
+            className="w-full h-auto object-contain"
+            loading="lazy"
+          />
+        </div>
+      )}
+
       <Footer />
     </div>
   );
