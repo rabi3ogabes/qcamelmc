@@ -6,6 +6,7 @@ interface Settings {
   hero_image_url: string | null;
   before_footer_image_url: string | null;
   header_bg_color: string;
+  header_bg_image_url: string | null;
   hero_text: string;
   copyright_text: string;
   admin_phone: string | null;
@@ -40,7 +41,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
     try {
       const { data, error } = await supabase
         .from("settings")
-        .select("logo_url, hero_image_url, before_footer_image_url, header_bg_color, hero_text, copyright_text, admin_phone, auto_invoice_interval_seconds, invoice_batch_min, invoice_batch_max, invoice_send_delay_min, invoice_send_delay_max")
+        .select("logo_url, hero_image_url, before_footer_image_url, header_bg_color, header_bg_image_url, hero_text, copyright_text, admin_phone, auto_invoice_interval_seconds, invoice_batch_min, invoice_batch_max, invoice_send_delay_min, invoice_send_delay_max")
         .maybeSingle();
 
       if (error) throw error;
@@ -50,6 +51,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
         hero_image_url: data?.hero_image_url || null,
         before_footer_image_url: data?.before_footer_image_url || null,
         header_bg_color: data?.header_bg_color || "hsl(var(--card) / 0.5)",
+        header_bg_image_url: data?.header_bg_image_url || null,
         hero_text: data?.hero_text || "",
         copyright_text: data?.copyright_text || "جميع الحقوق محفوظة",
         admin_phone: data?.admin_phone || null,

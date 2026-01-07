@@ -292,6 +292,7 @@ export type Database = {
           copyright_text: string | null
           created_at: string | null
           header_bg_color: string | null
+          header_bg_image_url: string | null
           hero_image_url: string | null
           hero_text: string | null
           id: string
@@ -317,6 +318,7 @@ export type Database = {
           copyright_text?: string | null
           created_at?: string | null
           header_bg_color?: string | null
+          header_bg_image_url?: string | null
           hero_image_url?: string | null
           hero_text?: string | null
           id?: string
@@ -342,6 +344,7 @@ export type Database = {
           copyright_text?: string | null
           created_at?: string | null
           header_bg_color?: string | null
+          header_bg_image_url?: string | null
           hero_image_url?: string | null
           hero_text?: string | null
           id?: string

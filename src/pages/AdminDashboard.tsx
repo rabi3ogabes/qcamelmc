@@ -38,6 +38,7 @@ const AdminDashboard = () => {
   const [activeTab, setActiveTab] = useState("orders");
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
   const [headerBgColor, setHeaderBgColor] = useState<string>("hsl(var(--card) / 0.5)");
+  const [headerBgImageUrl, setHeaderBgImageUrl] = useState<string | null>(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -77,7 +78,7 @@ const AdminDashboard = () => {
   const fetchSettings = async () => {
     const { data, error } = await supabase
       .from("settings")
-      .select("logo_url, header_bg_color")
+      .select("logo_url, header_bg_color, header_bg_image_url")
       .maybeSingle();
 
     if (error) {
@@ -91,6 +92,10 @@ const AdminDashboard = () => {
     
     if (data?.header_bg_color) {
       setHeaderBgColor(data.header_bg_color);
+    }
+
+    if (data?.header_bg_image_url) {
+      setHeaderBgImageUrl(data.header_bg_image_url);
     }
   };
 
@@ -125,8 +130,21 @@ const AdminDashboard = () => {
   return (
     <div className="min-h-screen bg-background font-lusail" dir="rtl">
       {/* Header */}
-      <header className="border-b backdrop-blur-sm sticky top-0 z-10" style={{ backgroundColor: headerBgColor }}>
-        <div className="container mx-auto px-3 sm:px-4 py-3 sm:py-4 flex justify-between items-center gap-2">
+      <header className="border-b backdrop-blur-sm sticky top-0 z-10 relative overflow-hidden" style={{ backgroundColor: headerBgColor }}>
+        {headerBgImageUrl && (
+          <>
+            <img 
+              src={headerBgImageUrl} 
+              alt="" 
+              className="absolute inset-0 w-full h-full object-cover"
+            />
+            <div 
+              className="absolute inset-0" 
+              style={{ background: 'linear-gradient(to left, rgba(0,0,0,0.8), rgba(0,0,0,0.4))' }}
+            />
+          </>
+        )}
+        <div className="container mx-auto px-3 sm:px-4 py-3 sm:py-4 flex justify-between items-center gap-2 relative z-[1]">
           <button onClick={() => navigate("/")} className="focus:outline-none hover:opacity-80 transition-opacity">
             {logoUrl ? (
               <img src={logoUrl} alt="Logo" className="h-8 sm:h-10 md:h-12 object-contain" />
