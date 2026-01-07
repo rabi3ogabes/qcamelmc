@@ -1161,7 +1161,7 @@ export const SettingsTab = () => {
 
       {/* Header Background Image */}
       <Card className="p-6">
-        <h3 className="text-lg font-semibold mb-4 font-lusail">صورة خلفية الترويسة (لوحة التحكم)</h3>
+        <h3 className="text-lg font-semibold mb-4 font-lusail">صورة خلفية الترويسة (الصفحة الرئيسية)</h3>
         <div className="space-y-4">
           <div>
             <Label className="font-lusail">الصورة الحالية</Label>
