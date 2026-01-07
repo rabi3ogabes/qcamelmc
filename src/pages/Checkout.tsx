@@ -570,6 +570,11 @@ const Checkout = () => {
                 <h2 className="text-xl sm:text-2xl font-semibold mb-2 flex items-center gap-2">
                   <span className="w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-sm">1</span>
                   {t('customerInfo')} - التذكرة الرئيسية
+                  {ticketHolders.length > 0 && (
+                    <span className="text-sm font-normal bg-primary/10 text-primary px-2 py-1 rounded">
+                      {getTicketTypeName(ticketHolders[0]?.ticketType)}
+                    </span>
+                  )}
                 </h2>
                 <p className="text-sm text-muted-foreground">
                   هذه المعلومات للتذكرة الرئيسية وستحصل على QR Code خاص بها
