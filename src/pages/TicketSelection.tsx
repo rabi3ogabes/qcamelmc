@@ -300,7 +300,7 @@ const TicketSelection = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background font-lusail">
+    <div className="min-h-screen font-lusail" style={{ backgroundColor: '#F5EFE7' }}>
       {/* Popup Banner */}
       <PopupBanner />
       
