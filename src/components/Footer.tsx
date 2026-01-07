@@ -15,7 +15,7 @@ export const Footer = () => {
     style={{
       backgroundColor: "#E77E5A",
       ...(settings?.header_bg_image_url && {
-        backgroundImage: `linear-gradient(to left, rgba(0,0,0,0.8), rgba(0,0,0,0.4)), url(${settings.header_bg_image_url})`,
+        backgroundImage: `linear-gradient(to bottom, rgba(0,0,0,0.8), rgba(0,0,0,0.4)), url(${settings.header_bg_image_url})`,
         backgroundRepeat: 'repeat-x',
         backgroundSize: 'auto 100%',
         backgroundPosition: 'center'
