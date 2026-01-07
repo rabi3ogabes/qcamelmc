@@ -1642,10 +1642,10 @@ const QRScanner = () => {
                         const isCollapsed = collapsedDates[dateKey] ?? false;
                         
                         return (
-                          <div key={dateKey}>
+                          <div key={dateKey} className={dateIndex > 0 ? 'mt-[30px]' : ''}>
                             {/* Top Separator Line */}
                             {dateIndex > 0 && (
-                              <div className="my-4 h-1 bg-gradient-to-r from-amber-200 via-amber-500 to-amber-200 rounded-full"></div>
+                              <div className="mb-4 h-1 bg-gradient-to-r from-amber-200 via-amber-500 to-amber-200 rounded-full"></div>
                             )}
                             
                             {/* Date Header - Clickable */}
