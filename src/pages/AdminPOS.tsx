@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowRight, ShoppingCart, Trash2, Plus, Minus, Maximize, Minimize, CalendarIcon } from "lucide-react";
+import { ArrowRight, ShoppingCart, Trash2, Plus, Minus, Maximize, Minimize, CalendarIcon, CheckCircle2 } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { useToast } from "@/hooks/use-toast";
@@ -15,6 +15,14 @@ import { TicketAddItem } from "@/components/admin/TicketAddItem";
 import { format } from "date-fns";
 import { canPurchaseTickets } from "@/lib/eventUtils";
 import { useActivityLog } from "@/hooks/useActivityLog";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
+
+interface SuccessData {
+  totalTickets: number;
+  mainName: string;
+  ticketHolders: { name: string; ticketType: string }[];
+  ticketTypes: { type: string; quantity: number }[];
+}
 
 interface Ticket {
   id: string;
@@ -65,6 +73,8 @@ const AdminPOS = () => {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
   const [currentEventId, setCurrentEventId] = useState<string | null>(null);
+  const [showSuccessDialog, setShowSuccessDialog] = useState(false);
+  const [successData, setSuccessData] = useState<SuccessData | null>(null);
 
   useEffect(() => {
     // Fetch the upcoming event automatically
@@ -745,10 +755,24 @@ const AdminPOS = () => {
         }
       }
 
-      toast({
-        title: "نجح",
-        description: "تم إنشاء الطلبات بنجاح",
+      // Prepare success data for dialog
+      const ticketTypeSummary = cart.map(item => ({
+        type: getTicketTypeName(item.ticketType),
+        quantity: item.quantity
+      }));
+
+      const allHoldersSummary = [
+        { name: customerName, ticketType: getTicketTypeName(cart[0].ticketType) },
+        ...ticketHolders.map(h => ({ name: h.name, ticketType: getTicketTypeName(h.ticketType) }))
+      ];
+
+      setSuccessData({
+        totalTickets: cart.reduce((sum, item) => sum + item.quantity, 0),
+        mainName: customerName,
+        ticketHolders: allHoldersSummary,
+        ticketTypes: ticketTypeSummary
       });
+      setShowSuccessDialog(true);
 
       // Log activity
       await logActivity({
@@ -1176,6 +1200,59 @@ const AdminPOS = () => {
           </form>
         )}
       </div>
+
+      {/* Success Dialog */}
+      <Dialog open={showSuccessDialog} onOpenChange={setShowSuccessDialog}>
+        <DialogContent className="sm:max-w-md text-center p-8">
+          <div className="flex flex-col items-center gap-6">
+            <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center">
+              <CheckCircle2 className="w-12 h-12 text-green-600" />
+            </div>
+            
+            <div className="space-y-2">
+              <h2 className="text-2xl font-bold text-green-600">تم بنجاح!</h2>
+              <p className="text-muted-foreground">تم إنشاء الطلب بنجاح</p>
+            </div>
+
+            {successData && (
+              <div className="w-full space-y-4 text-right bg-muted/50 rounded-lg p-4">
+                <div className="flex justify-between items-center border-b pb-2">
+                  <span className="text-2xl font-bold text-primary">{successData.totalTickets}</span>
+                  <span className="font-medium">عدد التذاكر</span>
+                </div>
+                
+                <div className="space-y-2">
+                  <p className="font-medium text-sm text-muted-foreground">أنواع التذاكر:</p>
+                  {successData.ticketTypes.map((tt, idx) => (
+                    <div key={idx} className="flex justify-between text-sm">
+                      <span className="font-semibold">{tt.quantity}x</span>
+                      <span>{tt.type}</span>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="space-y-2 border-t pt-2">
+                  <p className="font-medium text-sm text-muted-foreground">حاملي التذاكر:</p>
+                  {successData.ticketHolders.map((holder, idx) => (
+                    <div key={idx} className="flex justify-between text-sm">
+                      <span className="text-xs text-muted-foreground">({holder.ticketType})</span>
+                      <span className="font-medium">{idx === 0 ? `👤 ${holder.name}` : holder.name}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <Button 
+              onClick={() => setShowSuccessDialog(false)} 
+              size="lg" 
+              className="w-full h-12 text-lg"
+            >
+              حسناً
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
