@@ -29,6 +29,8 @@ export const SettingsTab = () => {
   const [newHeroImageUrl, setNewHeroImageUrl] = useState("");
   const [beforeFooterImageUrl, setBeforeFooterImageUrl] = useState("");
   const [newBeforeFooterImageUrl, setNewBeforeFooterImageUrl] = useState("");
+  const [headerBgImageUrl, setHeaderBgImageUrl] = useState("");
+  const [newHeaderBgImageUrl, setNewHeaderBgImageUrl] = useState("");
   const [headerBgColor, setHeaderBgColor] = useState("hsl(var(--card) / 0.5)");
   const [newHeaderBgColor, setNewHeaderBgColor] = useState("hsl(var(--card) / 0.5)");
   const [heroText, setHeroText] = useState("");
@@ -198,7 +200,7 @@ export const SettingsTab = () => {
   const fetchSettings = async () => {
     const { data, error } = await supabase
       .from("settings")
-      .select("logo_url, hero_image_url, before_footer_image_url, header_bg_color, hero_text, copyright_text, webhook_url, admin_phone, sadad_merchant_id, sadad_api_key, sadad_secret, sadad_website_domain, show_delete_customer_button, show_generate_qr_button, auto_invoice_interval_seconds, invoice_batch_min, invoice_batch_max, invoice_send_delay_min, invoice_send_delay_max")
+      .select("logo_url, hero_image_url, before_footer_image_url, header_bg_color, header_bg_image_url, hero_text, copyright_text, webhook_url, admin_phone, sadad_merchant_id, sadad_api_key, sadad_secret, sadad_website_domain, show_delete_customer_button, show_generate_qr_button, auto_invoice_interval_seconds, invoice_batch_min, invoice_batch_max, invoice_send_delay_min, invoice_send_delay_max")
       .maybeSingle();
 
     if (error) {
@@ -219,6 +221,11 @@ export const SettingsTab = () => {
     if (data?.before_footer_image_url) {
       setBeforeFooterImageUrl(data.before_footer_image_url);
       setNewBeforeFooterImageUrl(data.before_footer_image_url);
+    }
+
+    if (data?.header_bg_image_url) {
+      setHeaderBgImageUrl(data.header_bg_image_url);
+      setNewHeaderBgImageUrl(data.header_bg_image_url);
     }
     
     if (data?.header_bg_color) {
@@ -528,6 +535,79 @@ export const SettingsTab = () => {
       e.target.value = '';
     } catch (error) {
       console.error("Error uploading before footer image:", error);
+      toast.error("فشل في تحميل الصورة");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleHeaderBgImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.match(/image\/(png|jpeg|jpg)/)) {
+      toast.error("يرجى اختيار صورة PNG أو JPG");
+      return;
+    }
+
+    // Validate file size (10MB max)
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error("حجم الصورة يجب أن يكون أقل من 10 ميغابايت");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      // Create a unique filename
+      const fileExt = file.name.split('.').pop();
+      const fileName = `header-bg-${Date.now()}.${fileExt}`;
+      const filePath = `header-bg/${fileName}`;
+
+      // Upload to Supabase storage
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('qr-codes')
+        .upload(filePath, file, {
+          cacheControl: '3600',
+          upsert: true
+        });
+
+      if (uploadError) throw uploadError;
+
+      // Get public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('qr-codes')
+        .getPublicUrl(filePath);
+
+      // Update settings with new header background image URL
+      const { data: settings } = await supabase
+        .from("settings")
+        .select("id")
+        .single();
+
+      if (settings) {
+        const { error } = await supabase
+          .from("settings")
+          .update({ header_bg_image_url: publicUrl })
+          .eq("id", settings.id);
+
+        if (error) throw error;
+      } else {
+        const { error } = await supabase
+          .from("settings")
+          .insert({ header_bg_image_url: publicUrl });
+
+        if (error) throw error;
+      }
+
+      setHeaderBgImageUrl(publicUrl);
+      setNewHeaderBgImageUrl(publicUrl);
+      toast.success("تم تحميل صورة خلفية الترويسة بنجاح");
+      
+      // Clear the input
+      e.target.value = '';
+    } catch (error) {
+      console.error("Error uploading header background image:", error);
       toast.error("فشل في تحميل الصورة");
     } finally {
       setLoading(false);
@@ -1073,6 +1153,47 @@ export const SettingsTab = () => {
               />
               <p className="text-xs text-muted-foreground mt-1 font-lusail">
                 اختر صورة PNG فقط (حد أقصى 10 ميغابايت) - ستظهر قبل الفوتر مباشرة
+              </p>
+            </div>
+          </div>
+        </div>
+      </Card>
+
+      {/* Header Background Image */}
+      <Card className="p-6">
+        <h3 className="text-lg font-semibold mb-4 font-lusail">صورة خلفية الترويسة (لوحة التحكم)</h3>
+        <div className="space-y-4">
+          <div>
+            <Label className="font-lusail">الصورة الحالية</Label>
+            <div className="mt-2 p-8 border-2 border-dashed rounded-lg flex items-center justify-center bg-muted/50 relative overflow-hidden">
+              {headerBgImageUrl ? (
+                <>
+                  <img src={headerBgImageUrl} alt="Header Background" className="max-h-32 object-cover rounded" />
+                  <div 
+                    className="absolute inset-0 pointer-events-none" 
+                    style={{ background: 'linear-gradient(to left, rgba(0,0,0,0.8), rgba(0,0,0,0.4))' }}
+                  />
+                  <span className="absolute text-white text-xs font-lusail">معاينة التدرج</span>
+                </>
+              ) : (
+                <ImageIcon className="w-16 h-16 text-muted-foreground" />
+              )}
+            </div>
+          </div>
+          
+          <div>
+            <Label htmlFor="header-bg-file" className="font-lusail">تحميل صورة (PNG/JPG)</Label>
+            <div className="mt-2">
+              <Input 
+                id="header-bg-file" 
+                type="file" 
+                accept="image/png,image/jpeg,image/jpg"
+                onChange={handleHeaderBgImageUpload}
+                className="font-lusail cursor-pointer" 
+                disabled={loading}
+              />
+              <p className="text-xs text-muted-foreground mt-1 font-lusail">
+                اختر صورة PNG أو JPG (حد أقصى 10 ميغابايت) - ستظهر خلف الترويسة مع تدرج شفافية 80% إلى 40%
               </p>
             </div>
           </div>
