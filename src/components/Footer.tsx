@@ -30,7 +30,7 @@ export const Footer = () => {
 
           {/* Version */}
           <div className="text-center">
-            <p className="text-xs text-white/70">v1.2</p>
+            <p className="text-xs text-white/70">v1.1</p>
           </div>
 
           {/* Payment Security */}
