@@ -1625,39 +1625,76 @@ const QRScanner = () => {
                   <p className="text-xs text-amber-700 dark:text-amber-300 mb-3 bg-amber-100 dark:bg-amber-900/30 p-2 rounded">
                     ⚠️ هذه التذاكر ليوم مختلف - لا يمكن تسجيل الحضور اليوم
                   </p>
-                  <div className="space-y-2">
-                    {relatedTicketsOtherDays.map((ticket) => (
-                      <div
-                        key={ticket.id}
-                        className="p-2 sm:p-3 rounded-lg border bg-card text-right opacity-70"
-                      >
-                        <div className="flex justify-between items-start gap-2">
-                          <div className="flex-1">
-                            <div className="font-bold text-sm sm:text-base">{ticket.name}</div>
-                            {ticket.event_title && (
-                              <div className="text-xs text-muted-foreground mt-1">
-                                <span className="font-semibold">الفعالية:</span> {ticket.event_title}
-                              </div>
-                            )}
-                            {ticket.event_date && (
-                              <div className="text-xs text-primary font-semibold mt-1">
-                                📅 {format(new Date(ticket.event_date), 'yyyy-MM-dd')}
-                              </div>
-                            )}
-                            <div className="text-xs text-muted-foreground mt-0.5">
-                              <span className="font-semibold">النوع:</span> {ticket.ticket_type.toUpperCase()}
+                  <div className="space-y-4">
+                    {(() => {
+                      // Group tickets by date
+                      const ticketsByDate = relatedTicketsOtherDays.reduce((acc, ticket) => {
+                        const dateKey = ticket.event_date ? format(new Date(ticket.event_date), 'yyyy-MM-dd') : 'unknown';
+                        if (!acc[dateKey]) {
+                          acc[dateKey] = [];
+                        }
+                        acc[dateKey].push(ticket);
+                        return acc;
+                      }, {} as Record<string, typeof relatedTicketsOtherDays>);
+
+                      // Sort dates
+                      const sortedDates = Object.keys(ticketsByDate).sort();
+
+                      return sortedDates.map((dateKey, dateIndex) => (
+                        <div key={dateKey}>
+                          {/* Date Separator */}
+                          <div className="flex items-center gap-3 mb-3">
+                            <div className="flex-1 h-0.5 bg-gradient-to-r from-transparent via-amber-400 to-amber-400"></div>
+                            <div className="flex items-center gap-2 px-4 py-2 bg-amber-200 dark:bg-amber-800 rounded-full shadow-sm">
+                              <Calendar className="w-4 h-4 text-amber-800 dark:text-amber-200" />
+                              <span className="text-sm font-bold text-amber-900 dark:text-amber-100">
+                                📅 {dateKey !== 'unknown' ? format(new Date(dateKey), 'dd MMMM yyyy') : 'تاريخ غير محدد'}
+                              </span>
+                              <span className="text-xs bg-amber-300 dark:bg-amber-700 text-amber-900 dark:text-amber-100 px-2 py-0.5 rounded-full">
+                                {ticketsByDate[dateKey].length} تذكرة
+                              </span>
                             </div>
+                            <div className="flex-1 h-0.5 bg-gradient-to-l from-transparent via-amber-400 to-amber-400"></div>
                           </div>
-                          <div>
-                            {ticket.is_present ? (
-                              <span className="text-green-600 font-bold text-xs">✅ حاضر</span>
-                            ) : (
-                              <span className="text-muted-foreground text-xs">⭕ غير حاضر</span>
-                            )}
+                          
+                          {/* Tickets for this date */}
+                          <div className="space-y-2">
+                            {ticketsByDate[dateKey].map((ticket) => (
+                              <div
+                                key={ticket.id}
+                                className="p-2 sm:p-3 rounded-lg border bg-card text-right opacity-70"
+                              >
+                                <div className="flex justify-between items-start gap-2">
+                                  <div className="flex-1">
+                                    <div className="font-bold text-sm sm:text-base">{ticket.name}</div>
+                                    {ticket.event_title && (
+                                      <div className="text-xs text-muted-foreground mt-1">
+                                        <span className="font-semibold">الفعالية:</span> {ticket.event_title}
+                                      </div>
+                                    )}
+                                    <div className="text-xs text-muted-foreground mt-0.5">
+                                      <span className="font-semibold">النوع:</span> {ticket.ticket_type.toUpperCase()}
+                                    </div>
+                                    {ticket.booking_reference && (
+                                      <div className="text-[10px] text-muted-foreground mt-0.5 font-mono">
+                                        {ticket.booking_reference}
+                                      </div>
+                                    )}
+                                  </div>
+                                  <div>
+                                    {ticket.is_present ? (
+                                      <span className="text-green-600 font-bold text-xs">✅ حاضر</span>
+                                    ) : (
+                                      <span className="text-muted-foreground text-xs">⭕ غير حاضر</span>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
                           </div>
                         </div>
-                      </div>
-                    ))}
+                      ));
+                    })()}
                   </div>
                 </div>
               )}
