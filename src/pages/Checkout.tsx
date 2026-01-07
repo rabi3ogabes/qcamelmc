@@ -12,6 +12,13 @@ import { toast } from "sonner";
 import { CreditCard, Banknote, Loader2, Plus, Minus, X } from "lucide-react";
 import { Footer } from "@/components/Footer";
 import { useSettings } from "@/contexts/SettingsContext";
+
+// Convert Arabic numerals to English numerals
+const convertArabicToEnglishNumbers = (str: string): string => {
+  const arabicNumerals = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'];
+  return str.replace(/[٠-٩]/g, (match) => arabicNumerals.indexOf(match).toString());
+};
+
 const ARABIC_COUNTRIES = ["السعودية", "الإمارات", "قطر", "الكويت", "البحرين", "عمان", "مصر", "الأردن", "لبنان", "العراق", "سوريا", "اليمن", "ليبيا", "السودان", "الجزائر", "المغرب", "تونس", "موريتانيا", "الصومال", "جيبوتي", "فلسطين"];
 const COUNTRY_FLAGS: Record<string, string> = {
   "السعودية": "🇸🇦",
@@ -621,8 +628,8 @@ const Checkout = () => {
                       type="tel" 
                       value={customerInfo.phone} 
                       onChange={e => {
-                        // Remove any + or country code that user might try to add
-                        let value = e.target.value.replace(/[+\s]/g, '');
+                        // Convert Arabic numerals to English and remove any + or country code
+                        let value = convertArabicToEnglishNumbers(e.target.value).replace(/[+\s]/g, '');
                         // For Qatar (+974), remove it if user tries to add it
                         if (customerInfo.countryCode === '+974' && value.startsWith('974')) {
                           value = value.substring(3);
@@ -631,7 +638,7 @@ const Checkout = () => {
                           ...customerInfo,
                           phone: value
                         });
-                      }} 
+                      }}
                       required 
                       className="flex-1"
                       placeholder={customerInfo.countryCode === '+974' ? '8 أرقام' : t('phoneNumber')}
@@ -717,14 +724,14 @@ const Checkout = () => {
                               value={holder.phone.replace(/^\+\d+\s*/, "")} 
                               onChange={e => {
                                 const countryCode = COUNTRY_CODES[holder.nationality] || "+974";
-                                // Remove any + or country code that user might try to add
-                                let value = e.target.value.replace(/[+\s]/g, '');
+                                // Convert Arabic numerals to English and remove any + or country code
+                                let value = convertArabicToEnglishNumbers(e.target.value).replace(/[+\s]/g, '');
                                 // For Qatar (+974), remove it if user tries to add it
                                 if (countryCode === '+974' && value.startsWith('974')) {
                                   value = value.substring(3);
                                 }
                                 updateTicketHolder(index, 'phone', `${countryCode} ${value}`);
-                              }} 
+                              }}
                               required 
                               placeholder={COUNTRY_CODES[holder.nationality] === '+974' ? '8 أرقام' : t('phone')}
                               maxLength={COUNTRY_CODES[holder.nationality] === '+974' ? 8 : undefined}
