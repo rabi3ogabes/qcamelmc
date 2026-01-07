@@ -736,25 +736,7 @@ const AdminPOS = () => {
         }
       }
 
-      // Generate QR codes in background (non-blocking)
-      if (insertedHolders && insertedHolders.length > 0) {
-        // Fire and forget - don't await
-        Promise.all(insertedHolders.map(async (holder) => {
-          try {
-            const { data: qrData } = await supabase.functions.invoke('generate-qr-code', {
-              body: { text: holder.qr_code, filename: holder.qr_code }
-            });
-            if (qrData?.url) {
-              await supabase
-                .from("ticket_holders")
-                .update({ qr_code: qrData.url })
-                .eq("id", holder.id);
-            }
-          } catch (error) {
-            console.error('Background QR generation failed:', error);
-          }
-        })).catch(err => console.error('Background QR generation error:', err));
-      }
+      // POS orders don't need QR codes - ticket reference is sufficient
 
       // Prepare success data for dialog
       const ticketTypeSummary = cart.map(item => ({
