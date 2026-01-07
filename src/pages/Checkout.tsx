@@ -9,7 +9,8 @@ import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { CreditCard, Banknote, Loader2, Plus, Minus, X } from "lucide-react";
+import { CreditCard, Banknote, Loader2, Plus, Minus, X, AlertTriangle } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Footer } from "@/components/Footer";
 import { useSettings } from "@/contexts/SettingsContext";
 
@@ -105,6 +106,7 @@ const Checkout = () => {
   });
   const [ticketHolders, setTicketHolders] = useState<TicketHolder[]>([]);
   const [loading, setLoading] = useState(false);
+  const [termsAccepted, setTermsAccepted] = useState(false);
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
   const [headerBgColor, setHeaderBgColor] = useState<string>("hsl(var(--card) / 0.5)");
   const navigate = useNavigate();
@@ -834,6 +836,30 @@ const Checkout = () => {
                 </div>
               </Card>}
 
+            {/* Terms and Conditions */}
+            <Card className="p-4 sm:p-5 md:p-6 border-red-500 border-2 bg-red-50">
+              <div className="flex items-start gap-3 mb-4">
+                <AlertTriangle className="w-6 h-6 text-red-600 flex-shrink-0 mt-0.5" />
+                <h3 className="text-lg font-semibold text-red-600">التعليمات</h3>
+              </div>
+              <ul className="space-y-2 text-red-600 text-sm sm:text-base mb-4 pr-4" dir="rtl">
+                <li>1- التذكرة المباعة غير قابلة للتعديل او الإستبدال او إسترجاع قيمتها</li>
+                <li>2- ممنوع دخول الأطفال دون 10 سنوات</li>
+                <li>3- يكون إستخدام التذاكر للدخول مرة واحدة فقط</li>
+              </ul>
+              <div className="flex items-center gap-3 pt-3 border-t border-red-300">
+                <Checkbox 
+                  id="terms" 
+                  checked={termsAccepted}
+                  onCheckedChange={(checked) => setTermsAccepted(checked === true)}
+                  className="border-red-500 data-[state=checked]:bg-red-600 data-[state=checked]:border-red-600"
+                />
+                <Label htmlFor="terms" className="text-red-600 font-medium cursor-pointer">
+                  قرأت و وافقت على التعليمات
+                </Label>
+              </div>
+            </Card>
+
             {/* Payment Method */}
             <Card className="p-4 sm:p-5 md:p-6">
               <h3 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4">{t('selectPaymentMethod')}</h3>
@@ -861,7 +887,7 @@ const Checkout = () => {
               </RadioGroup>
             </Card>
 
-            <Button onClick={handleSubmit} className="w-full" size="lg" disabled={loading}>
+            <Button onClick={handleSubmit} className="w-full" size="lg" disabled={loading || !termsAccepted}>
               {loading ? <>
                   <Loader2 className="w-4 h-4 ml-2 animate-spin" />
                   {t('loading')}
