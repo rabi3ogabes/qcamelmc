@@ -731,40 +731,39 @@ const QRScanner = () => {
         return;
       }
       
-      // Use the actual QR codes from the database
-      const qrCodes = selectedTickets.map(ticket => ticket.qr_code);
+      // Get ticket IDs for bulk update
+      const ticketIds = selectedTickets.map(ticket => ticket.id);
+      const now = new Date().toISOString();
 
-      let successCount = 0;
-      let errorCount = 0;
+      // Bulk update all tickets at once - much faster than sequential calls
+      const { error: updateError } = await supabase
+        .from('ticket_holders')
+        .update({ 
+          is_present: true,
+          confirmed_at: now,
+          confirmed_by: user?.id
+        })
+        .in('id', ticketIds);
 
-      // Process each ticket
-      for (const qrCode of qrCodes) {
-        try {
-          const { data, error } = await supabase.functions.invoke('ticket-checkin', {
-            body: { 
-              booking_reference: qrCode,
-              admin_id: user?.id 
-            },
-          });
+      if (updateError) throw updateError;
 
-          if (error) throw error;
+      const successCount = ticketIds.length;
 
-          const response = data as { success: boolean; message: string; ticket_info?: any; };
-
-          if (response.success) {
-            successCount++;
-          } else {
-            errorCount++;
-            // Show the specific error message from the edge function
-            if (response.message) {
-              toast.error(response.message);
-            }
+      // Log activity for each ticket (fire and forget - non-blocking)
+      Promise.all(selectedTickets.map(ticket => 
+        logActivity({
+          activityType: 'ticket_scan',
+          userType: 'admin',
+          userIdentifier: user?.id,
+          actionData: {
+            ticket_holder_id: ticket.id,
+            ticket_holder_name: ticket.name,
+            ticket_type: ticket.ticket_type,
+            qr_code: ticket.qr_code,
+            action: 'confirm_presence'
           }
-        } catch (err) {
-          console.error('Error confirming ticket:', qrCode, err);
-          errorCount++;
-        }
-      }
+        })
+      )).catch(err => console.error('Activity log error:', err));
 
       // Show results
       if (successCount > 0) {
@@ -787,9 +786,7 @@ const QRScanner = () => {
           ticketTypes: ticketTypeSummary
         });
         setShowSuccessDialog(true);
-      }
-      if (errorCount > 0) {
-        toast.error(`⚠️ فشل تأكيد ${errorCount} تذكرة`);
+        toast.success(`✅ تم تأكيد حضور ${successCount} تذكرة`);
       }
 
       // Clear selections and refresh
