@@ -168,14 +168,6 @@ const EventHome = () => {
           {/* Events Grid */}
           <div className="pt-0 pb-6 px-4 -mt-24 md:-mt-32 relative z-[2]">
             <div className="max-w-7xl mx-auto">
-              {/* Pagination Info */}
-              {events.length > EVENTS_PER_PAGE && (
-                <div className="text-center mb-8">
-                  <p style={{ color: '#6B4E3D' }}>
-                    صفحة {currentPage} من {Math.ceil(events.length / EVENTS_PER_PAGE)}
-                  </p>
-                </div>
-              )}
 
               <div className="flex flex-wrap justify-center gap-8">
                 {events
@@ -262,43 +254,48 @@ const EventHome = () => {
 
               {/* Pagination Controls */}
               {events.length > EVENTS_PER_PAGE && (
-                <div className="flex justify-center items-center gap-4 mt-12">
-                  <Button
-                    variant="outline"
-                    onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                    disabled={currentPage === 1}
-                    style={{ borderColor: '#A85740', color: '#6B4E3D' }}
-                  >
-                    <ChevronRight className="w-5 h-5" />
-                    السابق
-                  </Button>
-                  
-                  <div className="flex gap-2">
-                    {Array.from({ length: Math.ceil(events.length / EVENTS_PER_PAGE) }, (_, i) => i + 1).map((page) => (
-                      <Button
-                        key={page}
-                        variant={currentPage === page ? "default" : "outline"}
-                        onClick={() => setCurrentPage(page)}
-                        className="w-10 h-10"
-                        style={currentPage === page 
-                          ? { backgroundColor: '#A85740', color: '#FFFFFF' }
-                          : { borderColor: '#A85740', color: '#6B4E3D' }
-                        }
-                      >
-                        {page}
-                      </Button>
-                    ))}
+                <div className="flex flex-col items-center gap-4 mt-12">
+                  <p style={{ color: '#6B4E3D' }}>
+                    صفحة {currentPage} من {Math.ceil(events.length / EVENTS_PER_PAGE)}
+                  </p>
+                  <div className="flex justify-center items-center gap-4">
+                    <Button
+                      variant="outline"
+                      onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                      disabled={currentPage === 1}
+                      style={{ borderColor: '#A85740', color: '#6B4E3D' }}
+                    >
+                      <ChevronRight className="w-5 h-5" />
+                      السابق
+                    </Button>
+                    
+                    <div className="flex gap-2">
+                      {Array.from({ length: Math.ceil(events.length / EVENTS_PER_PAGE) }, (_, i) => i + 1).map((page) => (
+                        <Button
+                          key={page}
+                          variant={currentPage === page ? "default" : "outline"}
+                          onClick={() => setCurrentPage(page)}
+                          className="w-10 h-10"
+                          style={currentPage === page 
+                            ? { backgroundColor: '#A85740', color: '#FFFFFF' }
+                            : { borderColor: '#A85740', color: '#6B4E3D' }
+                          }
+                        >
+                          {page}
+                        </Button>
+                      ))}
+                    </div>
+                    
+                    <Button
+                      variant="outline"
+                      onClick={() => setCurrentPage(prev => Math.min(prev + 1, Math.ceil(events.length / EVENTS_PER_PAGE)))}
+                      disabled={currentPage === Math.ceil(events.length / EVENTS_PER_PAGE)}
+                      style={{ borderColor: '#A85740', color: '#6B4E3D' }}
+                    >
+                      التالي
+                      <ChevronLeft className="w-5 h-5" />
+                    </Button>
                   </div>
-                  
-                  <Button
-                    variant="outline"
-                    onClick={() => setCurrentPage(prev => Math.min(prev + 1, Math.ceil(events.length / EVENTS_PER_PAGE)))}
-                    disabled={currentPage === Math.ceil(events.length / EVENTS_PER_PAGE)}
-                    style={{ borderColor: '#A85740', color: '#6B4E3D' }}
-                  >
-                    التالي
-                    <ChevronLeft className="w-5 h-5" />
-                  </Button>
                 </div>
               )}
             </div>
