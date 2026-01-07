@@ -7,7 +7,7 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { ArrowLeft, CheckCircle2, XCircle, Loader2, Search, Camera, AlertCircle, LogOut, Calendar, Users } from "lucide-react";
+import { ArrowLeft, CheckCircle2, XCircle, Loader2, Search, Camera, AlertCircle, LogOut, Calendar, Users, ChevronDown, ChevronUp } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { useActivityLog } from "@/hooks/useActivityLog";
@@ -77,6 +77,7 @@ const QRScanner = () => {
   const [sameBookingTickets, setSameBookingTickets] = useState<RelatedTicket[]>([]);
   const [showSuccessDialog, setShowSuccessDialog] = useState(false);
   const [successData, setSuccessData] = useState<SuccessData | null>(null);
+  const [collapsedDates, setCollapsedDates] = useState<Record<string, boolean>>({});
   const scannerRef = useRef<Html5Qrcode | null>(null);
   const isScanning = useRef(false);
 
@@ -1640,68 +1641,82 @@ const QRScanner = () => {
                       // Sort dates
                       const sortedDates = Object.keys(ticketsByDate).sort();
 
-                      return sortedDates.map((dateKey, dateIndex) => (
-                        <div key={dateKey}>
-                          {/* Top Separator Line */}
-                          {dateIndex > 0 && (
-                            <div className="my-4 h-1 bg-gradient-to-r from-amber-200 via-amber-500 to-amber-200 rounded-full"></div>
-                          )}
-                          
-                          {/* Date Header */}
-                          <div className="flex items-center gap-3 mb-3">
-                            <div className="flex-1 h-1 bg-gradient-to-r from-transparent via-amber-400 to-amber-500 rounded-full"></div>
-                            <div className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-amber-300 to-amber-200 dark:from-amber-700 dark:to-amber-800 rounded-full shadow-md border-2 border-amber-400 dark:border-amber-600">
-                              <Calendar className="w-5 h-5 text-amber-800 dark:text-amber-200" />
-                              <span className="text-sm font-bold text-amber-900 dark:text-amber-100">
-                                📅 {dateKey !== 'unknown' ? format(new Date(dateKey), 'dd MMMM yyyy') : 'تاريخ غير محدد'}
-                              </span>
-                              <span className="text-xs bg-amber-500 dark:bg-amber-600 text-white px-2.5 py-1 rounded-full font-bold shadow">
-                                {ticketsByDate[dateKey].length} تذكرة
-                              </span>
-                            </div>
-                            <div className="flex-1 h-1 bg-gradient-to-l from-transparent via-amber-400 to-amber-500 rounded-full"></div>
-                          </div>
-                          
-                          {/* Tickets for this date */}
-                          <div className="space-y-2 border-r-4 border-amber-400 pr-3 mr-1">
-                            {ticketsByDate[dateKey].map((ticket) => (
-                              <div
-                                key={ticket.id}
-                                className="p-2 sm:p-3 rounded-lg border bg-card text-right opacity-80 hover:opacity-100 transition-opacity"
-                              >
-                                <div className="flex justify-between items-start gap-2">
-                                  <div className="flex-1">
-                                    <div className="font-bold text-sm sm:text-base">{ticket.name}</div>
-                                    {ticket.event_title && (
-                                      <div className="text-xs text-muted-foreground mt-1">
-                                        <span className="font-semibold">الفعالية:</span> {ticket.event_title}
-                                      </div>
-                                    )}
-                                    <div className="text-xs text-muted-foreground mt-0.5">
-                                      <span className="font-semibold">النوع:</span> {ticket.ticket_type.toUpperCase()}
-                                    </div>
-                                    {ticket.booking_reference && (
-                                      <div className="text-[10px] text-muted-foreground mt-0.5 font-mono">
-                                        {ticket.booking_reference}
-                                      </div>
-                                    )}
-                                  </div>
-                                  <div>
-                                    {ticket.is_present ? (
-                                      <span className="text-green-600 font-bold text-xs">✅ حاضر</span>
-                                    ) : (
-                                      <span className="text-muted-foreground text-xs">⭕ غير حاضر</span>
-                                    )}
-                                  </div>
-                                </div>
+                      return sortedDates.map((dateKey, dateIndex) => {
+                        const isCollapsed = collapsedDates[dateKey] ?? false;
+                        
+                        return (
+                          <div key={dateKey}>
+                            {/* Top Separator Line */}
+                            {dateIndex > 0 && (
+                              <div className="my-4 h-1 bg-gradient-to-r from-amber-200 via-amber-500 to-amber-200 rounded-full"></div>
+                            )}
+                            
+                            {/* Date Header - Clickable */}
+                            <div 
+                              className="flex items-center gap-3 mb-3 cursor-pointer"
+                              onClick={() => setCollapsedDates(prev => ({ ...prev, [dateKey]: !isCollapsed }))}
+                            >
+                              <div className="flex-1 h-1 bg-gradient-to-r from-transparent via-amber-400 to-amber-500 rounded-full"></div>
+                              <div className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-amber-300 to-amber-200 dark:from-amber-700 dark:to-amber-800 rounded-full shadow-md border-2 border-amber-400 dark:border-amber-600 hover:shadow-lg transition-shadow">
+                                {isCollapsed ? (
+                                  <ChevronDown className="w-5 h-5 text-amber-800 dark:text-amber-200" />
+                                ) : (
+                                  <ChevronUp className="w-5 h-5 text-amber-800 dark:text-amber-200" />
+                                )}
+                                <Calendar className="w-5 h-5 text-amber-800 dark:text-amber-200" />
+                                <span className="text-sm font-bold text-amber-900 dark:text-amber-100">
+                                  📅 {dateKey !== 'unknown' ? format(new Date(dateKey), 'dd MMMM yyyy') : 'تاريخ غير محدد'}
+                                </span>
+                                <span className="text-xs bg-amber-500 dark:bg-amber-600 text-white px-2.5 py-1 rounded-full font-bold shadow">
+                                  {ticketsByDate[dateKey].length} تذكرة
+                                </span>
                               </div>
-                            ))}
+                              <div className="flex-1 h-1 bg-gradient-to-l from-transparent via-amber-400 to-amber-500 rounded-full"></div>
+                            </div>
+                            
+                            {/* Tickets for this date - Collapsible */}
+                            {!isCollapsed && (
+                              <div className="space-y-2 border-r-4 border-amber-400 pr-3 mr-1">
+                                {ticketsByDate[dateKey].map((ticket) => (
+                                  <div
+                                    key={ticket.id}
+                                    className="p-2 sm:p-3 rounded-lg border bg-card text-right opacity-80 hover:opacity-100 transition-opacity"
+                                  >
+                                    <div className="flex justify-between items-start gap-2">
+                                      <div className="flex-1">
+                                        <div className="font-bold text-sm sm:text-base">{ticket.name}</div>
+                                        {ticket.event_title && (
+                                          <div className="text-xs text-muted-foreground mt-1">
+                                            <span className="font-semibold">الفعالية:</span> {ticket.event_title}
+                                          </div>
+                                        )}
+                                        <div className="text-xs text-muted-foreground mt-0.5">
+                                          <span className="font-semibold">النوع:</span> {ticket.ticket_type.toUpperCase()}
+                                        </div>
+                                        {ticket.booking_reference && (
+                                          <div className="text-[10px] text-muted-foreground mt-0.5 font-mono">
+                                            {ticket.booking_reference}
+                                          </div>
+                                        )}
+                                      </div>
+                                      <div>
+                                        {ticket.is_present ? (
+                                          <span className="text-green-600 font-bold text-xs">✅ حاضر</span>
+                                        ) : (
+                                          <span className="text-muted-foreground text-xs">⭕ غير حاضر</span>
+                                        )}
+                                      </div>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                            
+                            {/* Bottom Separator Line */}
+                            <div className="mt-3 h-0.5 bg-gradient-to-r from-amber-300 via-amber-400 to-amber-300 rounded-full"></div>
                           </div>
-                          
-                          {/* Bottom Separator Line */}
-                          <div className="mt-3 h-0.5 bg-gradient-to-r from-amber-300 via-amber-400 to-amber-300 rounded-full"></div>
-                        </div>
-                      ));
+                        );
+                      });
                     })()}
                   </div>
                 </div>
@@ -1784,6 +1799,46 @@ const QRScanner = () => {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Fixed Floating Action Button - Right Middle */}
+      {selectedTicketIds.length > 0 && scanMode === 'confirm' && (
+        <div className="fixed right-4 top-1/2 -translate-y-1/2 z-50">
+          <Button
+            onClick={handleConfirmPresence}
+            disabled={processing}
+            className="w-16 h-16 rounded-xl bg-green-600 hover:bg-green-700 text-white shadow-2xl flex flex-col items-center justify-center gap-1 animate-pulse hover:animate-none"
+          >
+            {processing ? (
+              <Loader2 className="w-8 h-8 animate-spin" />
+            ) : (
+              <>
+                <CheckCircle2 className="w-7 h-7" />
+                <span className="text-xs font-bold">{selectedTicketIds.length}</span>
+              </>
+            )}
+          </Button>
+        </div>
+      )}
+
+      {/* Fixed Floating Action Button for Unconfirm - Right Middle */}
+      {selectedTicketIds.length > 0 && scanMode === 'unconfirm' && (
+        <div className="fixed right-4 top-1/2 -translate-y-1/2 z-50">
+          <Button
+            onClick={handleUnconfirmPresence}
+            disabled={processing}
+            className="w-16 h-16 rounded-xl bg-red-600 hover:bg-red-700 text-white shadow-2xl flex flex-col items-center justify-center gap-1 animate-pulse hover:animate-none"
+          >
+            {processing ? (
+              <Loader2 className="w-8 h-8 animate-spin" />
+            ) : (
+              <>
+                <XCircle className="w-7 h-7" />
+                <span className="text-xs font-bold">{selectedTicketIds.length}</span>
+              </>
+            )}
+          </Button>
+        </div>
+      )}
     </div>
   );
 };
