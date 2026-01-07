@@ -85,7 +85,7 @@ const EventHome = () => {
           backgroundColor: settings?.header_bg_color || "#D4B78A", 
           borderColor: '#A85740',
           ...(settings?.header_bg_image_url && {
-            backgroundImage: `linear-gradient(to left, rgba(0,0,0,0.8), rgba(0,0,0,0.4)), url(${settings.header_bg_image_url})`,
+            backgroundImage: `linear-gradient(to bottom, rgba(212,183,138,0.8), rgba(212,183,138,0.4)), url(${settings.header_bg_image_url})`,
             backgroundRepeat: 'repeat-x',
             backgroundSize: 'auto 100%',
             backgroundPosition: 'center'
