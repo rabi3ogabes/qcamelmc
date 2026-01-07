@@ -144,11 +144,11 @@ const EventHome = () => {
       ) : (
         <>
           {/* Hero Section */}
-          <div className="relative h-[70vh] overflow-hidden">
+          <div className="relative overflow-hidden">
             <img
               src={settings?.hero_image_url || heroImage}
               alt="Hero Image"
-              className="absolute inset-0 w-full h-full object-cover"
+              className="w-full h-auto object-contain"
               loading="eager"
               decoding="async"
             />
