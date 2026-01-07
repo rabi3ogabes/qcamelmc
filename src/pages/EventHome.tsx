@@ -166,7 +166,7 @@ const EventHome = () => {
           </div>
 
           {/* Events Grid */}
-          <div className="pt-0 pb-6 px-4">
+          <div className="pt-0 pb-6 px-4 -mt-24 md:-mt-32 relative z-[2]">
             <div className="max-w-7xl mx-auto">
               {/* Pagination Info */}
               {events.length > EVENTS_PER_PAGE && (
