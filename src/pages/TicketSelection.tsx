@@ -337,7 +337,10 @@ const TicketSelection = () => {
         <div className="mb-6 sm:mb-8">
           {/* Ticket Selection */}
           <div className="space-y-3 sm:space-y-4 lg:space-y-6 w-full sm:w-[90%] lg:w-[80%] mx-auto">
-          {tickets.map((ticket) => {
+          {[...tickets].sort((a, b) => {
+            const order = { normal: 0, vip: 1, parking: 2 };
+            return order[a.type] - order[b.type];
+          }).map((ticket) => {
             const remainingTickets = ticket.available_quantity - ticket.sold_quantity;
             const isSoldOut = remainingTickets <= 0;
             
