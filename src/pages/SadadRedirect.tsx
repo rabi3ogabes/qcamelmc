@@ -1,12 +1,14 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Loader2 } from "lucide-react";
+import { useSettings } from "@/contexts/SettingsContext";
 
 const SadadRedirect = () => {
   const navigate = useNavigate();
   const formRef = useRef<HTMLFormElement>(null);
   const hasSubmitted = useRef(false);
   const [paymentInfo, setPaymentInfo] = useState<{ paymentData: any; sadadUrl: string } | null>(null);
+  const { settings } = useSettings();
 
   useEffect(() => {
     if (hasSubmitted.current) return;
@@ -22,14 +24,6 @@ const SadadRedirect = () => {
     try {
       const data = JSON.parse(paymentDataStr);
       setPaymentInfo(data);
-      
-      console.log('Payment data received:', {
-        sadadUrl: data.sadadUrl,
-        merchant_id: data.paymentData.merchant_id,
-        order_id: data.paymentData.ORDER_ID,
-        amount: data.paymentData.TXN_AMOUNT,
-        signature: data.paymentData.signature?.substring(0, 20) + '...'
-      });
       
       // Clear the session storage
       sessionStorage.removeItem('sadadPaymentData');
@@ -52,6 +46,13 @@ const SadadRedirect = () => {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center px-4 md:px-8 font-lusail">
         <div className="text-center">
+          {settings?.logo_url && (
+            <img 
+              src={settings.logo_url} 
+              alt="Logo" 
+              className="h-16 md:h-20 mx-auto mb-6 object-contain"
+            />
+          )}
           <Loader2 className="w-12 h-12 md:w-16 md:h-16 animate-spin mx-auto mb-4 text-primary" />
           <h2 className="text-xl md:text-2xl font-bold mb-2">جاري التحميل...</h2>
         </div>
@@ -63,73 +64,18 @@ const SadadRedirect = () => {
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center px-4 md:px-8 font-lusail">
-      <div className="text-center space-y-4 w-full max-w-4xl">
+      <div className="text-center space-y-4 w-full max-w-md">
+        {settings?.logo_url && (
+          <img 
+            src={settings.logo_url} 
+            alt="Logo" 
+            className="h-20 md:h-24 mx-auto mb-6 object-contain"
+          />
+        )}
+        
         <Loader2 className="w-12 h-12 md:w-16 md:h-16 animate-spin mx-auto mb-4 text-primary" />
         <h2 className="text-xl md:text-2xl font-bold mb-2">جاري تحويلك لبوابة الدفع سداد...</h2>
         <p className="text-sm md:text-base text-muted-foreground">يرجى الانتظار...</p>
-        
-        <div className="mt-8 p-3 md:p-4 bg-red-50 border border-red-200 rounded-lg text-right">
-          <h3 className="font-bold text-red-800 mb-2 text-sm md:text-base">إذا ظهرت رسالة 404:</h3>
-          <div className="text-xs md:text-sm text-red-700 space-y-2">
-            <p className="font-semibold">السبب الأساسي: وضع الاختبار غير مفعّل في لوحة سداد</p>
-            
-            <div className="bg-white p-2 md:p-3 rounded border border-red-300 mt-2">
-              <p className="font-bold mb-2">خطوات الحل المضمونة (بالترتيب):</p>
-              <ol className="list-decimal list-inside space-y-1 text-right">
-                <li className="leading-relaxed">افتح لوحة التاجر: <a href="https://webpanel.sadad.qa/authentication/login" target="_blank" className="text-blue-600 underline break-all">webpanel.sadad.qa</a></li>
-                <li className="leading-relaxed">اذهب إلى قسم <strong>"Configure API"</strong> من القائمة اليسرى</li>
-                <li className="leading-relaxed"><strong className="text-red-700">فعّل زر "Test Mode"</strong> - يجب أن يتحول للون الأخضر</li>
-                <li className="leading-relaxed">تحقق من أن النطاق (مثل: qcamelmc.org) مسجل في قسم "Register your Website domain"</li>
-                <li className="leading-relaxed"><strong>اضغط "Generate"</strong> لتوليد مفتاح سري جديد بعد التأكد من النطاق</li>
-                <li className="leading-relaxed">انسخ المفتاح السري الجديد والصقه في إعدادات التطبيق</li>
-                <li className="leading-relaxed">احفظ وحاول الدفع مرة أخرى</li>
-              </ol>
-            </div>
-            
-            <p className="text-xs mt-2 leading-relaxed">ملاحظة: بدون تفعيل وضع الاختبار، لن تعمل بوابة الدفع حتى لو كانت جميع الإعدادات صحيحة</p>
-          </div>
-        </div>
-
-        {/* Debug info - EXPANDED by default for troubleshooting */}
-        <details className="mt-4 text-left bg-gray-50 p-3 md:p-4 rounded border" open>
-          <summary className="cursor-pointer font-semibold text-base md:text-lg mb-2">معلومات التصحيح (Debug Info)</summary>
-          <div className="mt-2 text-xs md:text-sm space-y-2 font-mono">
-            <div className="p-2 bg-white rounded border break-all">
-              <strong>Merchant ID:</strong> {paymentData.merchant_id}
-            </div>
-            <div className="p-2 bg-white rounded border break-all">
-              <strong>Order ID:</strong> {paymentData.ORDER_ID}
-            </div>
-            <div className="p-2 bg-white rounded border break-all">
-              <strong>Amount:</strong> {paymentData.TXN_AMOUNT} QAR
-            </div>
-            <div className="p-2 bg-white rounded border break-all">
-              <strong>Website:</strong> {paymentData.WEBSITE}
-            </div>
-            <div className="p-2 bg-white rounded border break-all">
-              <strong>Mobile:</strong> {paymentData.MOBILE_NO}
-            </div>
-            <div className="p-2 bg-white rounded border break-all">
-              <strong>Callback URL:</strong> {paymentData.CALLBACK_URL}
-            </div>
-            <div className="p-2 bg-white rounded border break-all">
-              <strong>Target URL:</strong> {sadadUrl}
-            </div>
-            <div className="p-2 bg-white rounded border">
-              <strong>Signature (SHA-256):</strong> 
-              <div className="break-all text-xs mt-1">{paymentData.signature}</div>
-            </div>
-            <div className="p-2 bg-red-50 rounded border border-red-300 mt-3">
-              <strong className="text-red-700">⚠️ إذا كنت تحصل على خطأ 404:</strong>
-              <ol className="list-decimal list-inside mt-2 text-xs space-y-1">
-                <li className="leading-relaxed">تحقق من أن <code className="bg-white px-1">merchant_id</code> يطابق "Sadad ID" في لوحة التحكم</li>
-                <li className="leading-relaxed">تحقق من تفعيل "Test Mode" في قسم API</li>
-                <li className="leading-relaxed">تأكد أن <code className="bg-white px-1">WEBSITE</code> يطابق النطاق المسجل في المفتاح السري</li>
-                <li className="leading-relaxed">جرب إعادة توليد المفتاح السري من لوحة التحكم</li>
-              </ol>
-            </div>
-          </div>
-        </details>
         
         {/* Hidden form that will auto-submit and redirect to Sadad */}
         <form 
