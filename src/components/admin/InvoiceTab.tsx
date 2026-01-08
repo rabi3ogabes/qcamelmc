@@ -271,41 +271,32 @@ export const InvoiceTab = () => {
         event_date: order.events?.event_date,
         event_location: order.events?.location,
         created_at: order.created_at,
+        customers: order.customers,
       };
 
-      const response = await fetch(webhookUrl, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(payload),
+      // Use edge function to avoid CORS issues
+      const { data, error } = await supabase.functions.invoke('send-to-webhook', {
+        body: payload,
       });
 
-      // Parse the response from n8n
-      const responseData = await response.json();
-      
-      if (!response.ok) {
-        // Handle error responses from n8n
-        const errorMessage = responseData.message || `HTTP error! status: ${response.status}`;
-        console.error("n8n webhook error:", responseData);
+      if (error) {
+        console.error("Edge function error:", error);
+        toast.error(`خطأ في الاتصال: ${error.message}`);
+        return { success: false, message: error.message };
+      }
+
+      // Handle response from edge function
+      if (data?.error) {
+        console.error("Webhook error:", data);
+        const errorMessage = data.error || "فشل الإرسال";
         toast.error(`خطأ من n8n: ${errorMessage}`);
         return { success: false, message: errorMessage };
       }
 
       // Handle successful response
-      if (responseData.success !== false) {
-        console.log("n8n response:", responseData);
-        const message = responseData.message || "تم الإرسال بنجاح";
-        if (responseData.message) {
-          toast.success(`رد n8n: ${message}`);
-        }
-        return { success: true, message };
-      } else {
-        // n8n returned success: false
-        const errorMessage = responseData.message || "فشل الإرسال";
-        toast.warning(`تحذير من n8n: ${errorMessage}`);
-        return { success: false, message: errorMessage };
-      }
+      console.log("Webhook response:", data);
+      const message = data?.message || "تم الإرسال بنجاح";
+      return { success: true, message };
     } catch (error) {
       console.error("Error sending to webhook:", error);
       const errorMessage = error instanceof Error ? error.message : 'خطأ غير معروف';
