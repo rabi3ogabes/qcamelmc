@@ -288,7 +288,22 @@ export const InvoiceTab = () => {
       // Handle response from edge function
       if (data?.error) {
         console.error("Webhook error:", data);
-        const errorMessage = data.error || "فشل الإرسال";
+
+        const status = (data as any)?.status as number | undefined;
+        const details = (data as any)?.details as { hint?: string; message?: string } | undefined;
+        const solution = (data as any)?.solution as string | undefined;
+
+        let errorMessage = (data as any)?.error || "فشل الإرسال";
+
+        if (status === 404) {
+          // n8n commonly returns 404 when the workflow is not activated or when using a test webhook
+          errorMessage = "Webhook غير موجود أو غير مفعل في n8n. فعّل الـ workflow (Activate) أو اضغط Execute workflow إذا كنت تستخدم Test Webhook.";
+        } else if (details?.hint) {
+          errorMessage = `${errorMessage} — ${details.hint}`;
+        } else if (solution) {
+          errorMessage = `${errorMessage} — ${solution}`;
+        }
+
         toast.error(`خطأ من n8n: ${errorMessage}`);
         return { success: false, message: errorMessage };
       }
