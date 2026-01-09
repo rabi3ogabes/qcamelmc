@@ -564,6 +564,45 @@ const Checkout = () => {
       <div className="w-full py-4 sm:py-6 md:py-12 px-3 sm:px-4 md:px-8 lg:px-12 xl:px-16">
         <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-4 sm:mb-6 md:mb-8 text-center">{t('checkoutTitle')}</h1>
 
+        {/* Order Summary - Top */}
+        <Card className="p-4 sm:p-5 md:p-6 mb-4 sm:mb-6 md:mb-8">
+          <h2 className="text-xl sm:text-2xl font-semibold mb-4 sm:mb-6">{t('orderSummary')}</h2>
+          <div className="space-y-3 sm:space-y-4">
+            {selections.map((item, index) => <div key={index} className="flex justify-between items-center py-2 sm:py-3 border-b gap-4">
+                <div className="flex-1 min-w-0">
+                  <div className="font-medium capitalize text-sm sm:text-base truncate">{getTicketTypeName(item.type)}</div>
+                  <div className="text-xs sm:text-sm text-muted-foreground">{t('quantity')}: {item.quantity}</div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="font-semibold text-sm sm:text-base flex-shrink-0">
+                    {(item.price * item.quantity).toFixed(2)} {t('qar')}
+                  </div>
+                  <div className="flex items-center gap-1 border rounded-md">
+                    <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-accent" onClick={() => handleDecreaseQuantity(index)}>
+                      <Minus className="h-4 w-4" />
+                    </Button>
+                    <span className="px-2 text-sm font-medium min-w-[20px] text-center">{item.quantity}</span>
+                    <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-accent" onClick={() => handleIncreaseQuantity(index)}>
+                      <Plus className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              </div>)}
+            
+            <div className="pt-3 sm:pt-4 border-t">
+              <div className="flex justify-between items-center text-lg sm:text-xl font-bold gap-4">
+                <span className="truncate">{t('totalAmount')}</span>
+                <span className="text-primary flex-shrink-0">{calculateTotal().toFixed(2)} {t('qar')}</span>
+              </div>
+            </div>
+
+            <div className="pt-3 sm:pt-4 text-xs sm:text-sm text-muted-foreground">
+              <p>* {t('receiveEmail')}</p>
+              <p className="mt-2">* {t('presentQR')}</p>
+            </div>
+          </div>
+        </Card>
+
         <div className="grid lg:grid-cols-3 gap-4 sm:gap-6 md:gap-8">
           {/* Customer Information */}
           <div className="lg:col-span-2 space-y-4 sm:space-y-6">
@@ -896,47 +935,9 @@ const Checkout = () => {
             </Button>
           </div>
 
-          {/* Order Summary */}
+          {/* Back to Tickets */}
           <div className="lg:col-span-1">
-            <Card className="p-4 sm:p-5 md:p-6 lg:sticky lg:top-20">
-              <h2 className="text-xl sm:text-2xl font-semibold mb-4 sm:mb-6">{t('orderSummary')}</h2>
-              <div className="space-y-3 sm:space-y-4">
-                {selections.map((item, index) => <div key={index} className="flex justify-between items-center py-2 sm:py-3 border-b gap-4">
-                    <div className="flex-1 min-w-0">
-                      <div className="font-medium capitalize text-sm sm:text-base truncate">{getTicketTypeName(item.type)}</div>
-                      <div className="text-xs sm:text-sm text-muted-foreground">{t('quantity')}: {item.quantity}</div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <div className="font-semibold text-sm sm:text-base flex-shrink-0">
-                        {(item.price * item.quantity).toFixed(2)} {t('qar')}
-                      </div>
-                      <div className="flex items-center gap-1 border rounded-md">
-                        <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-accent" onClick={() => handleDecreaseQuantity(index)}>
-                          <Minus className="h-4 w-4" />
-                        </Button>
-                        <span className="px-2 text-sm font-medium min-w-[20px] text-center">{item.quantity}</span>
-                        <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-accent" onClick={() => handleIncreaseQuantity(index)}>
-                          <Plus className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </div>
-                  </div>)}
-                
-                <div className="pt-3 sm:pt-4 border-t">
-                  <div className="flex justify-between items-center text-lg sm:text-xl font-bold gap-4">
-                    <span className="truncate">{t('totalAmount')}</span>
-                    <span className="text-primary flex-shrink-0">{calculateTotal().toFixed(2)} {t('qar')}</span>
-                  </div>
-                </div>
-
-                <div className="pt-3 sm:pt-4 text-xs sm:text-sm text-muted-foreground">
-                  <p>* {t('receiveEmail')}</p>
-                  <p className="mt-2">* {t('presentQR')}</p>
-                </div>
-              </div>
-            </Card>
-
-            <div className="text-center mt-4 sm:mt-6">
+            <div className="text-center lg:sticky lg:top-20">
               <Button variant="ghost" onClick={() => navigate(`/tickets/${localStorage.getItem("selectedEventId") || ""}`)} className="w-full text-sm sm:text-base bg-yellow-500 hover:bg-yellow-600 text-black">
                 {t('backToTickets')}
               </Button>
