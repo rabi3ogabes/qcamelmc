@@ -254,6 +254,7 @@ export const InvoiceTab = () => {
       const ticketTypes = order.ticket_holders?.map(holder => holder.ticket_type) || [];
 
       const payload = {
+        order_id: order.id, // Include order ID for immediate database update
         booking_reference: order.booking_reference,
         customer_name: order.customers.name,
         customer_phone: order.customers.phone,
