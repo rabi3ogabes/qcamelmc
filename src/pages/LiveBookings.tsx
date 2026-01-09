@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { CalendarIcon, CheckCircle, XCircle, Users, LayoutGrid, Table as TableIcon, User, Phone, CreditCard, Hash, Maximize, Minimize, Globe, Store, Volume2, VolumeX, Clock } from "lucide-react";
+import { CalendarIcon, CheckCircle, XCircle, Users, LayoutGrid, Table as TableIcon, User, Phone, CreditCard, Hash, Maximize, Minimize, Globe, Store, Volume2, VolumeX, Clock, Send, SendHorizonal, CircleDashed } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -56,6 +56,8 @@ interface TicketHolder {
   confirmed_at?: string;
   order_id: string;
   booking_reference?: string;
+  payment_method?: string;
+  n8n_responded_at?: string | null;
 }
 
 interface Booking {
@@ -284,7 +286,9 @@ const LiveBookings = () => {
           order.ticket_holders.forEach((holder: any) => {
             allTicketHolders.push({
               ...holder,
-              booking_reference: order.booking_reference
+              booking_reference: order.booking_reference,
+              payment_method: order.payment_method,
+              n8n_responded_at: order.n8n_responded_at
             });
           });
         }
@@ -767,9 +771,19 @@ const LiveBookings = () => {
                     <div className="flex items-center gap-2">
                       <User className="w-4 h-4 text-primary flex-shrink-0" />
                       <span className="font-semibold text-sm truncate flex-1 min-w-0">{holder.name}</span>
-                      {holder.nationality && (
-                        <span className="text-lg flex-shrink-0">{getNationalityFlag(holder.nationality)}</span>
-                      )}
+                      <div className="flex flex-col items-center gap-1 flex-shrink-0">
+                        {holder.nationality && (
+                          <span className="text-lg">{getNationalityFlag(holder.nationality)}</span>
+                        )}
+                        {/* Invoice/POS Status Icon */}
+                        {holder.payment_method === 'cash_pos' ? (
+                          <span title="POS"><Store className="w-4 h-4 text-orange-500" /></span>
+                        ) : holder.n8n_responded_at ? (
+                          <span title="تم إرسال الفاتورة"><Send className="w-4 h-4 text-green-500" /></span>
+                        ) : (
+                          <span title="لم يتم إرسال الفاتورة"><CircleDashed className="w-4 h-4 text-muted-foreground" /></span>
+                        )}
+                      </div>
                     </div>
 
                     {/* Phone */}
