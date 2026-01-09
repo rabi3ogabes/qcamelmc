@@ -482,8 +482,8 @@ const Checkout = () => {
           sadadUrl: paymentResponse.sadadUrl
         }));
 
-        // Store pending order ID for callback page
-        localStorage.setItem('pendingOrderId', order.booking_reference);
+        // Store pending order ID for callback page (sessionStorage for tab isolation)
+        sessionStorage.setItem('pendingOrderId', order.booking_reference);
 
         // Redirect to payment submission page
         navigate('/sadad-redirect');

@@ -16,8 +16,8 @@ const SadadCallback = () => {
 
   const handleCallback = async () => {
     try {
-      // Try to get order ID from localStorage first (set during checkout)
-      const orderIdsString = localStorage.getItem('pendingOrderId');
+      // Try to get order ID from sessionStorage first (set during checkout, tab-isolated)
+      const orderIdsString = sessionStorage.getItem('pendingOrderId');
       let orderId = orderIdsString;
 
       // Also check URL parameters as fallback
@@ -79,7 +79,7 @@ const SadadCallback = () => {
         
         // Store order info for confirmation page
         localStorage.setItem('orderIds', JSON.stringify([order.id]));
-        localStorage.removeItem('pendingOrderId'); // Clean up
+        sessionStorage.removeItem('pendingOrderId'); // Clean up
         
         // Redirect to confirmation page after a short delay
         setTimeout(() => {
