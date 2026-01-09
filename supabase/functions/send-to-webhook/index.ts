@@ -57,6 +57,9 @@ Deno.serve(async (req) => {
     // Get the ticket data from request body
     const ticketData = await req.json();
     
+    // Extract order ID if present for marking as sent
+    const orderId = ticketData.order_id;
+    
     // Format phone numbers for webhook (country_code + phone without + and leading 0)
     const formatPhoneForWebhook = (countryCode: string, phone: string) => {
       const cleanCode = countryCode.replace('+', '').trim();
@@ -179,10 +182,55 @@ Deno.serve(async (req) => {
 
       console.log('✅ Webhook call successful');
 
+      // Parse response for message
+      let responseMessage = 'تم الإرسال بنجاح';
+      try {
+        const parsedResponse = JSON.parse(responseText);
+        if (parsedResponse.message) {
+          responseMessage = parsedResponse.message;
+        }
+      } catch {
+        // Use default message
+      }
+
+      // Immediately mark order as sent in database to prevent duplicate sends
+      if (orderId) {
+        console.log('Marking order as sent:', orderId);
+        const { error: updateError } = await supabase
+          .from('orders')
+          .update({
+            n8n_response_message: responseMessage,
+            n8n_responded_at: new Date().toISOString()
+          })
+          .eq('id', orderId);
+        
+        if (updateError) {
+          console.error('Error updating order status:', updateError);
+        } else {
+          console.log('Order marked as sent successfully');
+        }
+      } else if (ticketData.booking_reference) {
+        // Fallback: try to find order by booking reference
+        console.log('Marking order as sent by booking_reference:', ticketData.booking_reference);
+        const { error: updateError } = await supabase
+          .from('orders')
+          .update({
+            n8n_response_message: responseMessage,
+            n8n_responded_at: new Date().toISOString()
+          })
+          .eq('booking_reference', ticketData.booking_reference);
+        
+        if (updateError) {
+          console.error('Error updating order status by booking_reference:', updateError);
+        } else {
+          console.log('Order marked as sent successfully by booking_reference');
+        }
+      }
+
       return new Response(
         JSON.stringify({ 
           success: true, 
-          message: 'Data sent to webhook successfully',
+          message: responseMessage,
           response: responseText 
         }),
         { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
