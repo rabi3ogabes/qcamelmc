@@ -210,13 +210,38 @@ Deno.serve(async (req) => {
         body: JSON.stringify(payload),
       });
 
-      const responseData = await webhookResponse.json();
+      let responseData: any = {};
+      try {
+        responseData = await webhookResponse.json();
+      } catch (e) {
+        responseData = { message: 'No JSON response' };
+      }
+      
       console.log('Webhook response for', typedOrder.booking_reference, ':', responseData);
+      
+      const isSuccess = webhookResponse.ok && responseData.success !== false;
+      
+      // Immediately mark order as sent to prevent duplicate sends
+      if (isSuccess) {
+        const { error: markSentError } = await supabaseClient
+          .from('orders')
+          .update({
+            n8n_response_message: responseData.message || 'تم الإرسال تلقائياً',
+            n8n_responded_at: new Date().toISOString()
+          })
+          .eq('id', typedOrder.id);
+        
+        if (markSentError) {
+          console.error('Error marking order as sent:', markSentError);
+        } else {
+          console.log('Order marked as sent:', typedOrder.booking_reference);
+        }
+      }
       
       results.push({
         order_id: typedOrder.id,
         booking_reference: typedOrder.booking_reference,
-        success: webhookResponse.ok && responseData.success !== false
+        success: isSuccess
       });
     }
 
