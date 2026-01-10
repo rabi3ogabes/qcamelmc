@@ -15,6 +15,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import QRCodeLib from "qrcode";
 import { format } from "date-fns";
+import { ar } from "date-fns/locale";
 interface TicketHolder {
   id: string;
   name: string;
@@ -537,6 +538,14 @@ export const OrdersTab = ({
               <span className="text-xs font-medium capitalize">{order.payment_method}</span>
             </div>
           </div>
+        </div>
+
+        {/* Event Date - Centered */}
+        <div className="text-center py-2 bg-muted/30 rounded-md">
+          <p className="text-xs text-muted-foreground">تاريخ الفعالية</p>
+          <p className="text-sm font-semibold text-primary">
+            {format(new Date(order.events.event_date), "dd/MM/yyyy", { locale: ar })}
+          </p>
         </div>
 
         {/* Main Info Grid */}
