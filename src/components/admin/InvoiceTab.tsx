@@ -489,12 +489,21 @@ export const InvoiceTab = () => {
     }
   };
 
+  // Check if an order is truly sent (n8n responded with success, not just "sending" status)
+  const isPendingMessage = (message: string | null) => {
+    if (!message) return true;
+    // If message indicates still sending, treat as pending
+    return message === 'جاري الإرسال إلى واتساب...';
+  };
+
   // Filter orders based on selected tab
   const filteredOrders = orders.filter((order) => {
     if (filterTab === "pending") {
-      return !order.n8n_response_message;
+      // Pending = no message OR message is "sending" OR no n8n_responded_at
+      return isPendingMessage(order.n8n_response_message) || !order.n8n_responded_at;
     } else if (filterTab === "sent") {
-      return !!order.n8n_response_message;
+      // Sent = has actual response message (not "sending") AND has n8n_responded_at
+      return !isPendingMessage(order.n8n_response_message) && !!order.n8n_responded_at;
     }
     return true; // "all" tab shows everything
   });
