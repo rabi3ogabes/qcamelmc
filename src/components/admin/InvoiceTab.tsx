@@ -72,7 +72,10 @@ export const InvoiceTab = () => {
   const [currentlySending, setCurrentlySending] = useState<string | null>(null);
   const [autoInvoiceInterval, setAutoInvoiceInterval] = useState<number>(60);
   const [countdown, setCountdown] = useState<number>(60);
-  const [isCountdownActive, setIsCountdownActive] = useState(false);
+  const [isCountdownActive, setIsCountdownActive] = useState(() => {
+    const saved = localStorage.getItem('invoiceCountdownActive');
+    return saved === 'true';
+  });
   const [batchMin, setBatchMin] = useState<number>(1);
   const [batchMax, setBatchMax] = useState<number>(10);
   const [delayMin, setDelayMin] = useState<number>(300);
@@ -111,10 +114,10 @@ export const InvoiceTab = () => {
     };
   }, []);
 
+  // Persist countdown state to localStorage
   useEffect(() => {
-    // Don't auto-start countdown - wait for admin to start manually
-    setIsCountdownActive(false);
-  }, []);
+    localStorage.setItem('invoiceCountdownActive', isCountdownActive.toString());
+  }, [isCountdownActive]);
 
   useEffect(() => {
     let timer: NodeJS.Timeout;
