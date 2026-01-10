@@ -311,6 +311,54 @@ export type Database = {
           },
         ]
       }
+      page_views: {
+        Row: {
+          browser: string | null
+          city: string | null
+          country: string | null
+          country_code: string | null
+          device_type: string | null
+          id: string
+          ip_address: string | null
+          is_new_visitor: boolean | null
+          os: string | null
+          page_path: string
+          session_id: string
+          traffic_source: string | null
+          viewed_at: string
+        }
+        Insert: {
+          browser?: string | null
+          city?: string | null
+          country?: string | null
+          country_code?: string | null
+          device_type?: string | null
+          id?: string
+          ip_address?: string | null
+          is_new_visitor?: boolean | null
+          os?: string | null
+          page_path: string
+          session_id: string
+          traffic_source?: string | null
+          viewed_at?: string
+        }
+        Update: {
+          browser?: string | null
+          city?: string | null
+          country?: string | null
+          country_code?: string | null
+          device_type?: string | null
+          id?: string
+          ip_address?: string | null
+          is_new_visitor?: boolean | null
+          os?: string | null
+          page_path?: string
+          session_id?: string
+          traffic_source?: string | null
+          viewed_at?: string
+        }
+        Relationships: []
+      }
       popup_banners: {
         Row: {
           created_at: string | null
@@ -530,6 +578,33 @@ export type Database = {
       cleanup_stale_visitors: { Args: never; Returns: undefined }
       generate_booking_reference: { Args: never; Returns: string }
       generate_ticket_holder_reference: { Args: never; Returns: string }
+      get_page_view_stats: {
+        Args: { end_date: string; start_date: string }
+        Returns: {
+          page_path: string
+          unique_visitors: number
+          view_count: number
+        }[]
+      }
+      get_visitors_per_country: {
+        Args: { end_date: string; start_date: string }
+        Returns: {
+          country: string
+          country_code: string
+          total_visitors: number
+          unique_visitors: number
+        }[]
+      }
+      get_visitors_per_date: {
+        Args: { end_date: string; start_date: string }
+        Returns: {
+          new_visitors: number
+          returning_visitors: number
+          total_visitors: number
+          unique_visitors: number
+          visit_date: string
+        }[]
+      }
       is_admin: { Args: { user_id: string }; Returns: boolean }
     }
     Enums: {
