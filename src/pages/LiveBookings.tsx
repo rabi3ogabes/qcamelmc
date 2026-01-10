@@ -192,9 +192,8 @@ const LiveBookings = () => {
   }, []);
 
   useEffect(() => {
-    if (selectedDate) {
-      fetchBookings();
-    }
+    // Fetch bookings when selectedDate changes (including when set to undefined for "show all")
+    fetchBookings();
   }, [selectedDate]);
 
 
