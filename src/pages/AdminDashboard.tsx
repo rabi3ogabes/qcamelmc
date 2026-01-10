@@ -204,6 +204,14 @@ const AdminDashboard = () => {
               </Button>
               <Button
                 variant="outline"
+                onClick={() => window.open('/live-visitors', '_blank')}
+                className="font-lusail flex items-center justify-center gap-2 bg-green-500/10 hover:bg-green-500/20 border-green-500 text-green-600 dark:text-green-400 text-xs sm:text-sm w-full sm:w-auto"
+              >
+                <Eye className="w-4 h-4" />
+                الزوار المباشرون
+              </Button>
+              <Button
+                variant="outline"
                 onClick={() => window.open('/', '_blank')}
                 className="font-lusail flex items-center justify-center gap-2 text-xs sm:text-sm w-full sm:w-auto"
                 title={t("openMainWebsite")}
