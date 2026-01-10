@@ -26,6 +26,7 @@ const SadadRedirect = lazy(() => import("./pages/SadadRedirect"));
 const AdminLogin = lazy(() => import("./pages/AdminLogin"));
 const AdminDashboard = lazy(() => import("./pages/AdminDashboard"));
 const LiveBookings = lazy(() => import("./pages/LiveBookings"));
+const LiveVisitors = lazy(() => import("./pages/LiveVisitors"));
 const QRScanner = lazy(() => import("./pages/QRScanner"));
 const AdminPOS = lazy(() => import("./pages/AdminPOS"));
 const TicketViewer = lazy(() => import("./pages/TicketViewer"));
@@ -58,6 +59,7 @@ const App = () => (
                     <Route path="/sadad-callback" element={<SadadCallback />} />
                     <Route path="/sadad-redirect" element={<SadadRedirect />} />
                     <Route path="/live-bookings" element={<LiveBookings />} />
+                    <Route path="/live-visitors" element={<LiveVisitors />} />
                     <Route path="/admin/login" element={<AdminLogin />} />
                     <Route path="/admin/dashboard" element={<AdminDashboard />} />
                     <Route path="/admin/qr-scanner" element={<QRScanner />} />
