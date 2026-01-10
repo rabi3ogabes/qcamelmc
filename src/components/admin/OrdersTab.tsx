@@ -517,8 +517,15 @@ export const OrdersTab = ({
     order
   }: {
     order: Order;
-  }) => <Card className={`p-6 hover:shadow-lg transition-shadow ${order.sadad_manually_verified ? 'bg-green-50 dark:bg-green-950/20 border-green-200 dark:border-green-800' : ''}`}>
-      <div className="space-y-4">
+  }) => <Card className={`overflow-hidden hover:shadow-lg transition-shadow ${order.sadad_manually_verified ? 'bg-green-50 dark:bg-green-950/20 border-green-200 dark:border-green-800' : ''}`}>
+      {/* Event Date - Top Banner */}
+      <div className="text-center py-2 bg-primary text-primary-foreground">
+        <p className="text-sm font-semibold">
+          تاريخ الفعالية: {format(new Date(order.events.event_date), "dd/MM/yyyy", { locale: ar })}
+        </p>
+      </div>
+      
+      <div className="p-6 space-y-4">
         {/* Header Row - Reference and Status */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 pb-4 border-b">
           <div>
@@ -538,14 +545,6 @@ export const OrdersTab = ({
               <span className="text-xs font-medium capitalize">{order.payment_method}</span>
             </div>
           </div>
-        </div>
-
-        {/* Event Date - Centered */}
-        <div className="text-center py-2 bg-muted/30 rounded-md">
-          <p className="text-xs text-muted-foreground">تاريخ الفعالية</p>
-          <p className="text-sm font-semibold text-primary">
-            {format(new Date(order.events.event_date), "dd/MM/yyyy", { locale: ar })}
-          </p>
         </div>
 
         {/* Main Info Grid */}
