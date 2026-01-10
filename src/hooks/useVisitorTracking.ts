@@ -4,6 +4,22 @@ import { supabase } from "@/integrations/supabase/client";
 const SESSION_KEY = "visitor_session_id";
 const VISITOR_KEY = "is_returning_visitor";
 
+// Admin/backend pages that should not be tracked
+const EXCLUDED_PATHS = [
+  "/admin",
+  "/admin-login",
+  "/qr-scanner",
+  "/live-visitors",
+  "/live-bookings",
+  "/admin-pos",
+];
+
+// Check if current path should be tracked
+const shouldTrackPage = (): boolean => {
+  const path = window.location.pathname.toLowerCase();
+  return !EXCLUDED_PATHS.some(excluded => path.startsWith(excluded));
+};
+
 // Generate a unique session ID
 const generateSessionId = (): string => {
   return `${Date.now()}-${Math.random().toString(36).substring(2, 15)}`;
@@ -125,11 +141,44 @@ const fetchGeoInfo = async (): Promise<{
   }
 };
 
+// Record page view for historical analytics
+const recordPageView = async (
+  sessionId: string,
+  geoInfo: { ip: string; country: string; country_code: string; city: string }
+) => {
+  // Only track front-end pages
+  if (!shouldTrackPage()) return;
+
+  const pageViewData = {
+    session_id: sessionId,
+    page_path: window.location.pathname,
+    country: geoInfo.country,
+    country_code: geoInfo.country_code,
+    city: geoInfo.city,
+    device_type: getDeviceType(),
+    browser: getBrowser(),
+    os: getOS(),
+    traffic_source: getTrafficSource(),
+    is_new_visitor: isNewVisitor(),
+    ip_address: geoInfo.ip,
+  };
+
+  const { error } = await supabase.from("page_views").insert(pageViewData);
+
+  if (error) {
+    console.error("Error recording page view:", error);
+  }
+};
+
 export const useVisitorTracking = () => {
   const sessionIdRef = useRef<string>(getSessionId());
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const lastPageRef = useRef<string>("");
 
   useEffect(() => {
+    // Don't track admin/backend pages
+    if (!shouldTrackPage()) return;
+
     const sessionId = sessionIdRef.current;
     let isMounted = true;
 
@@ -163,9 +212,17 @@ export const useVisitorTracking = () => {
       if (error) {
         console.error("Error tracking visitor:", error);
       }
+
+      // Record page view for historical analytics (only if page changed)
+      if (lastPageRef.current !== window.location.pathname) {
+        lastPageRef.current = window.location.pathname;
+        await recordPageView(sessionId, geoInfo);
+      }
     };
 
     const updateActivity = async () => {
+      if (!shouldTrackPage()) return;
+
       const { error } = await supabase
         .from("active_visitors")
         .update({
@@ -176,6 +233,13 @@ export const useVisitorTracking = () => {
 
       if (error) {
         console.error("Error updating visitor activity:", error);
+      }
+
+      // Record page view if page changed
+      if (lastPageRef.current !== window.location.pathname) {
+        lastPageRef.current = window.location.pathname;
+        const geoInfo = await fetchGeoInfo();
+        await recordPageView(sessionId, geoInfo);
       }
     };
 
