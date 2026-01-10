@@ -182,55 +182,47 @@ Deno.serve(async (req) => {
 
       console.log('✅ Webhook call successful');
 
-      // Parse response for message
-      let responseMessage = 'تم الإرسال بنجاح';
-      try {
-        const parsedResponse = JSON.parse(responseText);
-        if (parsedResponse.message) {
-          responseMessage = parsedResponse.message;
-        }
-      } catch {
-        // Use default message
-      }
-
-      // Immediately mark order as sent in database to prevent duplicate sends
+      // Mark order as "sending" - waiting for n8n to process and respond back via n8n-response endpoint
+      // Do NOT set final message here - let n8n-response handle that
+      const pendingMessage = 'جاري الإرسال إلى واتساب...';
+      
       if (orderId) {
-        console.log('Marking order as sent:', orderId);
+        console.log('Marking order as pending (waiting for n8n response):', orderId);
         const { error: updateError } = await supabase
           .from('orders')
           .update({
-            n8n_response_message: responseMessage,
-            n8n_responded_at: new Date().toISOString()
+            n8n_response_message: pendingMessage,
+            n8n_responded_at: null // Keep null until n8n actually responds
           })
           .eq('id', orderId);
         
         if (updateError) {
           console.error('Error updating order status:', updateError);
         } else {
-          console.log('Order marked as sent successfully');
+          console.log('Order marked as pending successfully');
         }
       } else if (ticketData.booking_reference) {
         // Fallback: try to find order by booking reference
-        console.log('Marking order as sent by booking_reference:', ticketData.booking_reference);
+        console.log('Marking order as pending by booking_reference:', ticketData.booking_reference);
         const { error: updateError } = await supabase
           .from('orders')
           .update({
-            n8n_response_message: responseMessage,
-            n8n_responded_at: new Date().toISOString()
+            n8n_response_message: pendingMessage,
+            n8n_responded_at: null // Keep null until n8n actually responds
           })
           .eq('booking_reference', ticketData.booking_reference);
         
         if (updateError) {
           console.error('Error updating order status by booking_reference:', updateError);
         } else {
-          console.log('Order marked as sent successfully by booking_reference');
+          console.log('Order marked as pending successfully by booking_reference');
         }
       }
 
       return new Response(
         JSON.stringify({ 
           success: true, 
-          message: responseMessage,
+          message: pendingMessage,
           response: responseText 
         }),
         { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
