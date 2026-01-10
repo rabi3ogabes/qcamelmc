@@ -14,6 +14,63 @@ export type Database = {
   }
   public: {
     Tables: {
+      active_visitors: {
+        Row: {
+          browser: string | null
+          city: string | null
+          country: string | null
+          country_code: string | null
+          current_page: string
+          device_type: string | null
+          first_seen_at: string
+          id: string
+          ip_address: string | null
+          is_new_visitor: boolean | null
+          last_seen_at: string
+          os: string | null
+          referrer: string | null
+          session_id: string
+          traffic_source: string | null
+          user_agent: string | null
+        }
+        Insert: {
+          browser?: string | null
+          city?: string | null
+          country?: string | null
+          country_code?: string | null
+          current_page?: string
+          device_type?: string | null
+          first_seen_at?: string
+          id?: string
+          ip_address?: string | null
+          is_new_visitor?: boolean | null
+          last_seen_at?: string
+          os?: string | null
+          referrer?: string | null
+          session_id: string
+          traffic_source?: string | null
+          user_agent?: string | null
+        }
+        Update: {
+          browser?: string | null
+          city?: string | null
+          country?: string | null
+          country_code?: string | null
+          current_page?: string
+          device_type?: string | null
+          first_seen_at?: string
+          id?: string
+          ip_address?: string | null
+          is_new_visitor?: boolean | null
+          last_seen_at?: string
+          os?: string | null
+          referrer?: string | null
+          session_id?: string
+          traffic_source?: string | null
+          user_agent?: string | null
+        }
+        Relationships: []
+      }
       activity_logs: {
         Row: {
           action_data: Json
@@ -470,6 +527,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      cleanup_stale_visitors: { Args: never; Returns: undefined }
       generate_booking_reference: { Args: never; Returns: string }
       generate_ticket_holder_reference: { Args: never; Returns: string }
       is_admin: { Args: { user_id: string }; Returns: boolean }

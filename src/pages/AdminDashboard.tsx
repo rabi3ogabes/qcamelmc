@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { LogOut, ShoppingCart, Calendar, Ticket, Settings, ExternalLink, Image, ScanLine, Users, CreditCard, FileText } from "lucide-react";
+import { LogOut, ShoppingCart, Calendar, Ticket, Settings, ExternalLink, Image, ScanLine, Users, CreditCard, FileText, Eye } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { OrdersTab } from "@/components/admin/OrdersTab";
 import { EventsTab } from "@/components/admin/EventsTab";
@@ -15,6 +15,7 @@ import { CustomersTab } from "@/components/admin/CustomersTab";
 import { InvoiceTab } from "@/components/admin/InvoiceTab";
 import { ReportsTab } from "@/components/admin/ReportsTab";
 import { ActivityLogsTab } from "@/components/admin/ActivityLogsTab";
+import { VisitorAnalyticsTab } from "@/components/admin/VisitorAnalyticsTab";
 import "../i18n/config";
 
 interface Order {
@@ -237,9 +238,13 @@ const AdminDashboard = () => {
 
             <TabsContent value="settings">
               <Tabs defaultValue="general" className="w-full">
-                <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 mb-6 gap-2 h-auto">
+                <TabsList className="grid w-full grid-cols-2 sm:grid-cols-5 mb-6 gap-2 h-auto">
                   <TabsTrigger value="general" className="font-lusail text-xs sm:text-sm">
                     الإعدادات العامة
+                  </TabsTrigger>
+                  <TabsTrigger value="visitors" className="flex items-center gap-2 font-lusail text-xs sm:text-sm">
+                    <Eye className="w-3 h-3 sm:w-4 sm:h-4" />
+                    الزوار النشطون
                   </TabsTrigger>
                   <TabsTrigger value="popups" className="flex items-center gap-2 font-lusail text-xs sm:text-sm">
                     <Image className="w-3 h-3 sm:w-4 sm:h-4" />
@@ -257,6 +262,10 @@ const AdminDashboard = () => {
 
                 <TabsContent value="general">
                   <SettingsTab />
+                </TabsContent>
+
+                <TabsContent value="visitors">
+                  <VisitorAnalyticsTab />
                 </TabsContent>
 
                 <TabsContent value="popups">
