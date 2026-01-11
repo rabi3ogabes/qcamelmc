@@ -113,6 +113,9 @@ const LiveBookings = () => {
     sadad: { [key: string]: { total: number; present: number } };
     pos: { [key: string]: { total: number; present: number } };
   }>({ sadad: {}, pos: {} });
+  const [nationalityStats, setNationalityStats] = useState<{
+    [nationality: string]: { online: number; pos: number; total: number };
+  }>({});
 
   const getNationalityFlag = (nationality: string) => {
     const flagMap: { [key: string]: string } = {
@@ -435,6 +438,9 @@ const LiveBookings = () => {
       pos: { [key: string]: { total: number; present: number } };
     } = { sadad: {}, pos: {} };
 
+    // Calculate nationality breakdown by payment method
+    const nationalityBreakdown: { [nationality: string]: { online: number; pos: number; total: number } } = {};
+
     bookingsData.forEach(booking => {
       const ticketCount = booking.quantity || 0;
       const paymentKey = booking.payment_method === 'sadad' ? 'sadad' : 'pos';
@@ -456,6 +462,18 @@ const LiveBookings = () => {
         if (holder.is_present) {
           paymentByType[paymentKey][ticketType].present += 1;
         }
+
+        // Track nationality stats
+        const nationality = holder.nationality || 'غير محدد';
+        if (!nationalityBreakdown[nationality]) {
+          nationalityBreakdown[nationality] = { online: 0, pos: 0, total: 0 };
+        }
+        if (booking.payment_method === 'sadad') {
+          nationalityBreakdown[nationality].online += 1;
+        } else {
+          nationalityBreakdown[nationality].pos += 1;
+        }
+        nationalityBreakdown[nationality].total += 1;
       });
     });
 
@@ -463,6 +481,7 @@ const LiveBookings = () => {
     setTicketTypeStats(typeBreakdown);
     setPaymentMethodStats({ sadad: sadadCount, pos: posCount });
     setPaymentMethodByTypeStats(paymentByType);
+    setNationalityStats(nationalityBreakdown);
   };
 
   const togglePresence = async (bookingId: string, currentStatus: boolean | null | undefined) => {
@@ -720,33 +739,72 @@ const LiveBookings = () => {
           </div>
         </div>
 
-        {/* Ticket Type Breakdown */}
-        {Object.keys(ticketTypeStats).length > 0 && (
-          <div className="mb-8">
-            <h3 className="text-lg font-semibold mb-4">التذاكر حسب النوع</h3>
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
-              {Object.entries(ticketTypeStats)
-                .sort((a, b) => b[1].total - a[1].total)
-                .map(([type, stats]) => (
-                  <Card key={type} className="p-4 bg-gradient-to-br from-primary/10 to-primary/5 border-primary/20">
-                    <div className="text-center space-y-2">
-                      <Badge variant="outline" className="text-xs font-bold">
-                        {type.toUpperCase()}
-                      </Badge>
-                      <div>
-                        <p className="text-3xl font-bold text-primary">{stats.total}</p>
-                        <p className="text-xs text-muted-foreground">إجمالي التذاكر</p>
+        {/* Ticket Type & Nationality Breakdown */}
+        <div className="mb-8 grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Ticket Type Breakdown */}
+          {Object.keys(ticketTypeStats).length > 0 && (
+            <div>
+              <h3 className="text-lg font-semibold mb-4">التذاكر حسب النوع</h3>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                {Object.entries(ticketTypeStats)
+                  .sort((a, b) => b[1].total - a[1].total)
+                  .map(([type, stats]) => (
+                    <Card key={type} className="p-4 bg-gradient-to-br from-primary/10 to-primary/5 border-primary/20">
+                      <div className="text-center space-y-2">
+                        <Badge variant="outline" className="text-xs font-bold">
+                          {type.toUpperCase()}
+                        </Badge>
+                        <div>
+                          <p className="text-3xl font-bold text-primary">{stats.total}</p>
+                          <p className="text-xs text-muted-foreground">إجمالي التذاكر</p>
+                        </div>
+                        <div className="pt-2 border-t">
+                          <p className="text-2xl font-bold text-green-600">{stats.present}</p>
+                          <p className="text-xs text-muted-foreground">حاضر</p>
+                        </div>
                       </div>
-                      <div className="pt-2 border-t">
-                        <p className="text-2xl font-bold text-green-600">{stats.present}</p>
-                        <p className="text-xs text-muted-foreground">حاضر</p>
-                      </div>
-                    </div>
-                  </Card>
-                ))}
+                    </Card>
+                  ))}
+              </div>
             </div>
-          </div>
-        )}
+          )}
+
+          {/* Nationality Breakdown */}
+          {Object.keys(nationalityStats).length > 0 && (
+            <div>
+              <h3 className="text-lg font-semibold mb-4">التذاكر حسب الجنسية</h3>
+              <Card className="p-4">
+                <div className="space-y-3 max-h-80 overflow-y-auto">
+                  {Object.entries(nationalityStats)
+                    .sort((a, b) => b[1].total - a[1].total)
+                    .map(([nationality, stats]) => (
+                      <div key={nationality} className="flex items-center justify-between p-2 rounded-lg bg-muted/50 hover:bg-muted transition-colors">
+                        <div className="flex items-center gap-2">
+                          <span className="text-xl">{getNationalityFlag(nationality)}</span>
+                          <span className="font-medium text-sm">{nationality}</span>
+                        </div>
+                        <div className="flex items-center gap-4 text-sm">
+                          <div className="flex items-center gap-1">
+                            <Globe className="w-3 h-3 text-blue-500" />
+                            <span className="text-blue-600 font-semibold">{stats.online}</span>
+                          </div>
+                          <span className="text-muted-foreground">|</span>
+                          <div className="flex items-center gap-1">
+                            <Store className="w-3 h-3 text-orange-500" />
+                            <span className="text-orange-600 font-semibold">{stats.pos}</span>
+                          </div>
+                          <span className="text-muted-foreground">|</span>
+                          <Badge variant="secondary" className="text-xs">
+                            {stats.total}
+                          </Badge>
+                        </div>
+                      </div>
+                    ))}
+                </div>
+              </Card>
+            </div>
+          )}
+        </div>
 
         {/* Ticket Holders Display */}
         {viewType === "cards" ? (
