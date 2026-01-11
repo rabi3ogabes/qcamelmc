@@ -129,21 +129,34 @@ export const InvoiceTab = () => {
     }
   }, [isCountdownActive]);
 
+  // Calculate pending orders count
+  const pendingOrdersCount = orders.filter(o => !o.n8n_response_message).length;
+
   useEffect(() => {
     let timer: NodeJS.Timeout;
     
-    if (isCountdownActive && countdown > 0 && !sending) {
+    // Only run countdown if there are pending orders
+    const hasPendingOrders = pendingOrdersCount > 0;
+    
+    if (isCountdownActive && countdown > 0 && !sending && hasPendingOrders) {
       timer = setTimeout(() => {
         setCountdown(countdown - 1);
       }, 1000);
-    } else if (countdown === 0 && isCountdownActive && !sending) {
+    } else if (countdown === 0 && isCountdownActive && !sending && hasPendingOrders) {
       // Countdown reached 0, send invoices automatically
       sendInvoices();
       setCountdown(autoInvoiceInterval);
     }
 
     return () => clearTimeout(timer);
-  }, [countdown, isCountdownActive, sending]);
+  }, [countdown, isCountdownActive, sending, pendingOrdersCount]);
+
+  // Auto-restart countdown when pending orders appear
+  useEffect(() => {
+    if (isCountdownActive && pendingOrdersCount > 0 && countdown === 0) {
+      setCountdown(autoInvoiceInterval);
+    }
+  }, [pendingOrdersCount, isCountdownActive, autoInvoiceInterval]);
 
   const fetchWebhookUrl = async () => {
     const { data, error } = await supabase
