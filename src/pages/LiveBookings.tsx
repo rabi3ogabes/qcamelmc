@@ -58,6 +58,8 @@ interface TicketHolder {
   booking_reference?: string;
   payment_method?: string;
   n8n_responded_at?: string | null;
+  event_title?: string;
+  created_at?: string;
 }
 
 interface Booking {
@@ -290,7 +292,9 @@ const LiveBookings = () => {
               ...holder,
               booking_reference: order.booking_reference,
               payment_method: order.payment_method,
-              n8n_responded_at: order.n8n_responded_at
+              n8n_responded_at: order.n8n_responded_at,
+              event_title: order.events?.title,
+              created_at: order.created_at
             });
           });
         }
@@ -832,6 +836,13 @@ const LiveBookings = () => {
                   )}
                 >
                   <div className="flex flex-col gap-3">
+                    {/* Event Name - Header */}
+                    {holder.event_title && (
+                      <div className="bg-primary/10 rounded-md px-2 py-1 text-center">
+                        <span className="text-xs font-semibold text-primary truncate">{holder.event_title}</span>
+                      </div>
+                    )}
+
                     {/* Name and Flag */}
                     <div className="flex items-center gap-2">
                       <User className="w-4 h-4 text-primary flex-shrink-0" />
@@ -896,6 +907,15 @@ const LiveBookings = () => {
                     {holder.confirmed_at && (
                       <div className="text-xs text-muted-foreground text-center">
                         تم التأكيد: {format(new Date(holder.confirmed_at), 'dd/MM/yyyy - HH:mm')}
+                      </div>
+                    )}
+
+                    {/* Booking Date/Time - Footer */}
+                    {holder.created_at && (
+                      <div className="bg-muted/50 rounded-md px-2 py-1 text-center mt-1">
+                        <span className="text-[10px] text-muted-foreground">
+                          تم الحجز في: {format(new Date(holder.created_at), 'dd/MM/yyyy - HH:mm')}
+                        </span>
                       </div>
                     )}
                   </div>
