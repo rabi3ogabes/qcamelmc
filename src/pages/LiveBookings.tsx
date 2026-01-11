@@ -851,12 +851,14 @@ const LiveBookings = () => {
                   key={holder.id} 
                   className={cn(
                     "p-4 hover:shadow-xl transition-all duration-500 shadow-md",
-                    newTicketHolderIds.has(holder.id) && "animate-new-booking"
+                    newTicketHolderIds.has(holder.id) && "animate-new-booking",
+                    isRecent && "animate-recent-pulse"
                   )}
                   style={isRecent ? { 
+                    '--pulse-color': headerBgColor,
                     boxShadow: `0 0 0 3px ${headerBgColor}, 0 10px 25px -5px rgba(0, 0, 0, 0.1)`,
                     backgroundColor: `color-mix(in srgb, ${headerBgColor} 15%, transparent)`
-                  } : undefined}
+                  } as React.CSSProperties : undefined}
                 >
                   <div className="flex flex-col gap-3">
                     {/* Event Name - Header */}

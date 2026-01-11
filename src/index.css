@@ -120,4 +120,20 @@ All colors MUST be HSL.
     animation: new-booking-glow 1.5s ease-in-out 3;
     border: 2px solid hsl(142 76% 36% / 0.5);
   }
+
+  /* Recent booking pulse animation (5 min highlight) */
+  @keyframes recent-pulse {
+    0%, 100% {
+      transform: scale(1);
+      box-shadow: 0 0 0 3px var(--pulse-color), 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+    }
+    50% {
+      transform: scale(1.02);
+      box-shadow: 0 0 0 4px var(--pulse-color), 0 0 20px var(--pulse-color), 0 15px 30px -5px rgba(0, 0, 0, 0.15);
+    }
+  }
+
+  .animate-recent-pulse {
+    animation: recent-pulse 2s ease-in-out infinite;
+  }
 }
