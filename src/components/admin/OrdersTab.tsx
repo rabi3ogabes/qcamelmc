@@ -7,7 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { CheckCircle, MapPin, Calendar, Eye, QrCode, Loader2, XCircle, Printer, Trash2, Grid3x3, List, Search, Banknote, CreditCard } from "lucide-react";
+import { CheckCircle, MapPin, Calendar, Eye, QrCode, Loader2, XCircle, Printer, Trash2, Grid3x3, List, Search, Banknote, CreditCard, AlertCircle } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useTranslation } from "react-i18next";
@@ -37,6 +37,7 @@ interface Order {
   created_at: string;
   event_id: string;
   sadad_manually_verified?: boolean;
+  payment_error_reason?: string | null;
   customers: {
     name: string;
     email: string;
@@ -547,7 +548,17 @@ export const OrdersTab = ({
           </div>
         </div>
 
-        {/* Main Info Grid */}
+        {/* Payment Error Reason - Only show for failed/pending orders */}
+        {order.payment_status !== "confirmed" && order.payment_error_reason && (
+          <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-3 flex items-start gap-2">
+            <AlertCircle className="w-4 h-4 text-destructive mt-0.5 flex-shrink-0" />
+            <div>
+              <p className="text-xs font-semibold text-destructive mb-1">سبب الفشل:</p>
+              <p className="text-xs text-destructive/80">{order.payment_error_reason}</p>
+            </div>
+          </div>
+        )}
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pb-4">
           <div>
             <p className="text-sm text-muted-foreground mb-1">{t("customer")}</p>

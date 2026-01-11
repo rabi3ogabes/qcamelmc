@@ -126,14 +126,26 @@ Deno.serve(async (req) => {
     const isSuccess = transactionStatus === 'TXN_SUCCESS' || transactionStatus === '1' || transactionStatus === 1 || transactionStatus === 3;
     const paymentStatus = isSuccess ? 'confirmed' : 'cancelled';
     
-    console.log(`Payment status determined: ${paymentStatus} (from status: ${transactionStatus})`);
+    // Build error reason for failed payments
+    let paymentErrorReason: string | null = null;
+    if (!isSuccess) {
+      const errorParts: string[] = [];
+      if (message) errorParts.push(message);
+      if (transactionStatus && transactionStatus !== 'TXN_FAILURE') {
+        errorParts.push(`Status: ${transactionStatus}`);
+      }
+      paymentErrorReason = errorParts.length > 0 ? errorParts.join(' - ') : 'Payment failed or cancelled by user';
+    }
+    
+    console.log(`Payment status determined: ${paymentStatus} (from status: ${transactionStatus}), error: ${paymentErrorReason}`);
     
     const { error: updateError } = await supabase
       .from('orders')
       .update({
         payment_status: paymentStatus,
         payment_id: transactionNumber || null,
-        confirmed_at: paymentStatus === 'confirmed' ? new Date().toISOString() : null
+        confirmed_at: paymentStatus === 'confirmed' ? new Date().toISOString() : null,
+        payment_error_reason: paymentErrorReason
       })
       .eq('booking_reference', websiteRefNo)
 
