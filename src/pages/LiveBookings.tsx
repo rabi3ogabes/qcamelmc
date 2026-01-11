@@ -114,7 +114,7 @@ const LiveBookings = () => {
     pos: { [key: string]: { total: number; present: number } };
   }>({ sadad: {}, pos: {} });
   const [nationalityStats, setNationalityStats] = useState<{
-    [nationality: string]: { online: number; pos: number; total: number };
+    [nationality: string]: { online: number; pos: number; total: number; present: number };
   }>({});
 
   const getNationalityFlag = (nationality: string) => {
@@ -439,7 +439,7 @@ const LiveBookings = () => {
     } = { sadad: {}, pos: {} };
 
     // Calculate nationality breakdown by payment method
-    const nationalityBreakdown: { [nationality: string]: { online: number; pos: number; total: number } } = {};
+    const nationalityBreakdown: { [nationality: string]: { online: number; pos: number; total: number; present: number } } = {};
 
     bookingsData.forEach(booking => {
       const ticketCount = booking.quantity || 0;
@@ -466,7 +466,7 @@ const LiveBookings = () => {
         // Track nationality stats
         const nationality = holder.nationality || 'غير محدد';
         if (!nationalityBreakdown[nationality]) {
-          nationalityBreakdown[nationality] = { online: 0, pos: 0, total: 0 };
+          nationalityBreakdown[nationality] = { online: 0, pos: 0, total: 0, present: 0 };
         }
         if (booking.payment_method === 'sadad') {
           nationalityBreakdown[nationality].online += 1;
@@ -474,6 +474,9 @@ const LiveBookings = () => {
           nationalityBreakdown[nationality].pos += 1;
         }
         nationalityBreakdown[nationality].total += 1;
+        if (holder.is_present) {
+          nationalityBreakdown[nationality].present += 1;
+        }
       });
     });
 
@@ -783,7 +786,7 @@ const LiveBookings = () => {
                           <span className="text-xl">{getNationalityFlag(nationality)}</span>
                           <span className="font-medium text-sm">{nationality}</span>
                         </div>
-                        <div className="flex items-center gap-4 text-sm">
+                        <div className="flex items-center gap-3 text-sm">
                           <div className="flex items-center gap-1">
                             <Globe className="w-3 h-3 text-blue-500" />
                             <span className="text-blue-600 font-semibold">{stats.online}</span>
@@ -792,6 +795,11 @@ const LiveBookings = () => {
                           <div className="flex items-center gap-1">
                             <Store className="w-3 h-3 text-orange-500" />
                             <span className="text-orange-600 font-semibold">{stats.pos}</span>
+                          </div>
+                          <span className="text-muted-foreground">|</span>
+                          <div className="flex items-center gap-1">
+                            <CheckCircle className="w-3 h-3 text-green-500" />
+                            <span className="text-green-600 font-semibold">{stats.present}</span>
                           </div>
                           <span className="text-muted-foreground">|</span>
                           <Badge variant="secondary" className="text-xs">
