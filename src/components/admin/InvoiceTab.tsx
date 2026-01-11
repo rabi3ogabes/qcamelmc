@@ -334,13 +334,12 @@ export const InvoiceTab = () => {
     }
   };
 
-  const sendInvoices = async () => {
+  const sendInvoices = async (shouldRestartCountdown: boolean = true) => {
     if (!webhookUrl) {
       toast.error("لم يتم تكوين رابط الويب هوك. يرجى تحديثه في الإعدادات");
       return;
     }
 
-    setIsCountdownActive(false);
     setSending(true);
     const newSentOrders = new Map(sentOrders);
 
@@ -351,6 +350,9 @@ export const InvoiceTab = () => {
 
     if (allOrdersToSend.length === 0) {
       setSending(false);
+      if (shouldRestartCountdown && isCountdownActive) {
+        setCountdown(autoInvoiceInterval);
+      }
       toast.info("جميع الطلبات تم إرسالها بالفعل");
       return;
     }
@@ -398,7 +400,12 @@ export const InvoiceTab = () => {
 
     setSending(false);
     setCurrentlySending(null);
-    setCountdown(autoInvoiceInterval);
+    
+    // Restart countdown if it was active (auto-send mode)
+    if (shouldRestartCountdown && isCountdownActive) {
+      setCountdown(autoInvoiceInterval);
+    }
+    
     toast.success("تم الانتهاء من إرسال جميع الفواتير!");
   };
 
@@ -577,7 +584,7 @@ export const InvoiceTab = () => {
               )}
               
               <Button
-                onClick={sendInvoices}
+                onClick={() => sendInvoices(false)}
                 disabled={sending || orders.filter(o => !o.n8n_response_message).length === 0 || !webhookUrl}
                 className="gap-2 w-full sm:w-auto"
                 size="default"
