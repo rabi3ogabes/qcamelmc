@@ -118,6 +118,23 @@ const LiveBookings = () => {
   const [nationalityStats, setNationalityStats] = useState<{
     [nationality: string]: { online: number; pos: number; total: number; present: number };
   }>({});
+  const [, forceUpdate] = useState(0);
+
+  // Check if a booking is within the last 5 minutes (for highlight)
+  const isRecentBooking = (createdAt: string | undefined): boolean => {
+    if (!createdAt) return false;
+    const bookingTime = new Date(createdAt).getTime();
+    const fiveMinutesAgo = Date.now() - 5 * 60 * 1000;
+    return bookingTime > fiveMinutesAgo;
+  };
+
+  // Auto-refresh every 30 seconds to update highlight status
+  useEffect(() => {
+    const interval = setInterval(() => {
+      forceUpdate(n => n + 1);
+    }, 30000);
+    return () => clearInterval(interval);
+  }, []);
 
   const getNationalityFlag = (nationality: string) => {
     const flagMap: { [key: string]: string } = {
@@ -827,13 +844,19 @@ const LiveBookings = () => {
                 <p className="text-center text-muted-foreground font-lusail">{t("noBookingsForDate")}</p>
               </Card>
             ) : (
-              ticketHolders.map((holder) => (
+              ticketHolders.map((holder) => {
+                const isRecent = isRecentBooking(holder.created_at);
+                return (
                 <Card 
                   key={holder.id} 
                   className={cn(
-                    "p-4 hover:shadow-xl transition-shadow shadow-md",
+                    "p-4 hover:shadow-xl transition-all duration-500 shadow-md",
                     newTicketHolderIds.has(holder.id) && "animate-new-booking"
                   )}
+                  style={isRecent ? { 
+                    boxShadow: `0 0 0 3px ${headerBgColor}, 0 10px 25px -5px rgba(0, 0, 0, 0.1)`,
+                    backgroundColor: `color-mix(in srgb, ${headerBgColor} 15%, transparent)`
+                  } : undefined}
                 >
                   <div className="flex flex-col gap-3">
                     {/* Event Name - Header */}
@@ -920,7 +943,8 @@ const LiveBookings = () => {
                     )}
                   </div>
                 </Card>
-              ))
+              );
+              })
             )}
           </div>
         ) : (
