@@ -72,9 +72,14 @@ export const InvoiceTab = () => {
   const [currentlySending, setCurrentlySending] = useState<string | null>(null);
   const [autoInvoiceInterval, setAutoInvoiceInterval] = useState<number>(60);
   const [countdown, setCountdown] = useState<number>(60);
-  const [isCountdownActive, setIsCountdownActive] = useState(() => {
-    const saved = localStorage.getItem('invoiceCountdownActive');
-    return saved === 'true';
+  const [isCountdownActive, setIsCountdownActive] = useState<boolean>(() => {
+    try {
+      const saved = localStorage.getItem('invoiceCountdownActive');
+      console.log('Loading countdown state from localStorage:', saved);
+      return saved === 'true';
+    } catch {
+      return false;
+    }
   });
   const [batchMin, setBatchMin] = useState<number>(1);
   const [batchMax, setBatchMax] = useState<number>(10);
@@ -116,7 +121,12 @@ export const InvoiceTab = () => {
 
   // Persist countdown state to localStorage
   useEffect(() => {
-    localStorage.setItem('invoiceCountdownActive', isCountdownActive.toString());
+    try {
+      localStorage.setItem('invoiceCountdownActive', isCountdownActive.toString());
+      console.log('Saved countdown state to localStorage:', isCountdownActive);
+    } catch (e) {
+      console.error('Failed to save countdown state:', e);
+    }
   }, [isCountdownActive]);
 
   useEffect(() => {
