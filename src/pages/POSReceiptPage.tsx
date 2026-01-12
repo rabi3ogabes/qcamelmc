@@ -7,6 +7,15 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import * as XLSX from "xlsx";
 import { useNavigate } from "react-router-dom";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+
+type TicketType = "normal" | "vip" | "parking";
+
+const TICKET_PRICES: Record<TicketType, number> = {
+  normal: 200,
+  vip: 300,
+  parking: 500,
+};
 
 interface POSReceipt {
   id: string;
@@ -16,6 +25,7 @@ interface POSReceipt {
   time: string | null;
   auth_number: string | null;
   created_at: string;
+  ticket_type: string | null;
 }
 
 const POSReceiptPage = () => {
@@ -115,12 +125,30 @@ const POSReceiptPage = () => {
     }
   };
 
-  // Ticket price for calculating number of tickets (Normal ticket = 200 QAR)
-  const TICKET_PRICE = 200;
-
-  const calculateTicketCount = (amount: number | null): number | null => {
+  const calculateTicketCount = (amount: number | null, ticketType: string | null): number | null => {
     if (!amount || amount <= 0) return null;
-    return Math.round(amount / TICKET_PRICE);
+    const type = (ticketType as TicketType) || "normal";
+    const price = TICKET_PRICES[type];
+    return Math.round(amount / price);
+  };
+
+  const handleTicketTypeChange = async (receiptId: string, newType: TicketType) => {
+    try {
+      const { error } = await supabase
+        .from("pos_receipts")
+        .update({ ticket_type: newType })
+        .eq("id", receiptId);
+
+      if (error) throw error;
+
+      setReceipts((prev) =>
+        prev.map((r) => (r.id === receiptId ? { ...r, ticket_type: newType } : r))
+      );
+      toast.success("Ticket type updated");
+    } catch (error) {
+      console.error("Error updating ticket type:", error);
+      toast.error("Failed to update ticket type");
+    }
   };
 
   const handleExportToExcel = () => {
@@ -133,7 +161,8 @@ const POSReceiptPage = () => {
       "#": index + 1,
       "Amount (QAR)": r.amount_qar ?? "",
       "Seq Number": r.seq_number ?? "",
-      "Tickets": calculateTicketCount(r.amount_qar) ?? "",
+      "Ticket Type": r.ticket_type?.toUpperCase() ?? "NORMAL",
+      "Tickets": calculateTicketCount(r.amount_qar, r.ticket_type) ?? "",
       "Card Number": r.card_number_masked ?? "",
       "Time": r.time ?? "",
       "Auth Number": r.auth_number ?? "",
@@ -148,6 +177,7 @@ const POSReceiptPage = () => {
       { wch: 5 },
       { wch: 15 },
       { wch: 15 },
+      { wch: 12 },
       { wch: 10 },
       { wch: 20 },
       { wch: 12 },
@@ -299,6 +329,7 @@ const POSReceiptPage = () => {
                         <TableHead className="text-left w-10">#</TableHead>
                         <TableHead className="text-left">Amount (QAR)</TableHead>
                         <TableHead className="text-left">Seq Number</TableHead>
+                        <TableHead className="text-left">Type</TableHead>
                         <TableHead className="text-left">Tickets</TableHead>
                         <TableHead className="text-left">Card Number</TableHead>
                         <TableHead className="text-left">Time</TableHead>
@@ -319,8 +350,23 @@ const POSReceiptPage = () => {
                           <TableCell className="font-mono">
                             {receipt.seq_number ?? "-"}
                           </TableCell>
+                          <TableCell>
+                            <Select
+                              value={receipt.ticket_type || "normal"}
+                              onValueChange={(value) => handleTicketTypeChange(receipt.id, value as TicketType)}
+                            >
+                              <SelectTrigger className="w-24 h-8 text-xs">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="normal">Normal</SelectItem>
+                                <SelectItem value="vip">VIP</SelectItem>
+                                <SelectItem value="parking">Parking</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </TableCell>
                           <TableCell className="font-mono font-semibold text-primary">
-                            {calculateTicketCount(receipt.amount_qar) ?? "-"}
+                            {calculateTicketCount(receipt.amount_qar, receipt.ticket_type) ?? "-"}
                           </TableCell>
                           <TableCell className="font-mono text-xs">
                             {receipt.card_number_masked ?? "-"}

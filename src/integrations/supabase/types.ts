@@ -402,6 +402,7 @@ export type Database = {
           id: string
           image_url: string | null
           seq_number: string | null
+          ticket_type: string | null
           time: string | null
         }
         Insert: {
@@ -413,6 +414,7 @@ export type Database = {
           id?: string
           image_url?: string | null
           seq_number?: string | null
+          ticket_type?: string | null
           time?: string | null
         }
         Update: {
@@ -424,6 +426,7 @@ export type Database = {
           id?: string
           image_url?: string | null
           seq_number?: string | null
+          ticket_type?: string | null
           time?: string | null
         }
         Relationships: []
