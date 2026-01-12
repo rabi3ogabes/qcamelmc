@@ -927,7 +927,18 @@ const Checkout = () => {
               </RadioGroup>
             </Card>
 
-            <Button onClick={handleSubmit} className="w-full" size="lg" disabled={loading || !termsAccepted}>
+            <Button 
+              onClick={(e) => {
+                if (!termsAccepted) {
+                  toast.error("يرجى الموافقة على التعليمات أولاً قبل إتمام الحجز");
+                  return;
+                }
+                handleSubmit(e);
+              }} 
+              className="w-full" 
+              size="lg" 
+              disabled={loading}
+            >
               {loading ? <>
                   <Loader2 className="w-4 h-4 ml-2 animate-spin" />
                   {t('loading')}
