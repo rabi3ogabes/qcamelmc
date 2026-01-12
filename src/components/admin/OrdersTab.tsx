@@ -7,7 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { CheckCircle, MapPin, Calendar, Eye, QrCode, Loader2, XCircle, Printer, Trash2, Grid3x3, List, Search, Banknote, CreditCard, AlertCircle } from "lucide-react";
+import { CheckCircle, MapPin, Calendar, Eye, QrCode, Loader2, XCircle, Printer, Trash2, Grid3x3, List, Search, Banknote, CreditCard, AlertCircle, Ticket, Crown, Car } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useTranslation } from "react-i18next";
@@ -573,6 +573,20 @@ export const OrdersTab = ({
             <p className="text-sm text-muted-foreground mb-1">{t("reference")}</p>
             <p className="font-mono font-semibold text-primary text-sm">{order.booking_reference}</p>
           </div>
+          
+          {/* Ticket Icons */}
+          <div className="flex items-center gap-1">
+            {Array.from({ length: order.quantity }).map((_, i) => (
+              order.ticket_type === 'vip' ? (
+                <Crown key={i} className="w-5 h-5 text-yellow-500" />
+              ) : order.ticket_type === 'parking' ? (
+                <Car key={i} className="w-5 h-5 text-blue-500" />
+              ) : (
+                <Ticket key={i} className="w-5 h-5 text-primary" />
+              )
+            ))}
+          </div>
+          
           <div className="flex flex-col gap-2">
             <Badge variant={order.payment_status === "confirmed" ? "default" : order.payment_status === "cancelled" ? "destructive" : "secondary"} className="font-lusail text-sm px-3 py-0.5">
               {order.payment_status === "confirmed" ? t("confirmed") : order.payment_status === "cancelled" ? t("failed") : t("pending")}
