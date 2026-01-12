@@ -54,8 +54,57 @@ export const ReportsTab = () => {
 
       // Group orders by event date
       const groupedByEventDate: { [key: string]: any[] } = {};
+      // Group Sadad orders by purchase date
+      const groupedBySadadPurchaseDate: { [key: string]: any[] } = {};
+
+      const formatOrderData = (order: any) => {
+        // Count present ticket holders
+        const presentCount = order.ticket_holders?.filter((th: any) => th.is_present).length || 0;
+        const totalTickets = order.ticket_holders?.length || order.quantity || 0;
+        
+        // Calculate detailed quantity breakdown by ticket type
+        const ticketTypeBreakdown: { [key: string]: number } = {};
+        order.ticket_holders?.forEach((th: any) => {
+          const type = th.ticket_type;
+          ticketTypeBreakdown[type] = (ticketTypeBreakdown[type] || 0) + 1;
+        });
+        const detailedQuantity = Object.entries(ticketTypeBreakdown)
+          .map(([type, count]) => `${count} ${type}`)
+          .join(" + ") || `${totalTickets} ${order.ticket_type}`;
+        
+        // Get all ticket holder names
+        const ticketHolderNames = order.ticket_holders?.map((th: any) => th.name).join(", ") || "-";
+        
+        return {
+          "اسم الفعالية": order.events?.title || "-",
+          "معرف الدفع": order.payment_id || "-",
+          "طريقة الدفع": order.payment_method || "-",
+          "عدد التذاكر": detailedQuantity,
+          "حالة الدفع": order.payment_status || "-",
+          "المبلغ الإجمالي": order.total_amount || 0,
+          "رمز الحجز": order.booking_reference,
+          "اسم العميل": order.customers?.name || "-",
+          "البريد الإلكتروني": order.customers?.email || "-",
+          "رقم الهاتف": order.customers?.phone || "-",
+          "الجنسية": order.customers?.nationality || "-",
+          "رقم الهوية": order.customers?.id_number || "-",
+          "نوع التذكرة": order.ticket_type,
+          "تاريخ الفعالية": order.events?.event_date 
+            ? format(new Date(order.events.event_date), "dd/MM/yyyy", { locale: ar })
+            : "-",
+          "الموقع": order.events?.location || "-",
+          "عدد الحضور": presentCount,
+          "أسماء حاملي التذاكر": ticketHolderNames,
+          "تاريخ التأكيد": order.confirmed_at 
+            ? format(new Date(order.confirmed_at), "dd/MM/yyyy HH:mm", { locale: ar })
+            : "-",
+          "تاريخ الإنشاء": format(new Date(order.created_at), "dd/MM/yyyy HH:mm", { locale: ar }),
+          "رمز الاستجابة السريعة": order.qr_code || "-"
+        };
+      };
 
       orders.forEach((order: any) => {
+        // Group by event date
         if (order.events?.event_date) {
           const eventDate = order.events.event_date;
           const dateKey = format(new Date(eventDate), "yyyy-MM-dd");
@@ -63,55 +112,46 @@ export const ReportsTab = () => {
           if (!groupedByEventDate[dateKey]) {
             groupedByEventDate[dateKey] = [];
           }
+          groupedByEventDate[dateKey].push(formatOrderData(order));
+        }
 
-          // Count present ticket holders
-          const presentCount = order.ticket_holders?.filter((th: any) => th.is_present).length || 0;
-          const totalTickets = order.ticket_holders?.length || order.quantity || 0;
+        // Group Sadad orders by purchase date (created_at)
+        if (order.payment_method === "sadad" && order.payment_status === "confirmed") {
+          const purchaseDate = format(new Date(order.created_at), "yyyy-MM-dd");
           
-          // Calculate detailed quantity breakdown by ticket type
-          const ticketTypeBreakdown: { [key: string]: number } = {};
-          order.ticket_holders?.forEach((th: any) => {
-            const type = th.ticket_type;
-            ticketTypeBreakdown[type] = (ticketTypeBreakdown[type] || 0) + 1;
-          });
-          const detailedQuantity = Object.entries(ticketTypeBreakdown)
-            .map(([type, count]) => `${count} ${type}`)
-            .join(" + ") || `${totalTickets} ${order.ticket_type}`;
-          
-          // Get all ticket holder names
-          const ticketHolderNames = order.ticket_holders?.map((th: any) => th.name).join(", ") || "-";
-          
-          groupedByEventDate[dateKey].push({
-            "اسم الفعالية": order.events?.title || "-",
-            "معرف الدفع": order.payment_id || "-",
-            "طريقة الدفع": order.payment_method || "-",
-            "عدد التذاكر": detailedQuantity,
-            "حالة الدفع": order.payment_status || "-",
-            "المبلغ الإجمالي": order.total_amount || 0,
-            "رمز الحجز": order.booking_reference,
-            "اسم العميل": order.customers?.name || "-",
-            "البريد الإلكتروني": order.customers?.email || "-",
-            "رقم الهاتف": order.customers?.phone || "-",
-            "الجنسية": order.customers?.nationality || "-",
-            "رقم الهوية": order.customers?.id_number || "-",
-            "نوع التذكرة": order.ticket_type,
-            "تاريخ الفعالية": order.events?.event_date 
-              ? format(new Date(order.events.event_date), "dd/MM/yyyy", { locale: ar })
-              : "-",
-            "الموقع": order.events?.location || "-",
-            "عدد الحضور": presentCount,
-            "أسماء حاملي التذاكر": ticketHolderNames,
-            "تاريخ التأكيد": order.confirmed_at 
-              ? format(new Date(order.confirmed_at), "dd/MM/yyyy HH:mm", { locale: ar })
-              : "-",
-            "تاريخ الإنشاء": format(new Date(order.created_at), "dd/MM/yyyy HH:mm", { locale: ar }),
-            "رمز الاستجابة السريعة": order.qr_code || "-"
-          });
+          if (!groupedBySadadPurchaseDate[purchaseDate]) {
+            groupedBySadadPurchaseDate[purchaseDate] = [];
+          }
+          groupedBySadadPurchaseDate[purchaseDate].push(formatOrderData(order));
         }
       });
 
       // Create a new workbook
       const wb = XLSX.utils.book_new();
+
+      // Define column widths (reusable for all sheets)
+      const colWidths = [
+        { wch: 25 }, // اسم الفعالية
+        { wch: 20 }, // معرف الدفع
+        { wch: 15 }, // طريقة الدفع
+        { wch: 12 }, // عدد التذاكر
+        { wch: 15 }, // حالة الدفع
+        { wch: 12 }, // المبلغ الإجمالي
+        { wch: 15 }, // رمز الحجز
+        { wch: 20 }, // اسم العميل
+        { wch: 25 }, // البريد الإلكتروني
+        { wch: 15 }, // رقم الهاتف
+        { wch: 15 }, // الجنسية
+        { wch: 15 }, // رقم الهوية
+        { wch: 15 }, // نوع التذكرة
+        { wch: 15 }, // تاريخ الفعالية
+        { wch: 20 }, // الموقع
+        { wch: 12 }, // عدد الحضور
+        { wch: 40 }, // أسماء حاملي التذاكر
+        { wch: 18 }, // تاريخ التأكيد
+        { wch: 18 }, // تاريخ الإنشاء
+        { wch: 30 }  // رمز الاستجابة السريعة
+      ];
 
       // Create a sheet with ALL records first
       const allRecordsData = Object.keys(groupedByEventDate)
@@ -122,30 +162,6 @@ export const ReportsTab = () => {
       
       if (allRecordsData.length > 0) {
         const allRecordsSheet = XLSX.utils.json_to_sheet(allRecordsData);
-        
-        // Set column widths
-        const colWidths = [
-          { wch: 25 }, // اسم الفعالية
-          { wch: 20 }, // معرف الدفع
-          { wch: 15 }, // طريقة الدفع
-          { wch: 12 }, // عدد التذاكر
-          { wch: 15 }, // حالة الدفع
-          { wch: 12 }, // المبلغ الإجمالي
-          { wch: 15 }, // رمز الحجز
-          { wch: 20 }, // اسم العميل
-          { wch: 25 }, // البريد الإلكتروني
-          { wch: 15 }, // رقم الهاتف
-          { wch: 15 }, // الجنسية
-          { wch: 15 }, // رقم الهوية
-          { wch: 15 }, // نوع التذكرة
-          { wch: 15 }, // تاريخ الفعالية
-          { wch: 20 }, // الموقع
-          { wch: 12 }, // عدد الحضور
-          { wch: 40 }, // أسماء حاملي التذاكر
-          { wch: 18 }, // تاريخ التأكيد
-          { wch: 18 }, // تاريخ الإنشاء
-          { wch: 30 }  // رمز الاستجابة السريعة
-        ];
         allRecordsSheet['!cols'] = colWidths;
         
         // Add all records sheet as first sheet
@@ -165,35 +181,33 @@ export const ReportsTab = () => {
         
         // Create worksheet from data
         const ws = XLSX.utils.json_to_sheet(sheetData);
-        
-        // Set column widths
-        const colWidths = [
-          { wch: 25 }, // اسم الفعالية
-          { wch: 20 }, // معرف الدفع
-          { wch: 15 }, // طريقة الدفع
-          { wch: 12 }, // عدد التذاكر
-          { wch: 15 }, // حالة الدفع
-          { wch: 12 }, // المبلغ الإجمالي
-          { wch: 15 }, // رمز الحجز
-          { wch: 20 }, // اسم العميل
-          { wch: 25 }, // البريد الإلكتروني
-          { wch: 15 }, // رقم الهاتف
-          { wch: 15 }, // الجنسية
-          { wch: 15 }, // رقم الهوية
-          { wch: 15 }, // نوع التذكرة
-          { wch: 15 }, // تاريخ الفعالية
-          { wch: 20 }, // الموقع
-          { wch: 12 }, // عدد الحضور
-          { wch: 40 }, // أسماء حاملي التذاكر
-          { wch: 18 }, // تاريخ التأكيد
-          { wch: 18 }, // تاريخ الإنشاء
-          { wch: 30 }  // رمز الاستجابة السريعة
-        ];
         ws['!cols'] = colWidths;
         
         // Add worksheet to workbook
         XLSX.utils.book_append_sheet(wb, ws, sheetName);
       });
+
+      // Add Sadad purchases by date sheets
+      const sortedSadadDates = Object.keys(groupedBySadadPurchaseDate).sort();
+      
+      if (sortedSadadDates.length > 0) {
+        // Add a summary sheet for all Sadad purchases
+        const allSadadData = sortedSadadDates.flatMap(dateKey => groupedBySadadPurchaseDate[dateKey]);
+        const sadadSummarySheet = XLSX.utils.json_to_sheet(allSadadData);
+        sadadSummarySheet['!cols'] = colWidths;
+        XLSX.utils.book_append_sheet(wb, sadadSummarySheet, "جميع مشتريات سداد");
+
+        // Add individual sheets for each Sadad purchase date
+        sortedSadadDates.forEach((dateKey, index) => {
+          const sheetData = groupedBySadadPurchaseDate[dateKey];
+          const formattedDate = format(new Date(dateKey), "dd MMMM yyyy", { locale: ar });
+          const sheetName = `سداد ${index + 1} - ${formattedDate}`.substring(0, 31);
+          
+          const ws = XLSX.utils.json_to_sheet(sheetData);
+          ws['!cols'] = colWidths;
+          XLSX.utils.book_append_sheet(wb, ws, sheetName);
+        });
+      }
 
       // Generate file name with current date
       const fileName = `تقرير-التذاكر-${format(new Date(), "yyyy-MM-dd-HHmmss")}.xlsx`;
