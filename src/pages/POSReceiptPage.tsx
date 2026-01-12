@@ -31,6 +31,34 @@ const POSReceiptPage = () => {
 
   useEffect(() => {
     fetchReceipts();
+
+    // Set up real-time subscription
+    const channel = supabase
+      .channel("pos_receipts_realtime")
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "pos_receipts",
+        },
+        (payload) => {
+          if (payload.eventType === "INSERT") {
+            setReceipts((prev) => [payload.new as POSReceipt, ...prev]);
+          } else if (payload.eventType === "UPDATE") {
+            setReceipts((prev) =>
+              prev.map((r) => (r.id === payload.new.id ? (payload.new as POSReceipt) : r))
+            );
+          } else if (payload.eventType === "DELETE") {
+            setReceipts((prev) => prev.filter((r) => r.id !== payload.old.id));
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   const fetchReceipts = async () => {
@@ -94,7 +122,7 @@ const POSReceiptPage = () => {
 
       toast.success("Receipt read and saved successfully");
       setCapturedImage(null);
-      fetchReceipts();
+      // No need to fetchReceipts - realtime will handle it
     } catch (error) {
       console.error("Error processing receipt:", error);
       toast.error("Failed to process receipt");
@@ -110,7 +138,7 @@ const POSReceiptPage = () => {
       const { error } = await supabase.from("pos_receipts").delete().eq("id", id);
       if (error) throw error;
       toast.success("Receipt deleted");
-      fetchReceipts();
+      // No need to fetchReceipts - realtime will handle it
     } catch (error) {
       console.error("Error deleting receipt:", error);
       toast.error("Failed to delete receipt");
@@ -374,17 +402,81 @@ const POSReceiptPage = () => {
                   <p className="text-sm mt-1">Capture or upload an image to add a receipt</p>
                 </div>
               ) : (
-                <div className="overflow-x-auto">
-                  <Table>
+                <div className="overflow-x-auto -mx-4 sm:mx-0">
+                  {/* Mobile Card View */}
+                  <div className="block sm:hidden space-y-3 px-4">
+                    {receipts.map((receipt, index) => (
+                      <div
+                        key={receipt.id}
+                        className="bg-muted/30 rounded-lg p-4 border space-y-3"
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs text-muted-foreground">#{index + 1}</span>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="h-7 w-7 text-destructive hover:text-destructive hover:bg-destructive/10"
+                            onClick={() => handleDelete(receipt.id)}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
+                        <div className="grid grid-cols-2 gap-3 text-sm">
+                          <div>
+                            <p className="text-xs text-muted-foreground">Amount</p>
+                            <p className="font-mono font-semibold">{receipt.amount_qar?.toLocaleString() ?? "-"} QAR</p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-muted-foreground">Tickets</p>
+                            <Select
+                              value={receipt.num_tickets?.toString() || ""}
+                              onValueChange={(value) => handleNumTicketsChange(receipt.id, parseInt(value))}
+                            >
+                              <SelectTrigger className="w-20 h-8 text-xs">
+                                <SelectValue placeholder="-" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 20, 25, 30].map((n) => (
+                                  <SelectItem key={n} value={n.toString()}>{n}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div>
+                            <p className="text-xs text-muted-foreground">Seq #</p>
+                            <p className="font-mono text-sm">{receipt.seq_number ?? "-"}</p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-muted-foreground">Auth #</p>
+                            <p className="font-mono text-sm">{receipt.auth_number ?? "-"}</p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-muted-foreground">Card</p>
+                            <p className="font-mono text-xs">{receipt.card_number_masked ?? "-"}</p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-muted-foreground">Time</p>
+                            <p className="font-mono text-sm">{receipt.time ?? "-"}</p>
+                          </div>
+                        </div>
+                        <div className="text-xs text-muted-foreground pt-1 border-t">
+                          {new Date(receipt.created_at).toLocaleString("en-US")}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Desktop Table View */}
+                  <Table className="hidden sm:table">
                     <TableHeader>
                       <TableRow>
                         <TableHead className="text-left w-10">#</TableHead>
                         <TableHead className="text-left">Amount (QAR)</TableHead>
                         <TableHead className="text-left">Seq Number</TableHead>
                         <TableHead className="text-left">Tickets</TableHead>
-                        <TableHead className="text-left">Card Number</TableHead>
-                        <TableHead className="text-left">Time</TableHead>
-                        <TableHead className="text-left">Auth Number</TableHead>
+                        <TableHead className="text-left hidden md:table-cell">Card Number</TableHead>
+                        <TableHead className="text-left hidden lg:table-cell">Time</TableHead>
+                        <TableHead className="text-left hidden lg:table-cell">Auth Number</TableHead>
                         <TableHead className="text-left">Date</TableHead>
                         <TableHead className="text-left w-12">Delete</TableHead>
                       </TableRow>
@@ -418,13 +510,13 @@ const POSReceiptPage = () => {
                               </SelectContent>
                             </Select>
                           </TableCell>
-                          <TableCell className="font-mono text-xs">
+                          <TableCell className="font-mono text-xs hidden md:table-cell">
                             {receipt.card_number_masked ?? "-"}
                           </TableCell>
-                          <TableCell className="font-mono">
+                          <TableCell className="font-mono hidden lg:table-cell">
                             {receipt.time ?? "-"}
                           </TableCell>
-                          <TableCell className="font-mono">
+                          <TableCell className="font-mono hidden lg:table-cell">
                             {receipt.auth_number ?? "-"}
                           </TableCell>
                           <TableCell className="text-xs">
