@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Camera, FileDown, Trash2, Loader2, X, ArrowRight, ImageIcon } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import * as XLSX from "xlsx";
+import XLSX from "xlsx-js-style";
 import { useNavigate } from "react-router-dom";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
@@ -148,28 +148,78 @@ const POSReceiptPage = () => {
       day: "2-digit",
     });
 
-    const exportData = receipts.map((r, index) => ({
-      "#": index + 1,
-      "Amount (QAR)": r.amount_qar ?? "",
-      "Seq Number": r.seq_number ?? "",
-      "Tickets": r.num_tickets ?? "",
-      "Card Number": r.card_number_masked ?? "",
-      "Time": r.time ?? "",
-      "Auth Number": r.auth_number ?? "",
-      "Date Added": new Date(r.created_at).toLocaleString("en-US"),
-    }));
+    const headers = ["#", "Amount (QAR)", "Seq Number", "Tickets", "Card Number", "Time", "Auth Number", "Date Added"];
 
-    // Create worksheet with header
+    const exportData = receipts.map((r, index) => [
+      index + 1,
+      r.amount_qar ?? "",
+      r.seq_number ?? "",
+      r.num_tickets ?? "",
+      r.card_number_masked ?? "",
+      r.time ?? "",
+      r.auth_number ?? "",
+      new Date(r.created_at).toLocaleString("en-US"),
+    ]);
+
+    // Create worksheet with styled header
     const ws = XLSX.utils.aoa_to_sheet([
       [`كشف تحميل رسوم تذاكر دخول مهرجان قطر للابل- جزيلا العطا - بتاريخ ${today} (POS)`],
       [], // Empty row
+      headers,
+      ...exportData,
     ]);
 
-    // Merge cells for header
+    // Merge cells for title header
     ws["!merges"] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: 7 } }];
 
-    // Add data starting from row 3
-    XLSX.utils.sheet_add_json(ws, exportData, { origin: "A3" });
+    // Style the title header (row 1)
+    ws["A1"].s = {
+      font: { bold: true, sz: 14, color: { rgb: "FFFFFF" } },
+      fill: { fgColor: { rgb: "7C3AED" } },
+      alignment: { horizontal: "center", vertical: "center" },
+    };
+
+    // Style the column headers (row 3)
+    const headerStyle = {
+      font: { bold: true, sz: 11, color: { rgb: "FFFFFF" } },
+      fill: { fgColor: { rgb: "1E3A5F" } },
+      alignment: { horizontal: "center", vertical: "center" },
+      border: {
+        top: { style: "thin", color: { rgb: "000000" } },
+        bottom: { style: "thin", color: { rgb: "000000" } },
+        left: { style: "thin", color: { rgb: "000000" } },
+        right: { style: "thin", color: { rgb: "000000" } },
+      },
+    };
+
+    const cols = ["A", "B", "C", "D", "E", "F", "G", "H"];
+    cols.forEach((col) => {
+      const cell = ws[`${col}3`];
+      if (cell) cell.s = headerStyle;
+    });
+
+    // Style data rows with alternating colors
+    const dataStyle = (isEven: boolean) => ({
+      font: { sz: 10 },
+      fill: { fgColor: { rgb: isEven ? "F3F4F6" : "FFFFFF" } },
+      alignment: { horizontal: "center", vertical: "center" },
+      border: {
+        top: { style: "thin", color: { rgb: "E5E7EB" } },
+        bottom: { style: "thin", color: { rgb: "E5E7EB" } },
+        left: { style: "thin", color: { rgb: "E5E7EB" } },
+        right: { style: "thin", color: { rgb: "E5E7EB" } },
+      },
+    });
+
+    // Apply styles to data cells
+    for (let rowIdx = 0; rowIdx < exportData.length; rowIdx++) {
+      const excelRow = rowIdx + 4; // Data starts at row 4
+      const isEven = rowIdx % 2 === 0;
+      cols.forEach((col) => {
+        const cell = ws[`${col}${excelRow}`];
+        if (cell) cell.s = dataStyle(isEven);
+      });
+    }
 
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "POS Receipts");
@@ -179,11 +229,13 @@ const POSReceiptPage = () => {
       { wch: 15 },
       { wch: 15 },
       { wch: 10 },
-      { wch: 20 },
+      { wch: 22 },
       { wch: 12 },
       { wch: 15 },
       { wch: 20 },
     ];
+
+    ws["!rows"] = [{ hpt: 25 }, {}, { hpt: 22 }];
 
     const fileName = `pos_receipts_${new Date().toISOString().split("T")[0]}.xlsx`;
     XLSX.writeFile(wb, fileName);
