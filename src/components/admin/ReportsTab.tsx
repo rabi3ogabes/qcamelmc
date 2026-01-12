@@ -303,13 +303,15 @@ export const ReportsTab = () => {
         XLSX.utils.book_append_sheet(wb, allRecordsSheet, "جميع السجلات");
       }
 
-      // Sort dates and create sheets for each day
-      const sortedDates = Object.keys(groupedByEventDate).sort();
+      // Sort dates chronologically and create sheets for each event day
+      const sortedEventDates = Object.keys(groupedByEventDate).sort((a, b) => 
+        new Date(a).getTime() - new Date(b).getTime()
+      );
       
-      sortedDates.forEach((dateKey, index) => {
+      sortedEventDates.forEach((dateKey) => {
         const sheetData = groupedByEventDate[dateKey].sort(sortByStatus);
-        const formattedDate = format(new Date(dateKey), "dd MMMM yyyy", { locale: ar });
-        const sheetName = `اليوم ${index + 1} - ${formattedDate}`.substring(0, 31);
+        const formattedDate = format(new Date(dateKey), "dd-MM-yyyy", { locale: ar });
+        const sheetName = `فعالية ${formattedDate}`.substring(0, 31);
         
         let ws = XLSX.utils.json_to_sheet(sheetData);
         ws = applyStylesToSheet(ws, sheetData, colWidths);
@@ -317,8 +319,10 @@ export const ReportsTab = () => {
         XLSX.utils.book_append_sheet(wb, ws, sheetName);
       });
 
-      // Add Sadad purchases by date sheets
-      const sortedSadadDates = Object.keys(groupedBySadadPurchaseDate).sort();
+      // Add Sadad purchases by date sheets - sorted chronologically
+      const sortedSadadDates = Object.keys(groupedBySadadPurchaseDate).sort((a, b) => 
+        new Date(a).getTime() - new Date(b).getTime()
+      );
       
       if (sortedSadadDates.length > 0) {
         // Add a summary sheet for all Sadad purchases
@@ -330,11 +334,11 @@ export const ReportsTab = () => {
         sadadSummarySheet = addTotalRow(sadadSummarySheet, allSadadData, colWidths);
         XLSX.utils.book_append_sheet(wb, sadadSummarySheet, "جميع مشتريات سداد");
 
-        // Add individual sheets for each Sadad purchase date
-        sortedSadadDates.forEach((dateKey, index) => {
+        // Add individual sheets for each Sadad purchase date - sorted chronologically
+        sortedSadadDates.forEach((dateKey) => {
           const sheetData = groupedBySadadPurchaseDate[dateKey].sort(sortByStatus);
-          const formattedDate = format(new Date(dateKey), "dd MMMM yyyy", { locale: ar });
-          const sheetName = `سداد ${index + 1} - ${formattedDate}`.substring(0, 31);
+          const formattedDate = format(new Date(dateKey), "dd-MM-yyyy", { locale: ar });
+          const sheetName = `سداد ${formattedDate}`.substring(0, 31);
           
           let ws = XLSX.utils.json_to_sheet(sheetData);
           ws = applyStylesToSheet(ws, sheetData, colWidths);
