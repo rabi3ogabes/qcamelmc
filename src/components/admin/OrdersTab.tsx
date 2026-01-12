@@ -26,6 +26,45 @@ interface TicketHolder {
   is_present: boolean | null;
   price?: number;
 }
+
+// Country flag helper function
+const getCountryFlag = (nationality: string | undefined): string => {
+  if (!nationality) return '🌐';
+  const countryFlags: Record<string, string> = {
+    'قطر': '🇶🇦',
+    'السعودية': '🇸🇦',
+    'الإمارات': '🇦🇪',
+    'الكويت': '🇰🇼',
+    'البحرين': '🇧🇭',
+    'عمان': '🇴🇲',
+    'مصر': '🇪🇬',
+    'الأردن': '🇯🇴',
+    'لبنان': '🇱🇧',
+    'سوريا': '🇸🇾',
+    'العراق': '🇮🇶',
+    'اليمن': '🇾🇪',
+    'فلسطين': '🇵🇸',
+    'المغرب': '🇲🇦',
+    'تونس': '🇹🇳',
+    'الجزائر': '🇩🇿',
+    'ليبيا': '🇱🇾',
+    'السودان': '🇸🇩',
+    'الهند': '🇮🇳',
+    'باكستان': '🇵🇰',
+    'بنغلاديش': '🇧🇩',
+    'الفلبين': '🇵🇭',
+    'نيبال': '🇳🇵',
+    'سريلانكا': '🇱🇰',
+    'إندونيسيا': '🇮🇩',
+    'أمريكا': '🇺🇸',
+    'بريطانيا': '🇬🇧',
+    'فرنسا': '🇫🇷',
+    'ألمانيا': '🇩🇪',
+    'إيطاليا': '🇮🇹',
+    'أسبانيا': '🇪🇸',
+  };
+  return countryFlags[nationality] || '🌐';
+};
 interface Order {
   id: string;
   booking_reference: string;
@@ -42,6 +81,7 @@ interface Order {
     name: string;
     email: string;
     phone: string;
+    nationality?: string;
   };
   events?: {
     title: string;
@@ -562,7 +602,10 @@ export const OrdersTab = ({
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pb-4">
           <div>
             <p className="text-sm text-muted-foreground mb-1">{t("customer")}</p>
-            <p className="font-semibold">{order.customers.name}</p>
+            <p className="font-semibold flex items-center gap-2">
+              <span className="text-xl">{getCountryFlag(order.customers.nationality)}</span>
+              {order.customers.name}
+            </p>
             <p className="text-xs text-muted-foreground">{order.customers.phone}</p>
             <p className="text-sm text-muted-foreground">{order.customers.email}</p>
           </div>

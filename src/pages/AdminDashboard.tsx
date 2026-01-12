@@ -29,7 +29,7 @@ interface Order {
   created_at: string;
   event_id: string;
   payment_error_reason?: string | null;
-  customers: { name: string; email: string; phone: string };
+  customers: { name: string; email: string; phone: string; nationality?: string };
   events: { title: string; event_date: string; location: string };
 }
 
@@ -107,7 +107,7 @@ const AdminDashboard = () => {
     try {
       const { data, error } = await supabase
         .from("orders")
-        .select("*, customers(name, email, phone), events(title, event_date, location), payment_error_reason")
+        .select("*, customers(name, email, phone, nationality), events(title, event_date, location), payment_error_reason")
         .order("created_at", { ascending: false });
 
       if (error) throw error;
