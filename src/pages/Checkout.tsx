@@ -634,10 +634,10 @@ const Checkout = () => {
                     required 
                     minLength={3}
                     pattern=".{3,}"
-                    title="يجب أن يحتوي الاسم على 3 أحرف على الأقل"
+                    title="اكتب اسمك الكامل الحقيقي"
                   />
                   {customerInfo.name.length > 0 && customerInfo.name.length < 3 && (
-                    <p className="text-xs text-destructive mt-1">يجب أن يحتوي الاسم على 3 أحرف على الأقل</p>
+                    <p className="text-xs text-destructive mt-1">اكتب اسمك الكامل الحقيقي</p>
                   )}
                 </div>
                 <div>
