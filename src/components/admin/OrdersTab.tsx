@@ -61,7 +61,7 @@ const getCountryFlag = (nationality: string | undefined): string => {
     'فرنسا': '🇫🇷',
     'ألمانيا': '🇩🇪',
     'إيطاليا': '🇮🇹',
-    'أسبانيا': '🇪🇸',
+    'أسبانيا': '🇪🇸'
   };
   return countryFlags[nationality] || '🌐';
 };
@@ -104,7 +104,7 @@ export const OrdersTab = ({
   const [activeTab, setActiveTab] = useState("success");
   const [viewMode, setViewMode] = useState<"grid" | "list">(() => {
     const saved = localStorage.getItem("ordersViewMode");
-    return (saved === "grid" || saved === "list") ? saved : "list";
+    return saved === "grid" || saved === "list" ? saved : "list";
   });
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedEventFilter, setSelectedEventFilter] = useState<string>("all");
@@ -116,7 +116,11 @@ export const OrdersTab = ({
   const [orderToDelete, setOrderToDelete] = useState<string | null>(null);
   const [showDeleteButton, setShowDeleteButton] = useState(false);
   const [showGenerateQrButton, setShowGenerateQrButton] = useState(false);
-  const [availableEvents, setAvailableEvents] = useState<Array<{ id: string; title: string; event_date: string }>>([]);
+  const [availableEvents, setAvailableEvents] = useState<Array<{
+    id: string;
+    title: string;
+    event_date: string;
+  }>>([]);
 
   // Generate QR code image when selectedHolder changes
   useEffect(() => {
@@ -139,23 +143,19 @@ export const OrdersTab = ({
       setQrCodeImage(null);
     }
   }, [selectedHolder]);
-
   useEffect(() => {
     localStorage.setItem("ordersViewMode", viewMode);
   }, [viewMode]);
-
   useEffect(() => {
     fetchSettings();
     fetchAvailableEvents();
   }, []);
-
   const fetchSettings = async () => {
     try {
-      const { data, error } = await supabase
-        .from("settings")
-        .select("show_delete_customer_button, show_generate_qr_button")
-        .single();
-
+      const {
+        data,
+        error
+      } = await supabase.from("settings").select("show_delete_customer_button, show_generate_qr_button").single();
       if (error) throw error;
       if (data) {
         setShowDeleteButton(data.show_delete_customer_button || false);
@@ -165,31 +165,33 @@ export const OrdersTab = ({
       console.error("Error fetching settings:", error);
     }
   };
-
   const fetchAvailableEvents = async () => {
     try {
-      const { data, error } = await supabase
-        .from("events")
-        .select("id, title, event_date")
-        .eq("is_active", true)
-        .order("event_date", { ascending: true });
-
+      const {
+        data,
+        error
+      } = await supabase.from("events").select("id, title, event_date").eq("is_active", true).order("event_date", {
+        ascending: true
+      });
       if (error) throw error;
       setAvailableEvents(data || []);
     } catch (error) {
       console.error("Error fetching events:", error);
     }
   };
-
   const changeOrderEvent = async (orderId: string, newEventId: string) => {
     try {
       // Call edge function to change event and regenerate QR codes
-      const { data, error } = await supabase.functions.invoke('change-order-event', {
-        body: { order_id: orderId, new_event_id: newEventId }
+      const {
+        data,
+        error
+      } = await supabase.functions.invoke('change-order-event', {
+        body: {
+          order_id: orderId,
+          new_event_id: newEventId
+        }
       });
-
       if (error) throw error;
-      
       if (data?.success) {
         toast.success(`تم تغيير تاريخ الفعالية بنجاح وإنشاء ${data.expired_qr_codes} رموز QR جديدة`);
         onRefresh();
@@ -204,35 +206,24 @@ export const OrdersTab = ({
 
   // Real-time subscription for ticket holders updates
   useEffect(() => {
-    const channel = supabase
-      .channel('ticket-holders-changes')
-      .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'ticket_holders'
-        },
-        (payload) => {
-          console.log('Ticket holder updated:', payload);
-          
-          // Update the ticket holders list if viewing details
-          if (selectedOrder) {
-            setTicketHolders((current) =>
-              current.map((holder) =>
-                holder.id === payload.new.id
-                  ? { ...holder, ...payload.new }
-                  : holder
-              )
-            );
-          }
-          
-          // Also refresh the orders list to update the main view
-          onRefresh();
-        }
-      )
-      .subscribe();
+    const channel = supabase.channel('ticket-holders-changes').on('postgres_changes', {
+      event: 'UPDATE',
+      schema: 'public',
+      table: 'ticket_holders'
+    }, payload => {
+      console.log('Ticket holder updated:', payload);
 
+      // Update the ticket holders list if viewing details
+      if (selectedOrder) {
+        setTicketHolders(current => current.map(holder => holder.id === payload.new.id ? {
+          ...holder,
+          ...payload.new
+        } : holder));
+      }
+
+      // Also refresh the orders list to update the main view
+      onRefresh();
+    }).subscribe();
     return () => {
       supabase.removeChannel(channel);
     };
@@ -258,47 +249,38 @@ export const OrdersTab = ({
     setSelectedOrder(orderId);
     try {
       // First get the order to know which event_id
-      const { data: orderData, error: orderError } = await supabase
-        .from("orders")
-        .select("event_id")
-        .eq("id", orderId)
-        .single();
-      
+      const {
+        data: orderData,
+        error: orderError
+      } = await supabase.from("orders").select("event_id").eq("id", orderId).single();
       if (orderError) throw orderError;
-      
+
       // Fetch ticket holders with ticket prices
       const {
         data,
         error
-      } = await supabase
-        .from("ticket_holders")
-        .select(`
+      } = await supabase.from("ticket_holders").select(`
           *,
           orders!inner(event_id)
-        `)
-        .eq("order_id", orderId);
-      
+        `).eq("order_id", orderId);
       if (error) throw error;
-      
+
       // Fetch ticket prices for this event
-      const { data: ticketsData, error: ticketsError } = await supabase
-        .from("tickets")
-        .select("type, price")
-        .eq("event_id", orderData.event_id);
-      
+      const {
+        data: ticketsData,
+        error: ticketsError
+      } = await supabase.from("tickets").select("type, price").eq("event_id", orderData.event_id);
       if (ticketsError) throw ticketsError;
-      
+
       // Add prices to ticket holders
       const ticketPriceMap = ticketsData?.reduce((acc, ticket) => {
         acc[ticket.type] = ticket.price;
         return acc;
       }, {} as Record<string, number>) || {};
-      
       const holdersWithPrices = (data || []).map(holder => ({
         ...holder,
         price: ticketPriceMap[holder.ticket_type] || 0
       }));
-      
       console.log("Ticket holders data with prices:", holdersWithPrices);
       setTicketHolders(holdersWithPrices as any);
     } catch (error) {
@@ -320,43 +302,43 @@ export const OrdersTab = ({
       toast.error(t("failedToLoad"));
     }
   };
-
   const togglePaymentStatus = async (orderId: string, currentStatus: string) => {
     try {
       console.log('=== Starting togglePaymentStatus ===');
       console.log('Order ID:', orderId);
       console.log('Current Status:', currentStatus);
-      
       const newStatus = currentStatus === "confirmed" ? "cancelled" : "confirmed";
       console.log('New Status:', newStatus);
-      
+
       // Fetch full order details before updating
       console.log('Fetching order data...');
-      const { data: orderData, error: fetchError } = await supabase
-        .from("orders")
-        .select(`
+      const {
+        data: orderData,
+        error: fetchError
+      } = await supabase.from("orders").select(`
           *,
           customers(*),
           events(*),
           ticket_holders(*)
-        `)
-        .eq("id", orderId)
-        .single();
-      
+        `).eq("id", orderId).single();
       if (fetchError) {
         console.error('Error fetching order data:', fetchError);
         throw fetchError;
       }
-      
       console.log('Order data fetched successfully');
-      
+
       // Get current admin user ID
-      const { data: { user } } = await supabase.auth.getUser();
-      
+      const {
+        data: {
+          user
+        }
+      } = await supabase.auth.getUser();
+
       // Update the order status with confirmed_at and confirmed_by
       console.log('Updating order status...');
-      const updateData: any = { payment_status: newStatus };
-      
+      const updateData: any = {
+        payment_status: newStatus
+      };
       if (newStatus === "confirmed") {
         updateData.confirmed_at = new Date().toISOString();
         updateData.confirmed_by = user?.id || null;
@@ -365,109 +347,100 @@ export const OrdersTab = ({
         updateData.confirmed_at = null;
         updateData.confirmed_by = null;
       }
-      
-      const { error } = await supabase
-        .from("orders")
-        .update(updateData)
-        .eq("id", orderId);
-      
+      const {
+        error
+      } = await supabase.from("orders").update(updateData).eq("id", orderId);
       if (error) {
         console.error('Error updating order:', error);
         throw error;
       }
-      
       console.log('Order status updated successfully with confirmed_at and confirmed_by');
-      
+
       // Also update ticket_holders with the same confirmation details
       if (newStatus === "confirmed") {
-        const { error: ticketHoldersError } = await supabase
-          .from("ticket_holders")
-          .update({
-            confirmed_at: updateData.confirmed_at,
-            confirmed_by: updateData.confirmed_by
-          })
-          .eq("order_id", orderId);
-        
+        const {
+          error: ticketHoldersError
+        } = await supabase.from("ticket_holders").update({
+          confirmed_at: updateData.confirmed_at,
+          confirmed_by: updateData.confirmed_by
+        }).eq("order_id", orderId);
         if (ticketHoldersError) {
           console.error('Error updating ticket holders:', ticketHoldersError);
         } else {
           console.log('Ticket holders updated with confirmation details');
         }
-        
+
         // Generate QR code images for all ticket holders and WAIT for completion
         console.log('Generating QR code images...');
-        const { data: qrResponse, error: qrError } = await supabase.functions.invoke('backfill-qr-codes');
-        
+        const {
+          data: qrResponse,
+          error: qrError
+        } = await supabase.functions.invoke('backfill-qr-codes');
         if (qrError) {
           console.error('Error generating QR codes:', qrError);
           toast.error('تم التأكيد لكن فشل توليد رموز QR');
         } else {
           console.log('QR codes generated successfully:', qrResponse);
-          
+
           // Wait a moment for database to update
           await new Promise(resolve => setTimeout(resolve, 1000));
         }
       } else {
         // Clear ticket holders confirmation when cancelling
-        const { error: ticketHoldersError } = await supabase
-          .from("ticket_holders")
-          .update({
-            confirmed_at: null,
-            confirmed_by: null
-          })
-          .eq("order_id", orderId);
-        
+        const {
+          error: ticketHoldersError
+        } = await supabase.from("ticket_holders").update({
+          confirmed_at: null,
+          confirmed_by: null
+        }).eq("order_id", orderId);
         if (ticketHoldersError) {
           console.error('Error clearing ticket holders confirmation:', ticketHoldersError);
         }
       }
-      
+
       // Send to webhook with updated status
       if (newStatus === "confirmed") {
         try {
           // Re-fetch order data with updated ticket_holders
-          const { data: updatedOrderData, error: refetchError } = await supabase
-            .from("orders")
-            .select(`
+          const {
+            data: updatedOrderData,
+            error: refetchError
+          } = await supabase.from("orders").select(`
               *,
               customers (*),
               events (*),
               ticket_holders (*)
-            `)
-            .eq("id", orderId)
-            .single();
-          
+            `).eq("id", orderId).single();
           if (refetchError) {
             console.error('Error re-fetching order:', refetchError);
             throw refetchError;
           }
-          
           const webhookData = {
             ...updatedOrderData,
             action: "payment_confirmed",
             timestamp: new Date().toISOString()
           };
-          
           console.log('=== Sending to webhook ===');
-          
-          const { data: webhookResponse, error: webhookError } = await supabase.functions.invoke('send-to-webhook', {
+          const {
+            data: webhookResponse,
+            error: webhookError
+          } = await supabase.functions.invoke('send-to-webhook', {
             body: webhookData
           });
-          
           if (webhookError) {
             console.error('Webhook invocation error:', webhookError);
             toast.error('تم تحديث الحالة لكن فشل الإرسال للنظام: ' + webhookError.message);
           } else if (webhookResponse?.error) {
             console.error('Webhook returned error:', webhookResponse);
-            
+
             // Show specific error messages based on the response
             if (webhookResponse.status === 404) {
               toast.error('⚠️ تم تحديث الحالة لكن n8n webhook غير نشط!\n\nالحل: قم بتفعيل الـ workflow في n8n (اضغط على Toggle في أعلى الصفحة)', {
-                duration: 8000,
+                duration: 8000
               });
             } else if (webhookResponse.solution) {
               toast.error('تم تحديث الحالة لكن: ' + webhookResponse.solution, {
-                duration: 8000,
+                duration: 8000
               });
             } else {
               toast.error('تم تحديث الحالة لكن فشل الإرسال للنظام');
@@ -483,7 +456,6 @@ export const OrdersTab = ({
       } else {
         toast.success("تم إلغاء تأكيد الحجز");
       }
-      
       console.log('=== Finished togglePaymentStatus ===');
       onRefresh();
     } catch (error: any) {
@@ -491,38 +463,30 @@ export const OrdersTab = ({
       toast.error("فشل في تغيير حالة الحجز: " + (error?.message || 'خطأ غير معروف'));
     }
   };
-
   const deleteOrder = async () => {
     if (!orderToDelete) {
       console.error("No order selected for deletion");
       return;
     }
-    
     console.log("Deleting order:", orderToDelete);
-    
     try {
       // First delete ticket holders
-      const { error: ticketError } = await supabase
-        .from("ticket_holders")
-        .delete()
-        .eq("order_id", orderToDelete);
-      
+      const {
+        error: ticketError
+      } = await supabase.from("ticket_holders").delete().eq("order_id", orderToDelete);
       if (ticketError) {
         console.error("Error deleting ticket holders:", ticketError);
         throw ticketError;
       }
 
       // Then delete the order
-      const { error: orderError } = await supabase
-        .from("orders")
-        .delete()
-        .eq("id", orderToDelete);
-      
+      const {
+        error: orderError
+      } = await supabase.from("orders").delete().eq("id", orderToDelete);
       if (orderError) {
         console.error("Error deleting order:", orderError);
         throw orderError;
       }
-
       console.log("Order deleted successfully");
       toast.success("تم حذف الطلب والتذاكر بنجاح");
       setOrderToDelete(null);
@@ -538,21 +502,16 @@ export const OrdersTab = ({
     let filtered = orders;
     if (status === "success") filtered = orders.filter(o => o.payment_status === "confirmed");
     if (status === "failed") filtered = orders.filter(o => o.payment_status === "cancelled" || o.payment_status === "pending");
-    
+
     // Apply event date filter
     if (selectedEventFilter !== "all") {
       filtered = filtered.filter(o => o.event_id === selectedEventFilter);
     }
-    
+
     // Apply search filter
     if (!searchQuery.trim()) return filtered;
-    
     const query = searchQuery.toLowerCase().trim();
-    return filtered.filter(o => 
-      o.booking_reference.toLowerCase().includes(query) ||
-      o.customers.name.toLowerCase().includes(query) ||
-      o.customers.phone.toLowerCase().includes(query)
-    );
+    return filtered.filter(o => o.booking_reference.toLowerCase().includes(query) || o.customers.name.toLowerCase().includes(query) || o.customers.phone.toLowerCase().includes(query));
   };
   const OrderCard = ({
     order
@@ -562,7 +521,9 @@ export const OrdersTab = ({
       {/* Event Date - Top Banner */}
       <div className="text-center py-2 bg-primary text-primary-foreground">
         <p className="text-sm font-semibold">
-          تاريخ الفعالية: {format(new Date(order.events.event_date), "dd/MM/yyyy", { locale: ar })}
+          تاريخ الفعالية: {format(new Date(order.events.event_date), "dd/MM/yyyy", {
+          locale: ar
+        })}
         </p>
       </div>
       
@@ -571,20 +532,14 @@ export const OrdersTab = ({
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 pb-4 border-b">
           <div>
             <p className="text-sm text-muted-foreground mb-1">{t("reference")}</p>
-            <p className="font-mono font-semibold text-primary text-xs">{order.booking_reference}</p>
+            <p className="font-mono font-semibold text-primary text-sm">{order.booking_reference}</p>
           </div>
           
           {/* Ticket Icons */}
           <div className="flex items-center gap-1">
-            {Array.from({ length: order.quantity }).map((_, i) => (
-              order.ticket_type === 'vip' ? (
-                <Crown key={i} className="w-5 h-5 text-yellow-500" />
-              ) : order.ticket_type === 'parking' ? (
-                <Car key={i} className="w-5 h-5 text-blue-500" />
-              ) : (
-                <Ticket key={i} className="w-5 h-5 text-primary" />
-              )
-            ))}
+            {Array.from({
+            length: order.quantity
+          }).map((_, i) => order.ticket_type === 'vip' ? <Crown key={i} className="w-5 h-5 text-yellow-500" /> : order.ticket_type === 'parking' ? <Car key={i} className="w-5 h-5 text-blue-500" /> : <Ticket key={i} className="w-5 h-5 text-primary" />)}
           </div>
           
           <div className="flex flex-col gap-2">
@@ -592,29 +547,23 @@ export const OrdersTab = ({
               {order.payment_status === "confirmed" ? t("confirmed") : order.payment_status === "cancelled" ? t("failed") : t("pending")}
             </Badge>
             <div className="flex items-center gap-2 justify-end">
-              {order.payment_method === 'cash_pos' ? (
-                <Banknote className="w-4 h-4 text-green-600" />
-              ) : (
-                <CreditCard className="w-4 h-4 text-blue-600" />
-              )}
+              {order.payment_method === 'cash_pos' ? <Banknote className="w-4 h-4 text-green-600" /> : <CreditCard className="w-4 h-4 text-blue-600" />}
               <span className="text-xs font-medium capitalize">{order.payment_method}</span>
             </div>
           </div>
         </div>
 
         {/* Payment Error Reason - Only show for failed/pending orders */}
-        {order.payment_status !== "confirmed" && order.payment_error_reason && (
-          <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-3 flex items-start gap-2">
+        {order.payment_status !== "confirmed" && order.payment_error_reason && <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-3 flex items-start gap-2">
             <AlertCircle className="w-4 h-4 text-destructive mt-0.5 flex-shrink-0" />
             <div>
               <p className="text-xs font-semibold text-destructive mb-1">سبب الفشل:</p>
               <p className="text-xs text-destructive/80">{order.payment_error_reason}</p>
             </div>
-          </div>
-        )}
+          </div>}
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pb-4 min-h-[100px]">
-          <div className="flex flex-col">
+          <div className="flex-col flex items-end justify-center">
             <p className="text-sm text-muted-foreground mb-1">{t("customer")}</p>
             <p className="font-semibold flex items-center gap-2">
               <span className="text-xl">{getCountryFlag(order.customers.nationality)}</span>
@@ -624,7 +573,7 @@ export const OrdersTab = ({
             <p className="text-sm text-muted-foreground min-h-[20px]">{order.customers.email || '\u00A0'}</p>
           </div>
           
-          <div className="flex flex-col" dir="rtl">
+          <div className="flex flex-col">
             <p className="text-sm text-muted-foreground mb-1">{t("ticket")}</p>
             <p className="font-semibold capitalize">
               {order.ticket_type === "vip" ? t("vipAccess") : order.ticket_type === "normal" ? t("generalAdmission") : t("parking")} × {order.quantity}
@@ -643,121 +592,72 @@ export const OrdersTab = ({
             <Eye className="w-3 h-3" />
             {t("viewDetails")}
           </Button>
-          {order.payment_status === "pending" && (
-            <Button 
-              size="sm" 
-              variant="default"
-              onClick={() => togglePaymentStatus(order.id, order.payment_status)} 
-              className="font-lusail flex items-center gap-1 text-xs px-2 py-1 h-8 bg-green-600 hover:bg-green-700 text-white"
-            >
+          {order.payment_status === "pending" && <Button size="sm" variant="default" onClick={() => togglePaymentStatus(order.id, order.payment_status)} className="font-lusail flex items-center gap-1 text-xs px-2 py-1 h-8 bg-green-600 hover:bg-green-700 text-white">
               <CheckCircle className="w-3 h-3" />
               تأكيد الدفع ✓
-            </Button>
-          )}
-          {order.payment_status === "confirmed" && (
-            <Button 
-              size="sm" 
-              variant="destructive"
-              onClick={() => togglePaymentStatus(order.id, order.payment_status)} 
-              className="font-lusail flex items-center gap-1 text-xs px-2 py-1 h-8"
-            >
+            </Button>}
+          {order.payment_status === "confirmed" && <Button size="sm" variant="destructive" onClick={() => togglePaymentStatus(order.id, order.payment_status)} className="font-lusail flex items-center gap-1 text-xs px-2 py-1 h-8">
               <XCircle className="w-3 h-3" />
               إلغاء التأكيد
-            </Button>
-          )}
-          {order.payment_status === "cancelled" && (
-            <Button 
-              size="sm" 
-              variant="default"
-              onClick={() => togglePaymentStatus(order.id, order.payment_status)} 
-              className="font-lusail flex items-center gap-1 text-xs px-2 py-1 h-8 bg-green-600 hover:bg-green-700 text-white"
-            >
+            </Button>}
+          {order.payment_status === "cancelled" && <Button size="sm" variant="default" onClick={() => togglePaymentStatus(order.id, order.payment_status)} className="font-lusail flex items-center gap-1 text-xs px-2 py-1 h-8 bg-green-600 hover:bg-green-700 text-white">
               <CheckCircle className="w-3 h-3" />
               تغيير إلى نجح
-            </Button>
-          )}
+            </Button>}
         </div>
 
         {/* Event & Booking Info */}
         <div className="space-y-2">
-          {order.events && (
-            <div className="flex flex-col gap-2">
+          {order.events && <div className="flex flex-col gap-2">
               <div className="flex items-center gap-2">
                 <span className="text-xs text-muted-foreground">تغيير التاريخ:</span>
-                <Select
-                  value={order.event_id}
-                  onValueChange={(newEventId) => changeOrderEvent(order.id, newEventId)}
-                >
+                <Select value={order.event_id} onValueChange={newEventId => changeOrderEvent(order.id, newEventId)}>
                   <SelectTrigger className="w-[280px] h-8 text-xs font-lusail">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {availableEvents.map((event) => (
-                      <SelectItem key={event.id} value={event.id} className="font-lusail text-xs">
+                    {availableEvents.map(event => <SelectItem key={event.id} value={event.id} className="font-lusail text-xs">
                         {format(new Date(event.event_date), 'dd/MM/yyyy')} - {event.title}
-                      </SelectItem>
-                    ))}
+                      </SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
-            </div>
-          )}
+            </div>}
         </div>
         
         {/* Sadad Verification Row */}
         <div className="flex flex-wrap items-center gap-2 pt-2">
-          <Badge 
-            variant={order.sadad_manually_verified ? "default" : "secondary"}
-            onClick={async (e) => {
-              e.stopPropagation();
-              try {
-                const { error } = await supabase
-                  .from("orders")
-                  .update({ sadad_manually_verified: !order.sadad_manually_verified })
-                  .eq("id", order.id);
-                
-                if (error) throw error;
-                toast.success(order.sadad_manually_verified ? "تم إلغاء التأكد من الدفع" : "تم التأكد من الدفع في سداد");
-                onRefresh();
-              } catch (error) {
-                console.error("Error updating verification status:", error);
-                toast.error("فشل في تحديث حالة التأكد");
-              }
-            }}
-            className={`font-lusail text-sm px-3 py-2 cursor-pointer hover:opacity-80 transition-opacity ${
-              order.sadad_manually_verified 
-                ? "bg-green-600 hover:bg-green-700 text-white border-green-600"
-                : "bg-muted text-muted-foreground hover:bg-muted/80"
-            }`}
-            title={order.sadad_manually_verified ? "اضغط لإلغاء التأكد" : "اضغط للتأكد من الدفع"}
-          >
-            {order.sadad_manually_verified ? (
-              <>
+          <Badge variant={order.sadad_manually_verified ? "default" : "secondary"} onClick={async e => {
+          e.stopPropagation();
+          try {
+            const {
+              error
+            } = await supabase.from("orders").update({
+              sadad_manually_verified: !order.sadad_manually_verified
+            }).eq("id", order.id);
+            if (error) throw error;
+            toast.success(order.sadad_manually_verified ? "تم إلغاء التأكد من الدفع" : "تم التأكد من الدفع في سداد");
+            onRefresh();
+          } catch (error) {
+            console.error("Error updating verification status:", error);
+            toast.error("فشل في تحديث حالة التأكد");
+          }
+        }} className={`font-lusail text-sm px-3 py-2 cursor-pointer hover:opacity-80 transition-opacity ${order.sadad_manually_verified ? "bg-green-600 hover:bg-green-700 text-white border-green-600" : "bg-muted text-muted-foreground hover:bg-muted/80"}`} title={order.sadad_manually_verified ? "اضغط لإلغاء التأكد" : "اضغط للتأكد من الدفع"}>
+            {order.sadad_manually_verified ? <>
                 <CheckCircle className="w-4 h-4 mr-1 inline" />
                 تم التأكد من الدفع في سداد ✓
-              </>
-            ) : (
-              <>
+              </> : <>
                 <XCircle className="w-4 h-4 mr-1 inline" />
                 إضغط هنا لتاكيد سداد
-              </>
-            )}
+              </>}
           </Badge>
-          {showDeleteButton && (
-            <Button 
-              size="icon" 
-              variant="destructive" 
-              onClick={(e) => {
-                e.stopPropagation();
-                console.log("Delete button clicked for order:", order.id);
-                setOrderToDelete(order.id);
-              }}
-              className="h-9 w-9"
-              title="حذف الطلب"
-            >
+          {showDeleteButton && <Button size="icon" variant="destructive" onClick={e => {
+          e.stopPropagation();
+          console.log("Delete button clicked for order:", order.id);
+          setOrderToDelete(order.id);
+        }} className="h-9 w-9" title="حذف الطلب">
               <Trash2 className="w-4 h-4" />
-            </Button>
-          )}
+            </Button>}
         </div>
       </div>
       
@@ -770,16 +670,15 @@ export const OrdersTab = ({
       </div>
     </Card>;
   const filteredOrders = filterOrders(activeTab);
-  
+
   // Calculate stats - pending and cancelled go to failed
   const stats = {
     success: orders.filter(o => o.payment_status === "confirmed").length,
-    failed: orders.filter(o => o.payment_status === "cancelled" || o.payment_status === "pending").length,
+    failed: orders.filter(o => o.payment_status === "cancelled" || o.payment_status === "pending").length
   };
   return <div className="space-y-6">
       {/* Generate QR Codes Button */}
-      {showGenerateQrButton && (
-        <div className="flex justify-end">
+      {showGenerateQrButton && <div className="flex justify-end">
           <Button onClick={generateMissingQrCodes} disabled={generatingQrCodes} className="font-lusail">
             {generatingQrCodes ? <>
                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />
@@ -789,8 +688,7 @@ export const OrdersTab = ({
                 Generate Missing QR Codes
               </>}
           </Button>
-        </div>
-      )}
+        </div>}
 
       {/* Statistics Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -818,40 +716,22 @@ export const OrdersTab = ({
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all" className="font-lusail">جميع الفعاليات</SelectItem>
-              {availableEvents.map((event) => (
-                <SelectItem key={event.id} value={event.id} className="font-lusail">
+              {availableEvents.map(event => <SelectItem key={event.id} value={event.id} className="font-lusail">
                   {format(new Date(event.event_date), 'dd/MM/yyyy')}
-                </SelectItem>
-              ))}
+                </SelectItem>)}
             </SelectContent>
           </Select>
           
           <div className="relative flex-1 max-w-md">
             <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <Input
-              type="text"
-              placeholder="ابحث بالرقم المرجعي، الاسم أو رقم الهاتف..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pr-10 font-lusail"
-            />
+            <Input type="text" placeholder="ابحث بالرقم المرجعي، الاسم أو رقم الهاتف..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="pr-10 font-lusail" />
           </div>
           
           <div className="flex gap-2">
-            <Button
-              variant={viewMode === "list" ? "default" : "outline"}
-              size="sm"
-              onClick={() => setViewMode("list")}
-              className="font-lusail"
-            >
+            <Button variant={viewMode === "list" ? "default" : "outline"} size="sm" onClick={() => setViewMode("list")} className="font-lusail">
               <List className="w-4 h-4" />
             </Button>
-            <Button
-              variant={viewMode === "grid" ? "default" : "outline"}
-              size="sm"
-              onClick={() => setViewMode("grid")}
-              className="font-lusail"
-            >
+            <Button variant={viewMode === "grid" ? "default" : "outline"} size="sm" onClick={() => setViewMode("grid")} className="font-lusail">
               <Grid3x3 className="w-4 h-4" />
             </Button>
           </div>
@@ -860,29 +740,21 @@ export const OrdersTab = ({
         <TabsContent value="success" className="mt-6">
           {filteredOrders.length === 0 ? <Card className="p-12 text-center">
               <p className="text-muted-foreground font-lusail">لا توجد حجوزات ناجحة</p>
-            </Card> : viewMode === "grid" ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            </Card> : viewMode === "grid" ? <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {filteredOrders.map(order => <OrderCard key={order.id} order={order} />)}
-              </div>
-            ) : (
-              <div className="space-y-4">
+              </div> : <div className="space-y-4">
                 {filteredOrders.map(order => <OrderCard key={order.id} order={order} />)}
-              </div>
-            )}
+              </div>}
         </TabsContent>
         
         <TabsContent value="failed" className="mt-6">
           {filteredOrders.length === 0 ? <Card className="p-12 text-center">
               <p className="text-muted-foreground font-lusail">لا توجد حجوزات ملغية</p>
-            </Card> : viewMode === "grid" ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            </Card> : viewMode === "grid" ? <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {filteredOrders.map(order => <OrderCard key={order.id} order={order} />)}
-              </div>
-            ) : (
-              <div className="space-y-4">
+              </div> : <div className="space-y-4">
                 {filteredOrders.map(order => <OrderCard key={order.id} order={order} />)}
-              </div>
-            )}
+              </div>}
         </TabsContent>
       </Tabs>
 
