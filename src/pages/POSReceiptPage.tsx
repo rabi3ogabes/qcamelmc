@@ -43,7 +43,7 @@ const POSReceiptPage = () => {
       setReceipts(data || []);
     } catch (error) {
       console.error("Error fetching receipts:", error);
-      toast.error("فشل في تحميل الإيصالات");
+      toast.error("Failed to load receipts");
     } finally {
       setIsLoading(false);
     }
@@ -90,12 +90,12 @@ const POSReceiptPage = () => {
 
       if (insertError) throw insertError;
 
-      toast.success("تم قراءة الإيصال وحفظه بنجاح");
+      toast.success("Receipt read and saved successfully");
       setCapturedImage(null);
       fetchReceipts();
     } catch (error) {
       console.error("Error processing receipt:", error);
-      toast.error("فشل في معالجة الإيصال");
+      toast.error("Failed to process receipt");
     } finally {
       setIsProcessing(false);
       if (cameraInputRef.current) cameraInputRef.current.value = "";
@@ -107,32 +107,32 @@ const POSReceiptPage = () => {
     try {
       const { error } = await supabase.from("pos_receipts").delete().eq("id", id);
       if (error) throw error;
-      toast.success("تم حذف الإيصال");
+      toast.success("Receipt deleted");
       fetchReceipts();
     } catch (error) {
       console.error("Error deleting receipt:", error);
-      toast.error("فشل في حذف الإيصال");
+      toast.error("Failed to delete receipt");
     }
   };
 
   const handleExportToExcel = () => {
     if (receipts.length === 0) {
-      toast.error("لا توجد بيانات للتصدير");
+      toast.error("No data to export");
       return;
     }
 
     const exportData = receipts.map((r) => ({
-      "المبلغ (ريال)": r.amount_qar ?? "",
-      "رقم التسلسل": r.seq_number ?? "",
-      "رقم البطاقة": r.card_number_masked ?? "",
-      "الوقت": r.time ?? "",
-      "رقم التفويض": r.auth_number ?? "",
-      "تاريخ الإضافة": new Date(r.created_at).toLocaleString("ar-QA"),
+      "Amount (QAR)": r.amount_qar ?? "",
+      "Seq Number": r.seq_number ?? "",
+      "Card Number": r.card_number_masked ?? "",
+      "Time": r.time ?? "",
+      "Auth Number": r.auth_number ?? "",
+      "Date Added": new Date(r.created_at).toLocaleString("en-US"),
     }));
 
     const ws = XLSX.utils.json_to_sheet(exportData);
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "إيصالات POS");
+    XLSX.utils.book_append_sheet(wb, ws, "POS Receipts");
 
     ws["!cols"] = [
       { wch: 15 },
@@ -145,23 +145,23 @@ const POSReceiptPage = () => {
 
     const fileName = `pos_receipts_${new Date().toISOString().split("T")[0]}.xlsx`;
     XLSX.writeFile(wb, fileName);
-    toast.success("تم تصدير البيانات بنجاح");
+    toast.success("Data exported successfully");
   };
 
   return (
-    <div className="min-h-screen bg-background" dir="rtl">
+    <div className="min-h-screen bg-background" dir="ltr">
       <div className="container mx-auto px-4 py-6 max-w-4xl">
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
-          <h1 className="text-xl sm:text-2xl font-bold font-lusail">قراءة إيصالات POS</h1>
+          <h1 className="text-xl sm:text-2xl font-bold font-lusail">POS Receipt Reader</h1>
           <Button
             variant="outline"
             size="sm"
             onClick={() => navigate("/admin/dashboard")}
             className="flex items-center gap-2"
           >
+            Back
             <ArrowRight className="w-4 h-4" />
-            رجوع
           </Button>
         </div>
 
@@ -169,7 +169,7 @@ const POSReceiptPage = () => {
           {/* Camera/Upload Section */}
           <Card>
             <CardHeader className="pb-3">
-              <CardTitle className="text-base font-medium">التقاط أو رفع صورة إيصال</CardTitle>
+              <CardTitle className="text-base font-medium">Capture or Upload Receipt Image</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               {/* Hidden inputs */}
@@ -203,7 +203,7 @@ const POSReceiptPage = () => {
                     <Camera className="w-10 h-10" />
                   )}
                   <span className="text-base font-medium">
-                    {isProcessing ? "جاري المعالجة..." : "التقاط بالكاميرا"}
+                    {isProcessing ? "Processing..." : "Capture with Camera"}
                   </span>
                 </Button>
 
@@ -220,7 +220,7 @@ const POSReceiptPage = () => {
                     <ImageIcon className="w-10 h-10" />
                   )}
                   <span className="text-base font-medium">
-                    {isProcessing ? "جاري المعالجة..." : "اختيار من المعرض"}
+                    {isProcessing ? "Processing..." : "Choose from Gallery"}
                   </span>
                 </Button>
               </div>
@@ -245,7 +245,7 @@ const POSReceiptPage = () => {
                     <div className="absolute inset-0 bg-background/80 flex items-center justify-center rounded-lg">
                       <div className="flex flex-col items-center gap-2">
                         <Loader2 className="w-8 h-8 animate-spin text-primary" />
-                        <span className="text-sm font-medium">جاري قراءة الإيصال...</span>
+                        <span className="text-sm font-medium">Reading receipt...</span>
                       </div>
                     </div>
                   )}
@@ -257,15 +257,15 @@ const POSReceiptPage = () => {
           {/* Receipts Table */}
           <Card>
             <CardHeader className="pb-3 flex flex-row items-center justify-between">
-              <CardTitle className="text-base font-medium">الإيصالات المحفوظة ({receipts.length})</CardTitle>
+              <CardTitle className="text-base font-medium">Saved Receipts ({receipts.length})</CardTitle>
               <Button
                 variant="outline"
                 size="sm"
                 onClick={handleExportToExcel}
                 disabled={receipts.length === 0}
               >
-                <FileDown className="w-4 h-4 ml-2" />
-                تصدير Excel
+                <FileDown className="w-4 h-4 mr-2" />
+                Export Excel
               </Button>
             </CardHeader>
             <CardContent>
@@ -276,21 +276,21 @@ const POSReceiptPage = () => {
               ) : receipts.length === 0 ? (
                 <div className="text-center py-12 text-muted-foreground">
                   <ImageIcon className="w-12 h-12 mx-auto mb-3 opacity-50" />
-                  <p>لا توجد إيصالات محفوظة</p>
-                  <p className="text-sm mt-1">التقط صورة أو اختر من المعرض لإضافة إيصال</p>
+                  <p>No saved receipts</p>
+                  <p className="text-sm mt-1">Capture or upload an image to add a receipt</p>
                 </div>
               ) : (
                 <div className="overflow-x-auto">
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead className="text-right">المبلغ (ريال)</TableHead>
-                        <TableHead className="text-right">رقم التسلسل</TableHead>
-                        <TableHead className="text-right">رقم البطاقة</TableHead>
-                        <TableHead className="text-right">الوقت</TableHead>
-                        <TableHead className="text-right">رقم التفويض</TableHead>
-                        <TableHead className="text-right">التاريخ</TableHead>
-                        <TableHead className="text-right w-12">حذف</TableHead>
+                        <TableHead className="text-left">Amount (QAR)</TableHead>
+                        <TableHead className="text-left">Seq Number</TableHead>
+                        <TableHead className="text-left">Card Number</TableHead>
+                        <TableHead className="text-left">Time</TableHead>
+                        <TableHead className="text-left">Auth Number</TableHead>
+                        <TableHead className="text-left">Date</TableHead>
+                        <TableHead className="text-left w-12">Delete</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -312,7 +312,7 @@ const POSReceiptPage = () => {
                             {receipt.auth_number ?? "-"}
                           </TableCell>
                           <TableCell className="text-xs">
-                            {new Date(receipt.created_at).toLocaleDateString("ar-QA")}
+                            {new Date(receipt.created_at).toLocaleDateString("en-US")}
                           </TableCell>
                           <TableCell>
                             <Button
