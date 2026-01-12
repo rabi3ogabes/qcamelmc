@@ -115,15 +115,25 @@ const POSReceiptPage = () => {
     }
   };
 
+  // Ticket price for calculating number of tickets (Normal ticket = 200 QAR)
+  const TICKET_PRICE = 200;
+
+  const calculateTicketCount = (amount: number | null): number | null => {
+    if (!amount || amount <= 0) return null;
+    return Math.round(amount / TICKET_PRICE);
+  };
+
   const handleExportToExcel = () => {
     if (receipts.length === 0) {
       toast.error("No data to export");
       return;
     }
 
-    const exportData = receipts.map((r) => ({
+    const exportData = receipts.map((r, index) => ({
+      "#": index + 1,
       "Amount (QAR)": r.amount_qar ?? "",
       "Seq Number": r.seq_number ?? "",
+      "Tickets": calculateTicketCount(r.amount_qar) ?? "",
       "Card Number": r.card_number_masked ?? "",
       "Time": r.time ?? "",
       "Auth Number": r.auth_number ?? "",
@@ -135,8 +145,10 @@ const POSReceiptPage = () => {
     XLSX.utils.book_append_sheet(wb, ws, "POS Receipts");
 
     ws["!cols"] = [
+      { wch: 5 },
       { wch: 15 },
       { wch: 15 },
+      { wch: 10 },
       { wch: 20 },
       { wch: 12 },
       { wch: 15 },
@@ -284,8 +296,10 @@ const POSReceiptPage = () => {
                   <Table>
                     <TableHeader>
                       <TableRow>
+                        <TableHead className="text-left w-10">#</TableHead>
                         <TableHead className="text-left">Amount (QAR)</TableHead>
                         <TableHead className="text-left">Seq Number</TableHead>
+                        <TableHead className="text-left">Tickets</TableHead>
                         <TableHead className="text-left">Card Number</TableHead>
                         <TableHead className="text-left">Time</TableHead>
                         <TableHead className="text-left">Auth Number</TableHead>
@@ -294,13 +308,19 @@ const POSReceiptPage = () => {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {receipts.map((receipt) => (
+                      {receipts.map((receipt, index) => (
                         <TableRow key={receipt.id}>
+                          <TableCell className="font-mono text-muted-foreground">
+                            {index + 1}
+                          </TableCell>
                           <TableCell className="font-mono font-semibold">
                             {receipt.amount_qar?.toLocaleString() ?? "-"}
                           </TableCell>
                           <TableCell className="font-mono">
                             {receipt.seq_number ?? "-"}
+                          </TableCell>
+                          <TableCell className="font-mono font-semibold text-primary">
+                            {calculateTicketCount(receipt.amount_qar) ?? "-"}
                           </TableCell>
                           <TableCell className="font-mono text-xs">
                             {receipt.card_number_masked ?? "-"}
