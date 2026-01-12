@@ -179,7 +179,7 @@ const resources = {
       "maxAdmissionLabel": "الحد الأقصى: 5 إجمالي لـ VIP + العام",
       
       // Checkout Page
-      "checkoutTitle": "إتمام الحجز",
+      "checkoutTitle": "إتمام عملية الدفع",
       "fillTicketHolderInfo": "يرجى ملء معلومات حاملي التذاكر",
       "customerInfo": "معلومات العميل",
       "fullName": "الاسم الكامل",
