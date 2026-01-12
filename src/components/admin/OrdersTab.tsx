@@ -573,7 +573,7 @@ export const OrdersTab = ({
             <p className="text-sm text-muted-foreground min-h-[20px]">{order.customers.email || '\u00A0'}</p>
           </div>
           
-          <div className="flex flex-col">
+          <div className="flex flex-col" dir="rtl">
             <p className="text-sm text-muted-foreground mb-1">{t("ticket")}</p>
             <p className="font-semibold capitalize">
               {order.ticket_type === "vip" ? t("vipAccess") : order.ticket_type === "normal" ? t("generalAdmission") : t("parking")} × {order.quantity}
