@@ -204,8 +204,8 @@ const AdminPOS = () => {
   // Note: Name is NOT auto-populated - each ticket holder has a unique name
 
   useEffect(() => {
-    if (ticketHolders.length > 0 && customerPhone) {
-      setTicketHolders(ticketHolders.map(holder => ({
+    if (customerPhone) {
+      setTicketHolders(prev => prev.map(holder => ({
         ...holder,
         phone: customerPhone,
         countryCode: customerCountryCode
@@ -214,8 +214,8 @@ const AdminPOS = () => {
   }, [customerPhone, customerCountryCode]);
 
   useEffect(() => {
-    if (ticketHolders.length > 0 && customerIdNumber) {
-      setTicketHolders(ticketHolders.map(holder => ({
+    if (customerIdNumber) {
+      setTicketHolders(prev => prev.map(holder => ({
         ...holder,
         idNumber: customerIdNumber
       })));
