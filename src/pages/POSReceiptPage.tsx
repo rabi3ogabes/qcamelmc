@@ -170,6 +170,32 @@ const POSReceiptPage = () => {
     }
   };
 
+  // Ticket prices
+  const TICKET_PRICES = {
+    normal: 200,
+    vip: 300,
+    parking: 500,
+  };
+
+  // Calculate totals
+  const totals = receipts.reduce(
+    (acc, r) => ({
+      normal: acc.normal + (r.normal_tickets ?? 0),
+      vip: acc.vip + (r.vip_tickets ?? 0),
+      parking: acc.parking + (r.parking_tickets ?? 0),
+    }),
+    { normal: 0, vip: 0, parking: 0 }
+  );
+
+  const totalAmounts = {
+    normal: totals.normal * TICKET_PRICES.normal,
+    vip: totals.vip * TICKET_PRICES.vip,
+    parking: totals.parking * TICKET_PRICES.parking,
+  };
+
+  const grandTotalTickets = totals.normal + totals.vip + totals.parking;
+  const grandTotalAmount = totalAmounts.normal + totalAmounts.vip + totalAmounts.parking;
+
   const handleExportToExcel = () => {
     if (receipts.length === 0) {
       toast.error("No data to export");
@@ -197,12 +223,23 @@ const POSReceiptPage = () => {
       new Date(r.created_at).toLocaleString("en-US"),
     ]);
 
+    // Summary data for Excel
+    const summaryData = [
+      [],
+      ["", "pos", "", "", "", "", "", "", "", ""],
+      ["", "normal", totals.normal, totalAmounts.normal, "", "", "", "", "", ""],
+      ["", "VIP", totals.vip, totalAmounts.vip, "", "", "", "", "", ""],
+      ["", "parking", totals.parking, totalAmounts.parking, "", "", "", "", "", ""],
+      ["", "المجموع", grandTotalTickets, grandTotalAmount, "", "", "", "", "", ""],
+    ];
+
     // Create worksheet with styled header
     const ws = XLSX.utils.aoa_to_sheet([
       [`كشف تحميل رسوم تذاكر دخول مهرجان قطر للابل- جزيلا العطا - بتاريخ ${today} (POS)`],
       [], // Empty row
       headers,
       ...exportData,
+      ...summaryData,
     ]);
 
     // Merge cells for title header
@@ -567,6 +604,50 @@ const POSReceiptPage = () => {
                       ))}
                     </TableBody>
                   </Table>
+                </div>
+              )}
+
+              {/* Summary Section */}
+              {receipts.length > 0 && (
+                <div className="mt-6 border-t pt-4">
+                  <div className="overflow-x-auto">
+                    <table className="w-full max-w-md mx-auto text-sm border-collapse">
+                      <thead>
+                        <tr>
+                          <th colSpan={3} className="bg-primary/10 text-primary font-bold py-2 px-3 text-center border">
+                            POS
+                          </th>
+                        </tr>
+                        <tr className="bg-muted/50">
+                          <th className="py-2 px-3 text-right border font-medium">Type</th>
+                          <th className="py-2 px-3 text-center border font-medium">Tickets</th>
+                          <th className="py-2 px-3 text-center border font-medium">Amount (QAR)</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr className="bg-green-50 dark:bg-green-900/20">
+                          <td className="py-2 px-3 text-right border font-medium text-green-700 dark:text-green-400">normal</td>
+                          <td className="py-2 px-3 text-center border font-mono">{totals.normal}</td>
+                          <td className="py-2 px-3 text-center border font-mono">{totalAmounts.normal.toLocaleString()}</td>
+                        </tr>
+                        <tr className="bg-amber-50 dark:bg-amber-900/20">
+                          <td className="py-2 px-3 text-right border font-medium text-amber-700 dark:text-amber-400">VIP</td>
+                          <td className="py-2 px-3 text-center border font-mono">{totals.vip}</td>
+                          <td className="py-2 px-3 text-center border font-mono">{totalAmounts.vip.toLocaleString()}</td>
+                        </tr>
+                        <tr className="bg-blue-50 dark:bg-blue-900/20">
+                          <td className="py-2 px-3 text-right border font-medium text-blue-700 dark:text-blue-400">parking</td>
+                          <td className="py-2 px-3 text-center border font-mono">{totals.parking}</td>
+                          <td className="py-2 px-3 text-center border font-mono">{totalAmounts.parking.toLocaleString()}</td>
+                        </tr>
+                        <tr className="bg-primary/10 font-bold">
+                          <td className="py-2 px-3 text-right border text-primary">المجموع</td>
+                          <td className="py-2 px-3 text-center border font-mono">{grandTotalTickets}</td>
+                          <td className="py-2 px-3 text-center border font-mono">{grandTotalAmount.toLocaleString()}</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
               )}
             </CardContent>
