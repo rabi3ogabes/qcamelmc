@@ -613,18 +613,18 @@ export const OrdersTab = ({
           </div>
         )}
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pb-4">
-          <div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pb-4 min-h-[100px]">
+          <div className="flex flex-col">
             <p className="text-sm text-muted-foreground mb-1">{t("customer")}</p>
             <p className="font-semibold flex items-center gap-2">
               <span className="text-xl">{getCountryFlag(order.customers.nationality)}</span>
               {order.customers.name}
             </p>
             <p className="text-xs text-muted-foreground">{order.customers.phone}</p>
-            <p className="text-sm text-muted-foreground">{order.customers.email}</p>
+            <p className="text-sm text-muted-foreground min-h-[20px]">{order.customers.email || '\u00A0'}</p>
           </div>
           
-          <div>
+          <div className="flex flex-col">
             <p className="text-sm text-muted-foreground mb-1">{t("ticket")}</p>
             <p className="font-semibold capitalize">
               {order.ticket_type === "vip" ? t("vipAccess") : order.ticket_type === "normal" ? t("generalAdmission") : t("parking")} × {order.quantity}
