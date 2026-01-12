@@ -7,7 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { CheckCircle, MapPin, Calendar, Eye, QrCode, Loader2, XCircle, Printer, Trash2, Grid3x3, List, Search, Banknote, CreditCard, AlertCircle, Ticket, Crown, Car } from "lucide-react";
+import { CheckCircle, MapPin, Calendar, Eye, QrCode, Loader2, XCircle, Printer, Trash2, Grid3x3, List, Search, Banknote, CreditCard, AlertCircle, Ticket, Crown, Car, Copy } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useTranslation } from "react-i18next";
@@ -532,7 +532,19 @@ export const OrdersTab = ({
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 pb-4 border-b">
           <div>
             <p className="text-sm text-muted-foreground mb-1">{t("reference")}</p>
-            <p className="font-mono font-semibold text-primary text-xs max-w-[150px] truncate">{order.booking_reference}</p>
+            <div className="flex items-center gap-1">
+              <p className="font-mono font-semibold text-primary text-[10px] max-w-[100px] truncate">{order.booking_reference}</p>
+              <button
+                onClick={() => {
+                  navigator.clipboard.writeText(order.booking_reference);
+                  toast.success("تم نسخ رقم الحجز");
+                }}
+                className="p-1 hover:bg-muted rounded transition-colors"
+                title={order.booking_reference}
+              >
+                <Copy className="w-3 h-3 text-muted-foreground hover:text-primary" />
+              </button>
+            </div>
           </div>
           
           {/* Ticket Icons */}
