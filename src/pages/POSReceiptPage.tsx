@@ -142,6 +142,12 @@ const POSReceiptPage = () => {
       return;
     }
 
+    const today = new Date().toLocaleDateString("ar-QA", {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    });
+
     const exportData = receipts.map((r, index) => ({
       "#": index + 1,
       "Amount (QAR)": r.amount_qar ?? "",
@@ -153,7 +159,18 @@ const POSReceiptPage = () => {
       "Date Added": new Date(r.created_at).toLocaleString("en-US"),
     }));
 
-    const ws = XLSX.utils.json_to_sheet(exportData);
+    // Create worksheet with header
+    const ws = XLSX.utils.aoa_to_sheet([
+      [`كشف تحميل رسوم تذاكر دخول مهرجان قطر للابل- جزيلا العطا - بتاريخ ${today} (POS)`],
+      [], // Empty row
+    ]);
+
+    // Merge cells for header
+    ws["!merges"] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: 7 } }];
+
+    // Add data starting from row 3
+    XLSX.utils.sheet_add_json(ws, exportData, { origin: "A3" });
+
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "POS Receipts");
 
