@@ -119,6 +119,7 @@ const LiveBookings = () => {
     [nationality: string]: { online: number; pos: number; total: number; present: number };
   }>({});
   const [, forceUpdate] = useState(0);
+  const [isDateInitialized, setIsDateInitialized] = useState(false);
 
   // Check if a booking is within the last 5 minutes (for highlight)
   const isRecentBooking = (createdAt: string | undefined): boolean => {
@@ -199,11 +200,13 @@ const LiveBookings = () => {
           const now = new Date();
           setSelectedDate(toZonedTime(now, QATAR_TIMEZONE));
         }
+        setIsDateInitialized(true);
       } catch (error) {
         console.error("Failed to fetch upcoming event:", error);
         // Fallback to today on error
         const now = new Date();
         setSelectedDate(toZonedTime(now, QATAR_TIMEZONE));
+        setIsDateInitialized(true);
       }
     };
 
@@ -214,9 +217,11 @@ const LiveBookings = () => {
   }, []);
 
   useEffect(() => {
-    // Fetch bookings when selectedDate changes (including when set to undefined for "show all")
-    fetchBookings();
-  }, [selectedDate]);
+    // Only fetch bookings after date has been initialized to prevent showing unfiltered data first
+    if (isDateInitialized) {
+      fetchBookings();
+    }
+  }, [selectedDate, isDateInitialized]);
 
 
   useEffect(() => {
