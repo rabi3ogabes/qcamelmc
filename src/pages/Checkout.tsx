@@ -624,10 +624,21 @@ const Checkout = () => {
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
                   <Label htmlFor="name">{t('fullName')} *</Label>
-                  <Input id="name" value={customerInfo.name} onChange={e => setCustomerInfo({
-                  ...customerInfo,
-                  name: e.target.value
-                })} required minLength={3} />
+                  <Input 
+                    id="name" 
+                    value={customerInfo.name} 
+                    onChange={e => setCustomerInfo({
+                      ...customerInfo,
+                      name: e.target.value
+                    })} 
+                    required 
+                    minLength={3}
+                    pattern=".{3,}"
+                    title="يجب أن يحتوي الاسم على 3 أحرف على الأقل"
+                  />
+                  {customerInfo.name.length > 0 && customerInfo.name.length < 3 && (
+                    <p className="text-xs text-destructive mt-1">يجب أن يحتوي الاسم على 3 أحرف على الأقل</p>
+                  )}
                 </div>
                 <div>
                   <Label htmlFor="email">{t('email')}</Label>
