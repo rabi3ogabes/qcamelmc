@@ -190,7 +190,7 @@ const resources = {
       "sadadOnline": "سداد (دفع إلكتروني)",
       "cashAtVenue": "الدفع بالبطاقة عند الحضور",
       "orderSummary": "ملخص الطلب",
-      "completeBooking": "إتمام الحجز",
+      "completeBooking": "إتمام عملية الدفع",
       "backToTickets": "← العودة لاختيار التذاكر",
       "bookingCreated": "تم إنشاء الحجز بنجاح!",
       "fillAllFields": "يرجى ملء جميع الحقول المطلوبة",
