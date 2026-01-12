@@ -937,7 +937,7 @@ const Checkout = () => {
               }} 
               className="w-full" 
               size="lg" 
-              disabled={loading}
+              disabled={loading || !termsAccepted}
             >
               {loading ? <>
                   <Loader2 className="w-4 h-4 ml-2 animate-spin" />
