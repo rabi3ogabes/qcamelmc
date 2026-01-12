@@ -274,17 +274,8 @@ const POSReceiptPage = () => {
     <div className="min-h-screen bg-background" dir="ltr">
       <div className="container mx-auto px-4 py-6 max-w-4xl">
         {/* Header */}
-        <div className="flex items-center justify-between mb-6">
+        <div className="mb-6">
           <h1 className="text-xl sm:text-2xl font-bold font-lusail">POS Receipt Reader</h1>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => navigate("/admin/dashboard")}
-            className="flex items-center gap-2"
-          >
-            Back
-            <ArrowRight className="w-4 h-4" />
-          </Button>
         </div>
 
         <div className="space-y-6">
