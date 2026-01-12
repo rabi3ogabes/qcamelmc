@@ -1117,7 +1117,7 @@ const AdminPOS = () => {
                               value={holder.nationality}
                               onValueChange={(value) => updateTicketHolder(index, 'nationality', value)}
                             >
-                              <SelectTrigger id={`holder-nationality-${index}`}>
+                              <SelectTrigger id={`holder-nationality-${index}`} dir="rtl">
                                 <SelectValue placeholder="اختر الجنسية" />
                               </SelectTrigger>
                               <SelectContent>
