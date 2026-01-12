@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { LogOut, ShoppingCart, Calendar, Ticket, Settings, ExternalLink, Image, ScanLine, Users, CreditCard, FileText, Eye } from "lucide-react";
+import { LogOut, ShoppingCart, Calendar, Ticket, Settings, ExternalLink, Image, ScanLine, Users, CreditCard, FileText, Eye, Receipt } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { OrdersTab } from "@/components/admin/OrdersTab";
 import { EventsTab } from "@/components/admin/EventsTab";
@@ -16,7 +16,7 @@ import { InvoiceTab } from "@/components/admin/InvoiceTab";
 import { ReportsTab } from "@/components/admin/ReportsTab";
 import { ActivityLogsTab } from "@/components/admin/ActivityLogsTab";
 import { VisitorAnalyticsTab } from "@/components/admin/VisitorAnalyticsTab";
-import { POSReceiptReader } from "@/components/admin/POSReceiptReader";
+
 import "../i18n/config";
 
 interface Order {
@@ -221,7 +221,14 @@ const AdminDashboard = () => {
                 <ExternalLink className="w-4 h-4" />
                 {t("mainWebsite")}
               </Button>
-              <POSReceiptReader />
+              <Button
+                variant="outline"
+                onClick={() => navigate('/admin/pos-receipts')}
+                className="font-lusail flex items-center justify-center gap-2 bg-orange-500/10 hover:bg-orange-500/20 border-orange-500 text-orange-600 dark:text-orange-400 text-xs sm:text-sm w-full sm:w-auto"
+              >
+                <Receipt className="w-4 h-4" />
+                قراءة إيصال POS
+              </Button>
             </div>
 
             <TabsContent value="orders">
