@@ -702,13 +702,6 @@ export const OrdersTab = ({
               </div>
             </div>
           )}
-          
-          <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 text-sm text-muted-foreground">
-            <div className="flex items-center gap-1">
-              <Calendar className="w-4 h-4" />
-              <span>تاريخ الحجز: {format(new Date(order.created_at), 'dd/MM/yyyy - HH:mm')}</span>
-            </div>
-          </div>
         </div>
         
         {/* Sadad Verification Row */}
@@ -766,6 +759,14 @@ export const OrdersTab = ({
             </Button>
           )}
         </div>
+      </div>
+      
+      {/* Footer - Booking Date Banner */}
+      <div className="text-center py-2 bg-muted/50 border-t">
+        <p className="text-sm text-muted-foreground flex items-center justify-center gap-2">
+          <Calendar className="w-4 h-4" />
+          تاريخ الحجز: {format(new Date(order.created_at), 'dd/MM/yyyy - HH:mm')}
+        </p>
       </div>
     </Card>;
   const filteredOrders = filterOrders(activeTab);
