@@ -4,12 +4,141 @@ import { Button } from "@/components/ui/button";
 import { FileDown, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import * as XLSX from "xlsx";
+import XLSX from "xlsx-js-style";
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
 
+// Define styles for Excel
+const headerStyle = {
+  font: { bold: true, color: { rgb: "FFFFFF" }, sz: 12 },
+  fill: { fgColor: { rgb: "1E3A5F" } },
+  alignment: { horizontal: "center", vertical: "center", wrapText: true },
+  border: {
+    top: { style: "thin", color: { rgb: "000000" } },
+    bottom: { style: "thin", color: { rgb: "000000" } },
+    left: { style: "thin", color: { rgb: "000000" } },
+    right: { style: "thin", color: { rgb: "000000" } }
+  }
+};
+
+const cellStyle = {
+  alignment: { horizontal: "center", vertical: "center" },
+  border: {
+    top: { style: "thin", color: { rgb: "D0D0D0" } },
+    bottom: { style: "thin", color: { rgb: "D0D0D0" } },
+    left: { style: "thin", color: { rgb: "D0D0D0" } },
+    right: { style: "thin", color: { rgb: "D0D0D0" } }
+  }
+};
+
+const confirmedStyle = {
+  ...cellStyle,
+  fill: { fgColor: { rgb: "D4EDDA" } },
+  font: { color: { rgb: "155724" }, bold: true }
+};
+
+const pendingStyle = {
+  ...cellStyle,
+  fill: { fgColor: { rgb: "FFF3CD" } },
+  font: { color: { rgb: "856404" }, bold: true }
+};
+
+const cancelledStyle = {
+  ...cellStyle,
+  fill: { fgColor: { rgb: "F8D7DA" } },
+  font: { color: { rgb: "721C24" }, bold: true }
+};
+
+const totalRowStyle = {
+  font: { bold: true, color: { rgb: "FFFFFF" }, sz: 12 },
+  fill: { fgColor: { rgb: "2E7D32" } },
+  alignment: { horizontal: "center", vertical: "center" },
+  border: {
+    top: { style: "medium", color: { rgb: "000000" } },
+    bottom: { style: "medium", color: { rgb: "000000" } },
+    left: { style: "thin", color: { rgb: "000000" } },
+    right: { style: "thin", color: { rgb: "000000" } }
+  }
+};
+
+const amountStyle = {
+  ...cellStyle,
+  font: { bold: true },
+  numFmt: "#,##0.00"
+};
+
 export const ReportsTab = () => {
   const [loading, setLoading] = useState(false);
+
+  const applyStylesToSheet = (ws: XLSX.WorkSheet, data: any[], colWidths: any[]) => {
+    const range = XLSX.utils.decode_range(ws['!ref'] || 'A1');
+    const statusColIndex = 4; // حالة الدفع column (0-indexed)
+    const amountColIndex = 5; // المبلغ الإجمالي column (0-indexed)
+    
+    // Apply header styles
+    for (let col = range.s.c; col <= range.e.c; col++) {
+      const cellAddress = XLSX.utils.encode_cell({ r: 0, c: col });
+      if (ws[cellAddress]) {
+        ws[cellAddress].s = headerStyle;
+      }
+    }
+    
+    // Apply cell styles for data rows
+    for (let row = 1; row <= range.e.r; row++) {
+      for (let col = range.s.c; col <= range.e.c; col++) {
+        const cellAddress = XLSX.utils.encode_cell({ r: row, c: col });
+        if (ws[cellAddress]) {
+          // Check if this is the status column
+          if (col === statusColIndex) {
+            const status = ws[cellAddress].v;
+            if (status === "confirmed") {
+              ws[cellAddress].s = confirmedStyle;
+            } else if (status === "pending") {
+              ws[cellAddress].s = pendingStyle;
+            } else if (status === "cancelled") {
+              ws[cellAddress].s = cancelledStyle;
+            } else {
+              ws[cellAddress].s = cellStyle;
+            }
+          } else if (col === amountColIndex) {
+            ws[cellAddress].s = amountStyle;
+          } else {
+            ws[cellAddress].s = cellStyle;
+          }
+        }
+      }
+    }
+    
+    ws['!cols'] = colWidths;
+    ws['!rows'] = [{ hpt: 25 }]; // Header row height
+    
+    return ws;
+  };
+
+  const addTotalRow = (ws: XLSX.WorkSheet, data: any[], colWidths: any[]) => {
+    const range = XLSX.utils.decode_range(ws['!ref'] || 'A1');
+    const totalRow = range.e.r + 1;
+    const amountColIndex = 5; // المبلغ الإجمالي column
+    
+    // Calculate total
+    const totalAmount = data.reduce((sum, row) => {
+      const amount = row["المبلغ الإجمالي"] || 0;
+      return sum + (typeof amount === 'number' ? amount : parseFloat(amount) || 0);
+    }, 0);
+    
+    // Add total label
+    const labelCell = XLSX.utils.encode_cell({ r: totalRow, c: amountColIndex - 1 });
+    ws[labelCell] = { v: "الإجمالي:", s: totalRowStyle };
+    
+    // Add total value
+    const totalCell = XLSX.utils.encode_cell({ r: totalRow, c: amountColIndex });
+    ws[totalCell] = { v: totalAmount, s: totalRowStyle, t: 'n' };
+    
+    // Update range
+    ws['!ref'] = XLSX.utils.encode_range({ s: range.s, e: { r: totalRow, c: range.e.c } });
+    
+    return ws;
+  };
 
   const handleExportReport = async () => {
     setLoading(true);
@@ -134,56 +263,57 @@ export const ReportsTab = () => {
         { wch: 25 }, // اسم الفعالية
         { wch: 20 }, // معرف الدفع
         { wch: 15 }, // طريقة الدفع
-        { wch: 12 }, // عدد التذاكر
+        { wch: 15 }, // عدد التذاكر
         { wch: 15 }, // حالة الدفع
-        { wch: 12 }, // المبلغ الإجمالي
+        { wch: 15 }, // المبلغ الإجمالي
         { wch: 15 }, // رمز الحجز
-        { wch: 20 }, // اسم العميل
-        { wch: 25 }, // البريد الإلكتروني
-        { wch: 15 }, // رقم الهاتف
+        { wch: 22 }, // اسم العميل
+        { wch: 28 }, // البريد الإلكتروني
+        { wch: 18 }, // رقم الهاتف
         { wch: 15 }, // الجنسية
-        { wch: 15 }, // رقم الهوية
+        { wch: 18 }, // رقم الهوية
         { wch: 15 }, // نوع التذكرة
         { wch: 15 }, // تاريخ الفعالية
         { wch: 20 }, // الموقع
         { wch: 12 }, // عدد الحضور
         { wch: 40 }, // أسماء حاملي التذاكر
-        { wch: 18 }, // تاريخ التأكيد
-        { wch: 18 }, // تاريخ الإنشاء
-        { wch: 30 }  // رمز الاستجابة السريعة
+        { wch: 20 }, // تاريخ التأكيد
+        { wch: 20 }, // تاريخ الإنشاء
+        { wch: 35 }  // رمز الاستجابة السريعة
       ];
+
+      // Sort function for status ordering: confirmed > pending > cancelled
+      const statusOrder = { "confirmed": 1, "pending": 2, "cancelled": 3 };
+      const sortByStatus = (a: any, b: any) => {
+        const statusA = statusOrder[a["حالة الدفع"] as keyof typeof statusOrder] || 4;
+        const statusB = statusOrder[b["حالة الدفع"] as keyof typeof statusOrder] || 4;
+        return statusA - statusB;
+      };
 
       // Create a sheet with ALL records first
       const allRecordsData = Object.keys(groupedByEventDate)
         .sort()
-        .flatMap(dateKey => groupedByEventDate[dateKey]);
-      
-      console.log("All records count:", allRecordsData.length);
+        .flatMap(dateKey => groupedByEventDate[dateKey])
+        .sort(sortByStatus);
       
       if (allRecordsData.length > 0) {
-        const allRecordsSheet = XLSX.utils.json_to_sheet(allRecordsData);
-        allRecordsSheet['!cols'] = colWidths;
-        
-        // Add all records sheet as first sheet
+        let allRecordsSheet = XLSX.utils.json_to_sheet(allRecordsData);
+        allRecordsSheet = applyStylesToSheet(allRecordsSheet, allRecordsData, colWidths);
+        allRecordsSheet = addTotalRow(allRecordsSheet, allRecordsData, colWidths);
         XLSX.utils.book_append_sheet(wb, allRecordsSheet, "جميع السجلات");
-        console.log("All records sheet added successfully");
-      } else {
-        console.log("No records to add to all records sheet");
       }
 
       // Sort dates and create sheets for each day
       const sortedDates = Object.keys(groupedByEventDate).sort();
       
       sortedDates.forEach((dateKey, index) => {
-        const sheetData = groupedByEventDate[dateKey];
+        const sheetData = groupedByEventDate[dateKey].sort(sortByStatus);
         const formattedDate = format(new Date(dateKey), "dd MMMM yyyy", { locale: ar });
-        const sheetName = `اليوم ${index + 1} - ${formattedDate}`.substring(0, 31); // Excel sheet name limit
+        const sheetName = `اليوم ${index + 1} - ${formattedDate}`.substring(0, 31);
         
-        // Create worksheet from data
-        const ws = XLSX.utils.json_to_sheet(sheetData);
-        ws['!cols'] = colWidths;
-        
-        // Add worksheet to workbook
+        let ws = XLSX.utils.json_to_sheet(sheetData);
+        ws = applyStylesToSheet(ws, sheetData, colWidths);
+        ws = addTotalRow(ws, sheetData, colWidths);
         XLSX.utils.book_append_sheet(wb, ws, sheetName);
       });
 
@@ -192,19 +322,23 @@ export const ReportsTab = () => {
       
       if (sortedSadadDates.length > 0) {
         // Add a summary sheet for all Sadad purchases
-        const allSadadData = sortedSadadDates.flatMap(dateKey => groupedBySadadPurchaseDate[dateKey]);
-        const sadadSummarySheet = XLSX.utils.json_to_sheet(allSadadData);
-        sadadSummarySheet['!cols'] = colWidths;
+        const allSadadData = sortedSadadDates
+          .flatMap(dateKey => groupedBySadadPurchaseDate[dateKey])
+          .sort(sortByStatus);
+        let sadadSummarySheet = XLSX.utils.json_to_sheet(allSadadData);
+        sadadSummarySheet = applyStylesToSheet(sadadSummarySheet, allSadadData, colWidths);
+        sadadSummarySheet = addTotalRow(sadadSummarySheet, allSadadData, colWidths);
         XLSX.utils.book_append_sheet(wb, sadadSummarySheet, "جميع مشتريات سداد");
 
         // Add individual sheets for each Sadad purchase date
         sortedSadadDates.forEach((dateKey, index) => {
-          const sheetData = groupedBySadadPurchaseDate[dateKey];
+          const sheetData = groupedBySadadPurchaseDate[dateKey].sort(sortByStatus);
           const formattedDate = format(new Date(dateKey), "dd MMMM yyyy", { locale: ar });
           const sheetName = `سداد ${index + 1} - ${formattedDate}`.substring(0, 31);
           
-          const ws = XLSX.utils.json_to_sheet(sheetData);
-          ws['!cols'] = colWidths;
+          let ws = XLSX.utils.json_to_sheet(sheetData);
+          ws = applyStylesToSheet(ws, sheetData, colWidths);
+          ws = addTotalRow(ws, sheetData, colWidths);
           XLSX.utils.book_append_sheet(wb, ws, sheetName);
         });
       }
