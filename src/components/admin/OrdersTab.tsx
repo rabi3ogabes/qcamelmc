@@ -548,7 +548,7 @@ export const OrdersTab = ({
           </div>
           
           {/* Ticket Icons */}
-          <div className="flex items-center gap-0.5">
+          <div className="grid grid-cols-4 gap-0.5 max-w-[56px]">
             {Array.from({
             length: order.quantity
           }).map((_, i) => order.ticket_type === 'vip' ? <Crown key={i} className="w-3 h-3 text-yellow-500" /> : order.ticket_type === 'parking' ? <Car key={i} className="w-3 h-3 text-blue-500" /> : <Ticket key={i} className="w-3 h-3 text-primary" />)}
