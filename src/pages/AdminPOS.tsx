@@ -967,6 +967,7 @@ const AdminPOS = () => {
                       <Input
                         id="phone"
                         type="tel"
+                        dir="rtl"
                         className="flex-1"
                         value={customerPhone}
                         onChange={(e) => setCustomerPhone(e.target.value)}
