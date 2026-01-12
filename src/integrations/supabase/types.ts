@@ -401,6 +401,7 @@ export type Database = {
           created_by: string | null
           id: string
           image_url: string | null
+          num_tickets: number | null
           seq_number: string | null
           ticket_type: string | null
           time: string | null
@@ -413,6 +414,7 @@ export type Database = {
           created_by?: string | null
           id?: string
           image_url?: string | null
+          num_tickets?: number | null
           seq_number?: string | null
           ticket_type?: string | null
           time?: string | null
@@ -425,6 +427,7 @@ export type Database = {
           created_by?: string | null
           id?: string
           image_url?: string | null
+          num_tickets?: number | null
           seq_number?: string | null
           ticket_type?: string | null
           time?: string | null
