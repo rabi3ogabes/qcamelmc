@@ -558,7 +558,7 @@ export const OrdersTab = ({
     order
   }: {
     order: Order;
-  }) => <Card className={`overflow-hidden hover:shadow-lg transition-shadow ${order.sadad_manually_verified ? 'bg-green-50 dark:bg-green-950/20 border-green-200 dark:border-green-800' : ''}`}>
+  }) => <Card className={`overflow-hidden hover:shadow-lg transition-shadow flex flex-col h-full ${order.sadad_manually_verified ? 'bg-green-50 dark:bg-green-950/20 border-green-200 dark:border-green-800' : ''}`}>
       {/* Event Date - Top Banner */}
       <div className="text-center py-2 bg-primary text-primary-foreground">
         <p className="text-sm font-semibold">
@@ -566,7 +566,7 @@ export const OrdersTab = ({
         </p>
       </div>
       
-      <div className="p-6 space-y-4">
+      <div className="p-6 space-y-4 flex-1">
         {/* Header Row - Reference and Status */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 pb-4 border-b">
           <div>
