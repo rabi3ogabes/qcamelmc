@@ -294,6 +294,106 @@ const POSReceiptPage = () => {
       });
     }
 
+    // Style summary section
+    const summaryStartRow = 4 + exportData.length + 1; // After data + empty row
+    const summaryCols = ["B", "C", "D"];
+    
+    // POS header row style
+    const posHeaderStyle = {
+      font: { bold: true, sz: 11, color: { rgb: "000000" } },
+      fill: { fgColor: { rgb: "D4E6F1" } }, // Light blue
+      alignment: { horizontal: "center", vertical: "center" },
+      border: {
+        top: { style: "thin", color: { rgb: "000000" } },
+        bottom: { style: "thin", color: { rgb: "000000" } },
+        left: { style: "thin", color: { rgb: "000000" } },
+        right: { style: "thin", color: { rgb: "000000" } },
+      },
+    };
+    
+    // Normal row style (green)
+    const normalStyle = {
+      font: { sz: 10 },
+      fill: { fgColor: { rgb: "D5F5E3" } }, // Light green
+      alignment: { horizontal: "center", vertical: "center" },
+      border: {
+        top: { style: "thin", color: { rgb: "000000" } },
+        bottom: { style: "thin", color: { rgb: "000000" } },
+        left: { style: "thin", color: { rgb: "000000" } },
+        right: { style: "thin", color: { rgb: "000000" } },
+      },
+    };
+    
+    // VIP row style (amber/yellow)
+    const vipStyle = {
+      font: { sz: 10 },
+      fill: { fgColor: { rgb: "FCF3CF" } }, // Light yellow
+      alignment: { horizontal: "center", vertical: "center" },
+      border: {
+        top: { style: "thin", color: { rgb: "000000" } },
+        bottom: { style: "thin", color: { rgb: "000000" } },
+        left: { style: "thin", color: { rgb: "000000" } },
+        right: { style: "thin", color: { rgb: "000000" } },
+      },
+    };
+    
+    // Parking row style (light blue)
+    const parkingStyle = {
+      font: { sz: 10 },
+      fill: { fgColor: { rgb: "D6EAF8" } }, // Light blue
+      alignment: { horizontal: "center", vertical: "center" },
+      border: {
+        top: { style: "thin", color: { rgb: "000000" } },
+        bottom: { style: "thin", color: { rgb: "000000" } },
+        left: { style: "thin", color: { rgb: "000000" } },
+        right: { style: "thin", color: { rgb: "000000" } },
+      },
+    };
+    
+    // Total row style (beige/tan)
+    const totalStyle = {
+      font: { bold: true, sz: 10 },
+      fill: { fgColor: { rgb: "F5CBA7" } }, // Light orange/tan
+      alignment: { horizontal: "center", vertical: "center" },
+      border: {
+        top: { style: "thin", color: { rgb: "000000" } },
+        bottom: { style: "thin", color: { rgb: "000000" } },
+        left: { style: "thin", color: { rgb: "000000" } },
+        right: { style: "thin", color: { rgb: "000000" } },
+      },
+    };
+    
+    // Apply styles to summary rows
+    // POS header row
+    summaryCols.forEach((col) => {
+      const cell = ws[`${col}${summaryStartRow}`];
+      if (cell) cell.s = posHeaderStyle;
+    });
+    
+    // Normal row
+    summaryCols.forEach((col) => {
+      const cell = ws[`${col}${summaryStartRow + 1}`];
+      if (cell) cell.s = normalStyle;
+    });
+    
+    // VIP row
+    summaryCols.forEach((col) => {
+      const cell = ws[`${col}${summaryStartRow + 2}`];
+      if (cell) cell.s = vipStyle;
+    });
+    
+    // Parking row
+    summaryCols.forEach((col) => {
+      const cell = ws[`${col}${summaryStartRow + 3}`];
+      if (cell) cell.s = parkingStyle;
+    });
+    
+    // Total row
+    summaryCols.forEach((col) => {
+      const cell = ws[`${col}${summaryStartRow + 4}`];
+      if (cell) cell.s = totalStyle;
+    });
+
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "POS Receipts");
 
