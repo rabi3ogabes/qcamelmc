@@ -200,8 +200,15 @@ const AdminPOS = () => {
     return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
   }, []);
 
-  // Auto-populate phone and ID number from customer info to all ticket holders
-  // Note: Name is NOT auto-populated - each ticket holder has a unique name
+  // Auto-populate name, phone and ID number from first ticket holder to all others
+  useEffect(() => {
+    if (ticketHolders.length > 0 && ticketHolders[0].name) {
+      const firstName = ticketHolders[0].name;
+      setTicketHolders(prev => prev.map((holder, index) => 
+        index === 0 ? holder : { ...holder, name: firstName }
+      ));
+    }
+  }, [ticketHolders[0]?.name]);
 
   useEffect(() => {
     if (customerPhone) {
