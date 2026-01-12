@@ -815,7 +815,8 @@ const Checkout = () => {
                             <Input 
                               id={`holder-phone-${index}`} 
                               type="tel" 
-                              value={holder.phone.replace(/^\+\d+\s*/, "")} 
+                              dir="rtl"
+                              value={holder.phone.replace(/^\+\d+\s*/, "")}
                               onChange={e => {
                                 const countryCode = COUNTRY_CODES[holder.nationality] || "+974";
                                 // Convert Arabic numerals to English and remove any + or country code
