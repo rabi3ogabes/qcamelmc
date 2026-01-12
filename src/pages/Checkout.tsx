@@ -627,7 +627,7 @@ const Checkout = () => {
                   <Input id="name" value={customerInfo.name} onChange={e => setCustomerInfo({
                   ...customerInfo,
                   name: e.target.value
-                })} required />
+                })} required minLength={3} />
                 </div>
                 <div>
                   <Label htmlFor="email">{t('email')}</Label>
