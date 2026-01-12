@@ -305,10 +305,7 @@ const AdminPOS = () => {
   };
 
   const canAddToCart = (ticketType: string, quantity: number) => {
-    const currentVipNormal = getTotalVipNormalInCart();
-    if (ticketType === "vip" || ticketType === "normal") {
-      return (currentVipNormal + quantity) <= 5;
-    }
+    // No limit - allow any quantity
     return true;
   };
 
@@ -330,22 +327,7 @@ const AdminPOS = () => {
       return;
     }
     
-    // Calculate what the new total would be
-    let totalVipNormalAfterAdd = getTotalVipNormalInCart();
-    if (ticket.type === "vip" || ticket.type === "normal") {
-      totalVipNormalAfterAdd += quantity;
-    }
-    
-    // Check if adding this quantity would exceed the limit
-    if ((ticket.type === "vip" || ticket.type === "normal") && totalVipNormalAfterAdd > 5) {
-      console.log("Exceeding limit, showing error");
-      toast({
-        title: "خطأ",
-        description: "الحد الأقصى لتذاكر VIP والعادي معاً هو 5",
-        variant: "destructive",
-      });
-      return;
-    }
+    // No limit on VIP/normal tickets - allow any quantity
 
     if (existingItem) {
       console.log("Updating existing item");
