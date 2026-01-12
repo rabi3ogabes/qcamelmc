@@ -29,6 +29,7 @@ const LiveBookings = lazy(() => import("./pages/LiveBookings"));
 const LiveVisitors = lazy(() => import("./pages/LiveVisitors"));
 const QRScanner = lazy(() => import("./pages/QRScanner"));
 const AdminPOS = lazy(() => import("./pages/AdminPOS"));
+const POSReceiptPage = lazy(() => import("./pages/POSReceiptPage"));
 const TicketViewer = lazy(() => import("./pages/TicketViewer"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
@@ -64,6 +65,7 @@ const App = () => (
                     <Route path="/admin/dashboard" element={<AdminDashboard />} />
                     <Route path="/admin/qr-scanner" element={<QRScanner />} />
                     <Route path="/admin/pos" element={<AdminPOS />} />
+                    <Route path="/admin/pos-receipts" element={<POSReceiptPage />} />
                     <Route path="/admin/tickets" element={<TicketViewer />} />
                     <Route path="*" element={<NotFound />} />
                   </Routes>
