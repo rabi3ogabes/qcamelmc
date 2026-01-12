@@ -681,6 +681,7 @@ const Checkout = () => {
                     <Input 
                       id="phone" 
                       type="tel" 
+                      dir="rtl"
                       value={customerInfo.phone} 
                       onChange={e => {
                         // Convert Arabic numerals to English and remove any + or country code
