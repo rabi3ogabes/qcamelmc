@@ -142,7 +142,7 @@ const POSReceiptPage = () => {
       return;
     }
 
-    const today = new Date().toLocaleDateString("ar-QA", {
+    const today = new Date().toLocaleDateString("en-GB", {
       year: "numeric",
       month: "2-digit",
       day: "2-digit",
