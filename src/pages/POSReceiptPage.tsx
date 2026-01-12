@@ -18,6 +18,9 @@ interface POSReceipt {
   auth_number: string | null;
   created_at: string;
   num_tickets: number | null;
+  normal_tickets: number | null;
+  vip_tickets: number | null;
+  parking_tickets: number | null;
 }
 
 const POSReceiptPage = () => {
@@ -145,19 +148,22 @@ const POSReceiptPage = () => {
     }
   };
 
-  const handleNumTicketsChange = async (receiptId: string, numTickets: number) => {
+  const handleTicketChange = async (
+    receiptId: string,
+    ticketType: "normal_tickets" | "vip_tickets" | "parking_tickets",
+    value: number
+  ) => {
     try {
       const { error } = await supabase
         .from("pos_receipts")
-        .update({ num_tickets: numTickets })
+        .update({ [ticketType]: value })
         .eq("id", receiptId);
 
       if (error) throw error;
 
       setReceipts((prev) =>
-        prev.map((r) => (r.id === receiptId ? { ...r, num_tickets: numTickets } : r))
+        prev.map((r) => (r.id === receiptId ? { ...r, [ticketType]: value } : r))
       );
-      toast.success("Tickets updated");
     } catch (error) {
       console.error("Error updating tickets:", error);
       toast.error("Failed to update tickets");
@@ -176,13 +182,15 @@ const POSReceiptPage = () => {
       day: "2-digit",
     });
 
-    const headers = ["#", "Amount (QAR)", "Seq Number", "Tickets", "Card Number", "Time", "Auth Number", "Date Added"];
+    const headers = ["#", "Amount (QAR)", "Seq Number", "Normal", "VIP", "Parking", "Card Number", "Time", "Auth Number", "Date Added"];
 
     const exportData = receipts.map((r, index) => [
       index + 1,
       r.amount_qar ?? "",
       r.seq_number ?? "",
-      r.num_tickets ?? "",
+      r.normal_tickets ?? 0,
+      r.vip_tickets ?? 0,
+      r.parking_tickets ?? 0,
       r.card_number_masked ?? "",
       r.time ?? "",
       r.auth_number ?? "",
@@ -198,7 +206,7 @@ const POSReceiptPage = () => {
     ]);
 
     // Merge cells for title header
-    ws["!merges"] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: 7 } }];
+    ws["!merges"] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: 9 } }];
 
     // Style the title header (row 1)
     ws["A1"].s = {
@@ -220,7 +228,7 @@ const POSReceiptPage = () => {
       },
     };
 
-    const cols = ["A", "B", "C", "D", "E", "F", "G", "H"];
+    const cols = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J"];
     cols.forEach((col) => {
       const cell = ws[`${col}3`];
       if (cell) cell.s = headerStyle;
@@ -256,6 +264,8 @@ const POSReceiptPage = () => {
       { wch: 5 },
       { wch: 15 },
       { wch: 15 },
+      { wch: 10 },
+      { wch: 10 },
       { wch: 10 },
       { wch: 22 },
       { wch: 12 },
@@ -418,25 +428,43 @@ const POSReceiptPage = () => {
                             <p className="font-mono font-semibold">{receipt.amount_qar?.toLocaleString() ?? "-"} QAR</p>
                           </div>
                           <div>
-                            <p className="text-xs text-muted-foreground">Tickets</p>
-                            <Select
-                              value={receipt.num_tickets?.toString() || ""}
-                              onValueChange={(value) => handleNumTicketsChange(receipt.id, parseInt(value))}
-                            >
-                              <SelectTrigger className="w-20 h-8 text-xs">
-                                <SelectValue placeholder="-" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 20, 25, 30].map((n) => (
-                                  <SelectItem key={n} value={n.toString()}>{n}</SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          </div>
-                          <div>
                             <p className="text-xs text-muted-foreground">Seq #</p>
                             <p className="font-mono text-sm">{receipt.seq_number ?? "-"}</p>
                           </div>
+                        </div>
+                        <div className="grid grid-cols-3 gap-2 text-sm">
+                          <div>
+                            <p className="text-xs text-muted-foreground text-center">Normal</p>
+                            <input
+                              type="number"
+                              min="0"
+                              value={receipt.normal_tickets ?? 0}
+                              onChange={(e) => handleTicketChange(receipt.id, "normal_tickets", parseInt(e.target.value) || 0)}
+                              className="w-full h-8 text-center text-sm border rounded bg-background"
+                            />
+                          </div>
+                          <div>
+                            <p className="text-xs text-muted-foreground text-center">VIP</p>
+                            <input
+                              type="number"
+                              min="0"
+                              value={receipt.vip_tickets ?? 0}
+                              onChange={(e) => handleTicketChange(receipt.id, "vip_tickets", parseInt(e.target.value) || 0)}
+                              className="w-full h-8 text-center text-sm border rounded bg-background"
+                            />
+                          </div>
+                          <div>
+                            <p className="text-xs text-muted-foreground text-center">Parking</p>
+                            <input
+                              type="number"
+                              min="0"
+                              value={receipt.parking_tickets ?? 0}
+                              onChange={(e) => handleTicketChange(receipt.id, "parking_tickets", parseInt(e.target.value) || 0)}
+                              className="w-full h-8 text-center text-sm border rounded bg-background"
+                            />
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-3 text-sm">
                           <div>
                             <p className="text-xs text-muted-foreground">Auth #</p>
                             <p className="font-mono text-sm">{receipt.auth_number ?? "-"}</p>
@@ -464,7 +492,9 @@ const POSReceiptPage = () => {
                         <TableHead className="text-left w-10">#</TableHead>
                         <TableHead className="text-left">Amount (QAR)</TableHead>
                         <TableHead className="text-left">Seq Number</TableHead>
-                        <TableHead className="text-left">Tickets</TableHead>
+                        <TableHead className="text-center">Normal</TableHead>
+                        <TableHead className="text-center">VIP</TableHead>
+                        <TableHead className="text-center">Parking</TableHead>
                         <TableHead className="text-left hidden md:table-cell">Card Number</TableHead>
                         <TableHead className="text-left hidden lg:table-cell">Time</TableHead>
                         <TableHead className="text-left hidden lg:table-cell">Auth Number</TableHead>
@@ -485,21 +515,31 @@ const POSReceiptPage = () => {
                             {receipt.seq_number ?? "-"}
                           </TableCell>
                           <TableCell>
-                            <Select
-                              value={receipt.num_tickets?.toString() || ""}
-                              onValueChange={(value) => handleNumTicketsChange(receipt.id, parseInt(value))}
-                            >
-                              <SelectTrigger className="w-16 h-8 text-xs">
-                                <SelectValue placeholder="-" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 20, 25, 30].map((n) => (
-                                  <SelectItem key={n} value={n.toString()}>
-                                    {n}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
+                            <input
+                              type="number"
+                              min="0"
+                              value={receipt.normal_tickets ?? 0}
+                              onChange={(e) => handleTicketChange(receipt.id, "normal_tickets", parseInt(e.target.value) || 0)}
+                              className="w-14 h-8 text-center text-sm border rounded bg-background"
+                            />
+                          </TableCell>
+                          <TableCell>
+                            <input
+                              type="number"
+                              min="0"
+                              value={receipt.vip_tickets ?? 0}
+                              onChange={(e) => handleTicketChange(receipt.id, "vip_tickets", parseInt(e.target.value) || 0)}
+                              className="w-14 h-8 text-center text-sm border rounded bg-background"
+                            />
+                          </TableCell>
+                          <TableCell>
+                            <input
+                              type="number"
+                              min="0"
+                              value={receipt.parking_tickets ?? 0}
+                              onChange={(e) => handleTicketChange(receipt.id, "parking_tickets", parseInt(e.target.value) || 0)}
+                              className="w-14 h-8 text-center text-sm border rounded bg-background"
+                            />
                           </TableCell>
                           <TableCell className="font-mono text-xs hidden md:table-cell">
                             {receipt.card_number_masked ?? "-"}

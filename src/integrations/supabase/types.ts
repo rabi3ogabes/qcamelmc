@@ -401,10 +401,13 @@ export type Database = {
           created_by: string | null
           id: string
           image_url: string | null
+          normal_tickets: number | null
           num_tickets: number | null
+          parking_tickets: number | null
           seq_number: string | null
           ticket_type: string | null
           time: string | null
+          vip_tickets: number | null
         }
         Insert: {
           amount_qar?: number | null
@@ -414,10 +417,13 @@ export type Database = {
           created_by?: string | null
           id?: string
           image_url?: string | null
+          normal_tickets?: number | null
           num_tickets?: number | null
+          parking_tickets?: number | null
           seq_number?: string | null
           ticket_type?: string | null
           time?: string | null
+          vip_tickets?: number | null
         }
         Update: {
           amount_qar?: number | null
@@ -427,10 +433,13 @@ export type Database = {
           created_by?: string | null
           id?: string
           image_url?: string | null
+          normal_tickets?: number | null
           num_tickets?: number | null
+          parking_tickets?: number | null
           seq_number?: string | null
           ticket_type?: string | null
           time?: string | null
+          vip_tickets?: number | null
         }
         Relationships: []
       }
