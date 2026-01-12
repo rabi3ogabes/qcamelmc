@@ -1088,6 +1088,7 @@ const AdminPOS = () => {
                               <Input
                                 id={`holder-phone-${index}`}
                                 type="tel"
+                                dir="rtl"
                                 className="flex-1"
                                 value={holder.phone}
                                 onChange={(e) => updateTicketHolder(index, 'phone', e.target.value)}
