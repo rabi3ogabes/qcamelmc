@@ -701,12 +701,6 @@ export const OrdersTab = ({
               <Calendar className="w-4 h-4" />
               <span>تاريخ الحجز: {format(new Date(order.created_at), 'dd/MM/yyyy - HH:mm')}</span>
             </div>
-            {order.events && (
-              <div className="flex items-center gap-1">
-                <MapPin className="w-4 h-4" />
-                <span>{order.events.location}</span>
-              </div>
-            )}
           </div>
         </div>
         
