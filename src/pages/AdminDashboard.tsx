@@ -16,6 +16,7 @@ import { InvoiceTab } from "@/components/admin/InvoiceTab";
 import { ReportsTab } from "@/components/admin/ReportsTab";
 import { ActivityLogsTab } from "@/components/admin/ActivityLogsTab";
 import { VisitorAnalyticsTab } from "@/components/admin/VisitorAnalyticsTab";
+import { POSReceiptReader } from "@/components/admin/POSReceiptReader";
 import "../i18n/config";
 
 interface Order {
@@ -220,6 +221,7 @@ const AdminDashboard = () => {
                 <ExternalLink className="w-4 h-4" />
                 {t("mainWebsite")}
               </Button>
+              <POSReceiptReader />
             </div>
 
             <TabsContent value="orders">

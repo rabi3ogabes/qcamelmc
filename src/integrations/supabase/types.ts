@@ -392,6 +392,42 @@ export type Database = {
         }
         Relationships: []
       }
+      pos_receipts: {
+        Row: {
+          amount_qar: number | null
+          auth_number: string | null
+          card_number_masked: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          image_url: string | null
+          seq_number: string | null
+          time: string | null
+        }
+        Insert: {
+          amount_qar?: number | null
+          auth_number?: string | null
+          card_number_masked?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          image_url?: string | null
+          seq_number?: string | null
+          time?: string | null
+        }
+        Update: {
+          amount_qar?: number | null
+          auth_number?: string | null
+          card_number_masked?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          image_url?: string | null
+          seq_number?: string | null
+          time?: string | null
+        }
+        Relationships: []
+      }
       settings: {
         Row: {
           admin_phone: string | null
