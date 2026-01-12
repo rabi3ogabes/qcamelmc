@@ -571,7 +571,7 @@ export const OrdersTab = ({
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 pb-4 border-b">
           <div>
             <p className="text-sm text-muted-foreground mb-1">{t("reference")}</p>
-            <p className="font-mono font-semibold text-primary text-sm">{order.booking_reference}</p>
+            <p className="font-mono font-semibold text-primary text-xs">{order.booking_reference}</p>
           </div>
           
           {/* Ticket Icons */}
