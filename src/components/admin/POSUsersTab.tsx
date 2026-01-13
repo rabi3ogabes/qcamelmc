@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Trash2, User } from "lucide-react";
+import { Plus, Trash2, User, Pencil, Check, X } from "lucide-react";
 
 interface POSUser {
   id: string;
@@ -21,6 +21,8 @@ export const POSUsersTab = () => {
   const [loading, setLoading] = useState(true);
   const [newUserName, setNewUserName] = useState("");
   const [adding, setAdding] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editingName, setEditingName] = useState("");
 
   useEffect(() => {
     fetchUsers();
@@ -107,6 +109,51 @@ export const POSUsersTab = () => {
     }
   };
 
+  const handleStartEdit = (user: POSUser) => {
+    setEditingId(user.id);
+    setEditingName(user.name);
+  };
+
+  const handleCancelEdit = () => {
+    setEditingId(null);
+    setEditingName("");
+  };
+
+  const handleSaveEdit = async (userId: string) => {
+    if (!editingName.trim()) {
+      toast({
+        title: "خطأ",
+        description: "يرجى إدخال اسم المستخدم",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from("pos_users")
+        .update({ name: editingName.trim() })
+        .eq("id", userId);
+
+      if (error) throw error;
+
+      toast({
+        title: "تم",
+        description: "تم تحديث اسم المستخدم بنجاح",
+      });
+      setEditingId(null);
+      setEditingName("");
+      fetchUsers();
+    } catch (error) {
+      console.error("Error updating POS user:", error);
+      toast({
+        title: "خطأ",
+        description: "فشل تحديث اسم المستخدم",
+        variant: "destructive",
+      });
+    }
+  };
+
   const handleDeleteUser = async (userId: string) => {
     if (!confirm("هل أنت متأكد من حذف هذا المستخدم؟")) return;
 
@@ -131,6 +178,15 @@ export const POSUsersTab = () => {
         variant: "destructive",
       });
     }
+  };
+
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    });
   };
 
   if (loading) {
@@ -167,41 +223,89 @@ export const POSUsersTab = () => {
             لا يوجد مستخدمين. أضف مستخدم جديد للبدء.
           </div>
         ) : (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="text-right font-lusail">الاسم</TableHead>
-                <TableHead className="text-right font-lusail">الحالة</TableHead>
-                <TableHead className="text-right font-lusail">تاريخ الإنشاء</TableHead>
-                <TableHead className="text-right font-lusail">إجراءات</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {users.map((user) => (
-                <TableRow key={user.id}>
-                  <TableCell className="font-lusail font-medium">{user.name}</TableCell>
-                  <TableCell>
-                    <Switch
-                      checked={user.is_active}
-                      onCheckedChange={(checked) => handleToggleActive(user.id, checked)}
-                    />
-                  </TableCell>
-                  <TableCell className="font-lusail text-muted-foreground">
-                    {new Date(user.created_at).toLocaleDateString("ar-QA")}
-                  </TableCell>
-                  <TableCell>
-                    <Button
-                      variant="destructive"
-                      size="sm"
-                      onClick={() => handleDeleteUser(user.id)}
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  </TableCell>
+          <div className="overflow-x-auto" dir="rtl">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="text-right font-lusail">الاسم</TableHead>
+                  <TableHead className="text-right font-lusail">الحالة</TableHead>
+                  <TableHead className="text-right font-lusail">تاريخ الإنشاء</TableHead>
+                  <TableHead className="text-right font-lusail">إجراءات</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {users.map((user) => (
+                  <TableRow key={user.id}>
+                    <TableCell className="font-lusail font-medium">
+                      {editingId === user.id ? (
+                        <Input
+                          value={editingName}
+                          onChange={(e) => setEditingName(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") handleSaveEdit(user.id);
+                            if (e.key === "Escape") handleCancelEdit();
+                          }}
+                          className="w-full max-w-[200px]"
+                          autoFocus
+                        />
+                      ) : (
+                        user.name
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      <Switch
+                        checked={user.is_active}
+                        onCheckedChange={(checked) => handleToggleActive(user.id, checked)}
+                      />
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {formatDate(user.created_at)}
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        {editingId === user.id ? (
+                          <>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleSaveEdit(user.id)}
+                              className="text-green-600 hover:text-green-700"
+                            >
+                              <Check className="w-4 h-4" />
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={handleCancelEdit}
+                            >
+                              <X className="w-4 h-4" />
+                            </Button>
+                          </>
+                        ) : (
+                          <>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleStartEdit(user)}
+                            >
+                              <Pencil className="w-4 h-4" />
+                            </Button>
+                            <Button
+                              variant="destructive"
+                              size="sm"
+                              onClick={() => handleDeleteUser(user.id)}
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </>
+                        )}
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
         )}
       </CardContent>
     </Card>
