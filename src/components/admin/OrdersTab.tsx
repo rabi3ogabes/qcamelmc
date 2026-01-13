@@ -88,6 +88,10 @@ interface Order {
     event_date: string;
     location: string;
   };
+  pos_users?: {
+    name: string;
+    icon: string | null;
+  } | null;
 }
 interface OrdersTabProps {
   orders: Order[];
@@ -559,7 +563,19 @@ export const OrdersTab = ({
               {order.payment_status === "confirmed" ? t("confirmed") : order.payment_status === "cancelled" ? t("failed") : t("pending")}
             </Badge>
             <div className="flex items-center gap-2 justify-end">
-              {order.payment_method === 'cash_pos' ? <Banknote className="w-4 h-4 text-green-600" /> : <CreditCard className="w-4 h-4 text-blue-600" />}
+              {order.payment_method === 'cash_pos' ? (
+                <div className="flex flex-col items-center">
+                  <Banknote className="w-4 h-4 text-green-600" />
+                  {order.pos_users?.icon && (
+                    <span className="text-lg" title={order.pos_users?.name || 'POS User'}>{order.pos_users.icon}</span>
+                  )}
+                  {order.pos_users?.name && (
+                    <span className="text-[10px] text-muted-foreground truncate max-w-[60px]">{order.pos_users.name}</span>
+                  )}
+                </div>
+              ) : (
+                <CreditCard className="w-4 h-4 text-blue-600" />
+              )}
               <span className="text-xs font-medium capitalize">{order.payment_method}</span>
             </div>
           </div>
