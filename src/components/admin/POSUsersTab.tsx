@@ -32,8 +32,11 @@ const POS_USER_ICONS = [
   "🏆", // Trophy
 ];
 
-const getRandomIcon = () => {
-  return POS_USER_ICONS[Math.floor(Math.random() * POS_USER_ICONS.length)];
+const getNextAvailableIcon = (usedIcons: string[]) => {
+  // Find first icon not already used
+  const available = POS_USER_ICONS.find(icon => !usedIcons.includes(icon));
+  // If all icons used, pick random
+  return available || POS_USER_ICONS[Math.floor(Math.random() * POS_USER_ICONS.length)];
 };
 
 interface POSUser {
@@ -90,11 +93,12 @@ export const POSUsersTab = () => {
 
     setAdding(true);
     try {
+      const usedIcons = users.map(u => u.icon).filter(Boolean);
       const { error } = await supabase
         .from("pos_users")
         .insert({ 
           name: newUserName.trim(),
-          icon: getRandomIcon()
+          icon: getNextAvailableIcon(usedIcons)
         });
 
       if (error) throw error;
@@ -188,9 +192,10 @@ export const POSUsersTab = () => {
 
   const handleRegenerateIcon = async (userId: string) => {
     try {
+      const usedIcons = users.filter(u => u.id !== userId).map(u => u.icon).filter(Boolean);
       const { error } = await supabase
         .from("pos_users")
-        .update({ icon: getRandomIcon() })
+        .update({ icon: getNextAvailableIcon(usedIcons) })
         .eq("id", userId);
 
       if (error) throw error;
