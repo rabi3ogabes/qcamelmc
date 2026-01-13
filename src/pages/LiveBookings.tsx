@@ -574,9 +574,9 @@ const LiveBookings = () => {
         return acc;
       }, {});
 
-      const summariesArray = Object.values(grouped).sort((a, b) => 
-        new Date(a.date).getTime() - new Date(b.date).getTime()
-      );
+      const summariesArray = Object.values(grouped)
+        .filter(s => new Date(s.date) >= new Date('2026-01-12'))
+        .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
       
       setDailySummaries(summariesArray);
     } catch (error) {
