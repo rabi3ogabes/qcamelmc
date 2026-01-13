@@ -451,10 +451,29 @@ const LiveBookings = () => {
       )
       .subscribe();
 
+    // Subscribe to pos_users changes to update names in real-time
+    const posUsersChannel = supabase
+      .channel('live-bookings-pos-users')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'pos_users'
+        },
+        (payload) => {
+          console.log('POS user change:', payload);
+          // Refetch bookings to get updated POS user names
+          fetchBookings(true);
+        }
+      )
+      .subscribe();
+
     return () => {
       supabase.removeChannel(ordersChannel);
       supabase.removeChannel(ticketHoldersChannel);
       supabase.removeChannel(ticketsChannel);
+      supabase.removeChannel(posUsersChannel);
     };
   };
 
