@@ -553,9 +553,15 @@ export const OrdersTab = ({
           
           {/* Ticket Icons */}
           <div className="grid grid-cols-4 gap-0.5 max-w-[56px]">
-            {Array.from({
-            length: order.quantity
-          }).map((_, i) => order.ticket_type === 'vip' ? <Crown key={i} className="w-3 h-3 text-yellow-500" /> : order.ticket_type === 'parking' ? <Car key={i} className="w-3 h-3 text-blue-500" /> : <Ticket key={i} className="w-3 h-3 text-primary" />)}
+            {Array.from({ length: order.quantity }).map((_, i) => {
+              if (order.ticket_type === 'vip') {
+                return <Crown key={i} className="w-3 h-3 text-yellow-500" />;
+              } else if (order.ticket_type === 'parking') {
+                return <Car key={i} className="w-3 h-3 text-blue-500" />;
+              } else {
+                return <Ticket key={i} className="w-3 h-3 text-primary" />;
+              }
+            })}
           </div>
           
           <div className="flex flex-col gap-2">
