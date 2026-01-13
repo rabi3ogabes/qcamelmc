@@ -794,11 +794,12 @@ const LiveBookings = () => {
                           {dailySummaries.map((summary) => (
                             <tr key={summary.date} className="border-b hover:bg-muted/20">
                               <td className="p-2 sm:p-3 font-lusail text-xs sm:text-sm">
-                                {new Date(summary.date).toLocaleDateString('en-US', { 
-                                  weekday: 'short',
-                                  month: 'short', 
-                                  day: 'numeric'
-                                })}
+                                {(() => {
+                                  const date = new Date(summary.date);
+                                  const arabicWeekdays = ['الأحد', 'الإثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
+                                  const arabicMonths = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'];
+                                  return `${arabicWeekdays[date.getDay()]} ${date.getDate()} ${arabicMonths[date.getMonth()]}`;
+                                })()}
                               </td>
                               {/* VIP */}
                               <td className="text-center p-2 sm:p-3 font-lusail font-bold text-xs sm:text-sm">{summary.vip_count || '-'}</td>
