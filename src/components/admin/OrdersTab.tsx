@@ -92,6 +92,7 @@ interface Order {
     name: string;
     icon: string | null;
   } | null;
+  ticket_holders?: { ticket_type: string }[];
 }
 interface OrdersTabProps {
   orders: Order[];
@@ -517,6 +518,33 @@ export const OrdersTab = ({
     const query = searchQuery.toLowerCase().trim();
     return filtered.filter(o => o.booking_reference.toLowerCase().includes(query) || o.customers.name.toLowerCase().includes(query) || o.customers.phone.toLowerCase().includes(query));
   };
+
+  const getOrderTicketTypes = (order: Order): string[] => {
+    const holderTypes = order.ticket_holders?.map(h => h.ticket_type).filter(Boolean) ?? [];
+    if (holderTypes.length) return holderTypes;
+    return Array.from({ length: order.quantity }, () => order.ticket_type);
+  };
+
+  const getTicketTypeLabel = (ticketType: string) => ticketType === "vip" ? t("vipAccess") : ticketType === "normal" ? t("generalAdmission") : t("parking");
+
+  const getOrderTicketSummary = (order: Order) => {
+    const types = getOrderTicketTypes(order).slice(0, order.quantity);
+
+    const counts = types.reduce((acc, type) => {
+      acc[type] = (acc[type] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+
+    const uniqueTypes = Object.keys(counts);
+
+    if (uniqueTypes.length <= 1) {
+      const type = uniqueTypes[0] ?? order.ticket_type;
+      return `${getTicketTypeLabel(type)} × ${order.quantity}`;
+    }
+
+    return uniqueTypes.map(type => `${getTicketTypeLabel(type)} × ${counts[type]}`).join(" • ");
+  };
+
   const OrderCard = ({
     order
   }: {
@@ -553,14 +581,13 @@ export const OrdersTab = ({
           
           {/* Ticket Icons */}
           <div className="grid grid-cols-4 gap-0.5 max-w-[56px]">
-            {Array.from({ length: order.quantity }).map((_, i) => {
-              if (order.ticket_type === 'vip') {
-                return <Crown key={i} className="w-3 h-3 text-yellow-500" />;
-              } else if (order.ticket_type === 'parking') {
-                return <Car key={i} className="w-3 h-3 text-blue-500" />;
-              } else {
-                return <Ticket key={i} className="w-3 h-3 text-primary" />;
+            {getOrderTicketTypes(order).slice(0, order.quantity).map((type, i) => {
+              if (type === 'vip') {
+                return <Crown key={i} className="w-3 h-3 text-ticket-vip" />;
+              } else if (type === 'parking') {
+                return <Car key={i} className="w-3 h-3 text-ticket-parking" />;
               }
+              return <Ticket key={i} className="w-3 h-3 text-ticket-normal" />;
             })}
           </div>
           
@@ -610,7 +637,7 @@ export const OrdersTab = ({
           <div className="flex flex-col" dir="rtl">
             <p className="text-sm text-muted-foreground mb-1">{t("ticket")}</p>
             <p className="font-semibold capitalize">
-              {order.ticket_type === "vip" ? t("vipAccess") : order.ticket_type === "normal" ? t("generalAdmission") : t("parking")} × {order.quantity}
+              {getOrderTicketSummary(order)}
             </p>
             <p className="text-sm font-semibold text-primary">{order.total_amount.toFixed(2)} {t("qar")}</p>
           </div>
