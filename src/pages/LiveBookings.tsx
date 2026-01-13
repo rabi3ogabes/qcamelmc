@@ -61,6 +61,7 @@ interface TicketHolder {
   event_title?: string;
   created_at?: string;
   pos_user_name?: string;
+  pos_user_icon?: string;
 }
 
 interface Booking {
@@ -296,7 +297,7 @@ const LiveBookings = () => {
           customers(name, email, phone, id_number, nationality),
           events(title, event_date),
           ticket_holders(*),
-          pos_users(name)
+          pos_users(name, icon)
         `)
         .eq("payment_status", "confirmed")
         .order("created_at", { ascending: false });
@@ -345,7 +346,8 @@ const LiveBookings = () => {
               n8n_responded_at: order.n8n_responded_at,
               event_title: order.events?.title,
               created_at: order.created_at,
-              pos_user_name: order.pos_users?.name
+              pos_user_name: order.pos_users?.name,
+              pos_user_icon: order.pos_users?.icon
             });
           });
         }
@@ -917,8 +919,12 @@ const LiveBookings = () => {
                         )}
                         {/* Invoice/POS Status Icon */}
                         {holder.payment_method === 'cash_pos' ? (
-                          <div className="flex flex-col items-center">
-                            <span title="POS"><Store className="w-3 h-3 sm:w-4 sm:h-4 text-orange-500" /></span>
+                          <div className="flex flex-col items-center" title={holder.pos_user_name ? `POS - ${holder.pos_user_name}` : "POS"}>
+                            {holder.pos_user_icon ? (
+                              <span className="text-lg sm:text-xl">{holder.pos_user_icon}</span>
+                            ) : (
+                              <Store className="w-3 h-3 sm:w-4 sm:h-4 text-orange-500" />
+                            )}
                             {holder.pos_user_name && (
                               <span className="text-[8px] sm:text-[10px] text-orange-600 font-medium truncate max-w-[60px]">{holder.pos_user_name}</span>
                             )}

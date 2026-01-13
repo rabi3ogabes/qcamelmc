@@ -8,11 +8,40 @@ import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { Plus, Trash2, User, Pencil, Check, X } from "lucide-react";
 
+// 3D-style emoji icons for POS users
+const POS_USER_ICONS = [
+  "⭐", // Star
+  "🚗", // Car
+  "🌙", // Moon
+  "🐉", // Dragon
+  "🦁", // Lion
+  "🦅", // Eagle
+  "🐺", // Wolf
+  "🦊", // Fox
+  "🐻", // Bear
+  "🦋", // Butterfly
+  "🔥", // Fire
+  "⚡", // Lightning
+  "💎", // Diamond
+  "🎯", // Target
+  "🌟", // Glowing Star
+  "🚀", // Rocket
+  "🎪", // Circus
+  "🎭", // Theater
+  "🎨", // Art
+  "🏆", // Trophy
+];
+
+const getRandomIcon = () => {
+  return POS_USER_ICONS[Math.floor(Math.random() * POS_USER_ICONS.length)];
+};
+
 interface POSUser {
   id: string;
   name: string;
   is_active: boolean;
   created_at: string;
+  icon: string;
 }
 
 export const POSUsersTab = () => {
@@ -63,7 +92,10 @@ export const POSUsersTab = () => {
     try {
       const { error } = await supabase
         .from("pos_users")
-        .insert({ name: newUserName.trim() });
+        .insert({ 
+          name: newUserName.trim(),
+          icon: getRandomIcon()
+        });
 
       if (error) throw error;
 
@@ -154,6 +186,30 @@ export const POSUsersTab = () => {
     }
   };
 
+  const handleRegenerateIcon = async (userId: string) => {
+    try {
+      const { error } = await supabase
+        .from("pos_users")
+        .update({ icon: getRandomIcon() })
+        .eq("id", userId);
+
+      if (error) throw error;
+
+      toast({
+        title: "تم",
+        description: "تم تحديث الأيقونة",
+      });
+      fetchUsers();
+    } catch (error) {
+      console.error("Error updating icon:", error);
+      toast({
+        title: "خطأ",
+        description: "فشل تحديث الأيقونة",
+        variant: "destructive",
+      });
+    }
+  };
+
   const handleDeleteUser = async (userId: string) => {
     if (!confirm("هل أنت متأكد من حذف هذا المستخدم؟")) return;
 
@@ -227,6 +283,7 @@ export const POSUsersTab = () => {
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead className="text-right font-lusail">الأيقونة</TableHead>
                   <TableHead className="text-right font-lusail">الاسم</TableHead>
                   <TableHead className="text-right font-lusail">الحالة</TableHead>
                   <TableHead className="text-right font-lusail">تاريخ الإنشاء</TableHead>
@@ -236,6 +293,15 @@ export const POSUsersTab = () => {
               <TableBody>
                 {users.map((user) => (
                   <TableRow key={user.id}>
+                    <TableCell>
+                      <button
+                        onClick={() => handleRegenerateIcon(user.id)}
+                        className="text-2xl hover:scale-125 transition-transform cursor-pointer"
+                        title="انقر لتغيير الأيقونة"
+                      >
+                        {user.icon || "⭐"}
+                      </button>
+                    </TableCell>
                     <TableCell className="font-lusail font-medium">
                       {editingId === user.id ? (
                         <Input
