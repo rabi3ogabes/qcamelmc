@@ -60,6 +60,7 @@ interface TicketHolder {
   n8n_responded_at?: string | null;
   event_title?: string;
   created_at?: string;
+  pos_user_name?: string;
 }
 
 interface Booking {
@@ -294,7 +295,8 @@ const LiveBookings = () => {
           *,
           customers(name, email, phone, id_number, nationality),
           events(title, event_date),
-          ticket_holders(*)
+          ticket_holders(*),
+          pos_users(name)
         `)
         .eq("payment_status", "confirmed")
         .order("created_at", { ascending: false });
@@ -342,7 +344,8 @@ const LiveBookings = () => {
               payment_method: order.payment_method,
               n8n_responded_at: order.n8n_responded_at,
               event_title: order.events?.title,
-              created_at: order.created_at
+              created_at: order.created_at,
+              pos_user_name: order.pos_users?.name
             });
           });
         }
@@ -914,7 +917,12 @@ const LiveBookings = () => {
                         )}
                         {/* Invoice/POS Status Icon */}
                         {holder.payment_method === 'cash_pos' ? (
-                          <span title="POS"><Store className="w-3 h-3 sm:w-4 sm:h-4 text-orange-500" /></span>
+                          <div className="flex flex-col items-center">
+                            <span title="POS"><Store className="w-3 h-3 sm:w-4 sm:h-4 text-orange-500" /></span>
+                            {holder.pos_user_name && (
+                              <span className="text-[8px] sm:text-[10px] text-orange-600 font-medium truncate max-w-[60px]">{holder.pos_user_name}</span>
+                            )}
+                          </div>
                         ) : holder.n8n_responded_at ? (
                           <span title="تم إرسال الفاتورة"><Send className="w-3 h-3 sm:w-4 sm:h-4 text-green-500" /></span>
                         ) : (
