@@ -21,6 +21,7 @@ interface POSReceipt {
   normal_tickets: number | null;
   vip_tickets: number | null;
   parking_tickets: number | null;
+  image_url: string | null;
 }
 
 const POSReceiptPage = () => {
@@ -91,15 +92,38 @@ const POSReceiptPage = () => {
       const base64 = (e.target?.result as string)?.split(",")[1];
       if (base64) {
         setCapturedImage(e.target?.result as string);
-        await processReceipt(base64);
+        await processReceipt(base64, file);
       }
     };
     reader.readAsDataURL(file);
   };
 
-  const processReceipt = async (imageBase64: string) => {
+  const processReceipt = async (imageBase64: string, file: File) => {
     setIsProcessing(true);
     try {
+      // First, upload the image to storage
+      const fileExt = file.name.split('.').pop() || 'jpg';
+      const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+      const filePath = `receipts/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('pos-receipts')
+        .upload(filePath, file, {
+          cacheControl: '3600',
+          upsert: false
+        });
+
+      if (uploadError) {
+        console.error("Upload error:", uploadError);
+        throw new Error("Failed to upload image");
+      }
+
+      // Get the public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('pos-receipts')
+        .getPublicUrl(filePath);
+
+      // Parse the receipt using AI
       const { data, error } = await supabase.functions.invoke("parse-pos-receipt", {
         body: { imageBase64 },
       });
@@ -113,12 +137,14 @@ const POSReceiptPage = () => {
 
       const extractedData = data.data;
 
+      // Insert with image URL
       const { error: insertError } = await supabase.from("pos_receipts").insert({
         amount_qar: extractedData.amount_qar,
         seq_number: extractedData.seq_number,
         card_number_masked: extractedData.card_number_masked,
         time: extractedData.time,
         auth_number: extractedData.auth_number,
+        image_url: publicUrl,
       });
 
       if (insertError) throw insertError;
