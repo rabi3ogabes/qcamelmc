@@ -599,9 +599,6 @@ export const OrdersTab = ({
               {order.payment_method === 'cash_pos' ? (
                 <div className="flex flex-col items-center">
                   <Banknote className="w-4 h-4 text-green-600" />
-                  {order.pos_users?.icon && (
-                    <span className="text-lg" title={order.pos_users?.name || 'POS User'}>{order.pos_users.icon}</span>
-                  )}
                   {order.pos_users?.name && (
                     <span className="text-[10px] text-muted-foreground truncate max-w-[60px]">{order.pos_users.name}</span>
                   )}
