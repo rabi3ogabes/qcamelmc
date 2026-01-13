@@ -36,6 +36,10 @@ All colors MUST be HSL.
     --input: 0 0% 90%;
     --ring: 345 75% 35%;
 
+    --ticket-vip: 40 95% 55%;
+    --ticket-parking: 210 90% 50%;
+    --ticket-normal: 345 75% 35%;
+
     --radius: 0.75rem;
 
     --gradient-primary: linear-gradient(135deg, hsl(345 75% 35%), hsl(345 85% 45%));
@@ -82,8 +86,11 @@ All colors MUST be HSL.
     --input: 345 30% 20%;
     --ring: 345 75% 45%;
 
+    --ticket-vip: 40 95% 55%;
+    --ticket-parking: 210 90% 60%;
+    --ticket-normal: 345 75% 45%;
+
     --sidebar-background: 345 50% 10%;
-    --sidebar-foreground: 0 0% 90%;
     --sidebar-primary: 345 75% 45%;
     --sidebar-primary-foreground: 0 0% 100%;
     --sidebar-accent: 345 30% 18%;

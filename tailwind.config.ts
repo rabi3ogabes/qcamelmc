@@ -51,6 +51,11 @@ export default {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
+        ticket: {
+          vip: "hsl(var(--ticket-vip))",
+          parking: "hsl(var(--ticket-parking))",
+          normal: "hsl(var(--ticket-normal))",
+        },
         sidebar: {
           DEFAULT: "hsl(var(--sidebar-background))",
           foreground: "hsl(var(--sidebar-foreground))",
