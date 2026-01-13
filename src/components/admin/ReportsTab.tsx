@@ -244,8 +244,8 @@ export const ReportsTab = () => {
           groupedByEventDate[dateKey].push(formatOrderData(order));
         }
 
-        // Group Sadad orders by purchase date (created_at)
-        if (order.payment_method === "sadad" && order.payment_status === "confirmed") {
+        // Group Sadad orders by purchase date (created_at) - include ALL statuses
+        if (order.payment_method === "sadad") {
           const purchaseDate = format(new Date(order.created_at), "yyyy-MM-dd");
           
           if (!groupedBySadadPurchaseDate[purchaseDate]) {
