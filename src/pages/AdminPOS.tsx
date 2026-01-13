@@ -21,6 +21,7 @@ interface POSUser {
   id: string;
   name: string;
   is_active: boolean;
+  icon: string;
 }
 
 interface SuccessData {
@@ -95,7 +96,7 @@ const AdminPOS = () => {
     const fetchPosUsers = async () => {
       const { data, error } = await supabase
         .from("pos_users")
-        .select("id, name, is_active")
+        .select("id, name, is_active, icon")
         .eq("is_active", true)
         .order("name");
       
@@ -865,16 +866,26 @@ const AdminPOS = () => {
             <div className="flex items-center gap-2 sm:gap-4 flex-wrap justify-center">
               {/* POS User Selector */}
               <Select value={selectedPosUserId || ""} onValueChange={handlePosUserChange}>
-                <SelectTrigger className="w-[140px] sm:w-[180px] bg-primary/10 border-primary">
-                  <User className="w-4 h-4 ml-2" />
-                  <SelectValue placeholder="اختر المستخدم">
-                    {selectedPosUserName || "اختر المستخدم"}
-                  </SelectValue>
+                <SelectTrigger className="w-[160px] sm:w-[200px] bg-primary/10 border-primary">
+                  {selectedPosUserId ? (
+                    <span className="flex items-center gap-2">
+                      <span className="text-lg">{posUsers.find(u => u.id === selectedPosUserId)?.icon || "⭐"}</span>
+                      <span>{selectedPosUserName}</span>
+                    </span>
+                  ) : (
+                    <span className="flex items-center gap-2">
+                      <User className="w-4 h-4" />
+                      <span>اختر المستخدم</span>
+                    </span>
+                  )}
                 </SelectTrigger>
                 <SelectContent>
                   {posUsers.map((user) => (
                     <SelectItem key={user.id} value={user.id}>
-                      {user.name}
+                      <span className="flex items-center gap-2">
+                        <span className="text-lg">{user.icon || "⭐"}</span>
+                        <span>{user.name}</span>
+                      </span>
                     </SelectItem>
                   ))}
                 </SelectContent>
