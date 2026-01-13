@@ -570,76 +570,80 @@ const LiveBookings = () => {
     <div className="min-h-screen bg-background font-lusail flex flex-col" dir="rtl">
       {/* Header with Logo */}
       <header className="border-b backdrop-blur-sm sticky top-0 z-10" style={{ backgroundColor: headerBgColor }}>
-        <div className="container mx-auto px-4 py-4 flex justify-between items-center">
-          <div className="flex items-center gap-4">
+        <div className="container mx-auto px-2 sm:px-4 py-2 sm:py-4 flex flex-wrap justify-between items-center gap-2">
+          <div className="flex items-center gap-2 sm:gap-4">
             {logoUrl ? (
-              <img src={logoUrl} alt="Logo" className="h-12 object-contain" />
+              <img src={logoUrl} alt="Logo" className="h-8 sm:h-12 object-contain" />
             ) : (
-              <h1 className="text-2xl font-bold">{t("liveBookings")}</h1>
+              <h1 className="text-lg sm:text-2xl font-bold">{t("liveBookings")}</h1>
             )}
           </div>
-          <div className="flex items-center gap-4">
-            <div className="flex gap-2">
+          <div className="flex items-center gap-1 sm:gap-4 flex-wrap">
+            <div className="flex gap-1 sm:gap-2">
               <Button
                 variant={viewType === "cards" ? "default" : "outline"}
                 size="sm"
                 onClick={() => setViewType("cards")}
-                className="font-lusail"
+                className="font-lusail text-xs sm:text-sm px-2 sm:px-3"
               >
-                <LayoutGrid className="w-4 h-4 ml-2" />
-                عرض البطاقات
+                <LayoutGrid className="w-3 h-3 sm:w-4 sm:h-4 ml-1 sm:ml-2" />
+                <span className="hidden sm:inline">عرض البطاقات</span>
+                <span className="sm:hidden">بطاقات</span>
               </Button>
               <Button
                 variant={viewType === "table" ? "default" : "outline"}
                 size="sm"
                 onClick={() => setViewType("table")}
-                className="font-lusail"
+                className="font-lusail text-xs sm:text-sm px-2 sm:px-3"
               >
-                <TableIcon className="w-4 h-4 ml-2" />
-                عرض الجدول
+                <TableIcon className="w-3 h-3 sm:w-4 sm:h-4 ml-1 sm:ml-2" />
+                <span className="hidden sm:inline">عرض الجدول</span>
+                <span className="sm:hidden">جدول</span>
               </Button>
             </div>
             <Button
               variant="ghost"
               size="icon"
+              className="h-8 w-8 sm:h-10 sm:w-10"
               onClick={() => setSoundEnabled(!soundEnabled)}
               title={soundEnabled ? "إيقاف الصوت" : "تفعيل الصوت"}
             >
               {soundEnabled ? (
-                <Volume2 className="w-5 h-5 text-green-600" />
+                <Volume2 className="w-4 h-4 sm:w-5 sm:h-5 text-green-600" />
               ) : (
-                <VolumeX className="w-5 h-5 text-muted-foreground" />
+                <VolumeX className="w-4 h-4 sm:w-5 sm:h-5 text-muted-foreground" />
               )}
             </Button>
             <Button
               variant="ghost"
               size="icon"
+              className="h-8 w-8 sm:h-10 sm:w-10"
               onClick={toggleFullscreen}
               title={isFullscreen ? "تصغير الشاشة" : "ملء الشاشة"}
             >
               {isFullscreen ? (
-                <Minimize className="w-5 h-5" />
+                <Minimize className="w-4 h-4 sm:w-5 sm:h-5" />
               ) : (
-                <Maximize className="w-5 h-5" />
+                <Maximize className="w-4 h-4 sm:w-5 sm:h-5" />
               )}
             </Button>
           </div>
         </div>
       </header>
 
-      <div className="w-full py-8 px-[5%] flex-1">
+      <div className="w-full py-4 sm:py-8 px-2 sm:px-[5%] flex-1">
 
         {/* Date Selector and Stats */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 mb-8">
-          <Card className="p-3">
-            <div className="flex flex-col gap-2">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 sm:gap-3 mb-4 sm:mb-8">
+          <Card className="p-2 sm:p-3">
+            <div className="flex flex-col gap-1 sm:gap-2">
               <Popover>
                 <PopoverTrigger asChild>
                   <Button
                     variant="outline"
                     size="sm"
                     className={cn(
-                      "w-full justify-start text-right font-lusail text-xs h-8",
+                      "w-full justify-start text-right font-lusail text-[10px] sm:text-xs h-7 sm:h-8",
                       !selectedDate && "text-muted-foreground"
                     )}
                   >
@@ -662,7 +666,7 @@ const LiveBookings = () => {
                   variant="ghost"
                   size="sm"
                   onClick={() => setSelectedDate(undefined)}
-                  className="font-lusail text-[10px] h-6 py-0"
+                  className="font-lusail text-[8px] sm:text-[10px] h-5 sm:h-6 py-0"
                 >
                   عرض الكل
                 </Button>
@@ -670,81 +674,81 @@ const LiveBookings = () => {
             </div>
           </Card>
 
-          <Card className="p-3 bg-blue-50 dark:bg-blue-950">
-            <div className="flex items-center gap-2">
-              <Users className="w-5 h-5 text-blue-600 flex-shrink-0" />
-              <div>
-                <p className="text-[10px] text-muted-foreground leading-tight">{t("totalBookings")}</p>
-                <p className="text-lg font-bold">{stats.total}</p>
+          <Card className="p-2 sm:p-3 bg-blue-50 dark:bg-blue-950">
+            <div className="flex items-center gap-1 sm:gap-2">
+              <Users className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600 flex-shrink-0" />
+              <div className="min-w-0">
+                <p className="text-[8px] sm:text-[10px] text-muted-foreground leading-tight truncate">{t("totalBookings")}</p>
+                <p className="text-base sm:text-lg font-bold">{stats.total}</p>
               </div>
             </div>
           </Card>
 
-          <Card className="p-3 bg-green-50 dark:bg-green-950">
-            <div className="flex items-center gap-2">
-              <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0" />
-              <div>
-                <p className="text-[10px] text-muted-foreground leading-tight">{t("confirmedBookings")}</p>
-                <p className="text-lg font-bold text-green-600">{stats.confirmed}</p>
+          <Card className="p-2 sm:p-3 bg-green-50 dark:bg-green-950">
+            <div className="flex items-center gap-1 sm:gap-2">
+              <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 text-green-600 flex-shrink-0" />
+              <div className="min-w-0">
+                <p className="text-[8px] sm:text-[10px] text-muted-foreground leading-tight truncate">{t("confirmedBookings")}</p>
+                <p className="text-base sm:text-lg font-bold text-green-600">{stats.confirmed}</p>
               </div>
             </div>
           </Card>
 
-          <Card className="p-3 bg-purple-50 dark:bg-purple-950">
-            <div className="flex items-center gap-2">
-              <Users className="w-5 h-5 text-purple-600 flex-shrink-0" />
-              <div>
-                <p className="text-[10px] text-muted-foreground leading-tight">إجمالي حاملي التذاكر</p>
-                <p className="text-lg font-bold text-purple-600">{stats.totalTicketHolders}</p>
+          <Card className="p-2 sm:p-3 bg-purple-50 dark:bg-purple-950">
+            <div className="flex items-center gap-1 sm:gap-2">
+              <Users className="w-4 h-4 sm:w-5 sm:h-5 text-purple-600 flex-shrink-0" />
+              <div className="min-w-0">
+                <p className="text-[8px] sm:text-[10px] text-muted-foreground leading-tight truncate">إجمالي التذاكر</p>
+                <p className="text-base sm:text-lg font-bold text-purple-600">{stats.totalTicketHolders}</p>
               </div>
             </div>
           </Card>
 
-          <Card className="p-3 bg-orange-50 dark:bg-orange-950">
-            <div className="flex items-center gap-2">
-              <CheckCircle className="w-5 h-5 text-orange-600 flex-shrink-0" />
-              <div>
-                <p className="text-[10px] text-muted-foreground leading-tight">الحاضرون (حاملو التذاكر)</p>
-                <p className="text-lg font-bold text-orange-600">{stats.presentTicketHolders}</p>
+          <Card className="p-2 sm:p-3 bg-orange-50 dark:bg-orange-950">
+            <div className="flex items-center gap-1 sm:gap-2">
+              <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 text-orange-600 flex-shrink-0" />
+              <div className="min-w-0">
+                <p className="text-[8px] sm:text-[10px] text-muted-foreground leading-tight truncate">الحاضرون</p>
+                <p className="text-base sm:text-lg font-bold text-orange-600">{stats.presentTicketHolders}</p>
               </div>
             </div>
           </Card>
 
-          <Card className="p-3 bg-cyan-50 dark:bg-cyan-950">
-            <div className="flex items-center gap-2">
-              <Clock className="w-5 h-5 text-cyan-600 flex-shrink-0" />
-              <div>
-                <p className="text-[10px] text-muted-foreground leading-tight">حجوزات آخر ساعة</p>
-                <p className="text-lg font-bold text-cyan-600">{stats.lastHourBookings}</p>
+          <Card className="p-2 sm:p-3 bg-cyan-50 dark:bg-cyan-950">
+            <div className="flex items-center gap-1 sm:gap-2">
+              <Clock className="w-4 h-4 sm:w-5 sm:h-5 text-cyan-600 flex-shrink-0" />
+              <div className="min-w-0">
+                <p className="text-[8px] sm:text-[10px] text-muted-foreground leading-tight truncate">آخر ساعة</p>
+                <p className="text-base sm:text-lg font-bold text-cyan-600">{stats.lastHourBookings}</p>
               </div>
             </div>
           </Card>
         </div>
 
         {/* Payment Method Breakdown */}
-        <div className="mb-8">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="mb-4 sm:mb-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-6">
             {/* Online (Sadad) - Left Side */}
-            <Card className="p-6 bg-gradient-to-br from-blue-500/10 to-blue-500/5 border-blue-500/20">
-              <div className="space-y-4">
+            <Card className="p-3 sm:p-6 bg-gradient-to-br from-blue-500/10 to-blue-500/5 border-blue-500/20">
+              <div className="space-y-2 sm:space-y-4">
                 <div className="flex items-center justify-center gap-2">
-                  <Globe className="w-5 h-5 text-blue-600" />
-                  <Badge variant="outline" className="text-sm font-bold bg-blue-500/10">
+                  <Globe className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" />
+                  <Badge variant="outline" className="text-xs sm:text-sm font-bold bg-blue-500/10">
                     أونلاين
                   </Badge>
                 </div>
                 <div className="text-center">
-                  <p className="text-4xl font-bold text-blue-600">{paymentMethodStats.sadad}</p>
-                  <p className="text-sm text-muted-foreground">إجمالي تذاكر سداد</p>
+                  <p className="text-2xl sm:text-4xl font-bold text-blue-600">{paymentMethodStats.sadad}</p>
+                  <p className="text-xs sm:text-sm text-muted-foreground">إجمالي تذاكر سداد</p>
                 </div>
                 {Object.keys(paymentMethodByTypeStats.sadad).length > 0 && (
-                  <div className="pt-3 border-t border-blue-500/20 space-y-2">
+                  <div className="pt-2 sm:pt-3 border-t border-blue-500/20 space-y-1 sm:space-y-2">
                     {Object.entries(paymentMethodByTypeStats.sadad)
                       .sort((a, b) => b[1].total - a[1].total)
                       .map(([type, stats]) => (
-                        <div key={type} className="flex justify-between items-center text-sm">
+                        <div key={type} className="flex justify-between items-center text-xs sm:text-sm">
                           <span className="font-medium">{type}</span>
-                          <div className="flex gap-3 items-center">
+                          <div className="flex gap-2 sm:gap-3 items-center">
                             <span className="text-muted-foreground">
                               {stats.total} حجز
                             </span>
@@ -760,26 +764,26 @@ const LiveBookings = () => {
             </Card>
             
             {/* POS - Right Side */}
-            <Card className="p-6 bg-gradient-to-br from-orange-500/10 to-orange-500/5 border-orange-500/20">
-              <div className="space-y-4">
+            <Card className="p-3 sm:p-6 bg-gradient-to-br from-orange-500/10 to-orange-500/5 border-orange-500/20">
+              <div className="space-y-2 sm:space-y-4">
                 <div className="flex items-center justify-center gap-2">
-                  <Store className="w-5 h-5 text-orange-600" />
-                  <Badge variant="outline" className="text-sm font-bold bg-orange-500/10">
+                  <Store className="w-4 h-4 sm:w-5 sm:h-5 text-orange-600" />
+                  <Badge variant="outline" className="text-xs sm:text-sm font-bold bg-orange-500/10">
                     نقاط البيع
                   </Badge>
                 </div>
                 <div className="text-center">
-                  <p className="text-4xl font-bold text-orange-600">{paymentMethodStats.pos}</p>
-                  <p className="text-sm text-muted-foreground">إجمالي تذاكر POS</p>
+                  <p className="text-2xl sm:text-4xl font-bold text-orange-600">{paymentMethodStats.pos}</p>
+                  <p className="text-xs sm:text-sm text-muted-foreground">إجمالي تذاكر POS</p>
                 </div>
                 {Object.keys(paymentMethodByTypeStats.pos).length > 0 && (
-                  <div className="pt-3 border-t border-orange-500/20 space-y-2">
+                  <div className="pt-2 sm:pt-3 border-t border-orange-500/20 space-y-1 sm:space-y-2">
                     {Object.entries(paymentMethodByTypeStats.pos)
                       .sort((a, b) => b[1].total - a[1].total)
                       .map(([type, stats]) => (
-                        <div key={type} className="flex justify-between items-center text-sm">
+                        <div key={type} className="flex justify-between items-center text-xs sm:text-sm">
                           <span className="font-medium">{type}</span>
-                          <div className="flex gap-3 items-center">
+                          <div className="flex gap-2 sm:gap-3 items-center">
                             <span className="text-muted-foreground">
                               {stats.total} حجز
                             </span>
@@ -797,27 +801,27 @@ const LiveBookings = () => {
         </div>
 
         {/* Ticket Type & Nationality Breakdown */}
-        <div className="mb-8 grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="mb-4 sm:mb-8 grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-6">
           {/* Ticket Type Breakdown */}
           {Object.keys(ticketTypeStats).length > 0 && (
             <div>
-              <h3 className="text-lg font-semibold mb-4">التذاكر حسب النوع</h3>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+              <h3 className="text-base sm:text-lg font-semibold mb-2 sm:mb-4">التذاكر حسب النوع</h3>
+              <div className="grid grid-cols-3 gap-2 sm:gap-3">
                 {Object.entries(ticketTypeStats)
                   .sort((a, b) => b[1].total - a[1].total)
                   .map(([type, stats]) => (
-                    <Card key={type} className="p-4 bg-gradient-to-br from-primary/10 to-primary/5 border-primary/20">
-                      <div className="text-center space-y-2">
-                        <Badge variant="outline" className="text-xs font-bold">
+                    <Card key={type} className="p-2 sm:p-4 bg-gradient-to-br from-primary/10 to-primary/5 border-primary/20">
+                      <div className="text-center space-y-1 sm:space-y-2">
+                        <Badge variant="outline" className="text-[10px] sm:text-xs font-bold">
                           {type.toUpperCase()}
                         </Badge>
                         <div>
-                          <p className="text-3xl font-bold text-primary">{stats.total}</p>
-                          <p className="text-xs text-muted-foreground">إجمالي التذاكر</p>
+                          <p className="text-xl sm:text-3xl font-bold text-primary">{stats.total}</p>
+                          <p className="text-[8px] sm:text-xs text-muted-foreground">إجمالي</p>
                         </div>
-                        <div className="pt-2 border-t">
-                          <p className="text-2xl font-bold text-green-600">{stats.present}</p>
-                          <p className="text-xs text-muted-foreground">حاضر</p>
+                        <div className="pt-1 sm:pt-2 border-t">
+                          <p className="text-lg sm:text-2xl font-bold text-green-600">{stats.present}</p>
+                          <p className="text-[8px] sm:text-xs text-muted-foreground">حاضر</p>
                         </div>
                       </div>
                     </Card>
@@ -829,34 +833,33 @@ const LiveBookings = () => {
           {/* Nationality Breakdown */}
           {Object.keys(nationalityStats).length > 0 && (
             <div>
-              <h3 className="text-lg font-semibold mb-4">التذاكر حسب الجنسية</h3>
-              <Card className="p-4">
-                <div className="space-y-3 max-h-80 overflow-y-auto">
+              <h3 className="text-base sm:text-lg font-semibold mb-2 sm:mb-4">التذاكر حسب الجنسية</h3>
+              <Card className="p-2 sm:p-4">
+                <div className="space-y-2 sm:space-y-3 max-h-60 sm:max-h-80 overflow-y-auto">
                   {Object.entries(nationalityStats)
                     .sort((a, b) => b[1].total - a[1].total)
                     .map(([nationality, stats]) => (
-                      <div key={nationality} className="flex items-center justify-between p-2 rounded-lg bg-muted/50 hover:bg-muted transition-colors">
-                        <div className="flex items-center gap-2">
-                          <span className="text-xl">{getNationalityFlag(nationality)}</span>
-                          <span className="font-medium text-sm">{nationality}</span>
+                      <div key={nationality} className="flex items-center justify-between p-1.5 sm:p-2 rounded-lg bg-muted/50 hover:bg-muted transition-colors">
+                        <div className="flex items-center gap-1 sm:gap-2 min-w-0">
+                          <span className="text-base sm:text-xl">{getNationalityFlag(nationality)}</span>
+                          <span className="font-medium text-xs sm:text-sm truncate">{nationality}</span>
                         </div>
-                        <div className="flex items-center gap-3 text-sm">
-                          <div className="flex items-center gap-1">
-                            <Globe className="w-3 h-3 text-blue-500" />
+                        <div className="flex items-center gap-1 sm:gap-3 text-[10px] sm:text-sm flex-shrink-0">
+                          <div className="flex items-center gap-0.5 sm:gap-1">
+                            <Globe className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-blue-500" />
                             <span className="text-blue-600 font-semibold">{stats.online}</span>
                           </div>
-                          <span className="text-muted-foreground">|</span>
-                          <div className="flex items-center gap-1">
-                            <Store className="w-3 h-3 text-orange-500" />
+                          <span className="text-muted-foreground hidden sm:inline">|</span>
+                          <div className="flex items-center gap-0.5 sm:gap-1">
+                            <Store className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-orange-500" />
                             <span className="text-orange-600 font-semibold">{stats.pos}</span>
                           </div>
-                          <span className="text-muted-foreground">|</span>
-                          <div className="flex items-center gap-1">
-                            <CheckCircle className="w-3 h-3 text-green-500" />
+                          <span className="text-muted-foreground hidden sm:inline">|</span>
+                          <div className="flex items-center gap-0.5 sm:gap-1">
+                            <CheckCircle className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-green-500" />
                             <span className="text-green-600 font-semibold">{stats.present}</span>
                           </div>
-                          <span className="text-muted-foreground">|</span>
-                          <Badge variant="secondary" className="text-xs">
+                          <Badge variant="secondary" className="text-[10px] sm:text-xs ml-1">
                             {stats.total}
                           </Badge>
                         </div>
@@ -871,9 +874,9 @@ const LiveBookings = () => {
         {/* Ticket Holders Display */}
         {viewType === "cards" ? (
           /* Cards View - Individual Ticket Holders */
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-6 gap-2 sm:gap-3">
             {ticketHolders.length === 0 ? (
-              <Card className="col-span-full p-12">
+              <Card className="col-span-full p-6 sm:p-12">
                 <p className="text-center text-muted-foreground font-lusail">{t("noBookingsForDate")}</p>
               </Card>
             ) : (
@@ -883,7 +886,7 @@ const LiveBookings = () => {
                 <Card 
                   key={holder.id} 
                   className={cn(
-                    "p-4 hover:shadow-xl transition-all duration-500 shadow-md",
+                    "p-2.5 sm:p-4 hover:shadow-xl transition-all duration-500 shadow-md",
                     newTicketHolderIds.has(holder.id) && "animate-new-booking",
                     isRecent && "animate-recent-pulse"
                   )}
@@ -893,67 +896,67 @@ const LiveBookings = () => {
                     backgroundColor: `color-mix(in srgb, ${headerBgColor} 15%, transparent)`
                   } as React.CSSProperties : undefined}
                 >
-                  <div className="flex flex-col gap-3">
+                  <div className="flex flex-col gap-2 sm:gap-3">
                     {/* Event Name - Header */}
                     {holder.event_title && (
-                      <div className="bg-primary/10 rounded-md px-2 py-1 text-center">
-                        <span className="text-xs font-semibold text-primary truncate">{holder.event_title}</span>
+                      <div className="bg-primary/10 rounded-md px-2 py-0.5 sm:py-1 text-center">
+                        <span className="text-[10px] sm:text-xs font-semibold text-primary truncate">{holder.event_title}</span>
                       </div>
                     )}
 
                     {/* Name and Flag */}
-                    <div className="flex items-center gap-2">
-                      <User className="w-4 h-4 text-primary flex-shrink-0" />
-                      <span className="font-semibold text-sm truncate flex-1 min-w-0">{holder.name}</span>
-                      <div className="flex flex-col items-center gap-1 flex-shrink-0">
+                    <div className="flex items-center gap-1.5 sm:gap-2">
+                      <User className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-primary flex-shrink-0" />
+                      <span className="font-semibold text-xs sm:text-sm truncate flex-1 min-w-0">{holder.name}</span>
+                      <div className="flex flex-col items-center gap-0.5 sm:gap-1 flex-shrink-0">
                         {holder.nationality && (
-                          <span className="text-lg">{getNationalityFlag(holder.nationality)}</span>
+                          <span className="text-base sm:text-lg">{getNationalityFlag(holder.nationality)}</span>
                         )}
                         {/* Invoice/POS Status Icon */}
                         {holder.payment_method === 'cash_pos' ? (
-                          <span title="POS"><Store className="w-4 h-4 text-orange-500" /></span>
+                          <span title="POS"><Store className="w-3 h-3 sm:w-4 sm:h-4 text-orange-500" /></span>
                         ) : holder.n8n_responded_at ? (
-                          <span title="تم إرسال الفاتورة"><Send className="w-4 h-4 text-green-500" /></span>
+                          <span title="تم إرسال الفاتورة"><Send className="w-3 h-3 sm:w-4 sm:h-4 text-green-500" /></span>
                         ) : (
-                          <span title="لم يتم إرسال الفاتورة"><CircleDashed className="w-4 h-4 text-muted-foreground" /></span>
+                          <span title="لم يتم إرسال الفاتورة"><CircleDashed className="w-3 h-3 sm:w-4 sm:h-4 text-muted-foreground" /></span>
                         )}
                       </div>
                     </div>
 
                     {/* Phone */}
-                    <div className="flex items-center gap-2">
-                      <Phone className="w-4 h-4 text-primary flex-shrink-0" />
-                      <span className="text-xs truncate">{holder.phone}</span>
+                    <div className="flex items-center gap-1.5 sm:gap-2">
+                      <Phone className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-primary flex-shrink-0" />
+                      <span className="text-[10px] sm:text-xs truncate">{holder.phone}</span>
                     </div>
 
                     {/* Booking Reference */}
                     {holder.booking_reference && (
-                      <div className="flex items-center gap-2">
-                        <CreditCard className="w-4 h-4 text-primary flex-shrink-0" />
-                        <span className="text-xs truncate font-mono">{holder.booking_reference}</span>
+                      <div className="flex items-center gap-1.5 sm:gap-2">
+                        <CreditCard className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-primary flex-shrink-0" />
+                        <span className="text-[10px] sm:text-xs truncate font-mono">{holder.booking_reference}</span>
                       </div>
                     )}
 
                     {/* Ticket Type and Attendance */}
-                    <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center justify-between gap-1 sm:gap-2">
                       {/* Ticket Type */}
-                      <Badge variant="outline" className="text-xs">
+                      <Badge variant="outline" className="text-[10px] sm:text-xs">
                         {holder.ticket_type.toUpperCase()}
                       </Badge>
 
                       {/* Attendance */}
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-1 sm:gap-2">
                         {holder.is_present ? (
                           <>
-                            <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0" />
-                            <Badge className="bg-green-500 text-xs">
+                            <CheckCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-green-600 flex-shrink-0" />
+                            <Badge className="bg-green-500 text-[10px] sm:text-xs">
                               حاضر ✓
                             </Badge>
                           </>
                         ) : (
                           <>
-                            <XCircle className="w-4 h-4 text-muted-foreground flex-shrink-0" />
-                            <Badge variant="secondary" className="text-xs">
+                            <XCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-muted-foreground flex-shrink-0" />
+                            <Badge variant="secondary" className="text-[10px] sm:text-xs">
                               غير حاضر
                             </Badge>
                           </>
@@ -963,15 +966,15 @@ const LiveBookings = () => {
 
                     {/* Confirmed At */}
                     {holder.confirmed_at && (
-                      <div className="text-xs text-muted-foreground text-center">
+                      <div className="text-[10px] sm:text-xs text-muted-foreground text-center">
                         تم التأكيد: {format(new Date(holder.confirmed_at), 'dd/MM/yyyy - HH:mm')}
                       </div>
                     )}
 
                     {/* Booking Date/Time - Footer */}
                     {holder.created_at && (
-                      <div className="bg-muted/50 rounded-md px-2 py-1 text-center mt-1">
-                        <span className="text-[10px] text-muted-foreground">
+                      <div className="bg-muted/50 rounded-md px-1.5 sm:px-2 py-0.5 sm:py-1 text-center mt-0.5 sm:mt-1">
+                        <span className="text-[8px] sm:text-[10px] text-muted-foreground">
                           تم الحجز في: {format(new Date(holder.created_at), 'dd/MM/yyyy - HH:mm')}
                         </span>
                       </div>
@@ -989,20 +992,20 @@ const LiveBookings = () => {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="text-right font-lusail">الاسم</TableHead>
-                    <TableHead className="text-right font-lusail">الهاتف</TableHead>
-                    <TableHead className="text-right font-lusail">الجنسية</TableHead>
-                    <TableHead className="text-right font-lusail">الرقم المرجعي</TableHead>
-                    <TableHead className="text-right font-lusail">نوع التذكرة</TableHead>
-                    <TableHead className="text-right font-lusail">الحضور</TableHead>
-                    <TableHead className="text-right font-lusail">وقت التأكيد</TableHead>
+                    <TableHead className="text-right font-lusail text-xs sm:text-sm whitespace-nowrap">الاسم</TableHead>
+                    <TableHead className="text-right font-lusail text-xs sm:text-sm whitespace-nowrap hidden sm:table-cell">الهاتف</TableHead>
+                    <TableHead className="text-right font-lusail text-xs sm:text-sm whitespace-nowrap hidden md:table-cell">الجنسية</TableHead>
+                    <TableHead className="text-right font-lusail text-xs sm:text-sm whitespace-nowrap hidden lg:table-cell">الرقم المرجعي</TableHead>
+                    <TableHead className="text-right font-lusail text-xs sm:text-sm whitespace-nowrap">نوع التذكرة</TableHead>
+                    <TableHead className="text-right font-lusail text-xs sm:text-sm whitespace-nowrap">الحضور</TableHead>
+                    <TableHead className="text-right font-lusail text-xs sm:text-sm whitespace-nowrap hidden xl:table-cell">وقت التأكيد</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {ticketHolders.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={7} className="text-center py-12">
-                        <p className="text-muted-foreground font-lusail">{t("noBookingsForDate")}</p>
+                      <TableCell colSpan={7} className="text-center py-6 sm:py-12">
+                        <p className="text-muted-foreground font-lusail text-sm">{t("noBookingsForDate")}</p>
                       </TableCell>
                     </TableRow>
                   ) : (
@@ -1014,35 +1017,41 @@ const LiveBookings = () => {
                           newTicketHolderIds.has(holder.id) && 'animate-new-booking'
                         )}
                       >
-                        <TableCell className="font-semibold">{holder.name}</TableCell>
-                        <TableCell className="font-mono">{holder.phone}</TableCell>
-                        <TableCell>
+                        <TableCell className="font-semibold text-xs sm:text-sm py-2 sm:py-4">
+                          <div className="flex items-center gap-1.5">
+                            <span className="truncate max-w-[100px] sm:max-w-none">{holder.name}</span>
+                            <span className="sm:hidden text-base">{holder.nationality && getNationalityFlag(holder.nationality)}</span>
+                          </div>
+                        </TableCell>
+                        <TableCell className="font-mono text-xs sm:text-sm py-2 sm:py-4 hidden sm:table-cell">{holder.phone}</TableCell>
+                        <TableCell className="text-xs sm:text-sm py-2 sm:py-4 hidden md:table-cell">
                           {holder.nationality && (
-                            <span>
-                              {getNationalityFlag(holder.nationality)} {holder.nationality}
+                            <span className="flex items-center gap-1">
+                              <span>{getNationalityFlag(holder.nationality)}</span>
+                              <span className="hidden lg:inline">{holder.nationality}</span>
                             </span>
                           )}
                         </TableCell>
-                        <TableCell className="font-mono">{holder.booking_reference || '-'}</TableCell>
-                        <TableCell>
-                          <Badge variant="outline" className="text-xs">
+                        <TableCell className="font-mono text-xs sm:text-sm py-2 sm:py-4 hidden lg:table-cell">{holder.booking_reference || '-'}</TableCell>
+                        <TableCell className="py-2 sm:py-4">
+                          <Badge variant="outline" className="text-[10px] sm:text-xs">
                             {holder.ticket_type.toUpperCase()}
                           </Badge>
                         </TableCell>
-                        <TableCell>
+                        <TableCell className="py-2 sm:py-4">
                           {holder.is_present ? (
-                            <div className="flex items-center gap-2">
-                              <CheckCircle className="w-4 h-4 text-green-600" />
-                              <Badge className="bg-green-500">حاضر ✓</Badge>
+                            <div className="flex items-center gap-1 sm:gap-2">
+                              <CheckCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-green-600" />
+                              <Badge className="bg-green-500 text-[10px] sm:text-xs">حاضر ✓</Badge>
                             </div>
                           ) : (
-                            <div className="flex items-center gap-2">
-                              <XCircle className="w-4 h-4 text-muted-foreground" />
-                              <Badge variant="secondary">غير حاضر</Badge>
+                            <div className="flex items-center gap-1 sm:gap-2">
+                              <XCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-muted-foreground" />
+                              <Badge variant="secondary" className="text-[10px] sm:text-xs">غير حاضر</Badge>
                             </div>
                           )}
                         </TableCell>
-                        <TableCell className="text-sm">
+                        <TableCell className="text-xs sm:text-sm py-2 sm:py-4 hidden xl:table-cell">
                           {holder.confirmed_at 
                             ? format(new Date(holder.confirmed_at), 'dd/MM/yyyy - HH:mm')
                             : '-'
