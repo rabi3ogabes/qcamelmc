@@ -122,8 +122,9 @@ Deno.serve(async (req) => {
     }
 
     // Update order status based on transaction status
-    // Sadad uses: '1' or 1 for success, '0' or other codes for failure
-    const isSuccess = transactionStatus === 'TXN_SUCCESS' || transactionStatus === '1' || transactionStatus === 1 || transactionStatus === 3;
+    // Sadad status codes: 1 = success, 2 = failed, 0 = pending/cancelled
+    // Note: Removed status 3 as it was causing incorrect confirmations
+    const isSuccess = transactionStatus === 'TXN_SUCCESS' || transactionStatus === '1' || transactionStatus === 1;
     const paymentStatus = isSuccess ? 'confirmed' : 'cancelled';
     
     // Build error reason for failed payments
@@ -138,6 +139,26 @@ Deno.serve(async (req) => {
     }
     
     console.log(`Payment status determined: ${paymentStatus} (from status: ${transactionStatus}), error: ${paymentErrorReason}`);
+    
+    // CRITICAL: Check current order status to prevent race conditions
+    // Never overwrite a 'confirmed' order with 'cancelled' (prevents duplicate webhook issues)
+    const { data: existingOrder } = await supabase
+      .from('orders')
+      .select('payment_status')
+      .eq('booking_reference', websiteRefNo)
+      .maybeSingle();
+
+    if (existingOrder?.payment_status === 'confirmed' && paymentStatus === 'cancelled') {
+      console.log(`Order ${websiteRefNo} already confirmed - ignoring cancel webhook to prevent race condition`);
+      return new Response(
+        JSON.stringify({ 
+          success: true,
+          message: 'Order already confirmed, ignoring duplicate webhook',
+          order_id: websiteRefNo
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
+      );
+    }
     
     const { error: updateError } = await supabase
       .from('orders')
