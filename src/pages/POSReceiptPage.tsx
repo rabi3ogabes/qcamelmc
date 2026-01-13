@@ -174,6 +174,44 @@ const POSReceiptPage = () => {
     }
   };
 
+  const handleDeleteAll = async () => {
+    if (receipts.length === 0) {
+      toast.error("No receipts to delete");
+      return;
+    }
+
+    const confirmed = window.confirm(
+      `Are you sure you want to delete all ${receipts.length} receipts? This action cannot be undone.`
+    );
+
+    if (!confirmed) return;
+
+    try {
+      // Delete all images from storage
+      const imagePaths = receipts
+        .filter((r) => r.image_url)
+        .map((r) => {
+          const url = r.image_url!;
+          const match = url.match(/pos-receipts\/(.+)$/);
+          return match ? match[1] : null;
+        })
+        .filter(Boolean) as string[];
+
+      if (imagePaths.length > 0) {
+        await supabase.storage.from("pos-receipts").remove(imagePaths);
+      }
+
+      // Delete all records
+      const { error } = await supabase.from("pos_receipts").delete().neq("id", "00000000-0000-0000-0000-000000000000");
+      if (error) throw error;
+
+      toast.success(`All ${receipts.length} receipts deleted`);
+    } catch (error) {
+      console.error("Error deleting all receipts:", error);
+      toast.error("Failed to delete all receipts");
+    }
+  };
+
   const handleTicketChange = async (
     receiptId: string,
     ticketType: "normal_tickets" | "vip_tickets" | "parking_tickets",
@@ -544,15 +582,26 @@ const POSReceiptPage = () => {
           <Card>
             <CardHeader className="pb-3 flex flex-row items-center justify-between">
               <CardTitle className="text-base font-medium">Saved Receipts ({receipts.length})</CardTitle>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleExportToExcel}
-                disabled={receipts.length === 0}
-              >
-                <FileDown className="w-4 h-4 mr-2" />
-                Export Excel
-              </Button>
+              <div className="flex gap-2">
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  onClick={handleDeleteAll}
+                  disabled={receipts.length === 0}
+                >
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  Delete All
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleExportToExcel}
+                  disabled={receipts.length === 0}
+                >
+                  <FileDown className="w-4 h-4 mr-2" />
+                  Export Excel
+                </Button>
+              </div>
             </CardHeader>
             <CardContent>
               {isLoading ? (
