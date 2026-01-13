@@ -173,6 +173,14 @@ const LiveBookings = () => {
     return flagMap[nationality] || '🌍';
   };
 
+  // Store selectedDate in ref for realtime callbacks
+  const selectedDateRef = useRef<Date | undefined>(undefined);
+  
+  // Keep ref in sync with state
+  useEffect(() => {
+    selectedDateRef.current = selectedDate;
+  }, [selectedDate]);
+
   // Auto-select upcoming event on page load
   useEffect(() => {
     const fetchUpcomingEvent = async () => {
@@ -194,27 +202,38 @@ const LiveBookings = () => {
         if (availableEvent) {
           const eventDate = toZonedTime(new Date(availableEvent.event_date), QATAR_TIMEZONE);
           setSelectedDate(eventDate);
+          selectedDateRef.current = eventDate;
           console.log("Auto-selected upcoming event date:", eventDate);
         } else {
           // Fallback to today if no upcoming events
           const now = new Date();
-          setSelectedDate(toZonedTime(now, QATAR_TIMEZONE));
+          const todayDate = toZonedTime(now, QATAR_TIMEZONE);
+          setSelectedDate(todayDate);
+          selectedDateRef.current = todayDate;
         }
         setIsDateInitialized(true);
       } catch (error) {
         console.error("Failed to fetch upcoming event:", error);
         // Fallback to today on error
         const now = new Date();
-        setSelectedDate(toZonedTime(now, QATAR_TIMEZONE));
+        const todayDate = toZonedTime(now, QATAR_TIMEZONE);
+        setSelectedDate(todayDate);
+        selectedDateRef.current = todayDate;
         setIsDateInitialized(true);
       }
     };
 
     fetchUpcomingEvent();
     fetchSettings();
+  }, []);
+
+  // Setup realtime subscription after date is initialized
+  useEffect(() => {
+    if (!isDateInitialized) return;
+    
     const cleanup = setupRealtimeSubscription();
     return cleanup;
-  }, []);
+  }, [isDateInitialized]);
 
   useEffect(() => {
     // Only fetch bookings after date has been initialized to prevent showing unfiltered data first
@@ -264,7 +283,10 @@ const LiveBookings = () => {
     }
   };
 
-  const fetchBookings = async () => {
+  const fetchBookings = async (useRefDate = false) => {
+    // Use ref date for realtime callbacks to avoid stale closure issues
+    const dateToUse = useRefDate ? selectedDateRef.current : selectedDate;
+    
     try {
       const { data, error } = await supabase
         .from("orders")
@@ -280,15 +302,17 @@ const LiveBookings = () => {
       if (error) throw error;
 
       console.log("Raw data from Supabase:", data);
-      console.log("First order ticket_holders:", data?.[0]?.ticket_holders);
+      console.log("Using date for filter:", dateToUse);
 
       // Filter by event date on client side if date is selected
       let filteredData = data || [];
-      if (selectedDate) {
+      if (dateToUse) {
         // Extract date components from selected date (ignoring time)
-        const selectedYear = selectedDate.getFullYear();
-        const selectedMonth = selectedDate.getMonth();
-        const selectedDay = selectedDate.getDate();
+        const selectedYear = dateToUse.getFullYear();
+        const selectedMonth = dateToUse.getMonth();
+        const selectedDay = dateToUse.getDate();
+        
+        console.log(`Filtering for date: ${selectedYear}-${selectedMonth + 1}-${selectedDay}`);
         
         filteredData = filteredData.filter((order: any) => {
           if (!order.events?.event_date) return false;
@@ -299,6 +323,8 @@ const LiveBookings = () => {
                  eventDate.getMonth() === selectedMonth &&
                  eventDate.getDate() === selectedDay;
         });
+        
+        console.log(`Filtered ${data?.length} orders to ${filteredData.length} for selected date`);
       }
 
       console.log("Filtered data:", filteredData);
@@ -377,7 +403,8 @@ const LiveBookings = () => {
               toast.success("🎫 حجز جديد!");
             }
           }
-          fetchBookings();
+          // Use ref date to avoid stale closure
+          fetchBookings(true);
         }
       )
       .subscribe();
@@ -394,7 +421,8 @@ const LiveBookings = () => {
         },
         (payload) => {
           console.log('Ticket holder change:', payload);
-          fetchBookings();
+          // Use ref date to avoid stale closure
+          fetchBookings(true);
         }
       )
       .subscribe();
