@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2, CheckCircle2, XCircle } from "lucide-react";
@@ -8,11 +8,43 @@ import { Card } from "@/components/ui/card";
 const SadadCallback = () => {
   const [status, setStatus] = useState<'processing' | 'success' | 'failed'>('processing');
   const [message, setMessage] = useState('جاري معالجة الدفع...');
+  const [attempts, setAttempts] = useState(0);
   const navigate = useNavigate();
+  const subscriptionRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
+  const hasConfirmedRef = useRef(false);
 
   useEffect(() => {
     handleCallback();
+    
+    return () => {
+      // Cleanup subscription on unmount
+      if (subscriptionRef.current) {
+        supabase.removeChannel(subscriptionRef.current);
+      }
+    };
   }, []);
+
+  const handleSuccess = (orderId: string) => {
+    if (hasConfirmedRef.current) return;
+    hasConfirmedRef.current = true;
+    
+    setStatus('success');
+    setMessage('تم الدفع بنجاح!');
+    
+    // Clean up subscription
+    if (subscriptionRef.current) {
+      supabase.removeChannel(subscriptionRef.current);
+    }
+    
+    // Store order info for confirmation page
+    localStorage.setItem('orderIds', JSON.stringify([orderId]));
+    sessionStorage.removeItem('pendingOrderId');
+    
+    // Redirect to confirmation page after a short delay
+    setTimeout(() => {
+      navigate('/confirmation');
+    }, 2000);
+  };
 
   const handleCallback = async () => {
     try {
@@ -27,7 +59,7 @@ const SadadCallback = () => {
                         urlParams.get('orderId') ||
                         urlParams.get('websiteRefNo');
       
-      // Use URL parameter if available, otherwise use localStorage
+      // Use URL parameter if available, otherwise use sessionStorage
       if (urlOrderId) {
         orderId = urlOrderId;
       }
@@ -35,16 +67,44 @@ const SadadCallback = () => {
       console.log('Processing order ID:', orderId);
       
       if (!orderId) {
-        console.error('No order ID found in localStorage or URL');
+        console.error('No order ID found in sessionStorage or URL');
         throw new Error('لم يتم العثور على رقم الطلب');
       }
 
-      // Poll the order status since webhook processes it in background
-      let attempts = 0;
-      const maxAttempts = 10;
+      // Set up real-time subscription for instant updates
+      subscriptionRef.current = supabase
+        .channel(`order-${orderId}`)
+        .on(
+          'postgres_changes',
+          {
+            event: 'UPDATE',
+            schema: 'public',
+            table: 'orders',
+            filter: `booking_reference=eq.${orderId}`
+          },
+          (payload) => {
+            console.log('Real-time update received:', payload);
+            const newStatus = payload.new?.payment_status;
+            if (newStatus === 'confirmed' && !hasConfirmedRef.current) {
+              handleSuccess(payload.new.id);
+            } else if (newStatus === 'cancelled' && !hasConfirmedRef.current) {
+              hasConfirmedRef.current = true;
+              setStatus('failed');
+              setMessage('لم يتم تأكيد الدفع. يرجى التواصل مع الدعم إذا تم خصم المبلغ.');
+            }
+          }
+        )
+        .subscribe();
+
+      // Poll the order status with increased attempts (30 attempts = 30 seconds)
+      const maxAttempts = 30;
+      let currentAttempt = 0;
       let order = null;
 
-      while (attempts < maxAttempts) {
+      while (currentAttempt < maxAttempts && !hasConfirmedRef.current) {
+        currentAttempt++;
+        setAttempts(currentAttempt);
+        
         const { data, error } = await supabase
           .from('orders')
           .select('*')
@@ -56,38 +116,47 @@ const SadadCallback = () => {
           throw error;
         }
 
-        if (data && data.payment_status !== 'pending') {
+        if (data && data.payment_status === 'confirmed') {
           order = data;
-          break;
+          handleSuccess(order.id);
+          return;
+        }
+
+        if (data && data.payment_status === 'cancelled') {
+          setStatus('failed');
+          setMessage(data.payment_error_reason || 'لم يتم تأكيد الدفع. يرجى التواصل مع الدعم إذا تم خصم المبلغ.');
+          return;
+        }
+
+        // Update message to show progress
+        if (currentAttempt > 10) {
+          setMessage(`جاري التحقق من حالة الدفع... (${currentAttempt}/${maxAttempts})`);
         }
 
         // Wait 1 second before retrying
         await new Promise(resolve => setTimeout(resolve, 1000));
-        attempts++;
       }
 
-      if (!order) {
-        throw new Error('لم يتم العثور على الطلب');
-      }
+      // If we've exhausted attempts but order exists, show helpful message
+      if (!hasConfirmedRef.current) {
+        const { data: finalCheck } = await supabase
+          .from('orders')
+          .select('*')
+          .eq('booking_reference', orderId)
+          .maybeSingle();
 
-      // Check payment status
-      const isSuccess = order.payment_status === 'confirmed';
+        if (finalCheck?.payment_status === 'confirmed') {
+          handleSuccess(finalCheck.id);
+          return;
+        }
 
-      if (isSuccess) {
-        setStatus('success');
-        setMessage('تم الدفع بنجاح!');
-        
-        // Store order info for confirmation page
-        localStorage.setItem('orderIds', JSON.stringify([order.id]));
-        sessionStorage.removeItem('pendingOrderId'); // Clean up
-        
-        // Redirect to confirmation page after a short delay
-        setTimeout(() => {
-          navigate('/confirmation');
-        }, 2000);
-      } else {
-        setStatus('failed');
-        setMessage('لم يتم تأكيد الدفع. يرجى التواصل مع الدعم إذا تم خصم المبلغ.');
+        if (finalCheck?.payment_status === 'pending') {
+          setStatus('failed');
+          setMessage('الدفع قيد المعالجة. إذا تم خصم المبلغ، سيتم تأكيد الطلب تلقائياً. يرجى التحقق من بريدك الإلكتروني أو التواصل مع الدعم.');
+        } else {
+          setStatus('failed');
+          setMessage('لم يتم العثور على الطلب. يرجى التواصل مع الدعم.');
+        }
       }
     } catch (error) {
       console.error('Error processing callback:', error);
@@ -104,6 +173,11 @@ const SadadCallback = () => {
             <Loader2 className="w-16 h-16 animate-spin mx-auto mb-4 text-primary" />
             <h2 className="text-2xl font-bold mb-2">جاري المعالجة</h2>
             <p className="text-muted-foreground">{message}</p>
+            {attempts > 0 && (
+              <p className="text-xs text-muted-foreground mt-2">
+                محاولة {attempts} من 30
+              </p>
+            )}
           </>
         )}
 
