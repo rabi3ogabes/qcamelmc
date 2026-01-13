@@ -249,6 +249,7 @@ export type Database = {
           payment_id: string | null
           payment_method: Database["public"]["Enums"]["payment_method"]
           payment_status: Database["public"]["Enums"]["payment_status"] | null
+          pos_user_id: string | null
           qr_code: string | null
           quantity: number
           sadad_manually_verified: boolean | null
@@ -270,6 +271,7 @@ export type Database = {
           payment_id?: string | null
           payment_method: Database["public"]["Enums"]["payment_method"]
           payment_status?: Database["public"]["Enums"]["payment_status"] | null
+          pos_user_id?: string | null
           qr_code?: string | null
           quantity: number
           sadad_manually_verified?: boolean | null
@@ -291,6 +293,7 @@ export type Database = {
           payment_id?: string | null
           payment_method?: Database["public"]["Enums"]["payment_method"]
           payment_status?: Database["public"]["Enums"]["payment_status"] | null
+          pos_user_id?: string | null
           qr_code?: string | null
           quantity?: number
           sadad_manually_verified?: boolean | null
@@ -310,6 +313,13 @@ export type Database = {
             columns: ["event_id"]
             isOneToOne: false
             referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orders_pos_user_id_fkey"
+            columns: ["pos_user_id"]
+            isOneToOne: false
+            referencedRelation: "pos_users"
             referencedColumns: ["id"]
           },
         ]
@@ -440,6 +450,27 @@ export type Database = {
           ticket_type?: string | null
           time?: string | null
           vip_tickets?: number | null
+        }
+        Relationships: []
+      }
+      pos_users: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean | null
+          name: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          name: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          name?: string
         }
         Relationships: []
       }

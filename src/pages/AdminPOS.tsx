@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowRight, ShoppingCart, Trash2, Plus, Minus, Maximize, Minimize, CalendarIcon, CheckCircle2 } from "lucide-react";
+import { ArrowRight, ShoppingCart, Trash2, Plus, Minus, Maximize, Minimize, CalendarIcon, CheckCircle2, User } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { useToast } from "@/hooks/use-toast";
@@ -16,6 +16,12 @@ import { format } from "date-fns";
 import { canPurchaseTickets } from "@/lib/eventUtils";
 import { useActivityLog } from "@/hooks/useActivityLog";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
+
+interface POSUser {
+  id: string;
+  name: string;
+  is_active: boolean;
+}
 
 interface SuccessData {
   totalTickets: number;
@@ -75,6 +81,58 @@ const AdminPOS = () => {
   const [currentEventId, setCurrentEventId] = useState<string | null>(null);
   const [showSuccessDialog, setShowSuccessDialog] = useState(false);
   const [successData, setSuccessData] = useState<SuccessData | null>(null);
+  
+  // POS User selection
+  const [posUsers, setPosUsers] = useState<POSUser[]>([]);
+  const [selectedPosUserId, setSelectedPosUserId] = useState<string | null>(() => {
+    // Load from localStorage on init
+    return localStorage.getItem("pos_user_id");
+  });
+  const [selectedPosUserName, setSelectedPosUserName] = useState<string>("");
+
+  // Fetch POS users
+  useEffect(() => {
+    const fetchPosUsers = async () => {
+      const { data, error } = await supabase
+        .from("pos_users")
+        .select("id, name, is_active")
+        .eq("is_active", true)
+        .order("name");
+      
+      if (error) {
+        console.error("Error fetching POS users:", error);
+        return;
+      }
+      
+      setPosUsers(data || []);
+      
+      // Set current user name if we have a saved ID
+      const savedId = localStorage.getItem("pos_user_id");
+      if (savedId && data) {
+        const user = data.find(u => u.id === savedId);
+        if (user) {
+          setSelectedPosUserName(user.name);
+        } else {
+          // User no longer active/exists, clear selection
+          localStorage.removeItem("pos_user_id");
+          setSelectedPosUserId(null);
+        }
+      }
+    };
+    
+    fetchPosUsers();
+  }, []);
+
+  const handlePosUserChange = (userId: string) => {
+    setSelectedPosUserId(userId);
+    localStorage.setItem("pos_user_id", userId);
+    const user = posUsers.find(u => u.id === userId);
+    setSelectedPosUserName(user?.name || "");
+    toast({
+      title: "تم",
+      description: `تم اختيار المستخدم: ${user?.name}`,
+    });
+  };
 
   useEffect(() => {
     // Fetch the upcoming event automatically
@@ -658,6 +716,7 @@ const AdminPOS = () => {
           booking_reference: bookingRef,
           n8n_response_message: "طلب من نقطة البيع - POS",
           n8n_responded_at: new Date().toISOString(),
+          pos_user_id: selectedPosUserId,
         })
         .select()
         .single();
@@ -804,6 +863,23 @@ const AdminPOS = () => {
               )}
             </button>
             <div className="flex items-center gap-2 sm:gap-4 flex-wrap justify-center">
+              {/* POS User Selector */}
+              <Select value={selectedPosUserId || ""} onValueChange={handlePosUserChange}>
+                <SelectTrigger className="w-[140px] sm:w-[180px] bg-primary/10 border-primary">
+                  <User className="w-4 h-4 ml-2" />
+                  <SelectValue placeholder="اختر المستخدم">
+                    {selectedPosUserName || "اختر المستخدم"}
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  {posUsers.map((user) => (
+                    <SelectItem key={user.id} value={user.id}>
+                      {user.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              
               <Popover>
                 <PopoverTrigger asChild>
                   <Button variant="outline" className="flex items-center gap-2 px-2 sm:px-4 py-2 h-auto text-sm sm:text-base">
