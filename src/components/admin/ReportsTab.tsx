@@ -1,12 +1,19 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { FileDown, Loader2 } from "lucide-react";
+import { FileDown, Loader2, CalendarDays } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import XLSX from "xlsx-js-style";
-import { format } from "date-fns";
+import { format, isToday, parseISO } from "date-fns";
 import { ar } from "date-fns/locale";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 // Define styles for Excel
 const headerStyle = {
@@ -69,6 +76,44 @@ const amountStyle = {
 
 export const ReportsTab = () => {
   const [loading, setLoading] = useState(false);
+  const [availableDates, setAvailableDates] = useState<string[]>([]);
+  const [selectedDate, setSelectedDate] = useState<string>("all");
+  const [loadingDates, setLoadingDates] = useState(true);
+
+  // Fetch available event dates on mount
+  useEffect(() => {
+    const fetchAvailableDates = async () => {
+      try {
+        const { data: events, error } = await supabase
+          .from("events")
+          .select("event_date")
+          .order("event_date", { ascending: true });
+
+        if (error) throw error;
+
+        // Get unique dates
+        const uniqueDates = [...new Set(
+          events?.map(e => format(new Date(e.event_date), "yyyy-MM-dd")) || []
+        )].sort((a, b) => new Date(a).getTime() - new Date(b).getTime());
+
+        setAvailableDates(uniqueDates);
+
+        // Auto-select today if available, otherwise select "all"
+        const today = format(new Date(), "yyyy-MM-dd");
+        if (uniqueDates.includes(today)) {
+          setSelectedDate(today);
+        } else {
+          setSelectedDate("all");
+        }
+      } catch (error) {
+        console.error("Error fetching event dates:", error);
+      } finally {
+        setLoadingDates(false);
+      }
+    };
+
+    fetchAvailableDates();
+  }, []);
 
   const applyStylesToSheet = (ws: XLSX.WorkSheet, data: any[], colWidths: any[]) => {
     const range = XLSX.utils.decode_range(ws['!ref'] || 'A1');
@@ -143,8 +188,8 @@ export const ReportsTab = () => {
   const handleExportReport = async () => {
     setLoading(true);
     try {
-      // Fetch all orders with related customer, event, and ticket holders data
-      const { data: orders, error } = await supabase
+      // Build the query based on selected date
+      let query = supabase
         .from("orders")
         .select(`
           *,
@@ -173,6 +218,27 @@ export const ReportsTab = () => {
           )
         `)
         .order("created_at", { ascending: false });
+
+      // Filter by selected date if not "all"
+      if (selectedDate !== "all") {
+        // Get all events for the selected date
+        const { data: eventsForDate } = await supabase
+          .from("events")
+          .select("id")
+          .gte("event_date", `${selectedDate}T00:00:00`)
+          .lt("event_date", `${selectedDate}T23:59:59`);
+
+        if (eventsForDate && eventsForDate.length > 0) {
+          const eventIds = eventsForDate.map(e => e.id);
+          query = query.in("event_id", eventIds);
+        } else {
+          toast.error("لا توجد فعاليات في هذا التاريخ");
+          setLoading(false);
+          return;
+        }
+      }
+
+      const { data: orders, error } = await query;
 
       if (error) throw error;
 
@@ -369,8 +435,38 @@ export const ReportsTab = () => {
           <div>
             <h3 className="text-xl font-bold mb-2">تصدير تقرير الطلبات</h3>
             <p className="text-muted-foreground mb-4">
-              سيتم تصدير جميع بيانات الطلبات في ملف Excel واحد، حيث يمثل كل ورقة عمل يومًا من أيام الفعاليات
+              اختر التاريخ لتصدير بيانات الطلبات في ملف Excel
             </p>
+          </div>
+
+          {/* Date Selection */}
+          <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
+            <div className="flex items-center gap-2">
+              <CalendarDays className="w-5 h-5 text-muted-foreground" />
+              <span className="font-medium">اختر التاريخ:</span>
+            </div>
+            <Select
+              value={selectedDate}
+              onValueChange={setSelectedDate}
+              disabled={loadingDates}
+            >
+              <SelectTrigger className="w-full sm:w-[280px]">
+                <SelectValue placeholder={loadingDates ? "جاري التحميل..." : "اختر التاريخ"} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">جميع التواريخ</SelectItem>
+                {availableDates.map((date) => {
+                  const dateObj = parseISO(date);
+                  const formattedDate = format(dateObj, "EEEE dd MMMM yyyy", { locale: ar });
+                  const isTodayDate = isToday(dateObj);
+                  return (
+                    <SelectItem key={date} value={date}>
+                      {formattedDate} {isTodayDate && "(اليوم)"}
+                    </SelectItem>
+                  );
+                })}
+              </SelectContent>
+            </Select>
           </div>
 
           <div className="bg-muted/50 p-4 rounded-lg space-y-2">
@@ -391,7 +487,7 @@ export const ReportsTab = () => {
 
           <Button
             onClick={handleExportReport}
-            disabled={loading}
+            disabled={loading || loadingDates}
             className="w-full sm:w-auto"
             size="lg"
           >
@@ -403,7 +499,7 @@ export const ReportsTab = () => {
             ) : (
               <>
                 <FileDown className="w-4 h-4 ml-2" />
-                تصدير التقرير
+                تصدير التقرير {selectedDate !== "all" && `(${format(parseISO(selectedDate), "dd/MM/yyyy")})`}
               </>
             )}
           </Button>
