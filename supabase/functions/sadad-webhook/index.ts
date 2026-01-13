@@ -122,9 +122,10 @@ Deno.serve(async (req) => {
     }
 
     // Update order status based on transaction status
-    // Sadad status codes: 1 = success, 2 = failed, 0 = pending/cancelled
-    // Note: Removed status 3 as it was causing incorrect confirmations
-    const isSuccess = transactionStatus === 'TXN_SUCCESS' || transactionStatus === '1' || transactionStatus === 1;
+    // Sadad status codes: 1 = success, 3 = success (confirmed), 2 = failed, 0 = pending/cancelled
+    const isSuccess = transactionStatus === 'TXN_SUCCESS' || 
+                      transactionStatus === '1' || transactionStatus === 1 ||
+                      transactionStatus === '3' || transactionStatus === 3;
     const paymentStatus = isSuccess ? 'confirmed' : 'cancelled';
     
     // Build error reason for failed payments
