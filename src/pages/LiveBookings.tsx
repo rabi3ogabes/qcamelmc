@@ -5,7 +5,8 @@ import { Badge } from "@/components/ui/badge";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { CalendarIcon, CheckCircle, XCircle, Users, LayoutGrid, Table as TableIcon, User, Phone, CreditCard, Hash, Maximize, Minimize, Globe, Store, Volume2, VolumeX, Clock, Send, SendHorizonal, CircleDashed } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { CalendarIcon, CheckCircle, XCircle, Users, LayoutGrid, Table as TableIcon, User, Phone, CreditCard, Hash, Maximize, Minimize, Globe, Store, Volume2, VolumeX, Clock, Send, SendHorizonal, CircleDashed, BarChart3 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -16,6 +17,21 @@ import { Footer } from "@/components/Footer";
 import { canPurchaseTickets } from "@/lib/eventUtils";
 
 const QATAR_TIMEZONE = "Asia/Qatar";
+
+interface DailySummary {
+  date: string;
+  event_title: string;
+  vip_count: number;
+  vip_amount: number;
+  vip_price?: number;
+  normal_count: number;
+  normal_amount: number;
+  normal_price?: number;
+  parking_count: number;
+  parking_amount: number;
+  parking_price?: number;
+  daily_total: number;
+}
 
 // Create audio context for notification sounds
 const playNotificationSound = () => {
@@ -122,6 +138,8 @@ const LiveBookings = () => {
   }>({});
   const [, forceUpdate] = useState(0);
   const [isDateInitialized, setIsDateInitialized] = useState(false);
+  const [dailySalesDialogOpen, setDailySalesDialogOpen] = useState(false);
+  const [dailySummaries, setDailySummaries] = useState<DailySummary[]>([]);
 
   // Check if a booking is within the last 5 minutes (for highlight)
   const isRecentBooking = (createdAt: string | undefined): boolean => {
@@ -477,6 +495,109 @@ const LiveBookings = () => {
     };
   };
 
+  // Fetch daily sales statistics (same logic as TicketsTab)
+  const fetchDailySales = async () => {
+    try {
+      // Fetch ticket holders with their orders and events
+      const { data: ticketHolders, error: thError } = await supabase
+        .from("ticket_holders")
+        .select(`
+          id,
+          ticket_type,
+          order_id,
+          orders!inner(
+            payment_status,
+            event_id,
+            events!inner(
+              title,
+              event_date
+            )
+          )
+        `)
+        .eq("orders.payment_status", "confirmed");
+
+      if (thError) throw thError;
+
+      // Fetch all ticket prices
+      const { data: ticketPrices, error: ticketError } = await supabase
+        .from("tickets")
+        .select("event_id, type, price");
+
+      if (ticketError) throw ticketError;
+
+      // Create a map of ticket prices by event_id and type
+      const priceMap = (ticketPrices || []).reduce((acc, ticket) => {
+        const key = `${ticket.event_id}-${ticket.type}`;
+        acc[key] = ticket.price;
+        return acc;
+      }, {} as Record<string, number>);
+
+      // Group by event date and calculate from actual ticket holders
+      const grouped = (ticketHolders || []).reduce((acc: Record<string, DailySummary>, holder: any) => {
+        const eventDate = holder.orders.events.event_date;
+        const date = new Date(eventDate).toLocaleDateString('en-CA');
+        const eventId = holder.orders.event_id;
+        const ticketType = holder.ticket_type;
+        
+        if (!acc[date]) {
+          acc[date] = {
+            date,
+            event_title: holder.orders.events.title || 'Unknown Event',
+            vip_count: 0,
+            vip_amount: 0,
+            normal_count: 0,
+            normal_amount: 0,
+            parking_count: 0,
+            parking_amount: 0,
+            daily_total: 0
+          };
+        }
+        
+        const price = priceMap[`${eventId}-${ticketType}`] || 0;
+        
+        if (ticketType === 'vip') {
+          acc[date].vip_count += 1;
+          acc[date].vip_amount += price;
+          acc[date].vip_price = price;
+        } else if (ticketType === 'normal') {
+          acc[date].normal_count += 1;
+          acc[date].normal_amount += price;
+          acc[date].normal_price = price;
+        } else if (ticketType === 'parking') {
+          acc[date].parking_count += 1;
+          acc[date].parking_amount += price;
+          acc[date].parking_price = price;
+        }
+        
+        acc[date].daily_total += price;
+        
+        return acc;
+      }, {});
+
+      const summariesArray = Object.values(grouped).sort((a, b) => 
+        new Date(a.date).getTime() - new Date(b.date).getTime()
+      );
+      
+      setDailySummaries(summariesArray);
+    } catch (error) {
+      console.error("Error fetching daily sales:", error);
+    }
+  };
+
+  // Fetch daily sales when dialog opens and on realtime updates
+  useEffect(() => {
+    if (dailySalesDialogOpen) {
+      fetchDailySales();
+    }
+  }, [dailySalesDialogOpen]);
+
+  // Update daily sales on realtime changes (if dialog is open)
+  useEffect(() => {
+    if (dailySalesDialogOpen && isDateInitialized) {
+      fetchDailySales();
+    }
+  }, [ticketHolders, dailySalesDialogOpen, isDateInitialized]);
+
   const calculateStats = (bookingsData: Booking[], ticketHoldersData: TicketHolder[]) => {
     const total = bookingsData.length;
     const confirmed = bookingsData.filter(b => b.payment_status === 'confirmed').length;
@@ -624,6 +745,123 @@ const LiveBookings = () => {
                 <span className="hidden sm:inline">عرض الجدول</span>
                 <span className="sm:hidden">جدول</span>
               </Button>
+              
+              {/* Daily Sales Stats Button */}
+              <Dialog open={dailySalesDialogOpen} onOpenChange={setDailySalesDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="font-lusail text-xs sm:text-sm px-2 sm:px-3"
+                    title="إحصائيات المبيعات اليومية"
+                  >
+                    <BarChart3 className="w-3 h-3 sm:w-4 sm:h-4 ml-1 sm:ml-2" />
+                    <span className="hidden sm:inline">إحصائيات</span>
+                    <span className="sm:hidden">📊</span>
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-[95vw] sm:max-w-5xl max-h-[90vh] overflow-auto" dir="rtl">
+                  <DialogHeader>
+                    <DialogTitle className="text-xl font-lusail">إحصائيات المبيعات اليومية</DialogTitle>
+                  </DialogHeader>
+                  
+                  {dailySummaries.length > 0 ? (
+                    <div className="overflow-x-auto">
+                      <table className="w-full border-collapse text-sm">
+                        <thead>
+                          <tr className="border-b-2">
+                            <th className="text-center p-2 sm:p-3 font-lusail font-bold">التاريخ</th>
+                            <th colSpan={3} className="text-center p-2 sm:p-3 font-lusail font-bold border-x">VIP</th>
+                            <th colSpan={3} className="text-center p-2 sm:p-3 font-lusail font-bold border-x">عادي</th>
+                            <th colSpan={3} className="text-center p-2 sm:p-3 font-lusail font-bold border-x">مواقف</th>
+                            <th className="text-center p-2 sm:p-3 font-lusail font-bold">الإجمالي</th>
+                          </tr>
+                          <tr className="border-b bg-muted/30">
+                            <th className="p-1 sm:p-2"></th>
+                            <th className="text-center p-1 sm:p-2 font-lusail text-xs">العدد</th>
+                            <th className="text-center p-1 sm:p-2 font-lusail text-xs">السعر</th>
+                            <th className="text-center p-1 sm:p-2 font-lusail text-xs border-l">المبلغ</th>
+                            <th className="text-center p-1 sm:p-2 font-lusail text-xs">العدد</th>
+                            <th className="text-center p-1 sm:p-2 font-lusail text-xs">السعر</th>
+                            <th className="text-center p-1 sm:p-2 font-lusail text-xs border-l">المبلغ</th>
+                            <th className="text-center p-1 sm:p-2 font-lusail text-xs">العدد</th>
+                            <th className="text-center p-1 sm:p-2 font-lusail text-xs">السعر</th>
+                            <th className="text-center p-1 sm:p-2 font-lusail text-xs border-l">المبلغ</th>
+                            <th className="p-1 sm:p-2"></th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {dailySummaries.map((summary) => (
+                            <tr key={summary.date} className="border-b hover:bg-muted/20">
+                              <td className="p-2 sm:p-3 font-lusail text-xs sm:text-sm">
+                                {new Date(summary.date).toLocaleDateString('en-US', { 
+                                  weekday: 'short',
+                                  month: 'short', 
+                                  day: 'numeric'
+                                })}
+                              </td>
+                              {/* VIP */}
+                              <td className="text-center p-2 sm:p-3 font-lusail font-bold text-xs sm:text-sm">{summary.vip_count || '-'}</td>
+                              <td className="text-center p-2 sm:p-3 font-lusail text-xs sm:text-sm">{summary.vip_price ? summary.vip_price.toFixed(0) : '-'}</td>
+                              <td className="text-center p-2 sm:p-3 font-lusail font-bold text-destructive border-l text-xs sm:text-sm">{summary.vip_amount > 0 ? summary.vip_amount.toFixed(0) : '-'}</td>
+                              {/* Normal */}
+                              <td className="text-center p-2 sm:p-3 font-lusail font-bold text-xs sm:text-sm">{summary.normal_count || '-'}</td>
+                              <td className="text-center p-2 sm:p-3 font-lusail text-xs sm:text-sm">{summary.normal_price ? summary.normal_price.toFixed(0) : '-'}</td>
+                              <td className="text-center p-2 sm:p-3 font-lusail font-bold text-destructive border-l text-xs sm:text-sm">{summary.normal_amount > 0 ? summary.normal_amount.toFixed(0) : '-'}</td>
+                              {/* Parking */}
+                              <td className="text-center p-2 sm:p-3 font-lusail font-bold text-xs sm:text-sm">{summary.parking_count || '-'}</td>
+                              <td className="text-center p-2 sm:p-3 font-lusail text-xs sm:text-sm">{summary.parking_price ? summary.parking_price.toFixed(0) : '-'}</td>
+                              <td className="text-center p-2 sm:p-3 font-lusail font-bold text-destructive border-l text-xs sm:text-sm">{summary.parking_amount > 0 ? summary.parking_amount.toFixed(0) : '-'}</td>
+                              {/* Daily Total */}
+                              <td className="text-center p-2 sm:p-3 font-lusail font-bold text-primary text-xs sm:text-sm">
+                                {summary.daily_total.toFixed(0)} <span className="text-[10px]">ر.ق</span>
+                              </td>
+                            </tr>
+                          ))}
+                          {/* Grand Total Row */}
+                          <tr className="bg-muted/50 font-bold border-t-2">
+                            <td className="p-2 sm:p-3 font-lusail text-sm sm:text-base">الإجمالي الكلي</td>
+                            <td className="text-center p-2 sm:p-3 font-lusail text-sm sm:text-base">
+                              {dailySummaries.reduce((acc, s) => acc + s.vip_count, 0)}
+                            </td>
+                            <td className="text-center p-2 sm:p-3 font-lusail text-xs sm:text-sm">
+                              {dailySummaries[0]?.vip_price ? dailySummaries[0].vip_price.toFixed(0) : '-'}
+                            </td>
+                            <td className="text-center p-2 sm:p-3 font-lusail text-destructive border-l text-sm sm:text-base">
+                              {dailySummaries.reduce((acc, s) => acc + s.vip_amount, 0).toFixed(0)}
+                            </td>
+                            <td className="text-center p-2 sm:p-3 font-lusail text-sm sm:text-base">
+                              {dailySummaries.reduce((acc, s) => acc + s.normal_count, 0)}
+                            </td>
+                            <td className="text-center p-2 sm:p-3 font-lusail text-xs sm:text-sm">
+                              {dailySummaries[0]?.normal_price ? dailySummaries[0].normal_price.toFixed(0) : '-'}
+                            </td>
+                            <td className="text-center p-2 sm:p-3 font-lusail text-destructive border-l text-sm sm:text-base">
+                              {dailySummaries.reduce((acc, s) => acc + s.normal_amount, 0).toFixed(0)}
+                            </td>
+                            <td className="text-center p-2 sm:p-3 font-lusail text-sm sm:text-base">
+                              {dailySummaries.reduce((acc, s) => acc + s.parking_count, 0)}
+                            </td>
+                            <td className="text-center p-2 sm:p-3 font-lusail text-xs sm:text-sm">
+                              {dailySummaries[0]?.parking_price ? dailySummaries[0].parking_price.toFixed(0) : '-'}
+                            </td>
+                            <td className="text-center p-2 sm:p-3 font-lusail text-destructive border-l text-sm sm:text-base">
+                              {dailySummaries.reduce((acc, s) => acc + s.parking_amount, 0).toFixed(0)}
+                            </td>
+                            <td className="text-center p-2 sm:p-3 font-lusail text-primary text-base sm:text-lg">
+                              {dailySummaries.reduce((acc, s) => acc + s.daily_total, 0).toFixed(0)} <span className="text-xs">ر.ق</span>
+                            </td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+                  ) : (
+                    <div className="text-center py-8 text-muted-foreground font-lusail">
+                      لا توجد بيانات مبيعات
+                    </div>
+                  )}
+                </DialogContent>
+              </Dialog>
             </div>
             <Button
               variant="ghost"
