@@ -920,10 +920,9 @@ const LiveBookings = () => {
                         {/* Invoice/POS Status Icon */}
                         {holder.payment_method === 'cash_pos' ? (
                           <div className="flex flex-col items-center" title={holder.pos_user_name ? `POS - ${holder.pos_user_name}` : "POS"}>
-                            {holder.pos_user_icon ? (
+                            <Store className="w-3 h-3 sm:w-4 sm:h-4 text-orange-500" />
+                            {holder.pos_user_icon && (
                               <span className="text-lg sm:text-xl">{holder.pos_user_icon}</span>
-                            ) : (
-                              <Store className="w-3 h-3 sm:w-4 sm:h-4 text-orange-500" />
                             )}
                             {holder.pos_user_name && (
                               <span className="text-[8px] sm:text-[10px] text-orange-600 font-medium truncate max-w-[60px]">{holder.pos_user_name}</span>
