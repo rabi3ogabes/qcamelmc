@@ -286,6 +286,16 @@ const AdminPOS = () => {
     }
   }, [customerIdNumber]);
 
+  // Auto-populate nationality from first ticket holder to all others
+  useEffect(() => {
+    if (ticketHolders.length > 1 && ticketHolders[0]?.nationality) {
+      const firstNationality = ticketHolders[0].nationality;
+      setTicketHolders(prev => prev.map((holder, index) => 
+        index === 0 ? holder : { ...holder, nationality: firstNationality }
+      ));
+    }
+  }, [ticketHolders[0]?.nationality]);
+
   const toggleFullscreen = () => {
     if (!document.fullscreenElement) {
       document.documentElement.requestFullscreen().catch(err => {
