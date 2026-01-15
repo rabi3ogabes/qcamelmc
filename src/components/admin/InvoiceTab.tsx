@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Send, Loader2, CheckCircle, Clock, RotateCcw } from "lucide-react";
+import { Send, Loader2, CheckCircle, Clock, RotateCcw, CalendarX } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { format } from "date-fns";
@@ -85,7 +85,7 @@ export const InvoiceTab = () => {
   const [batchMax, setBatchMax] = useState<number>(10);
   const [delayMin, setDelayMin] = useState<number>(300);
   const [delayMax, setDelayMax] = useState<number>(600);
-  const [filterTab, setFilterTab] = useState<"all" | "pending" | "sent">("all");
+  const [filterTab, setFilterTab] = useState<"all" | "pending" | "sent" | "eventDone">("all");
   const [sendingIndividual, setSendingIndividual] = useState<string | null>(null);
 
   useEffect(() => {
@@ -136,11 +136,29 @@ export const InvoiceTab = () => {
     return message === 'جاري الإرسال إلى واتساب...';
   };
 
-  // Calculate pending orders count - orders that are truly pending (not sent yet or still sending)
-  const pendingOrdersCount = orders.filter(o => isPendingMessage(o.n8n_response_message) || !o.n8n_responded_at).length;
+  // Check if event date has passed (event is done)
+  const isEventDone = (order: Order) => {
+    if (!order.events?.event_date) return false;
+    const eventDate = new Date(order.events.event_date);
+    const today = new Date();
+    // Set both dates to start of day for comparison
+    eventDate.setHours(23, 59, 59, 999); // End of event day
+    today.setHours(0, 0, 0, 0); // Start of today
+    return eventDate < today;
+  };
+
+  // Calculate pending orders count - orders that are truly pending AND event not done
+  const pendingOrdersCount = orders.filter(o => 
+    (isPendingMessage(o.n8n_response_message) || !o.n8n_responded_at) && !isEventDone(o)
+  ).length;
   
   // Calculate sent orders count - orders that have actual success response
   const sentOrdersCount = orders.filter(o => !isPendingMessage(o.n8n_response_message) && !!o.n8n_responded_at).length;
+
+  // Calculate event done orders count - orders where event has passed but invoice wasn't sent
+  const eventDoneOrdersCount = orders.filter(o => 
+    isEventDone(o) && (isPendingMessage(o.n8n_response_message) || !o.n8n_responded_at)
+  ).length;
 
   // Auto-start countdown when page loads if there are pending orders and countdown was previously active
   useEffect(() => {
@@ -379,9 +397,9 @@ export const InvoiceTab = () => {
     setSending(true);
     const newSentOrders = new Map(sentOrders);
 
-    // Filter orders that need to be sent (only those that are truly pending)
+    // Filter orders that need to be sent (only those that are truly pending AND event not done)
     const allOrdersToSend = orders.filter(
-      order => !sentOrders.has(order.id) && isPendingMessage(order.n8n_response_message)
+      order => !sentOrders.has(order.id) && isPendingMessage(order.n8n_response_message) && !isEventDone(order)
     );
 
     if (allOrdersToSend.length === 0) {
@@ -548,12 +566,18 @@ export const InvoiceTab = () => {
 
   // Filter orders based on selected tab
   const filteredOrders = orders.filter((order) => {
+    const isPending = isPendingMessage(order.n8n_response_message) || !order.n8n_responded_at;
+    const eventDone = isEventDone(order);
+    
     if (filterTab === "pending") {
-      // Pending = no message OR message is "sending" OR no n8n_responded_at
-      return isPendingMessage(order.n8n_response_message) || !order.n8n_responded_at;
+      // Pending = (no message OR message is "sending" OR no n8n_responded_at) AND event NOT done
+      return isPending && !eventDone;
     } else if (filterTab === "sent") {
       // Sent = has actual response message (not "sending") AND has n8n_responded_at
       return !isPendingMessage(order.n8n_response_message) && !!order.n8n_responded_at;
+    } else if (filterTab === "eventDone") {
+      // Event done = event date has passed AND invoice wasn't sent
+      return eventDone && isPending;
     }
     return true; // "all" tab shows everything
   });
@@ -643,9 +667,9 @@ export const InvoiceTab = () => {
           </div>
         )}
 
-        <Tabs value={filterTab} onValueChange={(v) => setFilterTab(v as "all" | "pending" | "sent")} className="w-full">
+        <Tabs value={filterTab} onValueChange={(v) => setFilterTab(v as "all" | "pending" | "sent" | "eventDone")} className="w-full">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
-            <TabsList className="grid grid-cols-3 w-full sm:w-auto">
+            <TabsList className="grid grid-cols-4 w-full sm:w-auto">
               <TabsTrigger value="all" className="text-xs sm:text-sm">
                 <span className="hidden sm:inline">الكل</span>
                 <span className="sm:hidden">الكل</span> ({orders.length})
@@ -657,6 +681,10 @@ export const InvoiceTab = () => {
               <TabsTrigger value="sent" className="text-xs sm:text-sm">
                 <span className="hidden sm:inline">تم الإرسال</span>
                 <span className="sm:hidden">مرسل</span> ({sentOrdersCount})
+              </TabsTrigger>
+              <TabsTrigger value="eventDone" className="text-xs sm:text-sm text-orange-600">
+                <span className="hidden sm:inline">انتهت الفعالية</span>
+                <span className="sm:hidden">انتهت</span> ({eventDoneOrdersCount})
               </TabsTrigger>
             </TabsList>
             {filterTab === "pending" && pendingOrdersCount > 0 && (
@@ -699,6 +727,7 @@ export const InvoiceTab = () => {
                   <TableCell colSpan={12} className="text-center py-8 text-muted-foreground">
                     {filterTab === "pending" && "لا توجد طلبات قيد الإرسال"}
                     {filterTab === "sent" && "لا توجد طلبات تم إرسالها"}
+                    {filterTab === "eventDone" && "لا توجد طلبات انتهت فعاليتها"}
                     {filterTab === "all" && "لا توجد طلبات مدفوعة عبر سداد"}
                   </TableCell>
                 </TableRow>
@@ -745,6 +774,11 @@ export const InvoiceTab = () => {
                         <Badge variant="secondary" className="gap-1">
                           <Clock className="w-3 h-3" />
                           قيد الانتظار
+                        </Badge>
+                      ) : isEventDone(order) ? (
+                        <Badge variant="outline" className="gap-1 bg-orange-100 text-orange-700 border-orange-300">
+                          <CalendarX className="w-3 h-3" />
+                          انتهت الفعالية
                         </Badge>
                       ) : (
                         <Badge variant="outline">لم يتم الإرسال</Badge>
