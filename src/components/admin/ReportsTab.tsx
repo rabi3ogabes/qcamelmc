@@ -259,15 +259,15 @@ export const ReportsTab = () => {
           groupedByEventDate[dateKey].push(formatOrderData(order));
         }
 
-        // Group Sadad orders by EVENT date (not purchase date) - for consistency with event grouping
-        if (order.payment_method === "sadad" && order.events?.event_date) {
-          const eventDate = toZonedTime(new Date(order.events.event_date), QATAR_TIMEZONE);
-          const eventDateKey = format(eventDate, "yyyy-MM-dd");
+        // Group Sadad orders by creation date (تاريخ الإنشاء) - use Qatar timezone for consistency
+        if (order.payment_method === "sadad") {
+          const createdDate = toZonedTime(new Date(order.created_at), QATAR_TIMEZONE);
+          const createdDateKey = format(createdDate, "yyyy-MM-dd");
           
-          if (!groupedBySadadPurchaseDate[eventDateKey]) {
-            groupedBySadadPurchaseDate[eventDateKey] = [];
+          if (!groupedBySadadPurchaseDate[createdDateKey]) {
+            groupedBySadadPurchaseDate[createdDateKey] = [];
           }
-          groupedBySadadPurchaseDate[eventDateKey].push(formatOrderData(order));
+          groupedBySadadPurchaseDate[createdDateKey].push(formatOrderData(order));
         }
       });
 
@@ -350,11 +350,11 @@ export const ReportsTab = () => {
         sadadSummarySheet = addTotalRow(sadadSummarySheet, allSadadData, colWidths);
         XLSX.utils.book_append_sheet(wb, sadadSummarySheet, "جميع مشتريات سداد");
 
-        // Add individual sheets for each Sadad event date - sorted chronologically
+        // Add individual sheets for each Sadad creation date - sorted chronologically
         sortedSadadDates.forEach((dateKey) => {
           const sheetData = groupedBySadadPurchaseDate[dateKey].sort(sortByStatus);
           const formattedDate = format(new Date(dateKey), "dd-MM-yyyy", { locale: ar });
-          const sheetName = `سداد فعالية ${formattedDate}`.substring(0, 31);
+          const sheetName = `سداد ${formattedDate}`.substring(0, 31);
           
           let ws = XLSX.utils.json_to_sheet(sheetData);
           ws = applyStylesToSheet(ws, sheetData, colWidths);
