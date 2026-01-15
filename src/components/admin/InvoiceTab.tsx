@@ -437,23 +437,42 @@ export const InvoiceTab = () => {
       setCurrentlySending(order.id);
       toast.info(`إرسال فاتورة ${i + 1} من ${ordersToSend.length}...`);
       
+      // Increment send attempt count BEFORE sending (to track all attempts)
+      const currentAttempts = order.send_attempt_count || 0;
+      const newAttempts = currentAttempts + 1;
+      
+      // Update attempt count in database before sending
+      await supabase
+        .from("orders")
+        .update({ send_attempt_count: newAttempts })
+        .eq("id", order.id);
+      
       const result = await sendInvoiceToWebhook(order, totalQuantity);
       
       if (result.success) {
+        // Check if the response message indicates actual success (not just "in progress")
+        const isActualSuccess = result.message && 
+          !result.message.includes('جاري الإرسال') && 
+          (result.message.includes('تم إرسال') || result.message.includes('بنجاح'));
+        
+        if (isActualSuccess) {
+          // Reset attempt count on actual success
+          await supabase
+            .from("orders")
+            .update({ send_attempt_count: 0 })
+            .eq("id", order.id);
+        }
+        
         const sentTime = new Date();
         newSentOrders.set(order.id, { sentAt: sentTime, message: result.message });
         setSentOrders(new Map(newSentOrders));
-        toast.success(`تم إرسال الفاتورة لـ ${order.customers.name}`);
+        
+        if (newAttempts >= 2 && !isActualSuccess) {
+          toast.warning(`الفاتورة لـ ${order.customers.name} - المحاولة ${newAttempts} (ستوضع في الانتظار إذا لم تنجح)`);
+        } else {
+          toast.success(`تم إرسال الفاتورة لـ ${order.customers.name}`);
+        }
       } else {
-        // Increment send attempt count on failure
-        const currentAttempts = order.send_attempt_count || 0;
-        const newAttempts = currentAttempts + 1;
-        
-        await supabase
-          .from("orders")
-          .update({ send_attempt_count: newAttempts })
-          .eq("id", order.id);
-        
         newSentOrders.set(order.id, { sentAt: new Date(), message: result.message });
         setSentOrders(new Map(newSentOrders));
         
