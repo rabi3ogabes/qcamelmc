@@ -6,11 +6,16 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import XLSX from "xlsx-js-style";
 import { format } from "date-fns";
-import { toZonedTime } from "date-fns-tz";
+import { formatInTimeZone } from "date-fns-tz";
 import { ar } from "date-fns/locale";
 
 // Qatar timezone
 const QATAR_TIMEZONE = "Asia/Qatar";
+
+const formatDateKeyForSheet = (dateKey: string) => {
+  const [y, m, d] = dateKey.split("-");
+  return `${d}-${m}-${y}`;
+};
 
 // Define styles for Excel
 const headerStyle = {
@@ -239,20 +244,36 @@ export const ReportsTab = () => {
           "الموقع": order.events?.location || "-",
           "عدد الحضور": presentCount,
           "أسماء حاملي التذاكر": ticketHolderNames,
-          "تاريخ التأكيد": order.confirmed_at 
-            ? format(new Date(order.confirmed_at), "dd/MM/yyyy HH:mm", { locale: ar })
+          "تاريخ التأكيد": order.confirmed_at
+            ? formatInTimeZone(
+                new Date(order.confirmed_at),
+                QATAR_TIMEZONE,
+                "dd/MM/yyyy HH:mm",
+                { locale: ar }
+              )
             : "-",
-          "تاريخ الإنشاء": format(new Date(order.created_at), "dd/MM/yyyy HH:mm", { locale: ar }),
+          "تاريخ الإنشاء": order.created_at
+            ? formatInTimeZone(
+                new Date(order.created_at),
+                QATAR_TIMEZONE,
+                "dd/MM/yyyy HH:mm",
+                { locale: ar }
+              )
+            : "-",
           "رمز الاستجابة السريعة": order.qr_code || "-"
         };
       };
 
       orders.forEach((order: any) => {
         // Group by event date (using Qatar timezone for consistency)
-        if (order.events?.event_date) {
-          const eventDate = toZonedTime(new Date(order.events.event_date), QATAR_TIMEZONE);
-          const dateKey = format(eventDate, "yyyy-MM-dd");
-          
+        // NOTE: Sadad-only export should be based on تاريخ الإنشاء, so we skip event-based sheets.
+        if (!sadadOnly && order.events?.event_date) {
+          const dateKey = formatInTimeZone(
+            new Date(order.events.event_date),
+            QATAR_TIMEZONE,
+            "yyyy-MM-dd"
+          );
+
           if (!groupedByEventDate[dateKey]) {
             groupedByEventDate[dateKey] = [];
           }
@@ -261,8 +282,11 @@ export const ReportsTab = () => {
 
         // Group Sadad orders by creation date (تاريخ الإنشاء) - use Qatar timezone for consistency
         if (order.payment_method === "sadad") {
-          const createdDate = toZonedTime(new Date(order.created_at), QATAR_TIMEZONE);
-          const createdDateKey = format(createdDate, "yyyy-MM-dd");
+          const createdDateKey = formatInTimeZone(
+            new Date(order.created_at),
+            QATAR_TIMEZONE,
+            "yyyy-MM-dd"
+          );
           
           if (!groupedBySadadPurchaseDate[createdDateKey]) {
             groupedBySadadPurchaseDate[createdDateKey] = [];
@@ -306,38 +330,40 @@ export const ReportsTab = () => {
         return statusA - statusB;
       };
 
-      // Create a sheet with ALL records first
-      const allRecordsData = Object.keys(groupedByEventDate)
-        .sort()
-        .flatMap(dateKey => groupedByEventDate[dateKey])
-        .sort(sortByStatus);
-      
-      if (allRecordsData.length > 0) {
-        let allRecordsSheet = XLSX.utils.json_to_sheet(allRecordsData);
-        allRecordsSheet = applyStylesToSheet(allRecordsSheet, allRecordsData, colWidths);
-        allRecordsSheet = addTotalRow(allRecordsSheet, allRecordsData, colWidths);
-        XLSX.utils.book_append_sheet(wb, allRecordsSheet, "جميع السجلات");
+      if (!sadadOnly) {
+        // Create a sheet with ALL records first
+        const allRecordsData = Object.keys(groupedByEventDate)
+          .sort()
+          .flatMap(dateKey => groupedByEventDate[dateKey])
+          .sort(sortByStatus);
+
+        if (allRecordsData.length > 0) {
+          let allRecordsSheet = XLSX.utils.json_to_sheet(allRecordsData);
+          allRecordsSheet = applyStylesToSheet(allRecordsSheet, allRecordsData, colWidths);
+          allRecordsSheet = addTotalRow(allRecordsSheet, allRecordsData, colWidths);
+          XLSX.utils.book_append_sheet(wb, allRecordsSheet, "جميع السجلات");
+        }
+
+        // Sort dates chronologically and create sheets for each event day
+        const sortedEventDates = Object.keys(groupedByEventDate).sort((a, b) =>
+          a.localeCompare(b)
+        );
+
+        sortedEventDates.forEach((dateKey) => {
+          const sheetData = groupedByEventDate[dateKey].sort(sortByStatus);
+          const formattedDate = formatDateKeyForSheet(dateKey);
+          const sheetName = `فعالية ${formattedDate}`.substring(0, 31);
+
+          let ws = XLSX.utils.json_to_sheet(sheetData);
+          ws = applyStylesToSheet(ws, sheetData, colWidths);
+          ws = addTotalRow(ws, sheetData, colWidths);
+          XLSX.utils.book_append_sheet(wb, ws, sheetName);
+        });
       }
 
-      // Sort dates chronologically and create sheets for each event day
-      const sortedEventDates = Object.keys(groupedByEventDate).sort((a, b) => 
-        new Date(a).getTime() - new Date(b).getTime()
-      );
-      
-      sortedEventDates.forEach((dateKey) => {
-        const sheetData = groupedByEventDate[dateKey].sort(sortByStatus);
-        const formattedDate = format(new Date(dateKey), "dd-MM-yyyy", { locale: ar });
-        const sheetName = `فعالية ${formattedDate}`.substring(0, 31);
-        
-        let ws = XLSX.utils.json_to_sheet(sheetData);
-        ws = applyStylesToSheet(ws, sheetData, colWidths);
-        ws = addTotalRow(ws, sheetData, colWidths);
-        XLSX.utils.book_append_sheet(wb, ws, sheetName);
-      });
-
       // Add Sadad purchases by date sheets - sorted chronologically
-      const sortedSadadDates = Object.keys(groupedBySadadPurchaseDate).sort((a, b) => 
-        new Date(a).getTime() - new Date(b).getTime()
+      const sortedSadadDates = Object.keys(groupedBySadadPurchaseDate).sort((a, b) =>
+        a.localeCompare(b)
       );
       
       if (sortedSadadDates.length > 0) {
@@ -353,7 +379,7 @@ export const ReportsTab = () => {
         // Add individual sheets for each Sadad creation date - sorted chronologically
         sortedSadadDates.forEach((dateKey) => {
           const sheetData = groupedBySadadPurchaseDate[dateKey].sort(sortByStatus);
-          const formattedDate = format(new Date(dateKey), "dd-MM-yyyy", { locale: ar });
+          const formattedDate = formatDateKeyForSheet(dateKey);
           const sheetName = `سداد ${formattedDate}`.substring(0, 31);
           
           let ws = XLSX.utils.json_to_sheet(sheetData);
