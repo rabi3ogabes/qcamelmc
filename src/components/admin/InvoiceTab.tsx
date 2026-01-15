@@ -129,8 +129,31 @@ export const InvoiceTab = () => {
     }
   }, [isCountdownActive]);
 
-  // Calculate pending orders count
-  const pendingOrdersCount = orders.filter(o => !o.n8n_response_message).length;
+  // Check if an order is truly sent (n8n responded with success, not just "sending" status)
+  const isPendingMessage = (message: string | null) => {
+    if (!message) return true;
+    // If message indicates still sending, treat as pending
+    return message === 'جاري الإرسال إلى واتساب...';
+  };
+
+  // Calculate pending orders count - orders that are truly pending (not sent yet or still sending)
+  const pendingOrdersCount = orders.filter(o => isPendingMessage(o.n8n_response_message) || !o.n8n_responded_at).length;
+  
+  // Calculate sent orders count - orders that have actual success response
+  const sentOrdersCount = orders.filter(o => !isPendingMessage(o.n8n_response_message) && !!o.n8n_responded_at).length;
+
+  // Auto-start countdown when page loads if there are pending orders and countdown was previously active
+  useEffect(() => {
+    if (pendingOrdersCount > 0 && !isCountdownActive && !sending) {
+      // Check if countdown was previously active in localStorage
+      const wasActive = localStorage.getItem('invoiceCountdownActive') === 'true';
+      if (wasActive) {
+        console.log('Auto-restarting countdown - pending orders exist and was previously active');
+        setIsCountdownActive(true);
+        setCountdown(autoInvoiceInterval);
+      }
+    }
+  }, [pendingOrdersCount, autoInvoiceInterval]); // Only run when orders are loaded
 
   useEffect(() => {
     let timer: NodeJS.Timeout;
@@ -356,9 +379,9 @@ export const InvoiceTab = () => {
     setSending(true);
     const newSentOrders = new Map(sentOrders);
 
-    // Filter orders that need to be sent (only those without n8n response)
+    // Filter orders that need to be sent (only those that are truly pending)
     const allOrdersToSend = orders.filter(
-      order => !sentOrders.has(order.id) && !order.n8n_response_message
+      order => !sentOrders.has(order.id) && isPendingMessage(order.n8n_response_message)
     );
 
     if (allOrdersToSend.length === 0) {
@@ -522,12 +545,6 @@ export const InvoiceTab = () => {
     }
   };
 
-  // Check if an order is truly sent (n8n responded with success, not just "sending" status)
-  const isPendingMessage = (message: string | null) => {
-    if (!message) return true;
-    // If message indicates still sending, treat as pending
-    return message === 'جاري الإرسال إلى واتساب...';
-  };
 
   // Filter orders based on selected tab
   const filteredOrders = orders.filter((order) => {
@@ -598,7 +615,7 @@ export const InvoiceTab = () => {
               
               <Button
                 onClick={() => sendInvoices(false)}
-                disabled={sending || orders.filter(o => !o.n8n_response_message).length === 0 || !webhookUrl}
+                disabled={sending || pendingOrdersCount === 0 || !webhookUrl}
                 className="gap-2 w-full sm:w-auto"
                 size="default"
               >
@@ -610,7 +627,7 @@ export const InvoiceTab = () => {
                 ) : (
                   <>
                     <Send className="w-4 h-4" />
-                    <span className="text-sm md:text-base">إرسال ({orders.filter(o => !o.n8n_response_message).length})</span>
+                    <span className="text-sm md:text-base">إرسال ({pendingOrdersCount})</span>
                   </>
                 )}
               </Button>
@@ -635,14 +652,14 @@ export const InvoiceTab = () => {
               </TabsTrigger>
               <TabsTrigger value="pending" className="text-xs sm:text-sm">
                 <span className="hidden sm:inline">قيد الإرسال</span>
-                <span className="sm:hidden">قيد</span> ({orders.filter(o => !o.n8n_response_message).length})
+                <span className="sm:hidden">قيد</span> ({pendingOrdersCount})
               </TabsTrigger>
               <TabsTrigger value="sent" className="text-xs sm:text-sm">
                 <span className="hidden sm:inline">تم الإرسال</span>
-                <span className="sm:hidden">مرسل</span> ({orders.filter(o => !!o.n8n_response_message).length})
+                <span className="sm:hidden">مرسل</span> ({sentOrdersCount})
               </TabsTrigger>
             </TabsList>
-            {filterTab === "pending" && orders.filter(o => !o.n8n_response_message).length > 0 && (
+            {filterTab === "pending" && pendingOrdersCount > 0 && (
               <Button
                 onClick={markAllAsSent}
                 disabled={sending}
@@ -651,8 +668,8 @@ export const InvoiceTab = () => {
                 size="sm"
               >
                 <CheckCircle className="w-4 h-4" />
-                <span className="hidden sm:inline">تحديد الكل كمرسل ({orders.filter(o => !o.n8n_response_message).length})</span>
-                <span className="sm:hidden">تحديد الكل ({orders.filter(o => !o.n8n_response_message).length})</span>
+                <span className="hidden sm:inline">تحديد الكل كمرسل ({pendingOrdersCount})</span>
+                <span className="sm:hidden">تحديد الكل ({pendingOrdersCount})</span>
               </Button>
             )}
           </div>
