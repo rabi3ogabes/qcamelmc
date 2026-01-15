@@ -267,15 +267,25 @@ const AdminPOS = () => {
     })));
   }, [customerName, ticketHolders.length]);
 
+  // Auto-populate phone number from main customer to all ticket holders
   useEffect(() => {
-    if (customerPhone) {
+    if (customerPhone && ticketHolders.length > 0) {
       setTicketHolders(prev => prev.map(holder => ({
         ...holder,
-        phone: customerPhone,
+        phone: customerPhone
+      })));
+    }
+  }, [customerPhone]);
+
+  // Auto-populate country code from main customer to all ticket holders
+  useEffect(() => {
+    if (customerCountryCode && ticketHolders.length > 0) {
+      setTicketHolders(prev => prev.map(holder => ({
+        ...holder,
         countryCode: customerCountryCode
       })));
     }
-  }, [customerPhone, customerCountryCode]);
+  }, [customerCountryCode]);
 
   useEffect(() => {
     if (customerIdNumber) {
