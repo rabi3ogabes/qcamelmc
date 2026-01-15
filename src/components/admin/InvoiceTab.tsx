@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Send, Loader2, CheckCircle, Clock, RotateCcw, CalendarX } from "lucide-react";
+import { Send, Loader2, CheckCircle, Clock, RotateCcw, CalendarX, PauseCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { format } from "date-fns";
@@ -45,6 +45,7 @@ interface Order {
   qr_code: string | null;
   n8n_response_message: string | null;
   n8n_responded_at: string | null;
+  send_attempt_count: number | null;
   customers: {
     name: string;
     email: string;
@@ -85,7 +86,7 @@ export const InvoiceTab = () => {
   const [batchMax, setBatchMax] = useState<number>(10);
   const [delayMin, setDelayMin] = useState<number>(300);
   const [delayMax, setDelayMax] = useState<number>(600);
-  const [filterTab, setFilterTab] = useState<"all" | "pending" | "sent" | "eventDone">("all");
+  const [filterTab, setFilterTab] = useState<"all" | "pending" | "sent" | "eventDone" | "onHold">("all");
   const [sendingIndividual, setSendingIndividual] = useState<string | null>(null);
 
   useEffect(() => {
@@ -147,9 +148,16 @@ export const InvoiceTab = () => {
     return eventDate < today;
   };
 
-  // Calculate pending orders count - orders that are truly pending AND event not done
+  // Check if order is on hold (2+ failed send attempts without success)
+  const isOnHold = (order: Order) => {
+    const attemptCount = order.send_attempt_count || 0;
+    const isPending = isPendingMessage(order.n8n_response_message) || !order.n8n_responded_at;
+    return attemptCount >= 2 && isPending;
+  };
+
+  // Calculate pending orders count - orders that are truly pending AND event not done AND not on hold
   const pendingOrdersCount = orders.filter(o => 
-    (isPendingMessage(o.n8n_response_message) || !o.n8n_responded_at) && !isEventDone(o)
+    (isPendingMessage(o.n8n_response_message) || !o.n8n_responded_at) && !isEventDone(o) && !isOnHold(o)
   ).length;
   
   // Calculate sent orders count - orders that have actual success response
@@ -159,6 +167,9 @@ export const InvoiceTab = () => {
   const eventDoneOrdersCount = orders.filter(o => 
     isEventDone(o) && (isPendingMessage(o.n8n_response_message) || !o.n8n_responded_at)
   ).length;
+
+  // Calculate on hold orders count - orders with 2+ failed attempts
+  const onHoldOrdersCount = orders.filter(o => isOnHold(o) && !isEventDone(o)).length;
 
   // Auto-start countdown when page loads if there are pending orders and countdown was previously active
   useEffect(() => {
@@ -397,9 +408,9 @@ export const InvoiceTab = () => {
     setSending(true);
     const newSentOrders = new Map(sentOrders);
 
-    // Filter orders that need to be sent (only those that are truly pending AND event not done)
+    // Filter orders that need to be sent (only those that are truly pending AND event not done AND not on hold)
     const allOrdersToSend = orders.filter(
-      order => !sentOrders.has(order.id) && isPendingMessage(order.n8n_response_message) && !isEventDone(order)
+      order => !sentOrders.has(order.id) && isPendingMessage(order.n8n_response_message) && !isEventDone(order) && !isOnHold(order)
     );
 
     if (allOrdersToSend.length === 0) {
@@ -434,9 +445,23 @@ export const InvoiceTab = () => {
         setSentOrders(new Map(newSentOrders));
         toast.success(`تم إرسال الفاتورة لـ ${order.customers.name}`);
       } else {
+        // Increment send attempt count on failure
+        const currentAttempts = order.send_attempt_count || 0;
+        const newAttempts = currentAttempts + 1;
+        
+        await supabase
+          .from("orders")
+          .update({ send_attempt_count: newAttempts })
+          .eq("id", order.id);
+        
         newSentOrders.set(order.id, { sentAt: new Date(), message: result.message });
         setSentOrders(new Map(newSentOrders));
-        toast.error(`فشل إرسال الفاتورة لـ ${order.customers.name}`);
+        
+        if (newAttempts >= 2) {
+          toast.error(`فشل إرسال الفاتورة لـ ${order.customers.name} - تم وضعها في الانتظار (محاولة ${newAttempts})`);
+        } else {
+          toast.error(`فشل إرسال الفاتورة لـ ${order.customers.name} (محاولة ${newAttempts} من 2)`);
+        }
       }
 
       setCurrentlySending(null);
@@ -500,6 +525,30 @@ export const InvoiceTab = () => {
     }
   };
 
+  const resetAttemptCount = async (orderId: string) => {
+    try {
+      const { error } = await supabase
+        .from("orders")
+        .update({
+          send_attempt_count: 0,
+        })
+        .eq("id", orderId);
+
+      if (error) throw error;
+
+      // Remove from sentOrders state
+      const newSentOrders = new Map(sentOrders);
+      newSentOrders.delete(orderId);
+      setSentOrders(newSentOrders);
+
+      toast.success("تم إعادة تعيين عدد المحاولات - يمكن إعادة الإرسال");
+      fetchOrders(); // Refresh the orders list
+    } catch (error) {
+      console.error("Error resetting attempt count:", error);
+      toast.error("فشل في إعادة تعيين عدد المحاولات");
+    }
+  };
+
   const sendSingleInvoice = async (order: Order) => {
     if (!webhookUrl) {
       toast.error("لم يتم تكوين رابط الويب هوك. يرجى تحديثه في الإعدادات");
@@ -521,10 +570,25 @@ export const InvoiceTab = () => {
         toast.success(`تم إرسال الفاتورة بنجاح لـ ${order.customers.name}`);
         fetchOrders(); // Refresh to get n8n response
       } else {
+        // Increment send attempt count on failure
+        const currentAttempts = order.send_attempt_count || 0;
+        const newAttempts = currentAttempts + 1;
+        
+        await supabase
+          .from("orders")
+          .update({ send_attempt_count: newAttempts })
+          .eq("id", order.id);
+        
         const newSentOrders = new Map(sentOrders);
         newSentOrders.set(order.id, { sentAt: new Date(), message: result.message });
         setSentOrders(newSentOrders);
-        toast.error(`فشل إرسال الفاتورة: ${result.message}`);
+        
+        if (newAttempts >= 2) {
+          toast.error(`فشل إرسال الفاتورة - تم وضعها في الانتظار (محاولة ${newAttempts})`);
+        } else {
+          toast.error(`فشل إرسال الفاتورة: ${result.message} (محاولة ${newAttempts} من 2)`);
+        }
+        fetchOrders(); // Refresh to update attempt count
       }
     } catch (error) {
       console.error("Error sending single invoice:", error);
@@ -568,16 +632,20 @@ export const InvoiceTab = () => {
   const filteredOrders = orders.filter((order) => {
     const isPending = isPendingMessage(order.n8n_response_message) || !order.n8n_responded_at;
     const eventDone = isEventDone(order);
+    const onHold = isOnHold(order);
     
     if (filterTab === "pending") {
-      // Pending = (no message OR message is "sending" OR no n8n_responded_at) AND event NOT done
-      return isPending && !eventDone;
+      // Pending = (no message OR message is "sending" OR no n8n_responded_at) AND event NOT done AND NOT on hold
+      return isPending && !eventDone && !onHold;
     } else if (filterTab === "sent") {
       // Sent = has actual response message (not "sending") AND has n8n_responded_at
       return !isPendingMessage(order.n8n_response_message) && !!order.n8n_responded_at;
     } else if (filterTab === "eventDone") {
       // Event done = event date has passed AND invoice wasn't sent
       return eventDone && isPending;
+    } else if (filterTab === "onHold") {
+      // On hold = 2+ failed attempts AND still pending AND event not done
+      return onHold && !eventDone;
     }
     return true; // "all" tab shows everything
   });
@@ -667,9 +735,9 @@ export const InvoiceTab = () => {
           </div>
         )}
 
-        <Tabs value={filterTab} onValueChange={(v) => setFilterTab(v as "all" | "pending" | "sent" | "eventDone")} className="w-full">
+        <Tabs value={filterTab} onValueChange={(v) => setFilterTab(v as "all" | "pending" | "sent" | "eventDone" | "onHold")} className="w-full">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
-            <TabsList className="grid grid-cols-4 w-full sm:w-auto">
+            <TabsList className="grid grid-cols-5 w-full sm:w-auto">
               <TabsTrigger value="all" className="text-xs sm:text-sm">
                 <span className="hidden sm:inline">الكل</span>
                 <span className="sm:hidden">الكل</span> ({orders.length})
@@ -681,6 +749,10 @@ export const InvoiceTab = () => {
               <TabsTrigger value="sent" className="text-xs sm:text-sm">
                 <span className="hidden sm:inline">تم الإرسال</span>
                 <span className="sm:hidden">مرسل</span> ({sentOrdersCount})
+              </TabsTrigger>
+              <TabsTrigger value="onHold" className="text-xs sm:text-sm text-red-600">
+                <span className="hidden sm:inline">موقوف</span>
+                <span className="sm:hidden">موقوف</span> ({onHoldOrdersCount})
               </TabsTrigger>
               <TabsTrigger value="eventDone" className="text-xs sm:text-sm text-orange-600">
                 <span className="hidden sm:inline">انتهت الفعالية</span>
@@ -728,6 +800,7 @@ export const InvoiceTab = () => {
                     {filterTab === "pending" && "لا توجد طلبات قيد الإرسال"}
                     {filterTab === "sent" && "لا توجد طلبات تم إرسالها"}
                     {filterTab === "eventDone" && "لا توجد طلبات انتهت فعاليتها"}
+                    {filterTab === "onHold" && "لا توجد طلبات موقوفة"}
                     {filterTab === "all" && "لا توجد طلبات مدفوعة عبر سداد"}
                   </TableCell>
                 </TableRow>
@@ -780,6 +853,16 @@ export const InvoiceTab = () => {
                           <CalendarX className="w-3 h-3" />
                           انتهت الفعالية
                         </Badge>
+                      ) : isOnHold(order) ? (
+                        <div className="flex flex-col gap-1">
+                          <Badge variant="outline" className="gap-1 bg-red-100 text-red-700 border-red-300">
+                            <PauseCircle className="w-3 h-3" />
+                            موقوف
+                          </Badge>
+                          <span className="text-xs text-muted-foreground">
+                            محاولات: {order.send_attempt_count || 0}
+                          </span>
+                        </div>
                       ) : (
                         <Badge variant="outline">لم يتم الإرسال</Badge>
                       )}
@@ -815,7 +898,7 @@ export const InvoiceTab = () => {
                     </TableCell>
                     <TableCell>
                       <div className="flex gap-2 whitespace-nowrap">
-                        {!order.n8n_response_message && !sentOrders.has(order.id) && (
+                        {!order.n8n_response_message && !sentOrders.has(order.id) && !isOnHold(order) && (
                           <Button
                             variant="default"
                             size="sm"
@@ -834,6 +917,18 @@ export const InvoiceTab = () => {
                                 إرسال
                               </>
                             )}
+                          </Button>
+                        )}
+                        {isOnHold(order) && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => resetAttemptCount(order.id)}
+                            disabled={sending || currentlySending === order.id || sendingIndividual === order.id}
+                            className="gap-1 text-xs bg-red-50 hover:bg-red-100 text-red-700 border-red-300"
+                          >
+                            <RotateCcw className="w-3 h-3" />
+                            إعادة المحاولة
                           </Button>
                         )}
                         {(order.n8n_response_message || sentOrders.has(order.id)) && (
