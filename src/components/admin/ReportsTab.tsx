@@ -6,7 +6,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import XLSX from "xlsx-js-style";
 import { format } from "date-fns";
+import { toZonedTime } from "date-fns-tz";
 import { ar } from "date-fns/locale";
+
+// Qatar timezone
+const QATAR_TIMEZONE = "Asia/Qatar";
 
 // Define styles for Excel
 const headerStyle = {
@@ -233,10 +237,10 @@ export const ReportsTab = () => {
       };
 
       orders.forEach((order: any) => {
-        // Group by event date
+        // Group by event date (using Qatar timezone for consistency)
         if (order.events?.event_date) {
-          const eventDate = order.events.event_date;
-          const dateKey = format(new Date(eventDate), "yyyy-MM-dd");
+          const eventDate = toZonedTime(new Date(order.events.event_date), QATAR_TIMEZONE);
+          const dateKey = format(eventDate, "yyyy-MM-dd");
           
           if (!groupedByEventDate[dateKey]) {
             groupedByEventDate[dateKey] = [];
@@ -244,14 +248,15 @@ export const ReportsTab = () => {
           groupedByEventDate[dateKey].push(formatOrderData(order));
         }
 
-        // Group Sadad orders by purchase date (created_at) - include ALL statuses
+        // Group Sadad orders by purchase date (created_at) - use Qatar timezone for consistency
         if (order.payment_method === "sadad") {
-          const purchaseDate = format(new Date(order.created_at), "yyyy-MM-dd");
+          const purchaseDate = toZonedTime(new Date(order.created_at), QATAR_TIMEZONE);
+          const purchaseDateKey = format(purchaseDate, "yyyy-MM-dd");
           
-          if (!groupedBySadadPurchaseDate[purchaseDate]) {
-            groupedBySadadPurchaseDate[purchaseDate] = [];
+          if (!groupedBySadadPurchaseDate[purchaseDateKey]) {
+            groupedBySadadPurchaseDate[purchaseDateKey] = [];
           }
-          groupedBySadadPurchaseDate[purchaseDate].push(formatOrderData(order));
+          groupedBySadadPurchaseDate[purchaseDateKey].push(formatOrderData(order));
         }
       });
 
