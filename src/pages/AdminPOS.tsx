@@ -548,7 +548,17 @@ const AdminPOS = () => {
   const updateTicketHolder = (index: number, field: keyof TicketHolderInput, value: string) => {
     const updated = [...ticketHolders];
     updated[index] = { ...updated[index], [field]: value };
-    setTicketHolders(updated);
+    
+    // If phone, countryCode or nationality changed, sync to all other ticket holders
+    if (field === 'phone' || field === 'countryCode' || field === 'nationality') {
+      const synced = updated.map(holder => ({
+        ...holder,
+        [field]: value
+      }));
+      setTicketHolders(synced);
+    } else {
+      setTicketHolders(updated);
+    }
   };
 
   const deleteTicketHolder = (index: number) => {
