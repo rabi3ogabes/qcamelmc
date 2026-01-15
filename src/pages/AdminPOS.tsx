@@ -549,13 +549,22 @@ const AdminPOS = () => {
     const updated = [...ticketHolders];
     updated[index] = { ...updated[index], [field]: value };
     
-    // If phone, countryCode or nationality changed, sync to all other ticket holders
+    // If phone, countryCode or nationality changed, sync to all other ticket holders AND main customer
     if (field === 'phone' || field === 'countryCode' || field === 'nationality') {
       const synced = updated.map(holder => ({
         ...holder,
         [field]: value
       }));
       setTicketHolders(synced);
+      
+      // Also sync back to main customer form
+      if (field === 'countryCode') {
+        setCustomerCountryCode(value);
+      } else if (field === 'phone') {
+        setCustomerPhone(value);
+      } else if (field === 'nationality') {
+        setCustomerNationality(value);
+      }
     } else {
       setTicketHolders(updated);
     }
