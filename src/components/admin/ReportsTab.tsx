@@ -73,7 +73,7 @@ const amountStyle = {
 
 export const ReportsTab = () => {
   const [loading, setLoading] = useState(false);
-
+  const [loadingSadad, setLoadingSadad] = useState(false);
   const applyStylesToSheet = (ws: XLSX.WorkSheet, data: any[], colWidths: any[]) => {
     const range = XLSX.utils.decode_range(ws['!ref'] || 'A1');
     const statusColIndex = 4; // حالة الدفع column (0-indexed)
@@ -144,11 +144,15 @@ export const ReportsTab = () => {
     return ws;
   };
 
-  const handleExportReport = async () => {
-    setLoading(true);
+  const handleExportReport = async (sadadOnly: boolean = false) => {
+    if (sadadOnly) {
+      setLoadingSadad(true);
+    } else {
+      setLoading(true);
+    }
     try {
-      // Fetch all orders with related customer, event, and ticket holders data
-      const { data: orders, error } = await supabase
+      // Fetch orders with related customer, event, and ticket holders data
+      let query = supabase
         .from("orders")
         .select(`
           *,
@@ -177,6 +181,13 @@ export const ReportsTab = () => {
           )
         `)
         .order("created_at", { ascending: false });
+
+      // Filter for Sadad only if requested
+      if (sadadOnly) {
+        query = query.eq("payment_method", "sadad");
+      }
+
+      const { data: orders, error } = await query;
 
       if (error) throw error;
 
@@ -353,7 +364,8 @@ export const ReportsTab = () => {
       }
 
       // Generate file name with current date
-      const fileName = `تقرير-التذاكر-${format(new Date(), "yyyy-MM-dd-HHmmss")}.xlsx`;
+      const filePrefix = sadadOnly ? "تقرير-سداد" : "تقرير-التذاكر";
+      const fileName = `${filePrefix}-${format(new Date(), "yyyy-MM-dd-HHmmss")}.xlsx`;
       
       // Write file
       XLSX.writeFile(wb, fileName);
@@ -364,6 +376,7 @@ export const ReportsTab = () => {
       toast.error("فشل في تصدير التقرير");
     } finally {
       setLoading(false);
+      setLoadingSadad(false);
     }
   };
 
@@ -394,24 +407,46 @@ export const ReportsTab = () => {
             </ul>
           </div>
 
-          <Button
-            onClick={handleExportReport}
-            disabled={loading}
-            className="w-full sm:w-auto"
-            size="lg"
-          >
-            {loading ? (
-              <>
-                <Loader2 className="w-4 h-4 ml-2 animate-spin" />
-                جاري التصدير...
-              </>
-            ) : (
-              <>
-                <FileDown className="w-4 h-4 ml-2" />
-                تصدير التقرير
-              </>
-            )}
-          </Button>
+          <div className="flex flex-col sm:flex-row gap-3">
+            <Button
+              onClick={() => handleExportReport(false)}
+              disabled={loading || loadingSadad}
+              className="w-full sm:w-auto"
+              size="lg"
+            >
+              {loading ? (
+                <>
+                  <Loader2 className="w-4 h-4 ml-2 animate-spin" />
+                  جاري التصدير...
+                </>
+              ) : (
+                <>
+                  <FileDown className="w-4 h-4 ml-2" />
+                  تصدير التقرير الكامل
+                </>
+              )}
+            </Button>
+            
+            <Button
+              onClick={() => handleExportReport(true)}
+              disabled={loading || loadingSadad}
+              variant="secondary"
+              className="w-full sm:w-auto"
+              size="lg"
+            >
+              {loadingSadad ? (
+                <>
+                  <Loader2 className="w-4 h-4 ml-2 animate-spin" />
+                  جاري التصدير...
+                </>
+              ) : (
+                <>
+                  <FileDown className="w-4 h-4 ml-2" />
+                  تصدير سداد فقط
+                </>
+              )}
+            </Button>
+          </div>
         </div>
       </Card>
     </div>
