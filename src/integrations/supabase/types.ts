@@ -253,6 +253,7 @@ export type Database = {
           qr_code: string | null
           quantity: number
           sadad_manually_verified: boolean | null
+          send_attempt_count: number | null
           ticket_type: Database["public"]["Enums"]["ticket_type"]
           total_amount: number
         }
@@ -275,6 +276,7 @@ export type Database = {
           qr_code?: string | null
           quantity: number
           sadad_manually_verified?: boolean | null
+          send_attempt_count?: number | null
           ticket_type: Database["public"]["Enums"]["ticket_type"]
           total_amount: number
         }
@@ -297,6 +299,7 @@ export type Database = {
           qr_code?: string | null
           quantity?: number
           sadad_manually_verified?: boolean | null
+          send_attempt_count?: number | null
           ticket_type?: Database["public"]["Enums"]["ticket_type"]
           total_amount?: number
         }
