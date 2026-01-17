@@ -495,30 +495,28 @@ const LiveBookings = () => {
     };
   };
 
-  // Fetch daily sales statistics (same logic as TicketsTab)
+  // Fetch daily sales statistics - using actual total_amount from orders
   const fetchDailySales = async () => {
     try {
-      // Fetch ticket holders with their orders and events
-      const { data: ticketHolders, error: thError } = await supabase
-        .from("ticket_holders")
+      // Fetch confirmed orders with their events and ticket holders
+      const { data: orders, error: ordersError } = await supabase
+        .from("orders")
         .select(`
           id,
           ticket_type,
-          order_id,
-          orders!inner(
-            payment_status,
-            event_id,
-            events!inner(
-              title,
-              event_date
-            )
-          )
+          total_amount,
+          event_id,
+          events!inner(
+            title,
+            event_date
+          ),
+          ticket_holders(id, ticket_type)
         `)
-        .eq("orders.payment_status", "confirmed");
+        .eq("payment_status", "confirmed");
 
-      if (thError) throw thError;
+      if (ordersError) throw ordersError;
 
-      // Fetch all ticket prices
+      // Fetch all ticket prices for price display
       const { data: ticketPrices, error: ticketError } = await supabase
         .from("tickets")
         .select("event_id, type, price");
@@ -532,17 +530,28 @@ const LiveBookings = () => {
         return acc;
       }, {} as Record<string, number>);
 
-      // Group by event date and calculate from actual ticket holders
-      const grouped = (ticketHolders || []).reduce((acc: Record<string, DailySummary>, holder: any) => {
-        const eventDate = holder.orders.events.event_date;
+      // Group by event date and calculate from actual order total_amount
+      const grouped = (orders || []).reduce((acc: Record<string, DailySummary>, order: any) => {
+        const eventDate = order.events.event_date;
         const date = new Date(eventDate).toLocaleDateString('en-CA');
-        const eventId = holder.orders.event_id;
-        const ticketType = holder.ticket_type;
+        const eventId = order.event_id;
+        const orderTicketType = order.ticket_type;
+        const totalAmount = Number(order.total_amount) || 0;
+        
+        // Count ticket holders by type from this order
+        const ticketHolderCounts = { vip: 0, normal: 0, parking: 0 };
+        if (order.ticket_holders && Array.isArray(order.ticket_holders)) {
+          order.ticket_holders.forEach((th: any) => {
+            if (th.ticket_type === 'vip') ticketHolderCounts.vip++;
+            else if (th.ticket_type === 'normal') ticketHolderCounts.normal++;
+            else if (th.ticket_type === 'parking') ticketHolderCounts.parking++;
+          });
+        }
         
         if (!acc[date]) {
           acc[date] = {
             date,
-            event_title: holder.orders.events.title || 'Unknown Event',
+            event_title: order.events.title || 'Unknown Event',
             vip_count: 0,
             vip_amount: 0,
             normal_count: 0,
@@ -553,23 +562,24 @@ const LiveBookings = () => {
           };
         }
         
-        const price = priceMap[`${eventId}-${ticketType}`] || 0;
+        // Add ticket holder counts
+        acc[date].vip_count += ticketHolderCounts.vip;
+        acc[date].normal_count += ticketHolderCounts.normal;
+        acc[date].parking_count += ticketHolderCounts.parking;
         
-        if (ticketType === 'vip') {
-          acc[date].vip_count += 1;
-          acc[date].vip_amount += price;
-          acc[date].vip_price = price;
-        } else if (ticketType === 'normal') {
-          acc[date].normal_count += 1;
-          acc[date].normal_amount += price;
-          acc[date].normal_price = price;
-        } else if (ticketType === 'parking') {
-          acc[date].parking_count += 1;
-          acc[date].parking_amount += price;
-          acc[date].parking_price = price;
+        // Add order total_amount to the correct ticket type
+        if (orderTicketType === 'vip') {
+          acc[date].vip_amount += totalAmount;
+          acc[date].vip_price = priceMap[`${eventId}-vip`];
+        } else if (orderTicketType === 'normal') {
+          acc[date].normal_amount += totalAmount;
+          acc[date].normal_price = priceMap[`${eventId}-normal`];
+        } else if (orderTicketType === 'parking') {
+          acc[date].parking_amount += totalAmount;
+          acc[date].parking_price = priceMap[`${eventId}-parking`];
         }
         
-        acc[date].daily_total += price;
+        acc[date].daily_total += totalAmount;
         
         return acc;
       }, {});
