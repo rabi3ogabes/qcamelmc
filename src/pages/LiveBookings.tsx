@@ -498,26 +498,40 @@ const LiveBookings = () => {
   // Fetch daily sales statistics - calculate revenue by ticket holder type using ticket prices
   const fetchDailySales = async () => {
     try {
-      // Fetch ticket holders with their orders and events
-      const { data: ticketHolders, error: thError } = await supabase
-        .from("ticket_holders")
-        .select(`
-          id,
-          ticket_type,
-          order_id,
-          orders!inner(
-            payment_status,
-            event_id,
-            total_amount,
-            events!inner(
-              title,
-              event_date
-            )
-          )
-        `)
-        .eq("orders.payment_status", "confirmed");
+      // IMPORTANT: PostgREST defaults to 1000 rows per request.
+      // We must paginate, otherwise older/high-volume dates (like 17/1) will show wrong totals.
+      const PAGE_SIZE = 1000;
+      const allTicketHolders: any[] = [];
 
-      if (thError) throw thError;
+      for (let from = 0; ; from += PAGE_SIZE) {
+        const { data, error } = await supabase
+          .from("ticket_holders")
+          .select(
+            `
+            id,
+            ticket_type,
+            order_id,
+            created_at,
+            orders!inner(
+              payment_status,
+              event_id,
+              total_amount,
+              events!inner(
+                title,
+                event_date
+              )
+            )
+          `
+          )
+          .eq("orders.payment_status", "confirmed")
+          .order("created_at", { ascending: false })
+          .range(from, from + PAGE_SIZE - 1);
+
+        if (error) throw error;
+        if (data?.length) allTicketHolders.push(...data);
+
+        if (!data || data.length < PAGE_SIZE) break;
+      }
 
       // Fetch all ticket prices
       const { data: ticketPrices, error: ticketError } = await supabase
@@ -534,13 +548,15 @@ const LiveBookings = () => {
       }, {} as Record<string, number>);
 
       // Group by event date and calculate revenue by ticket holder's ticket_type
-      const grouped = (ticketHolders || []).reduce((acc: Record<string, DailySummary>, holder: any) => {
+      const grouped = (allTicketHolders || []).reduce((acc: Record<string, DailySummary>, holder: any) => {
         const eventDate = holder.orders.events.event_date;
         // Extract just the date portion (YYYY-MM-DD) directly from ISO string to avoid timezone issues
-        const date = eventDate.split('T')[0];
+        const date = typeof eventDate === 'string' ? eventDate.split('T')[0] : '';
         const eventId = holder.orders.event_id;
         const ticketType = holder.ticket_type;
-        
+
+        if (!date) return acc;
+
         if (!acc[date]) {
           acc[date] = {
             date,
@@ -554,10 +570,10 @@ const LiveBookings = () => {
             daily_total: 0
           };
         }
-        
+
         // Get price for this ticket holder's ticket type
         const price = priceMap[`${eventId}-${ticketType}`] || 0;
-        
+
         if (ticketType === 'vip') {
           acc[date].vip_count += 1;
           acc[date].vip_amount += price;
@@ -571,16 +587,16 @@ const LiveBookings = () => {
           acc[date].parking_amount += price;
           acc[date].parking_price = price;
         }
-        
+
         acc[date].daily_total += price;
-        
+
         return acc;
       }, {});
 
       const summariesArray = Object.values(grouped)
-        .filter(s => new Date(s.date) >= new Date('2026-01-12'))
-        .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-      
+        .filter(s => s.date >= '2026-01-12')
+        .sort((a, b) => a.date.localeCompare(b.date));
+
       setDailySummaries(summariesArray);
     } catch (error) {
       console.error("Error fetching daily sales:", error);
