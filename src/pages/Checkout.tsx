@@ -89,6 +89,14 @@ const getTicketTypeName = (type: string): string => {
     default: return type;
   }
 };
+interface TicketAvailability {
+  ticketId: string;
+  type: string;
+  available: number;
+  sold: number;
+  remaining: number;
+}
+
 const Checkout = () => {
   const {
     t
@@ -109,6 +117,8 @@ const Checkout = () => {
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
   const [headerBgColor, setHeaderBgColor] = useState<string>("hsl(var(--card) / 0.5)");
+  const [ticketAvailability, setTicketAvailability] = useState<TicketAvailability[]>([]);
+  const [availabilityLoading, setAvailabilityLoading] = useState(true);
   const navigate = useNavigate();
   useEffect(() => {
     const stored = localStorage.getItem("ticketSelection");
@@ -135,9 +145,42 @@ const Checkout = () => {
     });
     setTicketHolders(holders);
 
-    // Fetch logo
+    // Fetch logo and availability
     fetchSettings();
+    fetchTicketAvailability();
   }, [navigate]);
+
+  const fetchTicketAvailability = async () => {
+    setAvailabilityLoading(true);
+    const selectedEventId = localStorage.getItem("selectedEventId");
+    if (!selectedEventId) {
+      setAvailabilityLoading(false);
+      return;
+    }
+
+    const { data: tickets, error } = await supabase
+      .from("tickets")
+      .select("id, type, available_quantity, sold_quantity")
+      .eq("event_id", selectedEventId);
+
+    if (error) {
+      console.error("Error fetching ticket availability:", error);
+      setAvailabilityLoading(false);
+      return;
+    }
+
+    const availability: TicketAvailability[] = (tickets || []).map(ticket => ({
+      ticketId: ticket.id,
+      type: ticket.type,
+      available: ticket.available_quantity,
+      sold: ticket.sold_quantity || 0,
+      remaining: ticket.available_quantity - (ticket.sold_quantity || 0)
+    }));
+
+    setTicketAvailability(availability);
+    setAvailabilityLoading(false);
+  };
+
   const fetchSettings = async () => {
     const {
       data,
@@ -308,7 +351,7 @@ const Checkout = () => {
       return;
     }
 
-    // Check ticket availability
+    // Check ticket availability with fresh data
     const { data: availableTickets, error: ticketsError } = await supabase
       .from("tickets")
       .select("id, type, available_quantity, sold_quantity")
@@ -320,20 +363,46 @@ const Checkout = () => {
     }
 
     // Validate each selection against availability
+    const unavailableTickets: { type: string; requested: number; available: number }[] = [];
+    
     for (const selection of selections) {
       const ticket = availableTickets?.find(t => t.id === selection.ticketId);
       if (!ticket) {
-        toast.error(`لم يتم العثور على تذكرة ${selection.type}`);
+        toast.error(`لم يتم العثور على تذكرة ${getTicketTypeName(selection.type)}`);
         return;
       }
 
-      const remaining = ticket.available_quantity - ticket.sold_quantity;
+      const remaining = ticket.available_quantity - (ticket.sold_quantity || 0);
       if (remaining < selection.quantity) {
-        toast.error(`عذراً، تذاكر ${selection.type} غير متوفرة بالكمية المطلوبة. المتبقي: ${remaining} فقط`);
-        // Redirect back to ticket selection
-        setTimeout(() => navigate(`/tickets/${selectedEventId}`), 2000);
-        return;
+        unavailableTickets.push({
+          type: selection.type,
+          requested: selection.quantity,
+          available: remaining
+        });
       }
+    }
+
+    // Show detailed error if any tickets are unavailable
+    if (unavailableTickets.length > 0) {
+      const errorMessages = unavailableTickets.map(t => 
+        `• ${getTicketTypeName(t.type)}: متاح ${t.available} فقط، طلبت ${t.requested}`
+      ).join('\n');
+      
+      toast.error(
+        <div className="text-right" dir="rtl">
+          <div className="font-bold mb-2 flex items-center gap-2">
+            <AlertTriangle className="h-5 w-5" />
+            عدد التذاكر المطلوبة غير متاح
+          </div>
+          <div className="text-sm whitespace-pre-line">{errorMessages}</div>
+          <div className="text-xs mt-2 text-muted-foreground">يرجى تعديل الكمية والمحاولة مرة أخرى</div>
+        </div>,
+        { duration: 6000 }
+      );
+      
+      // Refresh availability display
+      await fetchTicketAvailability();
+      return;
     }
 
     // Validate all ticket holders - all must have complete information
@@ -568,26 +637,49 @@ const Checkout = () => {
         <Card className="p-4 sm:p-5 md:p-6 mb-4 sm:mb-6 md:mb-8">
           <h2 className="text-xl sm:text-2xl font-semibold mb-4 sm:mb-6">{t('orderSummary')}</h2>
           <div className="space-y-3 sm:space-y-4">
-            {selections.map((item, index) => <div key={index} className="flex justify-between items-center py-2 sm:py-3 border-b gap-4">
-                <div className="flex-1 min-w-0">
-                  <div className="font-medium capitalize text-sm sm:text-base truncate">{getTicketTypeName(item.type)}</div>
-                  <div className="text-xs sm:text-sm text-muted-foreground">{t('quantity')}: {item.quantity}</div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="font-semibold text-sm sm:text-base flex-shrink-0">
-                    {(item.price * item.quantity).toFixed(2)} {t('qar')}
+            {selections.map((item, index) => {
+              const availability = ticketAvailability.find(a => a.ticketId === item.ticketId);
+              const isLow = availability && availability.remaining <= 10;
+              const isExceeding = availability && item.quantity > availability.remaining;
+              
+              return (
+                <div key={index} className="py-2 sm:py-3 border-b">
+                  <div className="flex justify-between items-center gap-4">
+                    <div className="flex-1 min-w-0">
+                      <div className="font-medium capitalize text-sm sm:text-base truncate">{getTicketTypeName(item.type)}</div>
+                      <div className="text-xs sm:text-sm text-muted-foreground">{t('quantity')}: {item.quantity}</div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="font-semibold text-sm sm:text-base flex-shrink-0">
+                        {(item.price * item.quantity).toFixed(2)} {t('qar')}
+                      </div>
+                      <div className="flex items-center gap-1 border rounded-md">
+                        <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-accent" onClick={() => handleDecreaseQuantity(index)}>
+                          <Minus className="h-4 w-4" />
+                        </Button>
+                        <span className="px-2 text-sm font-medium min-w-[20px] text-center">{item.quantity}</span>
+                        <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-accent" onClick={() => handleIncreaseQuantity(index)}>
+                          <Plus className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-1 border rounded-md">
-                    <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-accent" onClick={() => handleDecreaseQuantity(index)}>
-                      <Minus className="h-4 w-4" />
-                    </Button>
-                    <span className="px-2 text-sm font-medium min-w-[20px] text-center">{item.quantity}</span>
-                    <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-accent" onClick={() => handleIncreaseQuantity(index)}>
-                      <Plus className="h-4 w-4" />
-                    </Button>
-                  </div>
+                  {/* Show remaining tickets */}
+                  {availability && (
+                    <div className={`text-xs mt-2 ${isExceeding ? 'text-destructive font-medium' : isLow ? 'text-amber-600' : 'text-muted-foreground'}`}>
+                      {isExceeding ? (
+                        <span className="flex items-center gap-1">
+                          <AlertTriangle className="h-3 w-3" />
+                          متاح {availability.remaining} فقط! يرجى تقليل الكمية
+                        </span>
+                      ) : (
+                        `متبقي: ${availability.remaining} تذكرة`
+                      )}
+                    </div>
+                  )}
                 </div>
-              </div>)}
+              );
+            })}
             
             <div className="pt-3 sm:pt-4 border-t">
               <div className="flex justify-between items-center text-lg sm:text-xl font-bold gap-4">
