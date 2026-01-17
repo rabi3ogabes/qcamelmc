@@ -247,6 +247,20 @@ const Checkout = () => {
     setTicketHolders(updated);
   };
   const handleIncreaseQuantity = (index: number) => {
+    const currentSelection = selections[index];
+    
+    // Check if this is a normal or VIP ticket - enforce 5 ticket max for normal + VIP combined
+    if (currentSelection.type === "normal" || currentSelection.type === "vip") {
+      const currentNormalVipTotal = selections
+        .filter(s => s.type === "normal" || s.type === "vip")
+        .reduce((sum, s) => sum + s.quantity, 0);
+      
+      if (currentNormalVipTotal >= 5) {
+        toast.error("الحد الأقصى هو 5 تذاكر (عادي + VIP) لكل شخص");
+        return;
+      }
+    }
+
     const updated = [...selections];
     updated[index] = {
       ...updated[index],
