@@ -591,9 +591,9 @@ const LiveBookings = () => {
         acc[date].daily_total += price;
 
         return acc;
-      }, {});
+      }, {} as Record<string, DailySummary>);
 
-      const summariesArray = Object.values(grouped)
+      const summariesArray = (Object.values(grouped) as DailySummary[])
         .filter(s => s.date >= '2026-01-12')
         .sort((a, b) => a.date.localeCompare(b.date));
 
