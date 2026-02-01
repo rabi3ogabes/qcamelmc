@@ -786,33 +786,33 @@ const LiveBookings = () => {
                   
                   {dailySummaries.length > 0 ? (
                     <div className="overflow-x-auto">
-                      <table className="w-full border-collapse text-sm">
+                      <table className="w-full border-collapse text-sm min-w-[700px]">
                         <thead>
                           <tr className="border-b-2">
-                            <th className="text-center p-2 sm:p-3 font-lusail font-bold">التاريخ</th>
-                            <th colSpan={3} className="text-center p-2 sm:p-3 font-lusail font-bold border-x">VIP</th>
-                            <th colSpan={3} className="text-center p-2 sm:p-3 font-lusail font-bold border-x">عادي</th>
-                            <th colSpan={3} className="text-center p-2 sm:p-3 font-lusail font-bold border-x">مواقف</th>
-                            <th className="text-center p-2 sm:p-3 font-lusail font-bold">الإجمالي</th>
+                            <th className="text-center p-2 sm:p-3 font-lusail font-bold whitespace-nowrap">التاريخ</th>
+                            <th colSpan={3} className="text-center p-2 sm:p-3 font-lusail font-bold border-x whitespace-nowrap">VIP</th>
+                            <th colSpan={3} className="text-center p-2 sm:p-3 font-lusail font-bold border-x whitespace-nowrap">عادي</th>
+                            <th colSpan={3} className="text-center p-2 sm:p-3 font-lusail font-bold border-x whitespace-nowrap">مواقف</th>
+                            <th className="text-center p-2 sm:p-3 font-lusail font-bold whitespace-nowrap">الإجمالي</th>
                           </tr>
                           <tr className="border-b bg-muted/30">
                             <th className="p-1 sm:p-2"></th>
-                            <th className="text-center p-1 sm:p-2 font-lusail text-xs">العدد</th>
-                            <th className="text-center p-1 sm:p-2 font-lusail text-xs">السعر</th>
-                            <th className="text-center p-1 sm:p-2 font-lusail text-xs border-l">المبلغ</th>
-                            <th className="text-center p-1 sm:p-2 font-lusail text-xs">العدد</th>
-                            <th className="text-center p-1 sm:p-2 font-lusail text-xs">السعر</th>
-                            <th className="text-center p-1 sm:p-2 font-lusail text-xs border-l">المبلغ</th>
-                            <th className="text-center p-1 sm:p-2 font-lusail text-xs">العدد</th>
-                            <th className="text-center p-1 sm:p-2 font-lusail text-xs">السعر</th>
-                            <th className="text-center p-1 sm:p-2 font-lusail text-xs border-l">المبلغ</th>
+                            <th className="text-center p-1 sm:p-2 font-lusail text-xs whitespace-nowrap">العدد</th>
+                            <th className="text-center p-1 sm:p-2 font-lusail text-xs whitespace-nowrap">السعر</th>
+                            <th className="text-center p-1 sm:p-2 font-lusail text-xs border-l whitespace-nowrap">المبلغ</th>
+                            <th className="text-center p-1 sm:p-2 font-lusail text-xs whitespace-nowrap">العدد</th>
+                            <th className="text-center p-1 sm:p-2 font-lusail text-xs whitespace-nowrap">السعر</th>
+                            <th className="text-center p-1 sm:p-2 font-lusail text-xs border-l whitespace-nowrap">المبلغ</th>
+                            <th className="text-center p-1 sm:p-2 font-lusail text-xs whitespace-nowrap">العدد</th>
+                            <th className="text-center p-1 sm:p-2 font-lusail text-xs whitespace-nowrap">السعر</th>
+                            <th className="text-center p-1 sm:p-2 font-lusail text-xs border-l whitespace-nowrap">المبلغ</th>
                             <th className="p-1 sm:p-2"></th>
                           </tr>
                         </thead>
                         <tbody>
                           {dailySummaries.map((summary) => (
                             <tr key={summary.date} className="border-b hover:bg-muted/20">
-                              <td className="p-2 sm:p-3 font-lusail text-xs sm:text-sm">
+                              <td className="p-2 sm:p-3 font-lusail text-xs sm:text-sm whitespace-nowrap">
                                 {(() => {
                                   const date = new Date(summary.date);
                                   const arabicWeekdays = ['الأحد', 'الإثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
@@ -821,19 +821,19 @@ const LiveBookings = () => {
                                 })()}
                               </td>
                               {/* VIP */}
-                              <td className="text-center p-2 sm:p-3 font-lusail font-bold text-xs sm:text-sm">{summary.vip_count || '-'}</td>
-                              <td className="text-center p-2 sm:p-3 font-lusail text-xs sm:text-sm">{summary.vip_price ? summary.vip_price.toFixed(0) : '-'}</td>
-                              <td className="text-center p-2 sm:p-3 font-lusail font-bold text-destructive border-l text-xs sm:text-sm">{summary.vip_amount > 0 ? summary.vip_amount.toFixed(0) : '-'}</td>
+                              <td className="text-center p-2 sm:p-3 font-lusail font-bold text-xs sm:text-sm whitespace-nowrap">{summary.vip_count || '-'}</td>
+                              <td className="text-center p-2 sm:p-3 font-lusail text-xs sm:text-sm whitespace-nowrap">{summary.vip_price ? summary.vip_price.toFixed(0) : '-'}</td>
+                              <td className="text-center p-2 sm:p-3 font-lusail font-bold text-destructive border-l text-xs sm:text-sm whitespace-nowrap">{summary.vip_amount > 0 ? summary.vip_amount.toFixed(0) : '-'}</td>
                               {/* Normal */}
-                              <td className="text-center p-2 sm:p-3 font-lusail font-bold text-xs sm:text-sm">{summary.normal_count || '-'}</td>
-                              <td className="text-center p-2 sm:p-3 font-lusail text-xs sm:text-sm">{summary.normal_price ? summary.normal_price.toFixed(0) : '-'}</td>
-                              <td className="text-center p-2 sm:p-3 font-lusail font-bold text-destructive border-l text-xs sm:text-sm">{summary.normal_amount > 0 ? summary.normal_amount.toFixed(0) : '-'}</td>
+                              <td className="text-center p-2 sm:p-3 font-lusail font-bold text-xs sm:text-sm whitespace-nowrap">{summary.normal_count || '-'}</td>
+                              <td className="text-center p-2 sm:p-3 font-lusail text-xs sm:text-sm whitespace-nowrap">{summary.normal_price ? summary.normal_price.toFixed(0) : '-'}</td>
+                              <td className="text-center p-2 sm:p-3 font-lusail font-bold text-destructive border-l text-xs sm:text-sm whitespace-nowrap">{summary.normal_amount > 0 ? summary.normal_amount.toFixed(0) : '-'}</td>
                               {/* Parking */}
-                              <td className="text-center p-2 sm:p-3 font-lusail font-bold text-xs sm:text-sm">{summary.parking_count || '-'}</td>
-                              <td className="text-center p-2 sm:p-3 font-lusail text-xs sm:text-sm">{summary.parking_price ? summary.parking_price.toFixed(0) : '-'}</td>
-                              <td className="text-center p-2 sm:p-3 font-lusail font-bold text-destructive border-l text-xs sm:text-sm">{summary.parking_amount > 0 ? summary.parking_amount.toFixed(0) : '-'}</td>
+                              <td className="text-center p-2 sm:p-3 font-lusail font-bold text-xs sm:text-sm whitespace-nowrap">{summary.parking_count || '-'}</td>
+                              <td className="text-center p-2 sm:p-3 font-lusail text-xs sm:text-sm whitespace-nowrap">{summary.parking_price ? summary.parking_price.toFixed(0) : '-'}</td>
+                              <td className="text-center p-2 sm:p-3 font-lusail font-bold text-destructive border-l text-xs sm:text-sm whitespace-nowrap">{summary.parking_amount > 0 ? summary.parking_amount.toFixed(0) : '-'}</td>
                               {/* Daily Total */}
-                              <td className="text-center p-2 sm:p-3 font-lusail font-bold text-primary text-xs sm:text-sm">
+                              <td className="text-center p-2 sm:p-3 font-lusail font-bold text-primary text-xs sm:text-sm whitespace-nowrap">
                                 {summary.daily_total.toFixed(0)} <span className="text-[10px]">ر.ق</span>
                               </td>
                             </tr>
