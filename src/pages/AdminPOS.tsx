@@ -719,15 +719,40 @@ const AdminPOS = () => {
     setProcessing(true);
 
     try {
-      // Validate ticket availability before processing
+      // Validate ticket availability before processing - count actual ticket_holders (pending + confirmed)
+      const { data: activeHolders, error: activeHoldersError } = await supabase
+        .from("ticket_holders")
+        .select("ticket_type, orders!inner(event_id, payment_status)")
+        .eq("orders.event_id", currentEventId)
+        .in("orders.payment_status", ["pending", "confirmed"]);
+
+      if (activeHoldersError) {
+        console.error("Error fetching active holders:", activeHoldersError);
+        toast({
+          title: "خطأ",
+          description: "فشل في التحقق من توفر التذاكر",
+          variant: "destructive",
+        });
+        setProcessing(false);
+        return;
+      }
+
+      // Count holders by ticket type
+      const holderCounts: Record<string, number> = {};
+      (activeHolders || []).forEach(holder => {
+        const type = holder.ticket_type;
+        holderCounts[type] = (holderCounts[type] || 0) + 1;
+      });
+
       for (const cartItem of cart) {
         const ticket = tickets.find(t => t.id === cartItem.ticketId);
         if (ticket) {
-          const remainingTickets = ticket.available_quantity - ticket.sold_quantity;
+          const soldCount = holderCounts[ticket.type] || 0;
+          const remainingTickets = ticket.available_quantity - soldCount;
           if (cartItem.quantity > remainingTickets) {
             toast({
               title: "خطأ",
-              description: `عدد تذاكر ${getTicketTypeName(ticket.type)} المطلوب (${cartItem.quantity}) يتجاوز المتاح (${remainingTickets})`,
+              description: `عدد تذاكر ${getTicketTypeName(ticket.type)} المطلوب (${cartItem.quantity}) يتجاوز المتاح (${Math.max(0, remainingTickets)})`,
               variant: "destructive",
             });
             setProcessing(false);

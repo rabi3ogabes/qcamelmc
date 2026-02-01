@@ -365,16 +365,36 @@ const Checkout = () => {
       return;
     }
 
-    // Check ticket availability with fresh data
+    // Check ticket availability with fresh data - count actual ticket_holders (pending + confirmed)
     const { data: availableTickets, error: ticketsError } = await supabase
       .from("tickets")
-      .select("id, type, available_quantity, sold_quantity")
+      .select("id, type, available_quantity")
       .eq("event_id", selectedEventId);
 
     if (ticketsError) {
       toast.error("فشل في التحقق من توفر التذاكر");
       return;
     }
+
+    // Count actual ticket holders for pending + confirmed orders (not cancelled)
+    const { data: activeHolders, error: holdersError } = await supabase
+      .from("ticket_holders")
+      .select("ticket_type, orders!inner(event_id, payment_status)")
+      .eq("orders.event_id", selectedEventId)
+      .in("orders.payment_status", ["pending", "confirmed"]);
+
+    if (holdersError) {
+      console.error("Error fetching active holders:", holdersError);
+      toast.error("فشل في التحقق من توفر التذاكر");
+      return;
+    }
+
+    // Count holders by ticket type
+    const holderCounts: Record<string, number> = {};
+    (activeHolders || []).forEach(holder => {
+      const type = holder.ticket_type;
+      holderCounts[type] = (holderCounts[type] || 0) + 1;
+    });
 
     // Validate each selection against availability
     const unavailableTickets: { type: string; requested: number; available: number }[] = [];
@@ -386,12 +406,13 @@ const Checkout = () => {
         return;
       }
 
-      const remaining = ticket.available_quantity - (ticket.sold_quantity || 0);
+      const soldCount = holderCounts[selection.type] || 0;
+      const remaining = ticket.available_quantity - soldCount;
       if (remaining < selection.quantity) {
         unavailableTickets.push({
           type: selection.type,
           requested: selection.quantity,
-          available: remaining
+          available: Math.max(0, remaining)
         });
       }
     }
