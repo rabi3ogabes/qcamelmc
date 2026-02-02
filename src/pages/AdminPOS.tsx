@@ -63,6 +63,7 @@ const AdminPOS = () => {
   const { toast } = useToast();
   const { logActivity } = useActivityLog();
   const [tickets, setTickets] = useState<Ticket[]>([]);
+  const [holderCounts, setHolderCounts] = useState<Record<string, number>>({}); // Actual counts from ticket_holders
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
@@ -245,8 +246,26 @@ const AdminPOS = () => {
       )
       .subscribe();
 
+    // Also subscribe to ticket_holders changes to update counts in real-time
+    const holdersChannel = supabase
+      .channel('ticket-holders-realtime')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'ticket_holders',
+        },
+        () => {
+          console.log('Ticket holders changed, refreshing counts...');
+          fetchHolderCounts(currentEventId);
+        }
+      )
+      .subscribe();
+
     return () => {
       supabase.removeChannel(channel);
+      supabase.removeChannel(holdersChannel);
     };
   }, [currentEventId]);
 
@@ -353,6 +372,9 @@ const AdminPOS = () => {
       if (error) throw error;
       console.log("Fetched tickets:", data);
       setTickets(data || []);
+      
+      // Fetch actual holder counts (pending + confirmed)
+      await fetchHolderCounts(eventId);
     } catch (error) {
       console.error("Failed to load tickets:", error);
       toast({
@@ -362,6 +384,32 @@ const AdminPOS = () => {
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchHolderCounts = async (eventId: string) => {
+    try {
+      const { data: activeHolders, error } = await supabase
+        .from("ticket_holders")
+        .select("ticket_type, orders!inner(event_id, payment_status)")
+        .eq("orders.event_id", eventId)
+        .in("orders.payment_status", ["pending", "confirmed"]);
+
+      if (error) {
+        console.error("Error fetching holder counts:", error);
+        return;
+      }
+
+      const counts: Record<string, number> = {};
+      (activeHolders || []).forEach(holder => {
+        const type = holder.ticket_type;
+        counts[type] = (counts[type] || 0) + 1;
+      });
+      
+      console.log("Fetched holder counts:", counts);
+      setHolderCounts(counts);
+    } catch (error) {
+      console.error("Failed to fetch holder counts:", error);
     }
   };
 
@@ -396,15 +444,16 @@ const AdminPOS = () => {
     console.log("addToCart called with:", { ticket, quantity });
     console.log("Current cart:", cart);
     
-    // Check if adding would exceed maximum available tickets
-    const remainingTickets = ticket.available_quantity - ticket.sold_quantity;
+    // Check if adding would exceed maximum available tickets - use actual holder counts
+    const soldCount = holderCounts[ticket.type] || 0;
+    const remainingTickets = ticket.available_quantity - soldCount;
     const existingItem = cart.find(item => item.ticketId === ticket.id);
     const currentInCart = existingItem ? existingItem.quantity : 0;
     
     if (currentInCart + quantity > remainingTickets) {
       toast({
         title: "خطأ",
-        description: `لا يمكن إضافة هذا العدد. المتبقي: ${remainingTickets - currentInCart} تذاكر فقط`,
+        description: `لا يمكن إضافة هذا العدد. المتبقي: ${Math.max(0, remainingTickets - currentInCart)} تذاكر فقط`,
         variant: "destructive",
       });
       return;
@@ -479,14 +528,15 @@ const AdminPOS = () => {
     const item = cart.find(i => i.ticketId === ticketId);
     if (!item) return;
 
-    // Check if new quantity exceeds maximum available
+    // Check if new quantity exceeds maximum available - use actual holder counts
     const ticket = tickets.find(t => t.id === ticketId);
     if (ticket) {
-      const remainingTickets = ticket.available_quantity - ticket.sold_quantity;
+      const soldCount = holderCounts[ticket.type] || 0;
+      const remainingTickets = ticket.available_quantity - soldCount;
       if (newQuantity > remainingTickets) {
         toast({
           title: "خطأ",
-          description: `لا يمكن تجاوز الحد الأقصى. المتبقي: ${remainingTickets} تذاكر`,
+          description: `لا يمكن تجاوز الحد الأقصى. المتبقي: ${Math.max(0, remainingTickets)} تذاكر`,
           variant: "destructive",
         });
         return;
@@ -1023,6 +1073,7 @@ const AdminPOS = () => {
                       ticket={ticket}
                       onAddToCart={addToCart}
                       getTicketTypeName={getTicketTypeName}
+                      actualSoldCount={holderCounts[ticket.type]}
                     />
                   ))}
                   

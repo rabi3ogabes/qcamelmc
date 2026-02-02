@@ -45,6 +45,7 @@ const TicketSelection = () => {
   const { settings } = useSettings();
   const { eventId } = useParams<{ eventId: string }>();
   const [tickets, setTickets] = useState<Ticket[]>([]);
+  const [holderCounts, setHolderCounts] = useState<Record<string, number>>({}); // Actual counts from ticket_holders
   const [event, setEvent] = useState<Event | null>(null);
   const [selections, setSelections] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
@@ -159,11 +160,39 @@ const TicketSelection = () => {
       }
       
       setTickets(data || []);
+      
+      // Fetch actual holder counts
+      await fetchHolderCounts(eventId);
     } catch (error) {
       console.error("Error fetching tickets:", error);
       toast.error("Failed to load tickets");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchHolderCounts = async (eventIdParam: string) => {
+    try {
+      const { data: activeHolders, error } = await supabase
+        .from("ticket_holders")
+        .select("ticket_type, orders!inner(event_id, payment_status)")
+        .eq("orders.event_id", eventIdParam)
+        .in("orders.payment_status", ["pending", "confirmed"]);
+
+      if (error) {
+        console.error("Error fetching holder counts:", error);
+        return;
+      }
+
+      const counts: Record<string, number> = {};
+      (activeHolders || []).forEach(holder => {
+        const type = holder.ticket_type;
+        counts[type] = (counts[type] || 0) + 1;
+      });
+      
+      setHolderCounts(counts);
+    } catch (error) {
+      console.error("Failed to fetch holder counts:", error);
     }
   };
 
@@ -341,7 +370,9 @@ const TicketSelection = () => {
             const order = { normal: 0, vip: 1, parking: 2 };
             return order[a.type] - order[b.type];
           }).map((ticket) => {
-            const remainingTickets = ticket.available_quantity - ticket.sold_quantity;
+            // Use actual holder counts instead of sold_quantity
+            const soldCount = holderCounts[ticket.type] || 0;
+            const remainingTickets = ticket.available_quantity - soldCount;
             const isSoldOut = remainingTickets <= 0;
             
             return (

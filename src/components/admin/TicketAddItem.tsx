@@ -16,11 +16,14 @@ interface TicketAddItemProps {
   ticket: Ticket;
   onAddToCart: (ticket: Ticket, quantity: number) => void;
   getTicketTypeName: (type: string) => string;
+  actualSoldCount?: number; // Real count from ticket_holders (pending + confirmed)
 }
 
-export const TicketAddItem = ({ ticket, onAddToCart, getTicketTypeName }: TicketAddItemProps) => {
+export const TicketAddItem = ({ ticket, onAddToCart, getTicketTypeName, actualSoldCount }: TicketAddItemProps) => {
   const [tempQty, setTempQty] = useState(1);
-  const available = Math.max(0, ticket.available_quantity - (ticket.sold_quantity || 0));
+  // Use actualSoldCount if provided, otherwise fall back to sold_quantity
+  const soldCount = actualSoldCount !== undefined ? actualSoldCount : (ticket.sold_quantity || 0);
+  const available = Math.max(0, ticket.available_quantity - soldCount);
   const isSoldOut = available === 0;
 
   const handleQuantityChange = (value: string) => {
