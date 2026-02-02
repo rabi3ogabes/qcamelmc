@@ -308,25 +308,37 @@ const LiveBookings = () => {
     const dateToUse = useRefDate ? selectedDateRef.current : selectedDate;
     
     try {
-      const { data, error } = await supabase
-        .from("orders")
-        .select(`
-          *,
-          customers(name, email, phone, id_number, nationality),
-          events(title, event_date),
-          ticket_holders(*),
-          pos_users(name, icon)
-        `)
-        .eq("payment_status", "confirmed")
-        .order("created_at", { ascending: false });
+      // IMPORTANT: PostgREST defaults to 1000 rows per request.
+      // We must paginate to get all orders across all events.
+      const PAGE_SIZE = 1000;
+      const allOrders: any[] = [];
 
-      if (error) throw error;
+      for (let from = 0; ; from += PAGE_SIZE) {
+        const { data, error } = await supabase
+          .from("orders")
+          .select(`
+            *,
+            customers(name, email, phone, id_number, nationality),
+            events(title, event_date),
+            ticket_holders(*),
+            pos_users(name, icon)
+          `)
+          .eq("payment_status", "confirmed")
+          .order("created_at", { ascending: false })
+          .range(from, from + PAGE_SIZE - 1);
 
-      console.log("Raw data from Supabase:", data);
+        if (error) throw error;
+        if (data?.length) allOrders.push(...data);
+
+        // If we got fewer than PAGE_SIZE, we've fetched all rows
+        if (!data || data.length < PAGE_SIZE) break;
+      }
+
+      console.log("Raw data from Supabase (paginated):", allOrders.length, "orders");
       console.log("Using date for filter:", dateToUse);
 
       // Filter by event date on client side if date is selected
-      let filteredData = data || [];
+      let filteredData = allOrders;
       if (dateToUse) {
         // Extract date components from selected date (ignoring time)
         const selectedYear = dateToUse.getFullYear();
@@ -345,7 +357,7 @@ const LiveBookings = () => {
                  eventDate.getDate() === selectedDay;
         });
         
-        console.log(`Filtered ${data?.length} orders to ${filteredData.length} for selected date`);
+        console.log(`Filtered ${allOrders.length} orders to ${filteredData.length} for selected date`);
       }
 
       console.log("Filtered data:", filteredData);
