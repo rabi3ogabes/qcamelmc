@@ -1174,13 +1174,14 @@ const LiveBookings = () => {
                 <p className="text-center text-muted-foreground font-lusail">{t("noBookingsForDate")}</p>
               </Card>
             ) : (
-              ticketHolders.map((holder) => {
+              ticketHolders.map((holder, index) => {
                 const isRecent = isRecentBooking(holder.created_at);
+                const ticketNumber = ticketHolders.length - index; // Descending order (newest first, so reverse the number)
                 return (
                 <Card 
                   key={holder.id} 
                   className={cn(
-                    "p-2.5 sm:p-4 hover:shadow-xl transition-all duration-500 shadow-md",
+                    "p-2.5 sm:p-4 hover:shadow-xl transition-all duration-500 shadow-md relative",
                     newTicketHolderIds.has(holder.id) && "animate-new-booking",
                     isRecent && "animate-recent-pulse"
                   )}
@@ -1190,6 +1191,10 @@ const LiveBookings = () => {
                     backgroundColor: `color-mix(in srgb, ${headerBgColor} 15%, transparent)`
                   } as React.CSSProperties : undefined}
                 >
+                  {/* Daily sequential ticket number */}
+                  <div className="absolute top-1 right-1 sm:top-1.5 sm:right-1.5 bg-red-500 text-black text-[8px] sm:text-[10px] font-bold rounded px-1 sm:px-1.5 py-0.5 min-w-[16px] sm:min-w-[20px] text-center leading-none">
+                    {ticketNumber}
+                  </div>
                   <div className="flex flex-col gap-2 sm:gap-3">
                     {/* Event Name - Header */}
                     {holder.event_title && (
