@@ -770,12 +770,12 @@ const AdminPOS = () => {
     setProcessing(true);
 
     try {
-      // Validate ticket availability before processing - count actual ticket_holders (pending + confirmed)
+      // Validate ticket availability before processing - count only confirmed ticket_holders
       const { data: activeHolders, error: activeHoldersError } = await supabase
         .from("ticket_holders")
         .select("ticket_type, orders!inner(event_id, payment_status)")
         .eq("orders.event_id", currentEventId)
-        .in("orders.payment_status", ["pending", "confirmed"]);
+        .eq("orders.payment_status", "confirmed");
 
       if (activeHoldersError) {
         console.error("Error fetching active holders:", activeHoldersError);
