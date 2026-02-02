@@ -389,11 +389,12 @@ const AdminPOS = () => {
 
   const fetchHolderCounts = async (eventId: string) => {
     try {
+      // Only count confirmed tickets for availability (not pending)
       const { data: activeHolders, error } = await supabase
         .from("ticket_holders")
         .select("ticket_type, orders!inner(event_id, payment_status)")
         .eq("orders.event_id", eventId)
-        .in("orders.payment_status", ["pending", "confirmed"]);
+        .eq("orders.payment_status", "confirmed");
 
       if (error) {
         console.error("Error fetching holder counts:", error);
