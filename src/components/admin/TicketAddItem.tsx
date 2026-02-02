@@ -16,7 +16,7 @@ interface TicketAddItemProps {
   ticket: Ticket;
   onAddToCart: (ticket: Ticket, quantity: number) => void;
   getTicketTypeName: (type: string) => string;
-  actualSoldCount?: number; // Real count from ticket_holders (pending + confirmed)
+  actualSoldCount?: number; // Real count from ticket_holders (confirmed only)
 }
 
 export const TicketAddItem = ({ ticket, onAddToCart, getTicketTypeName, actualSoldCount }: TicketAddItemProps) => {
