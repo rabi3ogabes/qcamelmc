@@ -109,13 +109,27 @@ const AdminDashboard = () => {
 
   const fetchOrders = useCallback(async () => {
     try {
-      const { data, error } = await supabase
-        .from("orders")
-        .select("*, customers(name, email, phone, nationality), events(title, event_date, location), payment_error_reason, pos_users(name, icon), ticket_holders(ticket_type)")
-        .order("created_at", { ascending: false });
+      // IMPORTANT: PostgREST defaults to 1000 rows per request.
+      // We must paginate to get all orders.
+      const PAGE_SIZE = 1000;
+      const allOrders: Order[] = [];
 
-      if (error) throw error;
-      setOrders(data || []);
+      for (let from = 0; ; from += PAGE_SIZE) {
+        const { data, error } = await supabase
+          .from("orders")
+          .select("*, customers(name, email, phone, nationality), events(title, event_date, location), payment_error_reason, pos_users(name, icon), ticket_holders(ticket_type)")
+          .order("created_at", { ascending: false })
+          .range(from, from + PAGE_SIZE - 1);
+
+        if (error) throw error;
+        if (data?.length) allOrders.push(...data as Order[]);
+
+        // If we got fewer than PAGE_SIZE, we've fetched all rows
+        if (!data || data.length < PAGE_SIZE) break;
+      }
+
+      console.log(`Fetched ${allOrders.length} total orders (paginated)`);
+      setOrders(allOrders);
     } catch (error) {
       console.error("Error fetching orders:", error);
     } finally {
