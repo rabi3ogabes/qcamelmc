@@ -158,27 +158,53 @@ const Checkout = () => {
       return;
     }
 
-    const { data: tickets, error } = await supabase
-      .from("tickets")
-      .select("id, type, available_quantity, sold_quantity")
-      .eq("event_id", selectedEventId);
+    try {
+      // 1) Fetch tickets for the event
+      const { data: tickets, error } = await supabase
+        .from("tickets")
+        .select("id, type, available_quantity")
+        .eq("event_id", selectedEventId);
 
-    if (error) {
-      console.error("Error fetching ticket availability:", error);
+      if (error) {
+        console.error("Error fetching ticket availability:", error);
+        setAvailabilityLoading(false);
+        return;
+      }
+
+      // 2) Count CONFIRMED ticket holders per type (pending orders should not reduce availability)
+      const { data: confirmedHolders, error: holdersError } = await supabase
+        .from("ticket_holders")
+        .select("ticket_type, orders!inner(event_id, payment_status)")
+        .eq("orders.event_id", selectedEventId)
+        .eq("orders.payment_status", "confirmed");
+
+      if (holdersError) {
+        console.error("Error fetching confirmed holders:", holdersError);
+        setAvailabilityLoading(false);
+        return;
+      }
+
+      const holderCounts: Record<string, number> = {};
+      (confirmedHolders || []).forEach(holder => {
+        const type = holder.ticket_type;
+        holderCounts[type] = (holderCounts[type] || 0) + 1;
+      });
+
+      const availability: TicketAvailability[] = (tickets || []).map(ticket => {
+        const soldCount = holderCounts[ticket.type] || 0;
+        return {
+          ticketId: ticket.id,
+          type: ticket.type,
+          available: ticket.available_quantity,
+          sold: soldCount,
+          remaining: ticket.available_quantity - soldCount
+        };
+      });
+
+      setTicketAvailability(availability);
+    } finally {
       setAvailabilityLoading(false);
-      return;
     }
-
-    const availability: TicketAvailability[] = (tickets || []).map(ticket => ({
-      ticketId: ticket.id,
-      type: ticket.type,
-      available: ticket.available_quantity,
-      sold: ticket.sold_quantity || 0,
-      remaining: ticket.available_quantity - (ticket.sold_quantity || 0)
-    }));
-
-    setTicketAvailability(availability);
-    setAvailabilityLoading(false);
   };
 
   const fetchSettings = async () => {
@@ -365,7 +391,7 @@ const Checkout = () => {
       return;
     }
 
-    // Check ticket availability with fresh data - count actual ticket_holders (pending + confirmed)
+    // Check ticket availability with fresh data - count actual CONFIRMED ticket_holders only
     const { data: availableTickets, error: ticketsError } = await supabase
       .from("tickets")
       .select("id, type, available_quantity")
@@ -376,12 +402,12 @@ const Checkout = () => {
       return;
     }
 
-    // Count actual ticket holders for pending + confirmed orders (not cancelled)
+    // Count actual ticket holders for CONFIRMED orders only
     const { data: activeHolders, error: holdersError } = await supabase
       .from("ticket_holders")
       .select("ticket_type, orders!inner(event_id, payment_status)")
       .eq("orders.event_id", selectedEventId)
-      .in("orders.payment_status", ["pending", "confirmed"]);
+      .eq("orders.payment_status", "confirmed");
 
     if (holdersError) {
       console.error("Error fetching active holders:", holdersError);
