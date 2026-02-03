@@ -740,6 +740,19 @@ export const OrdersTab = ({
     success: orders.filter(o => o.payment_status === "confirmed").length,
     failed: orders.filter(o => o.payment_status === "cancelled" || o.payment_status === "pending").length
   };
+
+  // Calculate payment method stats based on current activeTab filter
+  const ordersForPaymentStats = activeTab === "success" 
+    ? orders.filter(o => o.payment_status === "confirmed")
+    : activeTab === "failed"
+    ? orders.filter(o => o.payment_status === "cancelled" || o.payment_status === "pending")
+    : orders;
+  
+  const paymentMethodStats = {
+    all: ordersForPaymentStats.length,
+    sadad: ordersForPaymentStats.filter(o => o.payment_method === "sadad").length,
+    cash_pos: ordersForPaymentStats.filter(o => o.payment_method === "cash_pos").length
+  };
   return <div className="space-y-6">
       {/* Generate QR Codes Button */}
       {showGenerateQrButton && <div className="flex justify-end">
@@ -775,9 +788,9 @@ export const OrdersTab = ({
           </TabsList>
           
           <TabsList className="grid grid-cols-3 font-lusail">
-            <TabsTrigger value="all" onClick={() => setPaymentMethodFilter("all")} data-state={paymentMethodFilter === "all" ? "active" : "inactive"}>الكل</TabsTrigger>
-            <TabsTrigger value="sadad" onClick={() => setPaymentMethodFilter("sadad")} data-state={paymentMethodFilter === "sadad" ? "active" : "inactive"}>سداد</TabsTrigger>
-            <TabsTrigger value="cash_pos" onClick={() => setPaymentMethodFilter("cash_pos")} data-state={paymentMethodFilter === "cash_pos" ? "active" : "inactive"}>cash_pos</TabsTrigger>
+            <TabsTrigger value="all" onClick={() => setPaymentMethodFilter("all")} data-state={paymentMethodFilter === "all" ? "active" : "inactive"}>الكل ({paymentMethodStats.all})</TabsTrigger>
+            <TabsTrigger value="sadad" onClick={() => setPaymentMethodFilter("sadad")} data-state={paymentMethodFilter === "sadad" ? "active" : "inactive"}>سداد ({paymentMethodStats.sadad})</TabsTrigger>
+            <TabsTrigger value="cash_pos" onClick={() => setPaymentMethodFilter("cash_pos")} data-state={paymentMethodFilter === "cash_pos" ? "active" : "inactive"}>cash_pos ({paymentMethodStats.cash_pos})</TabsTrigger>
           </TabsList>
           
           <Select value={selectedEventFilter} onValueChange={setSelectedEventFilter}>
