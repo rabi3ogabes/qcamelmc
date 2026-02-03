@@ -784,11 +784,29 @@ export const OrdersTab = ({
             <TabsTrigger value="failed">{t("failed")} ({stats.failed})</TabsTrigger>
           </TabsList>
           
-          <TabsList className="grid grid-cols-3 font-lusail">
-            <TabsTrigger value="all" onClick={() => setPaymentMethodFilter("all")} data-state={paymentMethodFilter === "all" ? "active" : "inactive"}>الكل ({paymentMethodStats.all})</TabsTrigger>
-            <TabsTrigger value="sadad" onClick={() => setPaymentMethodFilter("sadad")} data-state={paymentMethodFilter === "sadad" ? "active" : "inactive"}>سداد ({paymentMethodStats.sadad})</TabsTrigger>
-            <TabsTrigger value="cash_pos" onClick={() => setPaymentMethodFilter("cash_pos")} data-state={paymentMethodFilter === "cash_pos" ? "active" : "inactive"}>cash_pos ({paymentMethodStats.cash_pos})</TabsTrigger>
-          </TabsList>
+          <div className="inline-flex h-10 items-center justify-center rounded-md bg-muted p-1 text-muted-foreground">
+            <button
+              type="button"
+              onClick={() => setPaymentMethodFilter("all")}
+              className={`inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1.5 text-sm font-medium font-lusail ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ${paymentMethodFilter === "all" ? "bg-background text-foreground shadow-sm" : ""}`}
+            >
+              الكل ({paymentMethodStats.all})
+            </button>
+            <button
+              type="button"
+              onClick={() => setPaymentMethodFilter("sadad")}
+              className={`inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1.5 text-sm font-medium font-lusail ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ${paymentMethodFilter === "sadad" ? "bg-background text-foreground shadow-sm" : ""}`}
+            >
+              سداد ({paymentMethodStats.sadad})
+            </button>
+            <button
+              type="button"
+              onClick={() => setPaymentMethodFilter("cash_pos")}
+              className={`inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1.5 text-sm font-medium font-lusail ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ${paymentMethodFilter === "cash_pos" ? "bg-background text-foreground shadow-sm" : ""}`}
+            >
+              cash_pos ({paymentMethodStats.cash_pos})
+            </button>
+          </div>
           
           <Select value={selectedEventFilter} onValueChange={setSelectedEventFilter}>
             <SelectTrigger className="w-[200px] font-lusail">
