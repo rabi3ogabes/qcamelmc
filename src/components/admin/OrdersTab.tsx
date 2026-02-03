@@ -10,6 +10,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { CheckCircle, MapPin, Calendar, Eye, QrCode, Loader2, XCircle, Printer, Trash2, Grid3x3, List, Search, Banknote, CreditCard, AlertCircle, Ticket, Crown, Car, Copy } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import { useTranslation } from "react-i18next";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -124,6 +126,7 @@ export const OrdersTab = ({
   const [orderToDelete, setOrderToDelete] = useState<string | null>(null);
   const [showDeleteButton, setShowDeleteButton] = useState(false);
   const [showGenerateQrButton, setShowGenerateQrButton] = useState(false);
+  const [showUpcomingOnly, setShowUpcomingOnly] = useState(false);
   const [availableEvents, setAvailableEvents] = useState<Array<{
     id: string;
     title: string;
@@ -521,6 +524,18 @@ export const OrdersTab = ({
       filtered = filtered.filter(o => o.event_id === selectedEventFilter);
     }
 
+    // Apply upcoming orders filter (today and future)
+    if (showUpcomingOnly) {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      filtered = filtered.filter(o => {
+        if (!o.events?.event_date) return false;
+        const eventDate = new Date(o.events.event_date);
+        eventDate.setHours(0, 0, 0, 0);
+        return eventDate >= today;
+      });
+    }
+
     // Apply search filter
     if (!searchQuery.trim()) return filtered;
     const query = searchQuery.toLowerCase().trim();
@@ -828,6 +843,17 @@ export const OrdersTab = ({
           <div className="relative flex-1 max-w-md">
             <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input type="text" placeholder="ابحث بالرقم المرجعي، الاسم أو رقم الهاتف..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="pr-10 font-lusail" />
+          </div>
+          
+          <div className="flex items-center gap-2">
+            <Switch
+              id="upcoming-only"
+              checked={showUpcomingOnly}
+              onCheckedChange={setShowUpcomingOnly}
+            />
+            <Label htmlFor="upcoming-only" className="font-lusail text-sm cursor-pointer whitespace-nowrap">
+              القادمة فقط
+            </Label>
           </div>
           
           <div className="flex gap-2">
