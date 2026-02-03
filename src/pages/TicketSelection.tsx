@@ -197,6 +197,53 @@ const TicketSelection = () => {
     }
   };
 
+  // Real-time subscription for ticket availability updates
+  useEffect(() => {
+    if (!eventId) return;
+
+    // Subscribe to ticket_holders changes
+    const holdersChannel = supabase
+      .channel('ticket-holders-realtime-selection')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'ticket_holders',
+        },
+        () => {
+          console.log('Ticket holders changed, refreshing counts...');
+          fetchHolderCounts(eventId);
+        }
+      )
+      .subscribe();
+
+    // Subscribe to orders changes - important for when payment_status changes
+    const ordersChannel = supabase
+      .channel('orders-realtime-selection')
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'orders',
+          filter: `event_id=eq.${eventId}`
+        },
+        (payload: any) => {
+          console.log('Order updated, refreshing counts...');
+          if (payload.new?.payment_status !== payload.old?.payment_status) {
+            fetchHolderCounts(eventId);
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(holdersChannel);
+      supabase.removeChannel(ordersChannel);
+    };
+  }, [eventId]);
+
   const MAX_ADMISSION_TICKETS = 5; // Combined max for VIP + General
   const MAX_TICKETS_PER_TYPE = 5; // Max for parking
 
