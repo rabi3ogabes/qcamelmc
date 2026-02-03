@@ -742,16 +742,13 @@ export const OrdersTab = ({
   };
 
   // Calculate payment method stats based on current activeTab filter
-  const ordersForPaymentStats = activeTab === "success" 
-    ? orders.filter(o => o.payment_status === "confirmed")
-    : activeTab === "failed"
-    ? orders.filter(o => o.payment_status === "cancelled" || o.payment_status === "pending")
-    : orders;
+  // Payment method stats always show only confirmed (success) orders
+  const confirmedOrders = orders.filter(o => o.payment_status === "confirmed");
   
   const paymentMethodStats = {
-    all: ordersForPaymentStats.length,
-    sadad: ordersForPaymentStats.filter(o => o.payment_method === "sadad").length,
-    cash_pos: ordersForPaymentStats.filter(o => o.payment_method === "cash_pos").length
+    all: confirmedOrders.length,
+    sadad: confirmedOrders.filter(o => o.payment_method === "sadad").length,
+    cash_pos: confirmedOrders.filter(o => o.payment_method === "cash_pos").length
   };
   return <div className="space-y-6">
       {/* Generate QR Codes Button */}
