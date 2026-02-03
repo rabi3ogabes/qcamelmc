@@ -263,9 +263,31 @@ const AdminPOS = () => {
       )
       .subscribe();
 
+    // Subscribe to orders changes - important for when payment_status changes to 'confirmed'
+    const ordersChannel = supabase
+      .channel('orders-realtime-pos')
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'orders',
+          filter: `event_id=eq.${currentEventId}`
+        },
+        (payload) => {
+          console.log('Order updated, refreshing counts...', payload);
+          // Refresh counts when payment status changes
+          if (payload.new.payment_status !== payload.old?.payment_status) {
+            fetchHolderCounts(currentEventId);
+          }
+        }
+      )
+      .subscribe();
+
     return () => {
       supabase.removeChannel(channel);
       supabase.removeChannel(holdersChannel);
+      supabase.removeChannel(ordersChannel);
     };
   }, [currentEventId]);
 
