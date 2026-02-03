@@ -82,27 +82,27 @@ export const EventsTab = () => {
             .select("type, available_quantity")
             .eq("event_id", event.id);
           
-          // Fetch orders data (sold tickets)
-          const { data: ordersData } = await supabase
-            .from("orders")
-            .select("ticket_type, quantity")
-            .eq("event_id", event.id)
-            .eq("payment_status", "confirmed");
+          // Fetch CONFIRMED ticket holders - this is the correct way to count sold tickets
+          // We count ticket_holders, not order quantities, because:
+          // 1. A single order can have holders with different ticket_types
+          // 2. ticket_holders represents actual tickets sold
+          const { data: holdersData } = await supabase
+            .from("ticket_holders")
+            .select("ticket_type, orders!inner(event_id, payment_status)")
+            .eq("orders.event_id", event.id)
+            .eq("orders.payment_status", "confirmed");
           
-          // Group by ticket type and sum quantities
-          const ticketsByType = (ordersData || []).reduce((acc: any, order) => {
-            const type = order.ticket_type;
-            if (!acc[type]) {
-              acc[type] = 0;
-            }
-            acc[type] += order.quantity;
+          // Group by ticket type and count holders
+          const holdersByType = (holdersData || []).reduce((acc: Record<string, number>, holder) => {
+            const type = holder.ticket_type;
+            acc[type] = (acc[type] || 0) + 1;
             return acc;
           }, {});
           
           // Combine tickets data with sold counts
           const ticketsSold = (ticketsData || []).map((ticket) => ({
             type: ticket.type,
-            count: ticketsByType[ticket.type] || 0,
+            count: holdersByType[ticket.type] || 0,
             max: ticket.available_quantity
           }));
           
