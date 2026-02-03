@@ -845,7 +845,7 @@ export const OrdersTab = ({
             <Input type="text" placeholder="ابحث بالرقم المرجعي، الاسم أو رقم الهاتف..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="pr-10 font-lusail" />
           </div>
           
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 bg-muted/50 rounded-lg px-3 py-2">
             <Switch
               id="upcoming-only"
               checked={showUpcomingOnly}
@@ -854,6 +854,20 @@ export const OrdersTab = ({
             <Label htmlFor="upcoming-only" className="font-lusail text-sm cursor-pointer whitespace-nowrap">
               القادمة فقط
             </Label>
+            {showUpcomingOnly && (
+              <Badge variant="secondary" className="font-lusail text-xs">
+                {(() => {
+                  const today = new Date();
+                  today.setHours(0, 0, 0, 0);
+                  return orders.filter(o => {
+                    if (!o.events?.event_date) return false;
+                    const eventDate = new Date(o.events.event_date);
+                    eventDate.setHours(0, 0, 0, 0);
+                    return eventDate >= today;
+                  }).length;
+                })()}
+              </Badge>
+            )}
           </div>
           
           <div className="flex gap-2">
