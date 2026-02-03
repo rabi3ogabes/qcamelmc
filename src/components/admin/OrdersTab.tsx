@@ -107,6 +107,7 @@ export const OrdersTab = ({
   } = useTranslation();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("success");
+  const [paymentMethodFilter, setPaymentMethodFilter] = useState<"all" | "sadad" | "cash_pos">("all");
   const [viewMode, setViewMode] = useState<"grid" | "list">(() => {
     const saved = localStorage.getItem("ordersViewMode");
     return saved === "grid" || saved === "list" ? saved : "list";
@@ -508,6 +509,11 @@ export const OrdersTab = ({
     if (status === "success") filtered = orders.filter(o => o.payment_status === "confirmed");
     if (status === "failed") filtered = orders.filter(o => o.payment_status === "cancelled" || o.payment_status === "pending");
 
+    // Apply payment method filter
+    if (paymentMethodFilter !== "all") {
+      filtered = filtered.filter(o => o.payment_method === paymentMethodFilter);
+    }
+
     // Apply event date filter
     if (selectedEventFilter !== "all") {
       filtered = filtered.filter(o => o.event_id === selectedEventFilter);
@@ -766,6 +772,12 @@ export const OrdersTab = ({
           <TabsList className="grid grid-cols-2 font-lusail">
             <TabsTrigger value="success">{t("success")} ({stats.success})</TabsTrigger>
             <TabsTrigger value="failed">{t("failed")} ({stats.failed})</TabsTrigger>
+          </TabsList>
+          
+          <TabsList className="grid grid-cols-3 font-lusail">
+            <TabsTrigger value="all" onClick={() => setPaymentMethodFilter("all")} data-state={paymentMethodFilter === "all" ? "active" : "inactive"}>الكل</TabsTrigger>
+            <TabsTrigger value="sadad" onClick={() => setPaymentMethodFilter("sadad")} data-state={paymentMethodFilter === "sadad" ? "active" : "inactive"}>سداد</TabsTrigger>
+            <TabsTrigger value="cash_pos" onClick={() => setPaymentMethodFilter("cash_pos")} data-state={paymentMethodFilter === "cash_pos" ? "active" : "inactive"}>cash_pos</TabsTrigger>
           </TabsList>
           
           <Select value={selectedEventFilter} onValueChange={setSelectedEventFilter}>
