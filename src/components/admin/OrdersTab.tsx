@@ -856,16 +856,7 @@ export const OrdersTab = ({
             </Label>
             {showUpcomingOnly && (
               <Badge variant="secondary" className="font-lusail text-xs">
-                {(() => {
-                  const today = new Date();
-                  today.setHours(0, 0, 0, 0);
-                  return orders.filter(o => {
-                    if (!o.events?.event_date) return false;
-                    const eventDate = new Date(o.events.event_date);
-                    eventDate.setHours(0, 0, 0, 0);
-                    return eventDate >= today;
-                  }).length;
-                })()}
+                {filteredOrders.length}
               </Badge>
             )}
           </div>
