@@ -41,6 +41,7 @@ const AdminDashboard = () => {
   const { t } = useTranslation();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isFullyLoaded, setIsFullyLoaded] = useState(false);
   const [activeTab, setActiveTab] = useState("orders");
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
   const [headerBgColor, setHeaderBgColor] = useState<string>("hsl(var(--card) / 0.5)");
@@ -110,6 +111,7 @@ const AdminDashboard = () => {
   const fetchOrders = useCallback(async () => {
     const PAGE_SIZE = 1000;
     const startTime = performance.now();
+    setIsFullyLoaded(false);
     
     try {
       // First, get total count to know how many pages we need
@@ -127,6 +129,7 @@ const AdminDashboard = () => {
       if (totalPages === 0) {
         setOrders([]);
         setLoading(false);
+        setIsFullyLoaded(true);
         return;
       }
       
@@ -148,6 +151,7 @@ const AdminDashboard = () => {
       
       // If only one page, we're done
       if (totalPages <= 1) {
+        setIsFullyLoaded(true);
         return;
       }
       
@@ -180,10 +184,12 @@ const AdminDashboard = () => {
         ));
       }
       
+      setIsFullyLoaded(true);
       console.log(`All ${allOrders.length} orders loaded in ${(performance.now() - startTime).toFixed(0)}ms`);
     } catch (error) {
       console.error("Error fetching orders:", error);
       setLoading(false);
+      setIsFullyLoaded(true);
     }
   }, []);
 
@@ -302,6 +308,7 @@ const AdminDashboard = () => {
               <OrdersTab 
                 orders={orders} 
                 onRefresh={fetchOrders}
+                isFullyLoaded={isFullyLoaded}
               />
             </TabsContent>
 

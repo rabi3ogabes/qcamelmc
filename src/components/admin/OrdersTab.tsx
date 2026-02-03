@@ -97,10 +97,12 @@ interface Order {
 interface OrdersTabProps {
   orders: Order[];
   onRefresh: () => void;
+  isFullyLoaded?: boolean;
 }
 export const OrdersTab = ({
   orders,
-  onRefresh
+  onRefresh,
+  isFullyLoaded = true
 }: OrdersTabProps) => {
   const {
     t
@@ -784,7 +786,7 @@ export const OrdersTab = ({
             <TabsTrigger value="failed">{t("failed")} ({stats.failed})</TabsTrigger>
           </TabsList>
           
-          <div className="inline-flex h-10 items-center justify-center rounded-md bg-muted p-1 text-muted-foreground">
+          <div className="inline-flex h-10 items-center justify-center rounded-md bg-muted p-1 text-muted-foreground gap-1">
             <button
               type="button"
               onClick={() => setPaymentMethodFilter("all")}
@@ -806,6 +808,9 @@ export const OrdersTab = ({
             >
               cash_pos ({paymentMethodStats.cash_pos})
             </button>
+            {!isFullyLoaded && (
+              <Loader2 className="w-4 h-4 animate-spin text-primary mr-1" />
+            )}
           </div>
           
           <Select value={selectedEventFilter} onValueChange={setSelectedEventFilter}>
