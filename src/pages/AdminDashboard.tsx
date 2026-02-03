@@ -108,31 +108,81 @@ const AdminDashboard = () => {
   };
 
   const fetchOrders = useCallback(async () => {
+    const PAGE_SIZE = 1000;
+    const startTime = performance.now();
+    
     try {
-      // IMPORTANT: PostgREST defaults to 1000 rows per request.
-      // We must paginate to get all orders.
-      const PAGE_SIZE = 1000;
-      const allOrders: Order[] = [];
-
-      for (let from = 0; ; from += PAGE_SIZE) {
-        const { data, error } = await supabase
-          .from("orders")
-          .select("*, customers(name, email, phone, nationality), events(title, event_date, location), payment_error_reason, pos_users(name, icon), ticket_holders(ticket_type)")
-          .order("created_at", { ascending: false })
-          .range(from, from + PAGE_SIZE - 1);
-
-        if (error) throw error;
-        if (data?.length) allOrders.push(...data as Order[]);
-
-        // If we got fewer than PAGE_SIZE, we've fetched all rows
-        if (!data || data.length < PAGE_SIZE) break;
+      // First, get total count to know how many pages we need
+      const { count, error: countError } = await supabase
+        .from("orders")
+        .select("*", { count: "exact", head: true });
+      
+      if (countError) throw countError;
+      
+      const totalCount = count || 0;
+      const totalPages = Math.ceil(totalCount / PAGE_SIZE);
+      
+      console.log(`Total orders: ${totalCount}, pages: ${totalPages}`);
+      
+      if (totalPages === 0) {
+        setOrders([]);
+        setLoading(false);
+        return;
       }
-
-      console.log(`Fetched ${allOrders.length} total orders (paginated)`);
-      setOrders(allOrders);
+      
+      // Fetch first page immediately to show data fast
+      const { data: firstPageData, error: firstError } = await supabase
+        .from("orders")
+        .select("*, customers(name, email, phone, nationality), events(title, event_date, location), payment_error_reason, pos_users(name, icon), ticket_holders(ticket_type)")
+        .order("created_at", { ascending: false })
+        .range(0, PAGE_SIZE - 1);
+      
+      if (firstError) throw firstError;
+      
+      // Show first page immediately
+      if (firstPageData?.length) {
+        setOrders(firstPageData as Order[]);
+        setLoading(false);
+        console.log(`First page loaded in ${(performance.now() - startTime).toFixed(0)}ms`);
+      }
+      
+      // If only one page, we're done
+      if (totalPages <= 1) {
+        return;
+      }
+      
+      // Fetch remaining pages in parallel (max 3 concurrent requests)
+      const remainingPages = Array.from({ length: totalPages - 1 }, (_, i) => i + 1);
+      const allOrders: Order[] = [...(firstPageData || []) as Order[]];
+      
+      // Process in batches of 3 concurrent requests
+      const BATCH_SIZE = 3;
+      for (let i = 0; i < remainingPages.length; i += BATCH_SIZE) {
+        const batch = remainingPages.slice(i, i + BATCH_SIZE);
+        const batchPromises = batch.map(pageNum => 
+          supabase
+            .from("orders")
+            .select("*, customers(name, email, phone, nationality), events(title, event_date, location), payment_error_reason, pos_users(name, icon), ticket_holders(ticket_type)")
+            .order("created_at", { ascending: false })
+            .range(pageNum * PAGE_SIZE, (pageNum + 1) * PAGE_SIZE - 1)
+        );
+        
+        const results = await Promise.all(batchPromises);
+        
+        results.forEach(({ data, error }) => {
+          if (error) console.error("Error fetching page:", error);
+          if (data?.length) allOrders.push(...data as Order[]);
+        });
+        
+        // Update state with each batch for progressive loading
+        setOrders([...allOrders].sort((a, b) => 
+          new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+        ));
+      }
+      
+      console.log(`All ${allOrders.length} orders loaded in ${(performance.now() - startTime).toFixed(0)}ms`);
     } catch (error) {
       console.error("Error fetching orders:", error);
-    } finally {
       setLoading(false);
     }
   }, []);
