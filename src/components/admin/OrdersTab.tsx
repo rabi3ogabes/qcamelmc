@@ -126,7 +126,7 @@ export const OrdersTab = ({
   const [orderToDelete, setOrderToDelete] = useState<string | null>(null);
   const [showDeleteButton, setShowDeleteButton] = useState(false);
   const [showGenerateQrButton, setShowGenerateQrButton] = useState(false);
-  const [showUpcomingOnly, setShowUpcomingOnly] = useState(false);
+  const [showUpcomingOnly, setShowUpcomingOnly] = useState(true);
   const [availableEvents, setAvailableEvents] = useState<Array<{
     id: string;
     title: string;
