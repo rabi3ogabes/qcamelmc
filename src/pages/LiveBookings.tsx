@@ -128,6 +128,7 @@ const LiveBookings = () => {
     lastHourBookings: 0
   });
   const [ticketTypeStats, setTicketTypeStats] = useState<{ [key: string]: { total: number; present: number } }>({});
+  const [ticketCapacities, setTicketCapacities] = useState<{ [key: string]: number }>({});
   const [paymentMethodStats, setPaymentMethodStats] = useState<{ sadad: number; pos: number }>({ sadad: 0, pos: 0 });
   const [paymentMethodByTypeStats, setPaymentMethodByTypeStats] = useState<{
     sadad: { [key: string]: { total: number; present: number } };
@@ -389,6 +390,23 @@ const LiveBookings = () => {
       setBookings(filteredData);
       setTicketHolders(allTicketHolders);
       calculateStats(filteredData, allTicketHolders);
+      
+      // Fetch ticket capacities for the event
+      if (filteredData.length > 0 && filteredData[0].event_id) {
+        const eventId = filteredData[0].event_id;
+        const { data: ticketsData } = await supabase
+          .from("tickets")
+          .select("type, available_quantity")
+          .eq("event_id", eventId);
+        
+        if (ticketsData) {
+          const capacities: { [key: string]: number } = {};
+          ticketsData.forEach(ticket => {
+            capacities[ticket.type] = ticket.available_quantity;
+          });
+          setTicketCapacities(capacities);
+        }
+      }
       
       // Track new ticket holders for animation
       if (!isInitialLoadRef.current) {
@@ -1110,7 +1128,12 @@ const LiveBookings = () => {
                           {type.toUpperCase()}
                         </Badge>
                         <div>
-                          <p className="text-xl sm:text-3xl font-bold text-primary">{stats.total}</p>
+                          <p className="text-xl sm:text-3xl font-bold text-primary">
+                            {stats.total}
+                            {ticketCapacities[type] && (
+                              <span className="text-muted-foreground/60 font-normal text-base sm:text-xl"> / {ticketCapacities[type]}</span>
+                            )}
+                          </p>
                           <p className="text-[8px] sm:text-xs text-muted-foreground">إجمالي</p>
                         </div>
                         <div className="pt-1 sm:pt-2 border-t">
