@@ -167,13 +167,19 @@ serve(async (req) => {
 
       // Check if event has expired (after 6PM on event day)
       const eventDate = (Array.isArray(order.events) ? order.events[0]?.event_date : order.events?.event_date);
+      const formattedEventDate = eventDate ? new Date(eventDate).toLocaleDateString('ar-QA', { 
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric' 
+      }) : '';
+      
       if (eventDate && isEventExpired(eventDate)) {
         console.warn(`[Ticket Check-in] Event expired for: ${booking_reference}`);
         return new Response(
           JSON.stringify({
             success: false,
             error: 'Event expired',
-            message: '⏰ انتهت صلاحية التذكرة - الحدث انتهى',
+            message: `⏰ انتهت صلاحية التذكرة - الحدث انتهى في ${formattedEventDate}`,
             ticket_info: {
               booking_reference: order.booking_reference,
               customer_name: (Array.isArray(order.customers) ? order.customers[0]?.name : order.customers?.name) || 'غير معروف',
@@ -202,7 +208,7 @@ serve(async (req) => {
           JSON.stringify({
             success: false,
             error: 'Wrong date',
-            message: '📅 لا يمكن تسجيل الدخول - التذكرة صالحة فقط في يوم الحدث',
+            message: `📅 لا يمكن تسجيل الدخول - التذكرة صالحة فقط في ${formattedEventDate}`,
             ticket_info: {
               booking_reference: order.booking_reference,
               customer_name: (Array.isArray(order.customers) ? order.customers[0]?.name : order.customers?.name) || 'غير معروف',
@@ -363,13 +369,20 @@ serve(async (req) => {
     }
 
     // Check if event has expired (after 6PM on event day)
-    if (order.events?.event_date && isEventExpired(order.events.event_date)) {
+    const legacyEventDate = order.events?.event_date;
+    const legacyFormattedEventDate = legacyEventDate ? new Date(legacyEventDate).toLocaleDateString('ar-QA', { 
+      year: 'numeric', 
+      month: 'long', 
+      day: 'numeric' 
+    }) : '';
+    
+    if (legacyEventDate && isEventExpired(legacyEventDate)) {
       console.warn(`[Ticket Check-in] Event expired for: ${booking_reference}`);
       return new Response(
         JSON.stringify({
           success: false,
           error: 'Event expired',
-          message: '⏰ انتهت صلاحية التذكرة - الحدث انتهى',
+          message: `⏰ انتهت صلاحية التذكرة - الحدث انتهى في ${legacyFormattedEventDate}`,
           ticket_info: {
             booking_reference: order.booking_reference,
             customer_name: order.customers?.name || 'غير معروف',
@@ -388,13 +401,13 @@ serve(async (req) => {
     }
 
     // Check if ticket can only be checked in on event day
-    if (order.events?.event_date && !isEventDateToday(order.events.event_date)) {
+    if (legacyEventDate && !isEventDateToday(legacyEventDate)) {
       console.warn(`[Ticket Check-in] Ticket can only be checked in on event date: ${booking_reference}`);
       return new Response(
         JSON.stringify({
           success: false,
           error: 'Wrong date',
-          message: '📅 لا يمكن تسجيل الدخول - التذكرة صالحة فقط في يوم الحدث',
+          message: `📅 لا يمكن تسجيل الدخول - التذكرة صالحة فقط في ${legacyFormattedEventDate}`,
           ticket_info: {
             booking_reference: order.booking_reference,
             customer_name: order.customers?.name || 'غير معروف',
