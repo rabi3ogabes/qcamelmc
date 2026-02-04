@@ -16,6 +16,7 @@ import { format } from "date-fns";
 import { canPurchaseTickets } from "@/lib/eventUtils";
 import { useActivityLog } from "@/hooks/useActivityLog";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { useReserveTickets } from "@/hooks/useReserveTickets";
 
 interface POSUser {
   id: string;
@@ -62,6 +63,7 @@ const AdminPOS = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { logActivity } = useActivityLog();
+  const { reserveMultipleTickets } = useReserveTickets();
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [holderCounts, setHolderCounts] = useState<Record<string, number>>({}); // Actual counts from ticket_holders
   const [loading, setLoading] = useState(true);
@@ -792,47 +794,40 @@ const AdminPOS = () => {
     setProcessing(true);
 
     try {
-      // Validate ticket availability before processing - count only confirmed ticket_holders
-      const { data: activeHolders, error: activeHoldersError } = await supabase
-        .from("ticket_holders")
-        .select("ticket_type, orders!inner(event_id, payment_status)")
-        .eq("orders.event_id", currentEventId)
-        .eq("orders.payment_status", "confirmed");
-
-      if (activeHoldersError) {
-        console.error("Error fetching active holders:", activeHoldersError);
+      // Use atomic reservation check to prevent race conditions
+      if (!currentEventId) {
         toast({
           title: "خطأ",
-          description: "فشل في التحقق من توفر التذاكر",
+          description: "لم يتم تحديد الفعالية",
           variant: "destructive",
         });
         setProcessing(false);
         return;
       }
 
-      // Count holders by ticket type
-      const holderCounts: Record<string, number> = {};
-      (activeHolders || []).forEach(holder => {
-        const type = holder.ticket_type;
-        holderCounts[type] = (holderCounts[type] || 0) + 1;
-      });
+      const ticketSelections = cart.map(item => ({
+        type: item.ticketType,
+        quantity: item.quantity
+      }));
 
-      for (const cartItem of cart) {
-        const ticket = tickets.find(t => t.id === cartItem.ticketId);
-        if (ticket) {
-          const soldCount = holderCounts[ticket.type] || 0;
-          const remainingTickets = ticket.available_quantity - soldCount;
-          if (cartItem.quantity > remainingTickets) {
-            toast({
-              title: "خطأ",
-              description: `عدد تذاكر ${getTicketTypeName(ticket.type)} المطلوب (${cartItem.quantity}) يتجاوز المتاح (${Math.max(0, remainingTickets)})`,
-              variant: "destructive",
-            });
-            setProcessing(false);
-            return;
-          }
-        }
+      const reservationResult = await reserveMultipleTickets(currentEventId, ticketSelections);
+      
+      if (!reservationResult.success) {
+        const result = reservationResult.result;
+        const failedType = reservationResult.failedType;
+        
+        toast({
+          title: "خطأ - عدد التذاكر المطلوبة غير متاح",
+          description: `${getTicketTypeName(failedType || '')}: ${result?.message || 'غير متوفر'}`,
+          variant: "destructive",
+        });
+        
+        // Refresh holder counts
+        await fetchHolderCounts(currentEventId);
+        setProcessing(false);
+        return;
       }
+
 
       // Create customer
       const { data: customerData, error: customerError } = await supabase

@@ -13,6 +13,7 @@ import { CreditCard, Banknote, Loader2, Plus, Minus, X, AlertTriangle } from "lu
 import { Checkbox } from "@/components/ui/checkbox";
 import { Footer } from "@/components/Footer";
 import { useSettings } from "@/contexts/SettingsContext";
+import { useReserveTickets } from "@/hooks/useReserveTickets";
 
 // Convert Arabic numerals to English numerals
 const convertArabicToEnglishNumbers = (str: string): string => {
@@ -102,6 +103,7 @@ const Checkout = () => {
     t
   } = useTranslation();
   const { settings } = useSettings();
+  const { reserveMultipleTickets } = useReserveTickets();
   const [selections, setSelections] = useState<TicketSelection[]>([]);
   const [paymentMethod, setPaymentMethod] = useState<"sadad" | "cash_pos">("sadad");
   const [customerInfo, setCustomerInfo] = useState({
@@ -383,7 +385,7 @@ const Checkout = () => {
       return;
     }
 
-    // Validate ticket availability before processing
+    // Validate ticket availability before processing using atomic database function
     const selectedEventId = localStorage.getItem("selectedEventId");
     if (!selectedEventId) {
       toast.error("لم يتم العثور على الفعالية المحددة");
@@ -391,63 +393,17 @@ const Checkout = () => {
       return;
     }
 
-    // Check ticket availability with fresh data - count actual CONFIRMED ticket_holders only
-    const { data: availableTickets, error: ticketsError } = await supabase
-      .from("tickets")
-      .select("id, type, available_quantity")
-      .eq("event_id", selectedEventId);
+    // Use atomic reservation check to prevent race conditions
+    const ticketSelections = selections.map(s => ({
+      type: s.type,
+      quantity: s.quantity
+    }));
 
-    if (ticketsError) {
-      toast.error("فشل في التحقق من توفر التذاكر");
-      return;
-    }
-
-    // Count actual ticket holders for CONFIRMED orders only
-    const { data: activeHolders, error: holdersError } = await supabase
-      .from("ticket_holders")
-      .select("ticket_type, orders!inner(event_id, payment_status)")
-      .eq("orders.event_id", selectedEventId)
-      .eq("orders.payment_status", "confirmed");
-
-    if (holdersError) {
-      console.error("Error fetching active holders:", holdersError);
-      toast.error("فشل في التحقق من توفر التذاكر");
-      return;
-    }
-
-    // Count holders by ticket type
-    const holderCounts: Record<string, number> = {};
-    (activeHolders || []).forEach(holder => {
-      const type = holder.ticket_type;
-      holderCounts[type] = (holderCounts[type] || 0) + 1;
-    });
-
-    // Validate each selection against availability
-    const unavailableTickets: { type: string; requested: number; available: number }[] = [];
+    const reservationResult = await reserveMultipleTickets(selectedEventId, ticketSelections);
     
-    for (const selection of selections) {
-      const ticket = availableTickets?.find(t => t.id === selection.ticketId);
-      if (!ticket) {
-        toast.error(`لم يتم العثور على تذكرة ${getTicketTypeName(selection.type)}`);
-        return;
-      }
-
-      const soldCount = holderCounts[selection.type] || 0;
-      const remaining = ticket.available_quantity - soldCount;
-      if (remaining < selection.quantity) {
-        unavailableTickets.push({
-          type: selection.type,
-          requested: selection.quantity,
-          available: Math.max(0, remaining)
-        });
-      }
-    }
-
-    // Show detailed error if any tickets are unavailable
-    if (unavailableTickets.length > 0) {
-      const errorMessages = unavailableTickets.map(t => 
-        `• ${getTicketTypeName(t.type)}: متاح ${t.available} فقط، طلبت ${t.requested}`
-      ).join('\n');
+    if (!reservationResult.success) {
+      const result = reservationResult.result;
+      const failedType = reservationResult.failedType;
       
       toast.error(
         <div className="text-right" dir="rtl">
@@ -455,7 +411,9 @@ const Checkout = () => {
             <AlertTriangle className="h-5 w-5" />
             عدد التذاكر المطلوبة غير متاح
           </div>
-          <div className="text-sm whitespace-pre-line">{errorMessages}</div>
+          <div className="text-sm">
+            {getTicketTypeName(failedType || '')}: {result?.message || 'غير متوفر'}
+          </div>
           <div className="text-xs mt-2 text-muted-foreground">يرجى تعديل الكمية والمحاولة مرة أخرى</div>
         </div>,
         { duration: 6000 }
@@ -465,6 +423,7 @@ const Checkout = () => {
       await fetchTicketAvailability();
       return;
     }
+
 
     // Validate all ticket holders - all must have complete information
     const allHoldersFilled = ticketHolders.every((holder, index) => {
