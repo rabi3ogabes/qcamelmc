@@ -43,7 +43,7 @@ const playNotificationSound = () => {
     oscillator.connect(gainNode);
     gainNode.connect(audioContext.destination);
     
-    // Pleasant notification tone
+    // Pleasant notification tone (ascending)
     oscillator.frequency.setValueAtTime(880, audioContext.currentTime); // A5
     oscillator.frequency.setValueAtTime(1108.73, audioContext.currentTime + 0.1); // C#6
     oscillator.frequency.setValueAtTime(1318.51, audioContext.currentTime + 0.2); // E6
@@ -55,6 +55,48 @@ const playNotificationSound = () => {
     
     oscillator.start(audioContext.currentTime);
     oscillator.stop(audioContext.currentTime + 0.5);
+  } catch (error) {
+    console.log('Audio not supported:', error);
+  }
+};
+
+// Celebratory sound for capacity increase - louder, more triumphant
+const playCapacityIncreaseSound = () => {
+  try {
+    const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+    
+    // Create two oscillators for richer sound
+    const oscillator1 = audioContext.createOscillator();
+    const oscillator2 = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+    
+    oscillator1.connect(gainNode);
+    oscillator2.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+    
+    // Triumphant fanfare sound - major chord arpeggio
+    oscillator1.type = 'triangle';
+    oscillator1.frequency.setValueAtTime(523.25, audioContext.currentTime); // C5
+    oscillator1.frequency.setValueAtTime(659.25, audioContext.currentTime + 0.15); // E5
+    oscillator1.frequency.setValueAtTime(783.99, audioContext.currentTime + 0.3); // G5
+    oscillator1.frequency.setValueAtTime(1046.5, audioContext.currentTime + 0.45); // C6
+    
+    // Harmony layer
+    oscillator2.type = 'sine';
+    oscillator2.frequency.setValueAtTime(392, audioContext.currentTime); // G4
+    oscillator2.frequency.setValueAtTime(523.25, audioContext.currentTime + 0.15); // C5
+    oscillator2.frequency.setValueAtTime(659.25, audioContext.currentTime + 0.3); // E5
+    oscillator2.frequency.setValueAtTime(783.99, audioContext.currentTime + 0.45); // G5
+    
+    // Louder and longer
+    gainNode.gain.setValueAtTime(0.5, audioContext.currentTime);
+    gainNode.gain.setValueAtTime(0.6, audioContext.currentTime + 0.3);
+    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.8);
+    
+    oscillator1.start(audioContext.currentTime);
+    oscillator2.start(audioContext.currentTime);
+    oscillator1.stop(audioContext.currentTime + 0.8);
+    oscillator2.stop(audioContext.currentTime + 0.8);
   } catch (error) {
     console.log('Audio not supported:', error);
   }
@@ -615,7 +657,7 @@ const LiveBookings = () => {
               };
               
               if (soundEnabled) {
-                playNotificationSound();
+                playCapacityIncreaseSound();
               }
               
               toast.success(
