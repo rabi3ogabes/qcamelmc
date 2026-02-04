@@ -1821,8 +1821,19 @@ const QRScanner = () => {
       </Dialog>
 
       {/* Error Dialog - Centered Popup */}
-      <Dialog open={!!errorDialogMessage} onOpenChange={(open) => !open && setErrorDialogMessage(null)}>
+      <Dialog 
+        open={!!errorDialogMessage} 
+        onOpenChange={(open) => !open && setErrorDialogMessage(null)}
+      >
         <DialogContent className="sm:max-w-md text-center p-8">
+          {/* Play error sound when dialog opens */}
+          {errorDialogMessage && (
+            <audio 
+              autoPlay 
+              src="https://cdn.pixabay.com/audio/2022/03/10/audio_7f3ecf6458.mp3"
+              style={{ display: 'none' }}
+            />
+          )}
           <div className="flex flex-col items-center gap-6">
             <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center">
               <XCircle className="w-12 h-12 text-red-600" />
