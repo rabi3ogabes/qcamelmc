@@ -60,43 +60,111 @@ const playNotificationSound = () => {
   }
 };
 
-// Celebratory sound for capacity increase - louder, more triumphant
-const playCapacityIncreaseSound = () => {
+// Celebratory sounds for capacity increase - different for each ticket type
+const playCapacityIncreaseSound = (ticketType: string) => {
   try {
     const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
-    
-    // Create two oscillators for richer sound
-    const oscillator1 = audioContext.createOscillator();
-    const oscillator2 = audioContext.createOscillator();
     const gainNode = audioContext.createGain();
-    
-    oscillator1.connect(gainNode);
-    oscillator2.connect(gainNode);
     gainNode.connect(audioContext.destination);
     
-    // Triumphant fanfare sound - major chord arpeggio
-    oscillator1.type = 'triangle';
-    oscillator1.frequency.setValueAtTime(523.25, audioContext.currentTime); // C5
-    oscillator1.frequency.setValueAtTime(659.25, audioContext.currentTime + 0.15); // E5
-    oscillator1.frequency.setValueAtTime(783.99, audioContext.currentTime + 0.3); // G5
-    oscillator1.frequency.setValueAtTime(1046.5, audioContext.currentTime + 0.45); // C6
-    
-    // Harmony layer
-    oscillator2.type = 'sine';
-    oscillator2.frequency.setValueAtTime(392, audioContext.currentTime); // G4
-    oscillator2.frequency.setValueAtTime(523.25, audioContext.currentTime + 0.15); // C5
-    oscillator2.frequency.setValueAtTime(659.25, audioContext.currentTime + 0.3); // E5
-    oscillator2.frequency.setValueAtTime(783.99, audioContext.currentTime + 0.45); // G5
-    
-    // Louder and longer
-    gainNode.gain.setValueAtTime(0.5, audioContext.currentTime);
-    gainNode.gain.setValueAtTime(0.6, audioContext.currentTime + 0.3);
-    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.8);
-    
-    oscillator1.start(audioContext.currentTime);
-    oscillator2.start(audioContext.currentTime);
-    oscillator1.stop(audioContext.currentTime + 0.8);
-    oscillator2.stop(audioContext.currentTime + 0.8);
+    if (ticketType === 'vip') {
+      // VIP: Premium, luxurious fanfare with 3 oscillators - rich harmonics
+      const osc1 = audioContext.createOscillator();
+      const osc2 = audioContext.createOscillator();
+      const osc3 = audioContext.createOscillator();
+      
+      osc1.connect(gainNode);
+      osc2.connect(gainNode);
+      osc3.connect(gainNode);
+      
+      // Royal fanfare - ascending major 7th chord
+      osc1.type = 'triangle';
+      osc1.frequency.setValueAtTime(659.25, audioContext.currentTime); // E5
+      osc1.frequency.setValueAtTime(783.99, audioContext.currentTime + 0.12); // G5
+      osc1.frequency.setValueAtTime(987.77, audioContext.currentTime + 0.24); // B5
+      osc1.frequency.setValueAtTime(1318.51, audioContext.currentTime + 0.36); // E6
+      
+      osc2.type = 'sine';
+      osc2.frequency.setValueAtTime(493.88, audioContext.currentTime); // B4
+      osc2.frequency.setValueAtTime(659.25, audioContext.currentTime + 0.12); // E5
+      osc2.frequency.setValueAtTime(783.99, audioContext.currentTime + 0.24); // G5
+      osc2.frequency.setValueAtTime(987.77, audioContext.currentTime + 0.36); // B5
+      
+      // Sparkle effect
+      osc3.type = 'sine';
+      osc3.frequency.setValueAtTime(1318.51, audioContext.currentTime); // E6
+      osc3.frequency.setValueAtTime(1567.98, audioContext.currentTime + 0.12); // G6
+      osc3.frequency.setValueAtTime(1975.53, audioContext.currentTime + 0.24); // B6
+      osc3.frequency.setValueAtTime(2637.02, audioContext.currentTime + 0.36); // E7
+      
+      gainNode.gain.setValueAtTime(0.4, audioContext.currentTime);
+      gainNode.gain.setValueAtTime(0.6, audioContext.currentTime + 0.2);
+      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 1.0);
+      
+      osc1.start(audioContext.currentTime);
+      osc2.start(audioContext.currentTime);
+      osc3.start(audioContext.currentTime);
+      osc1.stop(audioContext.currentTime + 1.0);
+      osc2.stop(audioContext.currentTime + 1.0);
+      osc3.stop(audioContext.currentTime + 1.0);
+      
+    } else if (ticketType === 'normal') {
+      // Normal: Standard celebratory sound - 2 oscillators
+      const osc1 = audioContext.createOscillator();
+      const osc2 = audioContext.createOscillator();
+      
+      osc1.connect(gainNode);
+      osc2.connect(gainNode);
+      
+      osc1.type = 'triangle';
+      osc1.frequency.setValueAtTime(523.25, audioContext.currentTime); // C5
+      osc1.frequency.setValueAtTime(659.25, audioContext.currentTime + 0.15); // E5
+      osc1.frequency.setValueAtTime(783.99, audioContext.currentTime + 0.3); // G5
+      osc1.frequency.setValueAtTime(1046.5, audioContext.currentTime + 0.45); // C6
+      
+      osc2.type = 'sine';
+      osc2.frequency.setValueAtTime(392, audioContext.currentTime); // G4
+      osc2.frequency.setValueAtTime(523.25, audioContext.currentTime + 0.15); // C5
+      osc2.frequency.setValueAtTime(659.25, audioContext.currentTime + 0.3); // E5
+      osc2.frequency.setValueAtTime(783.99, audioContext.currentTime + 0.45); // G5
+      
+      gainNode.gain.setValueAtTime(0.5, audioContext.currentTime);
+      gainNode.gain.setValueAtTime(0.6, audioContext.currentTime + 0.3);
+      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.8);
+      
+      osc1.start(audioContext.currentTime);
+      osc2.start(audioContext.currentTime);
+      osc1.stop(audioContext.currentTime + 0.8);
+      osc2.stop(audioContext.currentTime + 0.8);
+      
+    } else if (ticketType === 'parking') {
+      // Parking: Simple, lower-pitched notification - single oscillator
+      const osc1 = audioContext.createOscillator();
+      osc1.connect(gainNode);
+      
+      osc1.type = 'square';
+      osc1.frequency.setValueAtTime(261.63, audioContext.currentTime); // C4
+      osc1.frequency.setValueAtTime(329.63, audioContext.currentTime + 0.1); // E4
+      osc1.frequency.setValueAtTime(392, audioContext.currentTime + 0.2); // G4
+      
+      gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
+      
+      osc1.start(audioContext.currentTime);
+      osc1.stop(audioContext.currentTime + 0.5);
+      
+    } else {
+      // Default fallback
+      const osc1 = audioContext.createOscillator();
+      osc1.connect(gainNode);
+      osc1.type = 'sine';
+      osc1.frequency.setValueAtTime(440, audioContext.currentTime);
+      osc1.frequency.setValueAtTime(880, audioContext.currentTime + 0.2);
+      gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.4);
+      osc1.start(audioContext.currentTime);
+      osc1.stop(audioContext.currentTime + 0.4);
+    }
   } catch (error) {
     console.log('Audio not supported:', error);
   }
@@ -657,7 +725,7 @@ const LiveBookings = () => {
               };
               
               if (soundEnabled) {
-                playCapacityIncreaseSound();
+                playCapacityIncreaseSound(ticketType);
               }
               
               toast.success(
