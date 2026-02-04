@@ -78,6 +78,7 @@ const QRScanner = () => {
   const [showSuccessDialog, setShowSuccessDialog] = useState(false);
   const [successData, setSuccessData] = useState<SuccessData | null>(null);
   const [collapsedDates, setCollapsedDates] = useState<Record<string, boolean>>({});
+  const [errorDialogMessage, setErrorDialogMessage] = useState<string | null>(null);
   const scannerRef = useRef<Html5Qrcode | null>(null);
   const isScanning = useRef(false);
 
@@ -771,8 +772,8 @@ const QRScanner = () => {
               }
             }).catch(err => console.error('Activity log error:', err));
           } else {
-            // Show specific error message from edge function
-            toast.error(result.message || 'فشل تأكيد التذكرة');
+            // Show specific error message from edge function in popup dialog
+            setErrorDialogMessage(result.message || 'فشل تأكيد التذكرة');
             errorCount++;
           }
         } catch (err) {
@@ -1814,6 +1815,31 @@ const QRScanner = () => {
               className="w-full h-12 text-lg"
             >
               حسناً
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Error Dialog - Centered Popup */}
+      <Dialog open={!!errorDialogMessage} onOpenChange={(open) => !open && setErrorDialogMessage(null)}>
+        <DialogContent className="sm:max-w-md text-center p-8">
+          <div className="flex flex-col items-center gap-6">
+            <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center">
+              <XCircle className="w-12 h-12 text-red-600" />
+            </div>
+            
+            <div className="space-y-2">
+              <h2 className="text-2xl font-bold text-red-600">لا يمكن تسجيل الحضور</h2>
+              <p className="text-lg text-foreground whitespace-pre-wrap">{errorDialogMessage}</p>
+            </div>
+
+            <Button 
+              onClick={() => setErrorDialogMessage(null)} 
+              size="lg" 
+              variant="destructive"
+              className="w-full h-12 text-lg"
+            >
+              إغلاق
             </Button>
           </div>
         </DialogContent>
