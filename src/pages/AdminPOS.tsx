@@ -17,6 +17,7 @@ import { canPurchaseTickets } from "@/lib/eventUtils";
 import { useActivityLog } from "@/hooks/useActivityLog";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { useReserveTickets } from "@/hooks/useReserveTickets";
+import { CapacityAlert } from "@/components/admin/CapacityAlert";
 
 interface POSUser {
   id: string;
@@ -1072,7 +1073,11 @@ const AdminPOS = () => {
         </div>
       </header>
 
-      <div className="w-full mx-auto py-4 sm:py-8 px-2 sm:px-4 lg:px-6 max-w-7xl">{loading ? (
+      <div className="w-full mx-auto py-4 sm:py-8 px-2 sm:px-4 lg:px-6 max-w-7xl">
+        {/* Capacity Alert */}
+        {currentEventId && <CapacityAlert eventId={currentEventId} />}
+        
+        {loading ? (
           <div className="text-center py-12">جاري التحميل...</div>
         ) : (
           <form onSubmit={handleSubmit}>
