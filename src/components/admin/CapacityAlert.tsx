@@ -141,7 +141,7 @@ export const CapacityAlert = ({ eventId }: CapacityAlertProps) => {
   }
 
   return (
-    <div className="space-y-3 mb-4" dir="rtl">
+    <div className="flex flex-wrap gap-3 mb-4" dir="rtl">
       {/* Critical: Over capacity */}
       {criticalTickets.length > 0 && (
         <Alert variant="destructive" className="border-red-500 bg-red-50">
