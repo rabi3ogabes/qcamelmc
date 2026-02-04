@@ -20,6 +20,7 @@ import { useReserveTickets } from "@/hooks/useReserveTickets";
 import { CapacityAlert } from "@/components/admin/CapacityAlert";
 import { CapacityNotificationBanner } from "@/components/admin/CapacityNotificationBanner";
 import { useCapacityNotification } from "@/hooks/useCapacityNotification";
+import { NotificationSoundSelector } from "@/components/admin/NotificationSoundSelector";
 
 interface POSUser {
   id: string;
@@ -1076,8 +1077,11 @@ const AdminPOS = () => {
       </header>
 
       <div className="w-full mx-auto py-4 sm:py-8 px-2 sm:px-4 lg:px-6 max-w-7xl">
-        {/* Capacity Alert */}
-        {currentEventId && <CapacityAlert eventId={currentEventId} />}
+        {/* Sound Selector and Capacity Alert */}
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-4">
+          <NotificationSoundSelector />
+          {currentEventId && <CapacityAlert eventId={currentEventId} />}
+        </div>
         
         {loading ? (
           <div className="text-center py-12">جاري التحميل...</div>
