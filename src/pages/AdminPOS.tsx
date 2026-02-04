@@ -1036,24 +1036,12 @@ const AdminPOS = () => {
                 </SelectContent>
               </Select>
               
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button variant="outline" className="flex items-center gap-2 px-2 sm:px-4 py-2 h-auto text-sm sm:text-base">
-                    <CalendarIcon className="h-4 w-4" />
-                    <span className="font-semibold">
-                      {selectedDate ? format(selectedDate, "PPP") : "اختر التاريخ"}
-                    </span>
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
-                    mode="single"
-                    selected={selectedDate}
-                    onSelect={handleDateSelect}
-                    initialFocus
-                  />
-                </PopoverContent>
-              </Popover>
+              <Button variant="outline" className="flex items-center gap-2 px-2 sm:px-4 py-2 h-auto text-sm sm:text-base cursor-not-allowed opacity-70" disabled>
+                <CalendarIcon className="h-4 w-4" />
+                <span className="font-semibold">
+                  {selectedDate ? format(selectedDate, "PPP") : "اختر التاريخ"}
+                </span>
+              </Button>
               <h2 className="text-base sm:text-xl font-semibold bg-yellow-400 px-3 sm:px-4 py-2 rounded">بيع تذكرة</h2>
               <Button
                 variant="ghost"
