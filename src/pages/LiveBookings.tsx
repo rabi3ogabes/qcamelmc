@@ -447,13 +447,59 @@ const LiveBookings = () => {
           schema: 'public',
           table: 'orders'
         },
-        (payload) => {
+        async (payload) => {
           console.log('Order update:', payload);
-          // Play sound for new confirmed orders
+          // Play sound and show detailed toast for new confirmed orders
           if (payload.eventType === 'INSERT' && (payload.new as any)?.payment_status === 'confirmed') {
-            if (soundEnabled && !isInitialLoadRef.current) {
-              playNotificationSound();
-              toast.success("🎫 حجز جديد!");
+            if (!isInitialLoadRef.current) {
+              const newOrder = payload.new as any;
+              
+              // Fetch additional details for the toast notification
+              try {
+                const { data: orderDetails } = await supabase
+                  .from('orders')
+                  .select(`
+                    quantity,
+                    customers(nationality),
+                    events(title, event_date)
+                  `)
+                  .eq('id', newOrder.id)
+                  .single();
+                
+                if (orderDetails) {
+                  const nationality = orderDetails.customers?.nationality || 'غير محدد';
+                  const flag = getNationalityFlag(nationality);
+                  const quantity = orderDetails.quantity || 1;
+                  const eventDate = orderDetails.events?.event_date 
+                    ? new Date(orderDetails.events.event_date).toLocaleDateString('ar-u-nu-latn', { 
+                        day: 'numeric', 
+                        month: 'long' 
+                      })
+                    : '';
+                  
+                  if (soundEnabled) {
+                    playNotificationSound();
+                  }
+                  
+                  toast.success(
+                    `${flag} حجز جديد من ${nationality}\n🎫 ${quantity} تذكرة ليوم ${eventDate}`,
+                    {
+                      duration: 5000,
+                      style: {
+                        whiteSpace: 'pre-line',
+                        textAlign: 'right',
+                        direction: 'rtl'
+                      }
+                    }
+                  );
+                }
+              } catch (err) {
+                console.error('Error fetching order details for toast:', err);
+                if (soundEnabled) {
+                  playNotificationSound();
+                }
+                toast.success("🎫 حجز جديد!");
+              }
             }
           }
           // Use ref date to avoid stale closure
