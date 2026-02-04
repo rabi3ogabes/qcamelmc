@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { AlertTriangle, TrendingUp, XCircle } from "lucide-react";
+import { AlertTriangle, TrendingUp, XCircle, CheckCircle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
 interface TicketCapacity {
@@ -130,12 +130,13 @@ export const CapacityAlert = ({ eventId }: CapacityAlertProps) => {
 
   if (loading) return null;
 
-  // Filter for tickets at 90%+ capacity
+  // Filter tickets by capacity level
   const criticalTickets = capacities.filter(c => c.percentage >= 100);
   const warningTickets = capacities.filter(c => c.percentage >= 90 && c.percentage < 100);
   const nearingTickets = capacities.filter(c => c.percentage >= 80 && c.percentage < 90);
+  const normalTickets = capacities.filter(c => c.percentage < 80);
 
-  if (criticalTickets.length === 0 && warningTickets.length === 0 && nearingTickets.length === 0) {
+  if (capacities.length === 0) {
     return null;
   }
 
@@ -185,6 +186,24 @@ export const CapacityAlert = ({ eventId }: CapacityAlertProps) => {
             <div className="flex flex-wrap gap-2 mt-2">
               {nearingTickets.map(t => (
                 <Badge key={t.type} className="bg-yellow-500 text-white text-sm">
+                  {getTicketTypeName(t.type)}: {t.confirmed_count}/{t.available_quantity} ({t.percentage}%)
+                  <span className="mr-1">- متبقي {t.available_quantity - t.confirmed_count}</span>
+                </Badge>
+              ))}
+            </div>
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {/* Normal: below 80% capacity */}
+      {normalTickets.length > 0 && (
+        <Alert className="border-green-500 bg-green-50">
+          <CheckCircle className="h-5 w-5 text-green-600" />
+          <AlertTitle className="font-bold text-green-800">السعة متاحة</AlertTitle>
+          <AlertDescription>
+            <div className="flex flex-wrap gap-2 mt-2">
+              {normalTickets.map(t => (
+                <Badge key={t.type} className="bg-green-500 text-white text-sm">
                   {getTicketTypeName(t.type)}: {t.confirmed_count}/{t.available_quantity} ({t.percentage}%)
                   <span className="mr-1">- متبقي {t.available_quantity - t.confirmed_count}</span>
                 </Badge>
