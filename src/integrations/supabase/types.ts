@@ -697,6 +697,10 @@ export type Database = {
         }[]
       }
       is_admin: { Args: { user_id: string }; Returns: boolean }
+      reserve_tickets: {
+        Args: { p_event_id: string; p_quantity: number; p_ticket_type: string }
+        Returns: Json
+      }
     }
     Enums: {
       payment_method: "sadad" | "cash_pos"
