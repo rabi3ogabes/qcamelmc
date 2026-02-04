@@ -18,6 +18,7 @@ import { toast } from "sonner";
 import QRCodeLib from "qrcode";
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
+import { toZonedTime } from "date-fns-tz";
 interface TicketHolder {
   id: string;
   name: string;
@@ -524,15 +525,15 @@ export const OrdersTab = ({
       filtered = filtered.filter(o => o.event_id === selectedEventFilter);
     }
 
-    // Apply upcoming orders filter (today and future)
+    // Apply upcoming orders filter (today and future) - using Qatar timezone
     if (showUpcomingOnly) {
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
+      const qatarNow = toZonedTime(new Date(), "Asia/Qatar");
+      const todayQatar = new Date(qatarNow.getFullYear(), qatarNow.getMonth(), qatarNow.getDate());
       filtered = filtered.filter(o => {
         if (!o.events?.event_date) return false;
-        const eventDate = new Date(o.events.event_date);
-        eventDate.setHours(0, 0, 0, 0);
-        return eventDate >= today;
+        const eventDateQatar = toZonedTime(new Date(o.events.event_date), "Asia/Qatar");
+        const eventDateOnly = new Date(eventDateQatar.getFullYear(), eventDateQatar.getMonth(), eventDateQatar.getDate());
+        return eventDateOnly >= todayQatar;
       });
     }
 
@@ -763,15 +764,15 @@ export const OrdersTab = ({
   const getBaseOrdersForStats = () => {
     let filtered = orders.filter(o => o.payment_status === "confirmed");
     
-    // Apply upcoming filter if enabled
+    // Apply upcoming filter if enabled - using Qatar timezone
     if (showUpcomingOnly) {
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
+      const qatarNow = toZonedTime(new Date(), "Asia/Qatar");
+      const todayQatar = new Date(qatarNow.getFullYear(), qatarNow.getMonth(), qatarNow.getDate());
       filtered = filtered.filter(o => {
         if (!o.events?.event_date) return false;
-        const eventDate = new Date(o.events.event_date);
-        eventDate.setHours(0, 0, 0, 0);
-        return eventDate >= today;
+        const eventDateQatar = toZonedTime(new Date(o.events.event_date), "Asia/Qatar");
+        const eventDateOnly = new Date(eventDateQatar.getFullYear(), eventDateQatar.getMonth(), eventDateQatar.getDate());
+        return eventDateOnly >= todayQatar;
       });
     }
     
