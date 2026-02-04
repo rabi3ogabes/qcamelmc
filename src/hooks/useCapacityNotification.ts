@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { getSelectedSound, isSoundMuted, type NotificationSound } from "@/components/admin/NotificationSoundSelector";
 
 interface TicketCapacity {
   type: string;
@@ -20,13 +21,14 @@ export const useCapacityNotification = (eventId: string | null) => {
   const [showNotification, setShowNotification] = useState(false);
   const previousCapacitiesRef = useRef<Map<string, number>>(new Map());
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const [currentSound, setCurrentSound] = useState<NotificationSound>(getSelectedSound);
+  const [muted, setMuted] = useState<boolean>(isSoundMuted);
 
   // Initialize audio on first user interaction
   useEffect(() => {
     // Create audio element for notification sound
     audioRef.current = new Audio();
-    // Use a clear, loud notification bell sound from free sound library
-    audioRef.current.src = "https://cdn.pixabay.com/audio/2024/02/19/audio_e4043e8c7f.mp3";
+    audioRef.current.src = currentSound.url;
     audioRef.current.volume = 1.0;
     
     // Preload the audio
@@ -37,16 +39,44 @@ export const useCapacityNotification = (eventId: string | null) => {
         audioRef.current = null;
       }
     };
-  }, []);
+  }, [currentSound.url]);
+
+  // Listen for storage changes to update sound settings
+  useEffect(() => {
+    const handleStorageChange = () => {
+      setCurrentSound(getSelectedSound());
+      setMuted(isSoundMuted());
+    };
+
+    window.addEventListener("storage", handleStorageChange);
+    
+    // Also check periodically for same-tab changes
+    const interval = setInterval(() => {
+      const newSound = getSelectedSound();
+      const newMuted = isSoundMuted();
+      if (newSound.id !== currentSound.id) {
+        setCurrentSound(newSound);
+      }
+      if (newMuted !== muted) {
+        setMuted(newMuted);
+      }
+    }, 1000);
+
+    return () => {
+      window.removeEventListener("storage", handleStorageChange);
+      clearInterval(interval);
+    };
+  }, [currentSound.id, muted]);
 
   const playNotificationSound = useCallback(() => {
-    if (audioRef.current) {
+    if (audioRef.current && !muted) {
+      audioRef.current.src = currentSound.url;
       audioRef.current.currentTime = 0;
       audioRef.current.play().catch(err => {
         console.log("Audio playback failed:", err);
       });
     }
-  }, []);
+  }, [currentSound.url, muted]);
 
   const dismissNotification = useCallback(() => {
     setShowNotification(false);
