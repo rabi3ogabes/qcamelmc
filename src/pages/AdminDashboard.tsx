@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { LogOut, ShoppingCart, Calendar, Ticket, Settings, ExternalLink, Image, ScanLine, Users, CreditCard, FileText, Eye, Receipt, UserCog } from "lucide-react";
+import { toZonedTime } from "date-fns-tz";
 import { useTranslation } from "react-i18next";
 import { OrdersTab } from "@/components/admin/OrdersTab";
 import { EventsTab } from "@/components/admin/EventsTab";
@@ -45,51 +46,16 @@ const AdminDashboard = () => {
   const [activeTab, setActiveTab] = useState("orders");
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
   const [headerBgColor, setHeaderBgColor] = useState<string>("hsl(var(--card) / 0.5)");
+  const [showUpcomingOnly, setShowUpcomingOnly] = useState(true);
   const navigate = useNavigate();
 
-  useEffect(() => {
-    checkAuth();
-    const initDashboard = async () => {
-      await Promise.all([fetchOrders(), fetchSettings()]);
-    };
-    initDashboard();
-
-    // Subscribe to real-time order and ticket_holders changes with debouncing
-    let refreshTimeout: NodeJS.Timeout;
-    const refreshOrders = () => {
-      console.log('Data changed, refreshing...');
-      clearTimeout(refreshTimeout);
-      refreshTimeout = setTimeout(() => {
-        fetchOrders();
-      }, 500);
-    };
-
-    const ordersChannel = supabase
-      .channel('orders-realtime')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'orders'
-        },
-        refreshOrders
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'ticket_holders'
-        },
-        refreshOrders
-      )
-      .subscribe();
-
-    return () => {
-      clearTimeout(refreshTimeout);
-      supabase.removeChannel(ordersChannel);
-    };
+  // Get today's date in Qatar timezone for server-side filtering
+  const getTodayQatar = useCallback(() => {
+    const qatarNow = toZonedTime(new Date(), "Asia/Qatar");
+    const year = qatarNow.getFullYear();
+    const month = String(qatarNow.getMonth() + 1).padStart(2, '0');
+    const day = String(qatarNow.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
   }, []);
 
   const fetchSettings = async () => {
@@ -119,23 +85,43 @@ const AdminDashboard = () => {
     }
   };
 
-  const fetchOrders = useCallback(async () => {
+  const fetchOrders = useCallback(async (upcomingOnly: boolean = true) => {
     const PAGE_SIZE = 1000;
     const startTime = performance.now();
     setIsFullyLoaded(false);
     
     try {
-      // First, get total count to know how many pages we need
-      const { count, error: countError } = await supabase
+      // Build base query with server-side filtering for upcoming events
+      const todayDate = getTodayQatar();
+      
+      // Build the query
+      let query = supabase
         .from("orders")
-        .select("*", { count: "exact", head: true });
+        .select("*, customers(name, email, phone, nationality), events!inner(title, event_date, location), payment_error_reason, pos_users(name, icon), ticket_holders(ticket_type)")
+        .order("created_at", { ascending: false });
+      
+      // Apply server-side filter for upcoming events
+      if (upcomingOnly) {
+        query = query.gte("events.event_date", todayDate);
+      }
+      
+      // Get count first
+      let countQuery = supabase
+        .from("orders")
+        .select("*, events!inner(event_date)", { count: "exact", head: true });
+      
+      if (upcomingOnly) {
+        countQuery = countQuery.gte("events.event_date", todayDate);
+      }
+      
+      const { count, error: countError } = await countQuery;
       
       if (countError) throw countError;
       
       const totalCount = count || 0;
       const totalPages = Math.ceil(totalCount / PAGE_SIZE);
       
-      console.log(`Total orders: ${totalCount}, pages: ${totalPages}`);
+      console.log(`Total orders (${upcomingOnly ? 'upcoming' : 'all'}): ${totalCount}, pages: ${totalPages}`);
       
       if (totalPages === 0) {
         setOrders([]);
@@ -144,12 +130,8 @@ const AdminDashboard = () => {
         return;
       }
       
-      // Fetch first page immediately to show data fast
-      const { data: firstPageData, error: firstError } = await supabase
-        .from("orders")
-        .select("*, customers(name, email, phone, nationality), events(title, event_date, location), payment_error_reason, pos_users(name, icon), ticket_holders(ticket_type)")
-        .order("created_at", { ascending: false })
-        .range(0, PAGE_SIZE - 1);
+      // Fetch first page immediately
+      const { data: firstPageData, error: firstError } = await query.range(0, PAGE_SIZE - 1);
       
       if (firstError) throw firstError;
       
@@ -157,7 +139,7 @@ const AdminDashboard = () => {
       if (firstPageData?.length) {
         setOrders(firstPageData as Order[]);
         setLoading(false);
-        console.log(`First page loaded in ${(performance.now() - startTime).toFixed(0)}ms`);
+        console.log(`First page loaded in ${(performance.now() - startTime).toFixed(0)}ms with ${firstPageData.length} orders`);
       }
       
       // If only one page, we're done
@@ -174,13 +156,18 @@ const AdminDashboard = () => {
       const BATCH_SIZE = 3;
       for (let i = 0; i < remainingPages.length; i += BATCH_SIZE) {
         const batch = remainingPages.slice(i, i + BATCH_SIZE);
-        const batchPromises = batch.map(pageNum => 
-          supabase
+        const batchPromises = batch.map(pageNum => {
+          let batchQuery = supabase
             .from("orders")
-            .select("*, customers(name, email, phone, nationality), events(title, event_date, location), payment_error_reason, pos_users(name, icon), ticket_holders(ticket_type)")
-            .order("created_at", { ascending: false })
-            .range(pageNum * PAGE_SIZE, (pageNum + 1) * PAGE_SIZE - 1)
-        );
+            .select("*, customers(name, email, phone, nationality), events!inner(title, event_date, location), payment_error_reason, pos_users(name, icon), ticket_holders(ticket_type)")
+            .order("created_at", { ascending: false });
+          
+          if (upcomingOnly) {
+            batchQuery = batchQuery.gte("events.event_date", todayDate);
+          }
+          
+          return batchQuery.range(pageNum * PAGE_SIZE, (pageNum + 1) * PAGE_SIZE - 1);
+        });
         
         const results = await Promise.all(batchPromises);
         
@@ -202,7 +189,52 @@ const AdminDashboard = () => {
       setLoading(false);
       setIsFullyLoaded(true);
     }
-  }, []);
+  }, [getTodayQatar]);
+
+  useEffect(() => {
+    checkAuth();
+    const initDashboard = async () => {
+      await Promise.all([fetchOrders(showUpcomingOnly), fetchSettings()]);
+    };
+    initDashboard();
+
+    // Subscribe to real-time order and ticket_holders changes with debouncing
+    let refreshTimeout: NodeJS.Timeout;
+    const refreshOrders = () => {
+      console.log('Data changed, refreshing...');
+      clearTimeout(refreshTimeout);
+      refreshTimeout = setTimeout(() => {
+        fetchOrders(showUpcomingOnly);
+      }, 500);
+    };
+
+    const ordersChannel = supabase
+      .channel('orders-realtime')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'orders'
+        },
+        refreshOrders
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'ticket_holders'
+        },
+        refreshOrders
+      )
+      .subscribe();
+
+    return () => {
+      clearTimeout(refreshTimeout);
+      supabase.removeChannel(ordersChannel);
+    };
+  }, [showUpcomingOnly, fetchOrders]);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -318,8 +350,10 @@ const AdminDashboard = () => {
             <TabsContent value="orders">
               <OrdersTab 
                 orders={orders} 
-                onRefresh={fetchOrders}
+                onRefresh={() => fetchOrders(showUpcomingOnly)}
                 isFullyLoaded={isFullyLoaded}
+                showUpcomingOnly={showUpcomingOnly}
+                onUpcomingOnlyChange={setShowUpcomingOnly}
               />
             </TabsContent>
 

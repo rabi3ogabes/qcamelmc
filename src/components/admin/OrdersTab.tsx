@@ -101,11 +101,15 @@ interface OrdersTabProps {
   orders: Order[];
   onRefresh: () => void;
   isFullyLoaded?: boolean;
+  showUpcomingOnly?: boolean;
+  onUpcomingOnlyChange?: (value: boolean) => void;
 }
 export const OrdersTab = ({
   orders,
   onRefresh,
-  isFullyLoaded = true
+  isFullyLoaded = true,
+  showUpcomingOnly: externalShowUpcomingOnly,
+  onUpcomingOnlyChange
 }: OrdersTabProps) => {
   const {
     t
@@ -127,7 +131,11 @@ export const OrdersTab = ({
   const [orderToDelete, setOrderToDelete] = useState<string | null>(null);
   const [showDeleteButton, setShowDeleteButton] = useState(false);
   const [showGenerateQrButton, setShowGenerateQrButton] = useState(false);
-  const [showUpcomingOnly, setShowUpcomingOnly] = useState(true);
+  const [internalShowUpcomingOnly, setInternalShowUpcomingOnly] = useState(true);
+  
+  // Use external state if provided, otherwise use internal state
+  const showUpcomingOnly = externalShowUpcomingOnly !== undefined ? externalShowUpcomingOnly : internalShowUpcomingOnly;
+  const setShowUpcomingOnly = onUpcomingOnlyChange || setInternalShowUpcomingOnly;
   const [availableEvents, setAvailableEvents] = useState<Array<{
     id: string;
     title: string;
@@ -526,7 +534,8 @@ export const OrdersTab = ({
     }
 
     // Apply upcoming orders filter (today and future) - using Qatar timezone
-    if (showUpcomingOnly) {
+    // Skip client-side filtering if data is already filtered server-side
+    if (showUpcomingOnly && externalShowUpcomingOnly === undefined) {
       const qatarNow = toZonedTime(new Date(), "Asia/Qatar");
       const todayQatar = new Date(qatarNow.getFullYear(), qatarNow.getMonth(), qatarNow.getDate());
       filtered = filtered.filter(o => {
@@ -765,7 +774,8 @@ export const OrdersTab = ({
     let filtered = orders.filter(o => o.payment_status === "confirmed");
     
     // Apply upcoming filter if enabled - using Qatar timezone
-    if (showUpcomingOnly) {
+    // Skip client-side filtering if data is already filtered server-side
+    if (showUpcomingOnly && externalShowUpcomingOnly === undefined) {
       const qatarNow = toZonedTime(new Date(), "Asia/Qatar");
       const todayQatar = new Date(qatarNow.getFullYear(), qatarNow.getMonth(), qatarNow.getDate());
       filtered = filtered.filter(o => {
