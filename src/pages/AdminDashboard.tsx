@@ -54,10 +54,18 @@ const AdminDashboard = () => {
     };
     initDashboard();
 
-    // Subscribe to real-time order changes with debouncing
+    // Subscribe to real-time order and ticket_holders changes with debouncing
     let refreshTimeout: NodeJS.Timeout;
-    const channel = supabase
-      .channel('orders-changes')
+    const refreshOrders = () => {
+      console.log('Data changed, refreshing...');
+      clearTimeout(refreshTimeout);
+      refreshTimeout = setTimeout(() => {
+        fetchOrders();
+      }, 500);
+    };
+
+    const ordersChannel = supabase
+      .channel('orders-realtime')
       .on(
         'postgres_changes',
         {
@@ -65,19 +73,22 @@ const AdminDashboard = () => {
           schema: 'public',
           table: 'orders'
         },
-        () => {
-          console.log('Order changed, refreshing...');
-          clearTimeout(refreshTimeout);
-          refreshTimeout = setTimeout(() => {
-            fetchOrders();
-          }, 500);
-        }
+        refreshOrders
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'ticket_holders'
+        },
+        refreshOrders
       )
       .subscribe();
 
     return () => {
       clearTimeout(refreshTimeout);
-      supabase.removeChannel(channel);
+      supabase.removeChannel(ordersChannel);
     };
   }, []);
 
