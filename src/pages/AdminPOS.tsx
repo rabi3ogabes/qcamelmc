@@ -18,6 +18,8 @@ import { useActivityLog } from "@/hooks/useActivityLog";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { useReserveTickets } from "@/hooks/useReserveTickets";
 import { CapacityAlert } from "@/components/admin/CapacityAlert";
+import { CapacityNotificationBanner } from "@/components/admin/CapacityNotificationBanner";
+import { useCapacityNotification } from "@/hooks/useCapacityNotification";
 
 interface POSUser {
   id: string;
@@ -86,6 +88,9 @@ const AdminPOS = () => {
   const [currentEventId, setCurrentEventId] = useState<string | null>(null);
   const [showSuccessDialog, setShowSuccessDialog] = useState(false);
   const [successData, setSuccessData] = useState<SuccessData | null>(null);
+  
+  // Capacity notification hook
+  const { notification, showNotification, dismissNotification } = useCapacityNotification(currentEventId);
   
   // POS User selection
   const [posUsers, setPosUsers] = useState<POSUser[]>([]);
@@ -997,6 +1002,15 @@ const AdminPOS = () => {
 
   return (
     <div className="min-h-screen bg-background font-lusail" dir="rtl">
+      {/* Capacity Notification Banner */}
+      {showNotification && notification && (
+        <CapacityNotificationBanner
+          ticketType={notification.ticketType}
+          increase={notification.increase}
+          newCapacity={notification.newCapacity}
+          onDismiss={dismissNotification}
+        />
+      )}
       {/* Header */}
       <header className="border-b backdrop-blur-sm sticky top-0 z-10" style={{ backgroundColor: headerBgColor }}>
         <div className="container mx-auto px-2 sm:px-4 py-3 sm:py-4">
