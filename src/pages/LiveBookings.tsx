@@ -579,7 +579,7 @@ const LiveBookings = () => {
       )
       .subscribe();
 
-    // Subscribe to tickets changes for availability updates
+    // Subscribe to tickets changes for capacity updates
     const ticketsChannel = supabase
       .channel('live-bookings-tickets')
       .on(
@@ -590,9 +590,46 @@ const LiveBookings = () => {
           table: 'tickets'
         },
         (payload) => {
-          console.log('Ticket availability update:', payload);
-          if (soundEnabled && !isInitialLoadRef.current) {
-            playNotificationSound();
+          console.log('Ticket capacity update:', payload);
+          const newTicket = payload.new as any;
+          const oldTicket = payload.old as any;
+          
+          if (!isInitialLoadRef.current && newTicket && oldTicket) {
+            const ticketType = newTicket.type;
+            const newCapacity = newTicket.available_quantity;
+            const oldCapacity = oldTicket.available_quantity;
+            
+            // Update the capacities state immediately
+            setTicketCapacities(prev => ({
+              ...prev,
+              [ticketType]: newCapacity
+            }));
+            
+            // Only show notification if capacity INCREASED
+            if (newCapacity > oldCapacity) {
+              const increase = newCapacity - oldCapacity;
+              const typeLabels: Record<string, string> = {
+                vip: 'VIP',
+                normal: 'عادي',
+                parking: 'مواقف'
+              };
+              
+              if (soundEnabled) {
+                playNotificationSound();
+              }
+              
+              toast.success(
+                `🎉 تذاكر جديدة متاحة!\n+${increase} تذكرة ${typeLabels[ticketType] || ticketType} (السعة: ${newCapacity})`,
+                {
+                  duration: 6000,
+                  style: {
+                    whiteSpace: 'pre-line',
+                    textAlign: 'right',
+                    direction: 'rtl'
+                  }
+                }
+              );
+            }
           }
         }
       )
