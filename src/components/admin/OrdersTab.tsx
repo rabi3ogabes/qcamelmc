@@ -759,8 +759,26 @@ export const OrdersTab = ({
   };
 
   // Calculate payment method stats based on current activeTab filter
-  // Payment method stats always show only confirmed (success) orders
-  const confirmedOrders = orders.filter(o => o.payment_status === "confirmed");
+  // Payment method stats show orders matching status AND upcoming filter
+  const getBaseOrdersForStats = () => {
+    let filtered = orders.filter(o => o.payment_status === "confirmed");
+    
+    // Apply upcoming filter if enabled
+    if (showUpcomingOnly) {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      filtered = filtered.filter(o => {
+        if (!o.events?.event_date) return false;
+        const eventDate = new Date(o.events.event_date);
+        eventDate.setHours(0, 0, 0, 0);
+        return eventDate >= today;
+      });
+    }
+    
+    return filtered;
+  };
+  
+  const confirmedOrders = getBaseOrdersForStats();
   
   const paymentMethodStats = {
     all: confirmedOrders.length,
