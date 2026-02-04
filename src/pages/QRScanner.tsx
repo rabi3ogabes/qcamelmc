@@ -731,45 +731,61 @@ const QRScanner = () => {
         return;
       }
       
-      // Get ticket IDs for bulk update
-      const ticketIds = selectedTickets.map(ticket => ticket.id);
-      const now = new Date().toISOString();
+      let successCount = 0;
+      let errorCount = 0;
+      const confirmedTickets: typeof selectedTickets = [];
 
-      // Bulk update all tickets at once - much faster than sequential calls
-      const { error: updateError } = await supabase
-        .from('ticket_holders')
-        .update({ 
-          is_present: true,
-          confirmed_at: now,
-          confirmed_by: user?.id
-        })
-        .in('id', ticketIds);
+      // Process each ticket through the edge function for proper validation
+      for (const ticket of selectedTickets) {
+        try {
+          const response = await supabase.functions.invoke('ticket-checkin', {
+            body: {
+              booking_reference: ticket.qr_code,
+              admin_id: user?.id
+            }
+          });
 
-      if (updateError) throw updateError;
-
-      const successCount = ticketIds.length;
-
-      // Log activity for each ticket (fire and forget - non-blocking)
-      Promise.all(selectedTickets.map(ticket => 
-        logActivity({
-          activityType: 'ticket_scan',
-          userType: 'admin',
-          userIdentifier: user?.id,
-          actionData: {
-            ticket_holder_id: ticket.id,
-            ticket_holder_name: ticket.name,
-            ticket_type: ticket.ticket_type,
-            qr_code: ticket.qr_code,
-            action: 'confirm_presence'
+          if (response.error) {
+            console.error('Edge function error for ticket:', ticket.qr_code, response.error);
+            errorCount++;
+            continue;
           }
-        })
-      )).catch(err => console.error('Activity log error:', err));
+
+          const result = response.data;
+          
+          if (result.success) {
+            successCount++;
+            confirmedTickets.push(ticket);
+            
+            // Log activity for each ticket (fire and forget - non-blocking)
+            logActivity({
+              activityType: 'ticket_scan',
+              userType: 'admin',
+              userIdentifier: user?.id,
+              actionData: {
+                ticket_holder_id: ticket.id,
+                ticket_holder_name: ticket.name,
+                ticket_type: ticket.ticket_type,
+                qr_code: ticket.qr_code,
+                action: 'confirm_presence'
+              }
+            }).catch(err => console.error('Activity log error:', err));
+          } else {
+            // Show specific error message from edge function
+            toast.error(result.message || 'فشل تأكيد التذكرة');
+            errorCount++;
+          }
+        } catch (err) {
+          console.error('Error confirming ticket:', ticket.qr_code, err);
+          errorCount++;
+        }
+      }
 
       // Show results
       if (successCount > 0) {
         // Prepare success data for dialog
         const ticketTypesMap = new Map<string, number>();
-        selectedTickets.forEach(ticket => {
+        confirmedTickets.forEach(ticket => {
           const type = ticket.ticket_type;
           ticketTypesMap.set(type, (ticketTypesMap.get(type) || 0) + 1);
         });
@@ -781,12 +797,18 @@ const QRScanner = () => {
 
         setSuccessData({
           totalTickets: successCount,
-          mainName: selectedTickets[0]?.name || ticketInfo.customer_name,
-          ticketHolders: selectedTickets.map(t => ({ name: t.name, ticketType: t.ticket_type.toUpperCase() })),
+          mainName: confirmedTickets[0]?.name || ticketInfo.customer_name,
+          ticketHolders: confirmedTickets.map(t => ({ name: t.name, ticketType: t.ticket_type.toUpperCase() })),
           ticketTypes: ticketTypeSummary
         });
         setShowSuccessDialog(true);
         toast.success(`✅ تم تأكيد حضور ${successCount} تذكرة`);
+      }
+      
+      if (errorCount > 0 && successCount === 0) {
+        // All tickets failed - keep the UI as is for retry
+        setProcessing(false);
+        return;
       }
 
       // Clear selections and refresh
