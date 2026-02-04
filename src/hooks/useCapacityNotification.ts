@@ -25,9 +25,12 @@ export const useCapacityNotification = (eventId: string | null) => {
   useEffect(() => {
     // Create audio element for notification sound
     audioRef.current = new Audio();
-    // Use a bright, attention-grabbing notification bell sound
-    audioRef.current.src = "data:audio/mp3;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjU4Ljc2LjEwMAAAAAAAAAAAAAAA//tQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWGluZwAAAA8AAAACAAADhAC7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7//////////////////////////////////////////////////////////////////8AAAAATGF2YzU4LjEzAAAAAAAAAAAAAAAAJAAAAAAAAAAAA4T/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////";
-    audioRef.current.volume = 0.8;
+    // Use a clear, loud notification bell sound from free sound library
+    audioRef.current.src = "https://cdn.pixabay.com/audio/2024/02/19/audio_e4043e8c7f.mp3";
+    audioRef.current.volume = 1.0;
+    
+    // Preload the audio
+    audioRef.current.load();
     
     return () => {
       if (audioRef.current) {
