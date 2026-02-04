@@ -6,7 +6,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { CalendarIcon, CheckCircle, XCircle, Users, LayoutGrid, Table as TableIcon, User, Phone, CreditCard, Hash, Maximize, Minimize, Globe, Store, Volume2, VolumeX, Clock, Send, SendHorizonal, CircleDashed, BarChart3 } from "lucide-react";
+import { CalendarIcon, CheckCircle, XCircle, Users, LayoutGrid, Table as TableIcon, User, Phone, CreditCard, Hash, Maximize, Minimize, Globe, Store, Volume2, VolumeX, Clock, Send, SendHorizonal, CircleDashed, BarChart3, Bell, BellOff } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -115,6 +115,7 @@ const LiveBookings = () => {
   const [headerBgColor, setHeaderBgColor] = useState<string>("hsl(var(--card) / 0.5)");
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(true);
+  const [checkinNotificationsEnabled, setCheckinNotificationsEnabled] = useState(true);
   const [newTicketHolderIds, setNewTicketHolderIds] = useState<Set<string>>(new Set());
   const previousTicketHolderIdsRef = useRef<Set<string>>(new Set());
   const isInitialLoadRef = useRef(true);
@@ -518,8 +519,60 @@ const LiveBookings = () => {
           schema: 'public',
           table: 'ticket_holders'
         },
-        (payload) => {
+        async (payload) => {
           console.log('Ticket holder change:', payload);
+          
+          // Show notification for check-ins (when is_present becomes true)
+          if (payload.eventType === 'UPDATE' && !isInitialLoadRef.current) {
+            const oldData = payload.old as any;
+            const newData = payload.new as any;
+            
+            // Check if is_present changed from false/null to true
+            if (newData.is_present === true && oldData.is_present !== true) {
+              try {
+                // Fetch ticket holder details for the notification
+                const { data: holderDetails } = await supabase
+                  .from('ticket_holders')
+                  .select(`
+                    name,
+                    ticket_type,
+                    nationality,
+                    orders!inner(
+                      events!inner(title, event_date)
+                    )
+                  `)
+                  .eq('id', newData.id)
+                  .single();
+                
+                if (holderDetails && checkinNotificationsEnabled) {
+                  const nationality = holderDetails.nationality || 'غير محدد';
+                  const flag = getNationalityFlag(nationality);
+                  const ticketType = holderDetails.ticket_type === 'vip' ? 'VIP' : 
+                                     holderDetails.ticket_type === 'normal' ? 'عادي' : 
+                                     holderDetails.ticket_type === 'parking' ? 'مواقف' : holderDetails.ticket_type;
+                  
+                  if (soundEnabled) {
+                    playNotificationSound();
+                  }
+                  
+                  toast.info(
+                    `${flag} تسجيل حضور: ${holderDetails.name}\n🎫 تذكرة ${ticketType}`,
+                    {
+                      duration: 4000,
+                      style: {
+                        whiteSpace: 'pre-line',
+                        textAlign: 'right',
+                        direction: 'rtl'
+                      }
+                    }
+                  );
+                }
+              } catch (err) {
+                console.error('Error fetching holder details for check-in toast:', err);
+              }
+            }
+          }
+          
           // Use ref date to avoid stale closure
           fetchBookings(true);
         }
@@ -959,6 +1012,19 @@ const LiveBookings = () => {
                 </DialogContent>
               </Dialog>
             </div>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 sm:h-10 sm:w-10"
+              onClick={() => setCheckinNotificationsEnabled(!checkinNotificationsEnabled)}
+              title={checkinNotificationsEnabled ? "إيقاف إشعارات الحضور" : "تفعيل إشعارات الحضور"}
+            >
+              {checkinNotificationsEnabled ? (
+                <Bell className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" />
+              ) : (
+                <BellOff className="w-4 h-4 sm:w-5 sm:h-5 text-muted-foreground" />
+              )}
+            </Button>
             <Button
               variant="ghost"
               size="icon"
