@@ -167,7 +167,7 @@ serve(async (req) => {
 
       // Check if event has expired (after 6PM on event day)
       const eventDate = (Array.isArray(order.events) ? order.events[0]?.event_date : order.events?.event_date);
-      const formattedEventDate = eventDate ? new Date(eventDate).toLocaleDateString('ar-QA', { 
+      const formattedEventDate = eventDate ? new Date(eventDate).toLocaleDateString('ar-u-nu-latn', { 
         year: 'numeric', 
         month: 'long', 
         day: 'numeric' 
@@ -370,7 +370,7 @@ serve(async (req) => {
 
     // Check if event has expired (after 6PM on event day)
     const legacyEventDate = order.events?.event_date;
-    const legacyFormattedEventDate = legacyEventDate ? new Date(legacyEventDate).toLocaleDateString('ar-QA', { 
+    const legacyFormattedEventDate = legacyEventDate ? new Date(legacyEventDate).toLocaleDateString('ar-u-nu-latn', { 
       year: 'numeric', 
       month: 'long', 
       day: 'numeric' 
