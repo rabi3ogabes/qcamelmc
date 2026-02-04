@@ -18,6 +18,7 @@ import { ReportsTab } from "@/components/admin/ReportsTab";
 import { ActivityLogsTab } from "@/components/admin/ActivityLogsTab";
 import { VisitorAnalyticsTab } from "@/components/admin/VisitorAnalyticsTab";
 import { POSUsersTab } from "@/components/admin/POSUsersTab";
+import { CapacityAlert } from "@/components/admin/CapacityAlert";
 
 import "../i18n/config";
 
@@ -262,6 +263,8 @@ const AdminDashboard = () => {
       </header>
 
       <div className="max-w-7xl mx-auto py-4 sm:py-6 md:py-8 px-3 sm:px-4">
+        {/* Capacity Alert */}
+        <CapacityAlert />
 
         {/* Main Content */}
         {loading ? (
