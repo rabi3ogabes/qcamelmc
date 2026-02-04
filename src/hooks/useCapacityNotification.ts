@@ -25,10 +25,9 @@ export const useCapacityNotification = (eventId: string | null) => {
   useEffect(() => {
     // Create audio element for notification sound
     audioRef.current = new Audio();
-    // Use a pleasant success/notification chime sound (base64 encoded)
-    // This is a clear, pleasant "ding-dong" style notification
-    audioRef.current.src = "data:audio/wav;base64,UklGRl9JAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhO0kAAAAAAP7/AgABAAEA/v8CAAIA/f8CAAIA/v8BAAEA//8AAAEA//8AAAEAAAAAAAAAAP//AQAAAP//AQABAP//AQABAP7/AgACAP3/AwACAP3/AwADAP3/AgADAP3/AgAEAPz/AwAEAPv/BAAEAP3/AwADAP7/AgACAP//AQABAP//AQABAP//AAACAP7/AgACAP7/AgACAP7/AgACAP//AQABAP//AQABAAAAAAAAAAEAAAAAAP//AQABAP//AQABAP//AAABAAAAAAABAP//AQABAAAAAAAAAAAA//8BAAEAAAAAAAAA//8BAAEA//8BAAEAAAAAAAAAAAAAAQAAAAEAAAABAAEAAAAAAQABAAEAAQABAAEAAAAAAQABAAEAAQABAAEAAQABAP//AQABAP//AQAAAP//AQAAAP//AAABAAAAAAABAAAAAAABAP//AQABAP//AQABAP//AQABAP//AQABAP//AQABAAAAAQABAAAAAAAAAQABAAEAAQABAP//AAABAP//AQABAP//AAABAP//AAABAP//AQAAAP//AAABAP//AAABAP//AAABAP//AQABAP//AQABAP//AQABAP7/AgACAP7/AQACAP3/AgADAP3/AwADAP3/AwADAP3/AwAEAP3/AwAEAPz/BAAEAP3/AwAEAPz/AwAFAPz/BAAFAP3/AwAFAPz/AwAFAPz/BAAFAP3/AwAEAPz/AwAEAPz/AwAEAPz/AwAEAPz/AgAEAPz/AwAEAPz/AwADAPz/AwADAPz/AwADAPz/AwADAPz/AgADAPz/AgADAPz/AgACAP3/AgACAP3/AgACAP7/AQACAP7/AQABAP//AQABAP//AQABAP//AAABAP//AAABAAAAAAABAAAAAAAA//8BAAEA//8BAAEA//8BAAEA//8BAAEAAAABAAAAAAAAAQABAAEAAQABAAAAAQABAAAAAQABAAAAAQABAAEAAQABAAEAAQABAAEAAQABAAEAAQABAAIAAQACAP//AgABAAEAAgABAAIAAgABAAIAAQADAAIAAwACAAIAAwADAAQAAwAEAAMABAAEAAQABAAFAAUABQAFAAYABgAGAAcABwAHAAcACAAIAAkACQAJAAoACgALAAsACwAMAAwADAANAA0ADQANAA4ADgAPAA8ADwAPABAA";
-    audioRef.current.volume = 0.7;
+    // Use a bright, attention-grabbing notification bell sound
+    audioRef.current.src = "data:audio/mp3;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjU4Ljc2LjEwMAAAAAAAAAAAAAAA//tQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWGluZwAAAA8AAAACAAADhAC7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7//////////////////////////////////////////////////////////////////8AAAAATGF2YzU4LjEzAAAAAAAAAAAAAAAAJAAAAAAAAAAAA4T/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////";
+    audioRef.current.volume = 0.8;
     
     return () => {
       if (audioRef.current) {
