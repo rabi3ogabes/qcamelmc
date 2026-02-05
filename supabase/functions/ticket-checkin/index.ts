@@ -314,6 +314,24 @@ serve(async (req) => {
         throw updateError;
       }
 
+      // Mark WhatsApp message as "sent via check-in" if not already sent
+      if (!order.n8n_responded_at) {
+        console.log('[Ticket Check-in] WhatsApp not sent, marking as manual check-in send');
+        const { error: orderUpdateError } = await supabase
+          .from('orders')
+          .update({
+            n8n_response_message: 'تم التسجيل يدوياً ✓',
+            n8n_responded_at: confirmed_at
+          })
+          .eq('id', order.id);
+        
+        if (orderUpdateError) {
+          console.error('[Ticket Check-in] Failed to update WhatsApp status:', orderUpdateError);
+        } else {
+          console.log('[Ticket Check-in] Marked WhatsApp as sent via check-in');
+        }
+      }
+
       console.log(`[Ticket Check-in] ✅ Successfully checked in ticket holder: ${ticketHolder.name}`);
 
       return new Response(
@@ -499,6 +517,24 @@ serve(async (req) => {
     if (updateError) {
       console.error('[Ticket Check-in] Update failed:', updateError);
       throw updateError;
+    }
+
+    // Mark WhatsApp message as "sent via check-in" if not already sent
+    if (!order.n8n_responded_at) {
+      console.log('[Ticket Check-in] WhatsApp not sent, marking as manual check-in send');
+      const { error: whatsappUpdateError } = await supabase
+        .from('orders')
+        .update({
+          n8n_response_message: 'تم التسجيل يدوياً ✓',
+          n8n_responded_at: confirmed_at
+        })
+        .eq('id', order.id);
+      
+      if (whatsappUpdateError) {
+        console.error('[Ticket Check-in] Failed to update WhatsApp status:', whatsappUpdateError);
+      } else {
+        console.log('[Ticket Check-in] Marked WhatsApp as sent via check-in');
+      }
     }
 
     console.log(`[Ticket Check-in] ✅ Successfully checked in: ${booking_reference}`);
