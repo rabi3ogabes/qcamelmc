@@ -683,42 +683,100 @@ const LiveBookings = () => {
               
               // Fetch additional details for the toast notification
               try {
-                const { data: orderDetails } = await supabase
-                  .from('orders')
-                  .select(`
-                    quantity,
-                    customers(nationality),
-                    events(title, event_date)
-                  `)
-                  .eq('id', newOrder.id)
-                  .single();
-                
-                if (orderDetails) {
-                  const nationality = orderDetails.customers?.nationality || 'غير محدد';
-                  const flag = getNationalityFlag(nationality);
-                  const quantity = orderDetails.quantity || 1;
-                  const eventDate = orderDetails.events?.event_date 
-                    ? new Date(orderDetails.events.event_date).toLocaleDateString('ar-u-nu-latn', { 
-                        day: 'numeric', 
-                        month: 'long' 
-                      })
-                    : '';
-                  
-                  if (soundEnabled) {
-                    playNotificationSound();
-                  }
-                  
-                  toast.success(
-                    `${flag} حجز جديد من ${nationality}\n🎫 ${quantity} تذكرة ليوم ${eventDate}`,
-                    {
-                      duration: 5000,
-                      style: {
-                        whiteSpace: 'pre-line',
-                        textAlign: 'right',
-                        direction: 'rtl'
+               const isPOS = newOrder.payment_method === 'cash_pos';
+               
+               if (isPOS) {
+                 // Fetch POS user details for POS orders
+                 const { data: posOrderDetails } = await supabase
+                   .from('orders')
+                   .select(`
+                     quantity,
+                     customers(name, nationality),
+                     events(title, event_date),
+                     pos_users(name, icon)
+                   `)
+                   .eq('id', newOrder.id)
+                   .single();
+                 
+                 if (posOrderDetails) {
+                   const customerName = posOrderDetails.customers?.name || 'عميل';
+                   const nationality = posOrderDetails.customers?.nationality || 'غير محدد';
+                   const flag = getNationalityFlag(nationality);
+                   const quantity = posOrderDetails.quantity || 1;
+                   const posUserName = posOrderDetails.pos_users?.name || 'موظف';
+                   const posUserIcon = posOrderDetails.pos_users?.icon || '👤';
+                   
+                   if (soundEnabled) {
+                     playNotificationSound();
+                   }
+                   
+                   toast.success(
+                     <div className="flex flex-col gap-2 text-right" dir="rtl">
+                       <div className="flex items-center gap-2 justify-end">
+                         <Store className="w-4 h-4 text-orange-500" />
+                         <span className="font-bold text-orange-600">تسجيل من نقطة البيع</span>
+                       </div>
+                       <div className="flex items-center gap-2 justify-end">
+                         <span className="text-lg">{flag}</span>
+                         <span className="font-semibold">{customerName}</span>
+                         <span className="text-muted-foreground">({nationality})</span>
+                       </div>
+                       <div className="flex items-center gap-3 justify-end text-sm">
+                         <span className="bg-primary/10 text-primary px-2 py-0.5 rounded-full font-bold">
+                           🎫 {quantity} {quantity === 1 ? 'تذكرة' : quantity === 2 ? 'تذكرتين' : quantity <= 10 ? 'تذاكر' : 'تذكرة'}
+                         </span>
+                       </div>
+                       <div className="flex items-center gap-2 justify-end text-xs text-muted-foreground border-t pt-2 mt-1">
+                         <span>{posUserIcon}</span>
+                         <span>بواسطة: {posUserName}</span>
+                       </div>
+                     </div>,
+                     {
+                       duration: 6000,
+                       position: 'top-right',
+                       className: 'bg-gradient-to-r from-orange-50 to-amber-50 dark:from-orange-950/50 dark:to-amber-950/50 border-orange-200 dark:border-orange-800',
                       }
-                    }
-                  );
+                   );
+                 }
+               } else {
+                 // Online booking (Sadad) - existing notification
+                 const { data: orderDetails } = await supabase
+                   .from('orders')
+                   .select(`
+                     quantity,
+                     customers(nationality),
+                     events(title, event_date)
+                   `)
+                   .eq('id', newOrder.id)
+                   .single();
+                 
+                 if (orderDetails) {
+                   const nationality = orderDetails.customers?.nationality || 'غير محدد';
+                   const flag = getNationalityFlag(nationality);
+                   const quantity = orderDetails.quantity || 1;
+                   const eventDate = orderDetails.events?.event_date 
+                     ? new Date(orderDetails.events.event_date).toLocaleDateString('ar-u-nu-latn', { 
+                         day: 'numeric', 
+                         month: 'long' 
+                       })
+                     : '';
+                   
+                   if (soundEnabled) {
+                     playNotificationSound();
+                   }
+                   
+                   toast.success(
+                     `${flag} حجز جديد من ${nationality}\n🎫 ${quantity} تذكرة ليوم ${eventDate}`,
+                     {
+                       duration: 5000,
+                       style: {
+                         whiteSpace: 'pre-line',
+                         textAlign: 'right',
+                         direction: 'rtl'
+                       }
+                     }
+                   );
+                 }
                 }
               } catch (err) {
                 console.error('Error fetching order details for toast:', err);
