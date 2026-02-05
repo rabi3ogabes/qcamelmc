@@ -145,6 +145,54 @@ const playCheckinSound = (ticketType: string) => {
 };
 
 // Celebratory sounds for capacity increase - different for each ticket type
+// POS registration sound - distinctive cash register style sound
+const playPOSNotificationSound = () => {
+  try {
+    const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+    const gainNode = audioContext.createGain();
+    gainNode.connect(audioContext.destination);
+    
+    // Cash register "cha-ching" style sound
+    const osc1 = audioContext.createOscillator();
+    const osc2 = audioContext.createOscillator();
+    const osc3 = audioContext.createOscillator();
+    
+    osc1.connect(gainNode);
+    osc2.connect(gainNode);
+    osc3.connect(gainNode);
+    
+    // First "cha" - quick high note
+    osc1.type = 'square';
+    osc1.frequency.setValueAtTime(1200, audioContext.currentTime);
+    osc1.frequency.setValueAtTime(800, audioContext.currentTime + 0.05);
+    
+    // Second "ching" - bright bell-like tone
+    osc2.type = 'sine';
+    osc2.frequency.setValueAtTime(1567.98, audioContext.currentTime + 0.1); // G6
+    osc2.frequency.setValueAtTime(2093, audioContext.currentTime + 0.15); // C7
+    
+    // Sparkle overlay
+    osc3.type = 'triangle';
+    osc3.frequency.setValueAtTime(2637, audioContext.currentTime + 0.1); // E7
+    osc3.frequency.setValueAtTime(3136, audioContext.currentTime + 0.2); // G7
+    
+    gainNode.gain.setValueAtTime(0.25, audioContext.currentTime);
+    gainNode.gain.setValueAtTime(0.4, audioContext.currentTime + 0.1);
+    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
+    
+    osc1.start(audioContext.currentTime);
+    osc1.stop(audioContext.currentTime + 0.1);
+    
+    osc2.start(audioContext.currentTime + 0.1);
+    osc2.stop(audioContext.currentTime + 0.4);
+    
+    osc3.start(audioContext.currentTime + 0.1);
+    osc3.stop(audioContext.currentTime + 0.5);
+  } catch (error) {
+    console.log('Audio not supported:', error);
+  }
+};
+
 const playCapacityIncreaseSound = (ticketType: string) => {
   try {
     const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
@@ -707,7 +755,7 @@ const LiveBookings = () => {
                    const posUserIcon = posOrderDetails.pos_users?.icon || '👤';
                    
                    if (soundEnabled) {
-                     playNotificationSound();
+                     playPOSNotificationSound();
                    }
                    
                    toast.success(
