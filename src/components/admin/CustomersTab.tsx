@@ -1025,9 +1025,17 @@ export const CustomersTab = () => {
             return (
               <Card
                 key={customer.id}
-                className="p-4 hover:shadow-lg transition-shadow cursor-pointer flex flex-col h-full"
+                className="hover:shadow-lg transition-shadow cursor-pointer flex flex-col h-full overflow-hidden"
                 onClick={() => setSelectedCustomer(customer)}
               >
+                {/* Event Name Header */}
+                {customer.orders[0]?.event_title && (
+                  <div className="bg-primary text-primary-foreground px-4 py-2 text-center">
+                    <span className="text-sm font-bold font-lusail">{customer.orders[0].event_title}</span>
+                  </div>
+                )}
+                
+                <div className="p-4 flex flex-col flex-1">
                 <div className="flex flex-col space-y-3 flex-1">
 
                   {/* Customer Header */}
@@ -1138,9 +1146,10 @@ export const CustomersTab = () => {
                     </div>
                   )}
                 </div>
+                </div>
 
                 {/* Action Buttons - Outside the flex-1 container */}
-                <div className="flex gap-2 pt-4 border-t border-border/30 mt-4">
+                <div className="flex gap-2 pt-4 border-t border-border/30 px-4 pb-4">
                   <Button
                     size="sm"
                     variant="outline"
