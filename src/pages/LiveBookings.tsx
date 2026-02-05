@@ -15,6 +15,7 @@ import { toZonedTime, formatInTimeZone } from "date-fns-tz";
 import { cn } from "@/lib/utils";
 import { Footer } from "@/components/Footer";
 import { canPurchaseTickets } from "@/lib/eventUtils";
+import { CapacityNotificationBanner } from "@/components/admin/CapacityNotificationBanner";
 
 const QATAR_TIMEZONE = "Asia/Qatar";
 
@@ -252,6 +253,14 @@ const LiveBookings = () => {
   const [isDateInitialized, setIsDateInitialized] = useState(false);
   const [dailySalesDialogOpen, setDailySalesDialogOpen] = useState(false);
   const [dailySummaries, setDailySummaries] = useState<DailySummary[]>([]);
+  
+  // Capacity increase notification state
+  const [capacityNotification, setCapacityNotification] = useState<{
+    ticketType: string;
+    increase: number;
+    newCapacity: number;
+  } | null>(null);
+  const [showCapacityNotification, setShowCapacityNotification] = useState(false);
 
   // Check if a booking is within the last 5 minutes (for highlight)
   const isRecentBooking = (createdAt: string | undefined): boolean => {
@@ -718,27 +727,24 @@ const LiveBookings = () => {
             // Only show notification if capacity INCREASED
             if (newCapacity > oldCapacity) {
               const increase = newCapacity - oldCapacity;
-              const typeLabels: Record<string, string> = {
-                vip: 'VIP',
-                normal: 'عادي',
-                parking: 'مواقف'
-              };
               
               if (soundEnabled) {
                 playCapacityIncreaseSound(ticketType);
               }
               
-              toast.success(
-                `🎉 تذاكر جديدة متاحة!\n+${increase} تذكرة ${typeLabels[ticketType] || ticketType} (السعة: ${newCapacity})`,
-                {
-                  duration: 6000,
-                  style: {
-                    whiteSpace: 'pre-line',
-                    textAlign: 'right',
-                    direction: 'rtl'
-                  }
-                }
-              );
+              // Show centered banner notification
+              setCapacityNotification({
+                ticketType,
+                increase,
+                newCapacity
+              });
+              setShowCapacityNotification(true);
+              
+              // Auto-dismiss after 4 seconds
+              setTimeout(() => {
+                setShowCapacityNotification(false);
+                setCapacityNotification(null);
+              }, 4000);
             }
           }
         }
@@ -1008,6 +1014,19 @@ const LiveBookings = () => {
 
   return (
     <div className="min-h-screen bg-background font-lusail flex flex-col" dir="rtl">
+      {/* Capacity Increase Notification Banner */}
+      {showCapacityNotification && capacityNotification && (
+        <CapacityNotificationBanner
+          ticketType={capacityNotification.ticketType}
+          increase={capacityNotification.increase}
+          newCapacity={capacityNotification.newCapacity}
+          onDismiss={() => {
+            setShowCapacityNotification(false);
+            setCapacityNotification(null);
+          }}
+        />
+      )}
+      
       {/* Header with Logo */}
       <header className="border-b backdrop-blur-sm sticky top-0 z-10" style={{ backgroundColor: headerBgColor }}>
         <div className="container mx-auto px-2 sm:px-4 py-2 sm:py-4 flex flex-wrap justify-between items-center gap-2">

@@ -30,7 +30,7 @@ export const CapacityNotificationBanner = ({
   return (
     <div 
       className={cn(
-        "fixed top-4 left-4 right-4 z-50 mx-auto max-w-2xl",
+        "fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-[90%] max-w-xl",
         "animate-in slide-in-from-top-5 duration-500"
       )}
     >
@@ -83,9 +83,9 @@ export const CapacityNotificationBanner = ({
         {/* Progress bar for auto-dismiss */}
         <div className="absolute bottom-0 left-0 right-0 h-1 bg-white/20">
           <div 
-            className="h-full bg-white/60 animate-[shrink_10s_linear_forwards]"
+            className="h-full bg-white/60 animate-[shrink_4s_linear_forwards]"
             style={{
-              animation: 'shrink 10s linear forwards'
+              animation: 'shrink 4s linear forwards'
             }}
           />
         </div>
