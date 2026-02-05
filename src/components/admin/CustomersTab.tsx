@@ -137,6 +137,7 @@ export const CustomersTab = () => {
   const [editingTicketHolder, setEditingTicketHolder] = useState<string | null>(null);
   const [ticketHolderEditForm, setTicketHolderEditForm] = useState({ phone: "", country_code: "" });
   const [sendingSingleTicket, setSendingSingleTicket] = useState<string | null>(null);
+  const [phoneTicketCounts, setPhoneTicketCounts] = useState<Record<string, number>>({});
 
   const gulfNationalities = [
     { name: "قطر", flag: "🇶🇦" },
@@ -177,6 +178,7 @@ export const CustomersTab = () => {
   useEffect(() => {
     fetchCustomers();
     fetchSettings();
+    fetchPhoneTicketCounts();
   }, []);
 
   const fetchSettings = async () => {
@@ -192,6 +194,37 @@ export const CustomersTab = () => {
 
     if (data?.show_delete_customer_button !== undefined) {
       setShowDeleteButton(data.show_delete_customer_button);
+    }
+  };
+
+  const fetchPhoneTicketCounts = async () => {
+    try {
+      // Fetch all ticket holders with confirmed orders to count by phone
+      const { data, error } = await supabase
+        .from("ticket_holders")
+        .select(`
+          phone,
+          order_id,
+          orders!inner (
+            payment_status
+          )
+        `)
+        .eq("orders.payment_status", "confirmed");
+
+      if (error) throw error;
+
+      // Count tickets per phone number
+      const counts: Record<string, number> = {};
+      (data || []).forEach((holder: any) => {
+        const phone = holder.phone?.trim();
+        if (phone) {
+          counts[phone] = (counts[phone] || 0) + 1;
+        }
+      });
+
+      setPhoneTicketCounts(counts);
+    } catch (error) {
+      console.error("Error fetching phone ticket counts:", error);
     }
   };
 
@@ -1025,12 +1058,18 @@ export const CustomersTab = () => {
             return (
               <Card
                 key={customer.id}
-                className="hover:shadow-lg transition-shadow cursor-pointer flex flex-col h-full overflow-hidden"
+                className="hover:shadow-lg transition-shadow cursor-pointer flex flex-col h-full overflow-hidden relative"
                 onClick={() => setSelectedCustomer(customer)}
               >
                 {/* Event Name Header */}
                 {customer.orders[0]?.event_title && (
-                  <div className="bg-primary text-primary-foreground px-4 py-2 text-center">
+                  <div className="bg-primary text-primary-foreground px-4 py-2 text-center relative">
+                    {/* Repeat ticket count badge */}
+                    {phoneTicketCounts[customer.phone] > 1 && (
+                      <div className="absolute top-1/2 -translate-y-1/2 left-2 bg-primary-foreground text-primary text-xs font-bold rounded-full w-6 h-6 flex items-center justify-center shadow-md">
+                        {phoneTicketCounts[customer.phone]}
+                      </div>
+                    )}
                     <span className="text-sm font-bold font-lusail">{customer.orders[0].event_title}</span>
                   </div>
                 )}
