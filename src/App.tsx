@@ -41,7 +41,12 @@ const App = () => (
       <SettingsProvider>
         <TooltipProvider>
           <Toaster />
-          <Sonner />
+            <Sonner 
+              position="top-right"
+              expand={true}
+              visibleToasts={6}
+              gap={12}
+            />
           <BrowserRouter>
             <VisitorTracker>
               <ChunkLoadErrorBoundary>

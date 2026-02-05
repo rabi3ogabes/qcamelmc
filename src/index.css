@@ -143,4 +143,40 @@ All colors MUST be HSL.
   .animate-recent-pulse {
     animation: recent-pulse 2s ease-in-out infinite;
   }
+
+  /* Toast slide-in animation */
+  @keyframes slideInRight {
+    from {
+      transform: translateX(100%);
+      opacity: 0;
+    }
+    to {
+      transform: translateX(0);
+      opacity: 1;
+    }
+  }
+
+  @keyframes slideOutRight {
+    from {
+      transform: translateX(0);
+      opacity: 1;
+    }
+    to {
+      transform: translateX(100%);
+      opacity: 0;
+    }
+  }
+
+  /* Sonner toast stacking styles */
+  [data-sonner-toaster] {
+    --gap: 12px !important;
+  }
+
+  [data-sonner-toast] {
+    animation: slideInRight 0.4s ease-out !important;
+  }
+
+  [data-sonner-toast][data-removed="true"] {
+    animation: slideOutRight 0.3s ease-in forwards !important;
+  }
 }
