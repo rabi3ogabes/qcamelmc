@@ -36,6 +36,7 @@ interface DailySummary {
 
 // Create audio context for notification sounds
 const playNotificationSound = () => {
+  // Generic booking notification sound
   try {
     const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
     const oscillator = audioContext.createOscillator();
@@ -56,6 +57,88 @@ const playNotificationSound = () => {
     
     oscillator.start(audioContext.currentTime);
     oscillator.stop(audioContext.currentTime + 0.5);
+  } catch (error) {
+    console.log('Audio not supported:', error);
+  }
+};
+
+// Check-in notification sounds - different for each ticket type
+const playCheckinSound = (ticketType: string) => {
+  try {
+    const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+    const gainNode = audioContext.createGain();
+    gainNode.connect(audioContext.destination);
+    
+    if (ticketType === 'vip') {
+      // VIP: Elegant welcome chime - warm, premium feel
+      const osc1 = audioContext.createOscillator();
+      const osc2 = audioContext.createOscillator();
+      
+      osc1.connect(gainNode);
+      osc2.connect(gainNode);
+      
+      osc1.type = 'sine';
+      osc1.frequency.setValueAtTime(523.25, audioContext.currentTime); // C5
+      osc1.frequency.setValueAtTime(659.25, audioContext.currentTime + 0.15); // E5
+      osc1.frequency.setValueAtTime(783.99, audioContext.currentTime + 0.3); // G5
+      
+      osc2.type = 'triangle';
+      osc2.frequency.setValueAtTime(1046.5, audioContext.currentTime); // C6 (octave higher)
+      osc2.frequency.setValueAtTime(1318.51, audioContext.currentTime + 0.15); // E6
+      osc2.frequency.setValueAtTime(1567.98, audioContext.currentTime + 0.3); // G6
+      
+      gainNode.gain.setValueAtTime(0.4, audioContext.currentTime);
+      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.6);
+      
+      osc1.start(audioContext.currentTime);
+      osc2.start(audioContext.currentTime);
+      osc1.stop(audioContext.currentTime + 0.6);
+      osc2.stop(audioContext.currentTime + 0.6);
+      
+    } else if (ticketType === 'normal') {
+      // Normal: Simple pleasant ding
+      const osc1 = audioContext.createOscillator();
+      
+      osc1.connect(gainNode);
+      
+      osc1.type = 'sine';
+      osc1.frequency.setValueAtTime(698.46, audioContext.currentTime); // F5
+      osc1.frequency.setValueAtTime(880, audioContext.currentTime + 0.1); // A5
+      
+      gainNode.gain.setValueAtTime(0.35, audioContext.currentTime);
+      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.4);
+      
+      osc1.start(audioContext.currentTime);
+      osc1.stop(audioContext.currentTime + 0.4);
+      
+    } else if (ticketType === 'parking') {
+      // Parking: Short low beep
+      const osc1 = audioContext.createOscillator();
+      
+      osc1.connect(gainNode);
+      
+      osc1.type = 'sine';
+      osc1.frequency.setValueAtTime(349.23, audioContext.currentTime); // F4
+      osc1.frequency.setValueAtTime(440, audioContext.currentTime + 0.08); // A4
+      
+      gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
+      
+      osc1.start(audioContext.currentTime);
+      osc1.stop(audioContext.currentTime + 0.3);
+      
+    } else {
+      // Default fallback
+      const osc1 = audioContext.createOscillator();
+      osc1.connect(gainNode);
+      osc1.type = 'sine';
+      osc1.frequency.setValueAtTime(440, audioContext.currentTime);
+      osc1.frequency.setValueAtTime(523.25, audioContext.currentTime + 0.1);
+      gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
+      osc1.start(audioContext.currentTime);
+      osc1.stop(audioContext.currentTime + 0.3);
+    }
   } catch (error) {
     console.log('Audio not supported:', error);
   }
@@ -690,22 +773,74 @@ const LiveBookings = () => {
                 if (holderDetails && checkinNotificationsEnabled) {
                   const nationality = holderDetails.nationality || 'غير محدد';
                   const flag = getNationalityFlag(nationality);
-                  const ticketType = holderDetails.ticket_type === 'vip' ? 'VIP' : 
-                                     holderDetails.ticket_type === 'normal' ? 'عادي' : 
-                                     holderDetails.ticket_type === 'parking' ? 'مواقف' : holderDetails.ticket_type;
+                  const ticketTypeLabel = holderDetails.ticket_type === 'vip' ? 'VIP' : 
+                                          holderDetails.ticket_type === 'normal' ? 'عادي' : 
+                                          holderDetails.ticket_type === 'parking' ? 'مواقف' : holderDetails.ticket_type;
+                  
+                  // Get styling based on ticket type
+                  const getTicketStyle = () => {
+                    switch (holderDetails.ticket_type) {
+                      case 'vip':
+                        return {
+                          background: 'linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%)',
+                          border: '2px solid #d97706',
+                          color: '#78350f',
+                          icon: '👑'
+                        };
+                      case 'normal':
+                        return {
+                          background: 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)',
+                          border: '2px solid #15803d',
+                          color: '#ffffff',
+                          icon: '🎫'
+                        };
+                      case 'parking':
+                        return {
+                          background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
+                          border: '2px solid #1d4ed8',
+                          color: '#ffffff',
+                          icon: '🅿️'
+                        };
+                      default:
+                        return {
+                          background: 'linear-gradient(135deg, #6b7280 0%, #4b5563 100%)',
+                          border: '2px solid #374151',
+                          color: '#ffffff',
+                          icon: '🎫'
+                        };
+                    }
+                  };
+                  
+                  const style = getTicketStyle();
                   
                   if (soundEnabled) {
-                    playNotificationSound();
+                    playCheckinSound(holderDetails.ticket_type);
                   }
                   
-                  toast.info(
-                    `${flag} تسجيل حضور: ${holderDetails.name}\n🎫 تذكرة ${ticketType}`,
+                  toast.success(
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', direction: 'rtl', textAlign: 'right' }}>
+                      <div style={{ fontSize: '18px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'flex-end' }}>
+                        <span>{holderDetails.name}</span>
+                        <span style={{ fontSize: '24px' }}>{flag}</span>
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', justifyContent: 'flex-end', opacity: 0.9 }}>
+                        <span style={{ fontWeight: 500 }}>تذكرة {ticketTypeLabel}</span>
+                        <span style={{ fontSize: '16px' }}>{style.icon}</span>
+                      </div>
+                      <div style={{ fontSize: '12px', opacity: 0.8, marginTop: '2px' }}>
+                        ✅ تم تسجيل الحضور
+                      </div>
+                    </div>,
                     {
-                      duration: 4000,
+                      duration: 5000,
                       style: {
-                        whiteSpace: 'pre-line',
-                        textAlign: 'right',
-                        direction: 'rtl'
+                        background: style.background,
+                        border: style.border,
+                        color: style.color,
+                        padding: '16px 20px',
+                        borderRadius: '12px',
+                        boxShadow: '0 10px 40px rgba(0,0,0,0.3)',
+                        minWidth: '280px'
                       }
                     }
                   );
