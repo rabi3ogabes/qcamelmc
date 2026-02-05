@@ -230,6 +230,9 @@ const LiveBookings = () => {
   const [newTicketHolderIds, setNewTicketHolderIds] = useState<Set<string>>(new Set());
   const previousTicketHolderIdsRef = useRef<Set<string>>(new Set());
   const isInitialLoadRef = useRef(true);
+  // Keep track of previous ticket capacities (do NOT rely on payload.old, which may be incomplete)
+  const previousTicketCapacitiesRef = useRef<Map<string, number>>(new Map());
+  const capacityDismissTimeoutRef = useRef<number | null>(null);
   const [stats, setStats] = useState({
     total: 0,
     confirmed: 0,
@@ -261,6 +264,24 @@ const LiveBookings = () => {
     newCapacity: number;
   } | null>(null);
   const [showCapacityNotification, setShowCapacityNotification] = useState(false);
+
+  const dismissCapacityNotification = useCallback(() => {
+    setShowCapacityNotification(false);
+    setCapacityNotification(null);
+    if (capacityDismissTimeoutRef.current) {
+      window.clearTimeout(capacityDismissTimeoutRef.current);
+      capacityDismissTimeoutRef.current = null;
+    }
+  }, []);
+
+  // Cleanup pending timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (capacityDismissTimeoutRef.current) {
+        window.clearTimeout(capacityDismissTimeoutRef.current);
+      }
+    };
+  }, []);
 
   // Check if a booking is within the last 5 minutes (for highlight)
   const isRecentBooking = (createdAt: string | undefined): boolean => {
@@ -521,10 +542,13 @@ const LiveBookings = () => {
         
         if (ticketsData) {
           const capacities: { [key: string]: number } = {};
+          const capacitiesMap = new Map<string, number>();
           ticketsData.forEach(ticket => {
             capacities[ticket.type] = ticket.available_quantity;
+            capacitiesMap.set(ticket.type, ticket.available_quantity);
           });
           setTicketCapacities(capacities);
+          previousTicketCapacitiesRef.current = capacitiesMap;
         }
       }
       
@@ -711,42 +735,47 @@ const LiveBookings = () => {
         (payload) => {
           console.log('Ticket capacity update:', payload);
           const newTicket = payload.new as any;
-          const oldTicket = payload.old as any;
-          
-          if (!isInitialLoadRef.current && newTicket && oldTicket) {
-            const ticketType = newTicket.type;
-            const newCapacity = newTicket.available_quantity;
-            const oldCapacity = oldTicket.available_quantity;
-            
-            // Update the capacities state immediately
-            setTicketCapacities(prev => ({
-              ...prev,
-              [ticketType]: newCapacity
-            }));
-            
-            // Only show notification if capacity INCREASED
-            if (newCapacity > oldCapacity) {
-              const increase = newCapacity - oldCapacity;
-              
-              if (soundEnabled) {
-                playCapacityIncreaseSound(ticketType);
-              }
-              
-              // Show centered banner notification
-              setCapacityNotification({
-                ticketType,
-                increase,
-                newCapacity
-              });
-              setShowCapacityNotification(true);
-              
-              // Auto-dismiss after 4 seconds
-              setTimeout(() => {
-                setShowCapacityNotification(false);
-                setCapacityNotification(null);
-              }, 4000);
-            }
+
+          if (!newTicket) return;
+
+          const ticketType = newTicket.type as string;
+          const newCapacity = Number(newTicket.available_quantity ?? 0);
+          const oldCapacity = previousTicketCapacitiesRef.current.get(ticketType);
+
+          // Update the capacities state immediately
+          setTicketCapacities(prev => ({
+            ...prev,
+            [ticketType]: newCapacity
+          }));
+
+          // If we don't know the previous capacity yet, seed and skip notifying (avoids false positives)
+          if (typeof oldCapacity !== 'number') {
+            previousTicketCapacitiesRef.current.set(ticketType, newCapacity);
+            return;
           }
+
+          if (!isInitialLoadRef.current && newCapacity > oldCapacity) {
+            const increase = newCapacity - oldCapacity;
+
+            if (soundEnabled) {
+              playCapacityIncreaseSound(ticketType);
+            }
+
+            // Show centered banner notification
+            setCapacityNotification({ ticketType, increase, newCapacity });
+            setShowCapacityNotification(true);
+
+            // Auto-dismiss after 4 seconds (reset if another increase arrives)
+            if (capacityDismissTimeoutRef.current) {
+              window.clearTimeout(capacityDismissTimeoutRef.current);
+            }
+            capacityDismissTimeoutRef.current = window.setTimeout(() => {
+              dismissCapacityNotification();
+            }, 4000);
+          }
+
+          // Always update stored capacity
+          previousTicketCapacitiesRef.current.set(ticketType, newCapacity);
         }
       )
       .subscribe();
@@ -1020,10 +1049,7 @@ const LiveBookings = () => {
           ticketType={capacityNotification.ticketType}
           increase={capacityNotification.increase}
           newCapacity={capacityNotification.newCapacity}
-          onDismiss={() => {
-            setShowCapacityNotification(false);
-            setCapacityNotification(null);
-          }}
+          onDismiss={dismissCapacityNotification}
         />
       )}
       
