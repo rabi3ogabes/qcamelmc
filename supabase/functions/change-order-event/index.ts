@@ -107,7 +107,28 @@ serve(async (req) => {
       console.log(`[Change Event] Stored ${expiredQRCodes.length} expired QR codes`);
     }
 
-    // 4. Generate new QR code for order
+    // 4. Get old event details before updating
+    const { data: currentOrder } = await supabase
+      .from('orders')
+      .select('event_id')
+      .eq('id', order_id)
+      .single();
+
+    const oldEventId = currentOrder?.event_id;
+
+    const { data: oldEvent } = await supabase
+      .from('events')
+      .select('id, title, event_date, location')
+      .eq('id', oldEventId)
+      .single();
+
+    const { data: newEvent } = await supabase
+      .from('events')
+      .select('id, title, event_date, location')
+      .eq('id', new_event_id)
+      .single();
+
+    // 5. Generate new QR code for order
     const newOrderQRCode = generateQRCode();
     const { error: updateOrderError } = await supabase
       .from('orders')
@@ -146,6 +167,24 @@ serve(async (req) => {
     }
 
     console.log(`[Change Event] Updated ${updatedHoldersCount} ticket holders with new QR codes`);
+
+    // 7. Log the event change in activity_logs
+    await supabase.from('activity_logs').insert({
+      activity_type: 'event_change',
+      user_type: 'admin',
+      action_data: {
+        order_id: order_id,
+        booking_reference: order.booking_reference,
+        old_event_id: oldEventId,
+        old_event_title: oldEvent?.title || 'Unknown',
+        old_event_date: oldEvent?.event_date || '',
+        new_event_id: new_event_id,
+        new_event_title: newEvent?.title || 'Unknown',
+        new_event_date: newEvent?.event_date || '',
+      }
+    });
+
+    console.log(`[Change Event] Logged event change in activity_logs`);
 
     return new Response(
       JSON.stringify({ 
