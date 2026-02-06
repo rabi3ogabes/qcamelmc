@@ -125,11 +125,16 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Filter out orders from November 6, 7, 8, 2025
+    // Filter out orders from November 6, 7, 8, 2025 AND orders for expired events (past 6 PM Qatar time)
+    const now = new Date();
+    // Current time in Qatar (UTC+3)
+    const qatarOffset = 3 * 60 * 60 * 1000;
+    const qatarNow = new Date(now.getTime() + (now.getTimezoneOffset() * 60 * 1000) + qatarOffset);
+
     const orders = (allOrders || []).filter(order => {
       const orderDate = new Date(order.created_at);
       const year = orderDate.getFullYear();
-      const month = orderDate.getMonth(); // 0-indexed (10 = November)
+      const month = orderDate.getMonth();
       const day = orderDate.getDate();
       
       // Exclude November 6, 7, 8, 2025
@@ -138,8 +143,25 @@ Deno.serve(async (req) => {
           return false;
         }
       }
+
+      // Skip orders for expired events (past 6 PM Qatar time on event day)
+      if (order.events?.event_date) {
+        const eventDate = new Date(order.events.event_date);
+        const eventDateOnly = new Date(eventDate.getFullYear(), eventDate.getMonth(), eventDate.getDate());
+        const qatarDateOnly = new Date(qatarNow.getFullYear(), qatarNow.getMonth(), qatarNow.getDate());
+        
+        if (qatarDateOnly > eventDateOnly) {
+          console.log(`Skipping order ${order.booking_reference} - event expired (past date)`);
+          return false;
+        }
+        if (qatarDateOnly.getTime() === eventDateOnly.getTime() && qatarNow.getHours() >= 18) {
+          console.log(`Skipping order ${order.booking_reference} - event expired (past 6 PM Qatar)`);
+          return false;
+        }
+      }
+
       return true;
-    }).slice(0, batchMax); // Apply the original batch limit after filtering
+    }).slice(0, batchMax);
 
     if (!orders || orders.length === 0) {
       console.log('No orders to send after filtering');
