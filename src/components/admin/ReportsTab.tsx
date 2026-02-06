@@ -156,43 +156,63 @@ export const ReportsTab = () => {
       setLoading(true);
     }
     try {
-      // Fetch orders with related customer, event, and ticket holders data
-      let query = supabase
-        .from("orders")
-        .select(`
-          *,
-          customers (
-            name,
-            email,
-            phone,
-            nationality,
-            id_number,
-            country_code
-          ),
-          events (
-            title,
-            event_date,
-            location
-          ),
-          ticket_holders (
-            name,
-            phone,
-            nationality,
-            id_number,
-            ticket_type,
-            is_present,
-            qr_code,
-            country_code
-          )
-        `)
-        .order("created_at", { ascending: false });
+      // Fetch ALL orders using pagination to avoid the 1000-row limit
+      const PAGE_SIZE = 1000;
+      let allOrders: any[] = [];
+      let page = 0;
+      let hasMore = true;
 
-      // Filter for Sadad only if requested
-      if (sadadOnly) {
-        query = query.eq("payment_method", "sadad");
+      while (hasMore) {
+        let query = supabase
+          .from("orders")
+          .select(`
+            *,
+            customers (
+              name,
+              email,
+              phone,
+              nationality,
+              id_number,
+              country_code
+            ),
+            events (
+              title,
+              event_date,
+              location
+            ),
+            ticket_holders (
+              name,
+              phone,
+              nationality,
+              id_number,
+              ticket_type,
+              is_present,
+              qr_code,
+              country_code
+            )
+          `)
+          .order("created_at", { ascending: false })
+          .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
+
+        if (sadadOnly) {
+          query = query.eq("payment_method", "sadad");
+        }
+
+        const { data, error: fetchError } = await query;
+
+        if (fetchError) throw fetchError;
+
+        if (data && data.length > 0) {
+          allOrders = [...allOrders, ...data];
+          hasMore = data.length === PAGE_SIZE;
+          page++;
+        } else {
+          hasMore = false;
+        }
       }
 
-      const { data: orders, error } = await query;
+      const orders = allOrders;
+      const error = null;
 
       if (error) throw error;
 
