@@ -4,7 +4,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Send, Loader2, CheckCircle, Clock, RotateCcw, CalendarX, PauseCircle } from "lucide-react";
+import { Send, Loader2, CheckCircle, Clock, RotateCcw, CalendarX, PauseCircle, FileDown } from "lucide-react";
+import { generateInvoicePdf } from "@/lib/generateInvoicePdf";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { format } from "date-fns";
@@ -962,6 +963,36 @@ export const InvoiceTab = () => {
                             إعادة
                           </Button>
                         )}
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+                            const qrCodes = order.ticket_holders?.map(h => {
+                              if (!h.qr_code) return '';
+                              return h.qr_code.startsWith('http') ? h.qr_code : `${supabaseUrl}/storage/v1/object/public/qr-codes/${h.qr_code}.png`;
+                            }).filter(Boolean) || [];
+                            const ticketTypes = order.ticket_holders?.map(h => h.ticket_type) || [];
+                            generateInvoicePdf({
+                              booking_reference: order.booking_reference,
+                              customer_name: order.customers.name,
+                              customer_phone: order.customers.phone,
+                              nationality: order.customers.nationality,
+                              ticket_type: order.ticket_type,
+                              quantity: order.quantity,
+                              total_amount: order.total_amount,
+                              payment_status: order.payment_status,
+                              event_title: order.events?.title || '',
+                              event_date: order.events?.event_date || '',
+                              qr_codes: qrCodes,
+                              ticket_types: ticketTypes,
+                            });
+                          }}
+                          className="gap-1 text-xs"
+                        >
+                          <FileDown className="w-3 h-3" />
+                          فاتورة
+                        </Button>
                       </div>
                     </TableCell>
                   </TableRow>
