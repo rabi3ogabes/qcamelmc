@@ -10,6 +10,7 @@ import { useSettings } from "@/contexts/SettingsContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { format } from "date-fns";
+import { isEventExpired } from "@/lib/eventUtils";
 
 const COUNTRY_FLAGS: Record<string, string> = {
   "السعودية": "🇸🇦",
@@ -140,15 +141,10 @@ export const InvoiceTab = () => {
     return message === 'جاري الإرسال إلى واتساب...';
   };
 
-  // Check if event date has passed (event is done)
+  // Check if event date has passed (past 6 PM Qatar time on event day)
   const isEventDone = (order: Order) => {
     if (!order.events?.event_date) return false;
-    const eventDate = new Date(order.events.event_date);
-    const today = new Date();
-    // Set both dates to start of day for comparison
-    eventDate.setHours(23, 59, 59, 999); // End of event day
-    today.setHours(0, 0, 0, 0); // Start of today
-    return eventDate < today;
+    return isEventExpired(order.events.event_date);
   };
 
   // Check if order is on hold (2+ failed send attempts without success)
