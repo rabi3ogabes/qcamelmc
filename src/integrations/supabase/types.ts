@@ -487,6 +487,7 @@ export type Database = {
           before_footer_image_url: string | null
           copyright_text: string | null
           created_at: string | null
+          email_webhook_url: string | null
           header_bg_color: string | null
           header_bg_image_url: string | null
           hero_image_url: string | null
@@ -514,6 +515,7 @@ export type Database = {
           before_footer_image_url?: string | null
           copyright_text?: string | null
           created_at?: string | null
+          email_webhook_url?: string | null
           header_bg_color?: string | null
           header_bg_image_url?: string | null
           hero_image_url?: string | null
@@ -541,6 +543,7 @@ export type Database = {
           before_footer_image_url?: string | null
           copyright_text?: string | null
           created_at?: string | null
+          email_webhook_url?: string | null
           header_bg_color?: string | null
           header_bg_image_url?: string | null
           hero_image_url?: string | null

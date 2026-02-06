@@ -74,6 +74,7 @@ export const InvoiceTab = () => {
   const [sending, setSending] = useState(false);
   const [sentOrders, setSentOrders] = useState<Map<string, { sentAt: Date; message?: string }>>(new Map());
   const [webhookUrl, setWebhookUrl] = useState<string | null>(null);
+  const [emailWebhookUrl, setEmailWebhookUrl] = useState<string | null>(null);
   const [currentlySending, setCurrentlySending] = useState<string | null>(null);
   const [autoInvoiceInterval, setAutoInvoiceInterval] = useState<number>(60);
   const [countdown, setCountdown] = useState<number>(60);
@@ -213,7 +214,7 @@ export const InvoiceTab = () => {
   const fetchWebhookUrl = async () => {
     const { data, error } = await supabase
       .from("settings")
-      .select("webhook_url")
+      .select("webhook_url, email_webhook_url")
       .maybeSingle();
 
     if (error) {
@@ -222,6 +223,7 @@ export const InvoiceTab = () => {
     }
 
     setWebhookUrl(data?.webhook_url || null);
+    setEmailWebhookUrl((data as any)?.email_webhook_url || null);
   };
 
   const fetchAutoInvoiceInterval = async () => {
@@ -647,8 +649,8 @@ export const InvoiceTab = () => {
   };
 
   const sendEmailInvoice = async (order: Order) => {
-    if (!webhookUrl) {
-      toast.error("لم يتم تكوين رابط الويب هوك");
+    if (!emailWebhookUrl) {
+      toast.error("لم يتم تكوين رابط الويب هوك للبريد الإلكتروني. يرجى إضافته في الإعدادات");
       return;
     }
     if (!order.customers.email) {

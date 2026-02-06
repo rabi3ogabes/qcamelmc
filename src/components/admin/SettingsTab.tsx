@@ -39,6 +39,9 @@ export const SettingsTab = () => {
   const [newCopyrightText, setNewCopyrightText] = useState("");
   const [webhookUrl, setWebhookUrl] = useState("");
   const [newWebhookUrl, setNewWebhookUrl] = useState("");
+  const [emailWebhookUrl, setEmailWebhookUrl] = useState("");
+  const [newEmailWebhookUrl, setNewEmailWebhookUrl] = useState("");
+  const [savingEmailWebhook, setSavingEmailWebhook] = useState(false);
   const [adminPhone, setAdminPhone] = useState("");
   const [newAdminPhone, setNewAdminPhone] = useState("");
   const [sadadMerchantId, setSadadMerchantId] = useState("");
@@ -202,7 +205,7 @@ export const SettingsTab = () => {
   const fetchSettings = async () => {
     const { data, error } = await supabase
       .from("settings")
-      .select("logo_url, hero_image_url, before_footer_image_url, header_bg_color, header_bg_image_url, hero_text, copyright_text, webhook_url, admin_phone, sadad_merchant_id, sadad_api_key, sadad_secret, sadad_website_domain, show_delete_customer_button, show_generate_qr_button, show_delete_event_button, auto_invoice_interval_seconds, invoice_batch_min, invoice_batch_max, invoice_send_delay_min, invoice_send_delay_max")
+      .select("logo_url, hero_image_url, before_footer_image_url, header_bg_color, header_bg_image_url, hero_text, copyright_text, webhook_url, email_webhook_url, admin_phone, sadad_merchant_id, sadad_api_key, sadad_secret, sadad_website_domain, show_delete_customer_button, show_generate_qr_button, show_delete_event_button, auto_invoice_interval_seconds, invoice_batch_min, invoice_batch_max, invoice_send_delay_min, invoice_send_delay_max")
       .maybeSingle();
 
     if (error) {
@@ -248,6 +251,11 @@ export const SettingsTab = () => {
     if (data?.webhook_url) {
       setWebhookUrl(data.webhook_url);
       setNewWebhookUrl(data.webhook_url);
+    }
+
+    if (data?.email_webhook_url) {
+      setEmailWebhookUrl(data.email_webhook_url);
+      setNewEmailWebhookUrl(data.email_webhook_url);
     }
 
     if (data?.admin_phone) {
@@ -924,6 +932,37 @@ export const SettingsTab = () => {
     }
   };
 
+  const handleSaveEmailWebhook = async () => {
+    setSavingEmailWebhook(true);
+    try {
+      const { data: settings } = await supabase
+        .from("settings")
+        .select("id")
+        .maybeSingle();
+
+      if (settings) {
+        const { error } = await supabase
+          .from("settings")
+          .update({ email_webhook_url: newEmailWebhookUrl })
+          .eq("id", settings.id);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase
+          .from("settings")
+          .insert({ email_webhook_url: newEmailWebhookUrl });
+        if (error) throw error;
+      }
+
+      setEmailWebhookUrl(newEmailWebhookUrl);
+      toast.success(t("savedSuccessfully"));
+    } catch (error) {
+      console.error("Error saving email webhook:", error);
+      toast.error("فشل في حفظ الإعداد");
+    } finally {
+      setSavingEmailWebhook(false);
+    }
+  };
+
   // Backup and Delete Functions
   const downloadAsExcel = (data: any[], filename: string) => {
     const worksheet = XLSX.utils.json_to_sheet(data);
@@ -1394,12 +1433,12 @@ export const SettingsTab = () => {
         </TabsContent>
 
         <TabsContent value="integrations" className="space-y-6 mt-6">
-          {/* n8n Webhook */}
+          {/* n8n Webhook - WhatsApp */}
           <Card className="p-6">
-            <h3 className="text-lg font-semibold mb-4 font-lusail">رابط Webhook (n8n)</h3>
+            <h3 className="text-lg font-semibold mb-4 font-lusail">رابط Webhook واتساب (n8n)</h3>
             <div className="space-y-4">
               <div>
-                <Label htmlFor="webhook-url-integration" className="font-lusail">رابط Webhook</Label>
+                <Label htmlFor="webhook-url-integration" className="font-lusail">رابط Webhook واتساب</Label>
                 <div className="mt-2">
                   <Input 
                     id="webhook-url-integration" 
@@ -1411,13 +1450,41 @@ export const SettingsTab = () => {
                   />
                 </div>
                 <p className="text-xs text-muted-foreground mt-2">
-                  سيتم استدعاء هذا الرابط بعد كل حجز ناجح لإرسال الفاتورة
+                  سيتم استدعاء هذا الرابط بعد كل حجز ناجح لإرسال الفاتورة عبر واتساب
                 </p>
               </div>
               
               <Button onClick={handleSaveLogo} disabled={loading} className="font-lusail">
                 <Upload className="w-4 h-4 ml-2" />
                 {loading ? t("loading") : t("save")}
+              </Button>
+            </div>
+          </Card>
+
+          {/* n8n Webhook - Email */}
+          <Card className="p-6">
+            <h3 className="text-lg font-semibold mb-4 font-lusail">رابط Webhook البريد الإلكتروني (n8n)</h3>
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="email-webhook-url" className="font-lusail">رابط Webhook البريد</Label>
+                <div className="mt-2">
+                  <Input 
+                    id="email-webhook-url" 
+                    type="url" 
+                    placeholder="https://your-n8n-instance.com/webhook/email..."
+                    value={newEmailWebhookUrl}
+                    onChange={(e) => setNewEmailWebhookUrl(e.target.value)}
+                    className="font-lusail" 
+                  />
+                </div>
+                <p className="text-xs text-muted-foreground mt-2">
+                  سيتم استدعاء هذا الرابط لإرسال الفاتورة عبر البريد الإلكتروني (مختلف عن واتساب)
+                </p>
+              </div>
+              
+              <Button onClick={handleSaveEmailWebhook} disabled={savingEmailWebhook} className="font-lusail">
+                <Upload className="w-4 h-4 ml-2" />
+                {savingEmailWebhook ? t("loading") : t("save")}
               </Button>
             </div>
           </Card>
