@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Send, Loader2, CheckCircle, Clock, RotateCcw, CalendarX, PauseCircle, FileDown } from "lucide-react";
+import { Send, Loader2, CheckCircle, Clock, RotateCcw, CalendarX, PauseCircle, FileDown, Mail } from "lucide-react";
 import { generateInvoicePdf } from "@/lib/generateInvoicePdf";
 import { useSettings } from "@/contexts/SettingsContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -92,6 +92,7 @@ export const InvoiceTab = () => {
   const [delayMax, setDelayMax] = useState<number>(600);
   const [filterTab, setFilterTab] = useState<"all" | "pending" | "sent" | "eventDone" | "onHold">("all");
   const [sendingIndividual, setSendingIndividual] = useState<string | null>(null);
+  const [sendingEmail, setSendingEmail] = useState<string | null>(null);
 
   useEffect(() => {
     fetchOrders();
@@ -645,6 +646,72 @@ export const InvoiceTab = () => {
     }
   };
 
+  const sendEmailInvoice = async (order: Order) => {
+    if (!webhookUrl) {
+      toast.error("لم يتم تكوين رابط الويب هوك");
+      return;
+    }
+    if (!order.customers.email) {
+      toast.error("لا يوجد بريد إلكتروني لهذا العميل");
+      return;
+    }
+
+    setSendingEmail(order.id);
+    try {
+      const countryCode = order.customers.country_code?.replace('+', '') || '974';
+      const fullPhone = `${countryCode}${order.customers.phone}`;
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const ticketQrCodes = order.ticket_holders?.map(holder => {
+        if (!holder.qr_code) return null;
+        if (holder.qr_code.startsWith('http')) return holder.qr_code;
+        return `${supabaseUrl}/storage/v1/object/public/qr-codes/${holder.qr_code}.png`;
+      }).filter(Boolean) || [];
+      const ticketTypes = order.ticket_holders?.map(holder => holder.ticket_type) || [];
+
+      const payload = {
+        action: 'send_email',
+        order_id: order.id,
+        booking_reference: order.booking_reference,
+        customer_name: order.customers.name,
+        customer_phone: order.customers.phone,
+        customer_phone_whatsapp: fullPhone,
+        customer_email: order.customers.email,
+        nationality: order.customers.nationality,
+        ticket_type: order.ticket_type,
+        quantity: order.quantity,
+        total_amount: order.total_amount,
+        payment_status: order.payment_status,
+        qr_codes: ticketQrCodes,
+        ticket_types: ticketTypes,
+        event_title: order.events?.title,
+        event_date: order.events?.event_date,
+        event_location: order.events?.location,
+        created_at: order.created_at,
+        customers: order.customers,
+      };
+
+      const { data, error } = await supabase.functions.invoke('send-to-webhook', {
+        body: payload,
+      });
+
+      if (error) {
+        toast.error(`خطأ في إرسال البريد: ${error.message}`);
+        return;
+      }
+
+      if (data?.error) {
+        toast.error(`خطأ: ${data.error}`);
+        return;
+      }
+
+      toast.success(`تم إرسال الفاتورة بالبريد لـ ${order.customers.name}`);
+    } catch (error) {
+      console.error("Error sending email invoice:", error);
+      toast.error("حدث خطأ أثناء إرسال البريد");
+    } finally {
+      setSendingEmail(null);
+    }
+  };
 
   // Filter orders based on selected tab
   const filteredOrders = orders.filter((order) => {
@@ -802,6 +869,7 @@ export const InvoiceTab = () => {
                 <TableHead className="text-right whitespace-nowrap">اسم العميل</TableHead>
                 <TableHead className="text-right whitespace-nowrap">الدولة</TableHead>
                 <TableHead className="text-right whitespace-nowrap">الهاتف</TableHead>
+                <TableHead className="text-right whitespace-nowrap">البريد</TableHead>
                 <TableHead className="text-right whitespace-nowrap">نوع التذكرة</TableHead>
                 <TableHead className="text-right whitespace-nowrap">الكمية</TableHead>
                 <TableHead className="text-right whitespace-nowrap">المبلغ</TableHead>
@@ -814,7 +882,7 @@ export const InvoiceTab = () => {
             <TableBody>
               {filteredOrders.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={12} className="text-center py-8 text-muted-foreground">
+                  <TableCell colSpan={13} className="text-center py-8 text-muted-foreground">
                     {filterTab === "pending" && "لا توجد طلبات قيد الإرسال"}
                     {filterTab === "sent" && "لا توجد طلبات تم إرسالها"}
                     {filterTab === "eventDone" && "لا توجد طلبات انتهت فعاليتها"}
@@ -889,6 +957,29 @@ export const InvoiceTab = () => {
                     <TableCell>{order.customers.name}</TableCell>
                     <TableCell className="text-2xl">{COUNTRY_FLAGS[order.customers.nationality || "قطر"] || "🇶🇦"}</TableCell>
                     <TableCell dir="ltr" className="text-right">{order.customers.phone}</TableCell>
+                    <TableCell className="text-xs">
+                      {order.customers.email ? (
+                        <div className="flex items-center gap-1">
+                          <span className="truncate max-w-[120px]" title={order.customers.email}>{order.customers.email}</span>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => sendEmailInvoice(order)}
+                            disabled={sendingEmail === order.id || sending}
+                            className="h-6 w-6 p-0 shrink-0"
+                            title="إرسال الفاتورة بالبريد"
+                          >
+                            {sendingEmail === order.id ? (
+                              <Loader2 className="w-3 h-3 animate-spin" />
+                            ) : (
+                              <Mail className="w-3 h-3" />
+                            )}
+                          </Button>
+                        </div>
+                      ) : (
+                        <span className="text-muted-foreground">-</span>
+                      )}
+                    </TableCell>
                     <TableCell>{order.ticket_type}</TableCell>
                     <TableCell>{order.quantity}</TableCell>
                     <TableCell>{order.total_amount} QAR</TableCell>
