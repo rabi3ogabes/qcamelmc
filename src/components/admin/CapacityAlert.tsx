@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertTriangle, TrendingUp, XCircle, CheckCircle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { toZonedTime } from "date-fns-tz";
 
 interface TicketCapacity {
   type: string;
@@ -58,6 +59,27 @@ export const CapacityAlert = ({ eventId }: CapacityAlertProps) => {
         setCapacities([]);
         setLoading(false);
         return;
+      }
+
+      // Check if event has expired (past 6 PM Qatar time)
+      const { data: eventData } = await supabase
+        .from("events")
+        .select("event_date")
+        .eq("id", targetEventId)
+        .maybeSingle();
+
+      if (eventData?.event_date) {
+        const eventDateTime = toZonedTime(new Date(eventData.event_date), "Asia/Qatar");
+        const currentQatarTime = toZonedTime(new Date(), "Asia/Qatar");
+        const eventDateOnly = new Date(eventDateTime.getFullYear(), eventDateTime.getMonth(), eventDateTime.getDate());
+        const currentDateOnly = new Date(currentQatarTime.getFullYear(), currentQatarTime.getMonth(), currentQatarTime.getDate());
+
+        if (currentDateOnly > eventDateOnly || 
+            (currentDateOnly.getTime() === eventDateOnly.getTime() && currentQatarTime.getHours() >= 18)) {
+          setCapacities([]);
+          setLoading(false);
+          return;
+        }
       }
 
       // Fetch tickets for the event
