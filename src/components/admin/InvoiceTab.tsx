@@ -6,6 +6,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Send, Loader2, CheckCircle, Clock, RotateCcw, CalendarX, PauseCircle, FileDown } from "lucide-react";
 import { generateInvoicePdf } from "@/lib/generateInvoicePdf";
+import { useSettings } from "@/contexts/SettingsContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { format } from "date-fns";
@@ -66,6 +67,7 @@ interface Order {
 }
 
 export const InvoiceTab = () => {
+  const { settings } = useSettings();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
@@ -986,6 +988,7 @@ export const InvoiceTab = () => {
                               event_date: order.events?.event_date || '',
                               qr_codes: qrCodes,
                               ticket_types: ticketTypes,
+                              logo_url: settings?.logo_url || 'https://reussir-en-famille.com/log.png',
                             });
                           }}
                           className="gap-1 text-xs"
