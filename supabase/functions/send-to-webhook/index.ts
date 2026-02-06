@@ -18,10 +18,15 @@ Deno.serve(async (req) => {
 
     console.log('=== Send to Webhook Function Started ===');
 
+    // Get the ticket data from request body first to determine action
+    const ticketData = await req.json();
+    const isEmailAction = ticketData.action === 'send_email';
+
     // Get webhook URL from settings
+    const webhookColumn = isEmailAction ? 'email_webhook_url' : 'webhook_url';
     const { data: settings, error: settingsError } = await supabase
       .from('settings')
-      .select('webhook_url')
+      .select('webhook_url, email_webhook_url')
       .single();
 
     if (settingsError) {
@@ -35,27 +40,32 @@ Deno.serve(async (req) => {
       );
     }
 
-    if (!settings?.webhook_url) {
-      console.error('Webhook URL is not configured in settings');
+    const webhookUrl = isEmailAction 
+      ? (settings?.email_webhook_url || settings?.webhook_url)
+      : settings?.webhook_url;
+
+    if (!webhookUrl) {
+      const missingType = isEmailAction ? 'Email webhook' : 'Webhook';
+      console.error(`${missingType} URL is not configured in settings`);
       return new Response(
         JSON.stringify({ 
-          error: 'Webhook URL not configured',
-          hint: 'Please configure the webhook URL in admin settings'
+          error: `${missingType} URL not configured`,
+          hint: isEmailAction 
+            ? 'Please configure the email webhook URL in admin settings'
+            : 'Please configure the webhook URL in admin settings'
         }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    const webhookUrl = settings.webhook_url;
-    console.log('Webhook URL from settings:', webhookUrl);
+    console.log(`Using ${isEmailAction ? 'email' : 'whatsapp'} webhook URL:`, webhookUrl);
 
     // Check if it's a test webhook
     if (webhookUrl.includes('webhook-test')) {
       console.warn('⚠️ WARNING: Using test webhook URL. For production, use a production webhook (workflow must be ACTIVATED in n8n)');
     }
 
-    // Get the ticket data from request body
-    const ticketData = await req.json();
+    // Extract order ID if present for marking as sent
     
     // Extract order ID if present for marking as sent
     const orderId = ticketData.order_id;
