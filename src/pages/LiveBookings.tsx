@@ -6,7 +6,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { CalendarIcon, CheckCircle, XCircle, Users, LayoutGrid, Table as TableIcon, User, Phone, CreditCard, Hash, Maximize, Minimize, Globe, Store, Volume2, VolumeX, Clock, Send, SendHorizonal, CircleDashed, BarChart3, Bell, BellOff } from "lucide-react";
+import { CalendarIcon, CheckCircle, XCircle, Users, LayoutGrid, Table as TableIcon, User, Phone, CreditCard, Hash, Maximize, Minimize, Globe, Store, Volume2, VolumeX, Clock, Send, SendHorizonal, CircleDashed, BarChart3, Bell, BellOff, Copy } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -1806,6 +1806,17 @@ const LiveBookings = () => {
                       <div className="flex items-center gap-1.5 sm:gap-2">
                         <CreditCard className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-primary flex-shrink-0" />
                         <span className="text-[10px] sm:text-xs truncate font-mono">{holder.booking_reference}</span>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigator.clipboard.writeText(holder.booking_reference!);
+                            toast.success("تم نسخ رقم الحجز");
+                          }}
+                          className="p-0.5 hover:bg-muted rounded transition-colors flex-shrink-0"
+                          title="نسخ"
+                        >
+                          <Copy className="w-3 h-3 text-muted-foreground hover:text-primary" />
+                        </button>
                       </div>
                     )}
 
@@ -1904,7 +1915,24 @@ const LiveBookings = () => {
                             </span>
                           )}
                         </TableCell>
-                        <TableCell className="font-mono text-xs sm:text-sm py-2 sm:py-4 hidden lg:table-cell">{holder.booking_reference || '-'}</TableCell>
+                        <TableCell className="font-mono text-xs sm:text-sm py-2 sm:py-4 hidden lg:table-cell">
+                          <span className="inline-flex items-center gap-1">
+                            {holder.booking_reference || '-'}
+                            {holder.booking_reference && (
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  navigator.clipboard.writeText(holder.booking_reference!);
+                                  toast.success("تم نسخ رقم الحجز");
+                                }}
+                                className="p-0.5 hover:bg-muted rounded transition-colors"
+                                title="نسخ"
+                              >
+                                <Copy className="w-3 h-3 text-muted-foreground hover:text-primary" />
+                              </button>
+                            )}
+                          </span>
+                        </TableCell>
                         <TableCell className="py-2 sm:py-4">
                           <Badge variant="outline" className="text-[10px] sm:text-xs">
                             {holder.ticket_type.toUpperCase()}
