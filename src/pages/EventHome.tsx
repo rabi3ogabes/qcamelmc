@@ -51,19 +51,23 @@ const EventHome = () => {
 
   const fetchEvents = async () => {
     try {
-      // Fetch all active events
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 10000);
+
       const { data, error } = await supabase
         .from("events")
-        .select("*")
+        .select("id, title, description, event_date, location, image_url, start_time, end_time")
         .eq("is_active", true)
         .order("event_date", { ascending: true })
         .order("display_order", { ascending: true })
-        .order("start_time", { ascending: true });
+        .order("start_time", { ascending: true })
+        .abortSignal(controller.signal);
+
+      clearTimeout(timeout);
 
       if (error) throw error;
       
-      // Filter out expired events (past 6 PM on event day)
-      const availableEvents = (data || []).filter(event => !canPurchaseTickets(event.event_date) ? false : true);
+      const availableEvents = (data || []).filter(event => canPurchaseTickets(event.event_date));
       
       setEvents(availableEvents);
     } catch (error) {
