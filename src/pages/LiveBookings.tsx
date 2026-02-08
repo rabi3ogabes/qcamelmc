@@ -474,16 +474,25 @@ const LiveBookings = () => {
     selectedDateRef.current = selectedDate;
   }, [selectedDate]);
 
-  // Auto-select upcoming event on page load
+  // Auto-select upcoming event on page load (with timeout + retry)
   useEffect(() => {
-    const fetchUpcomingEvent = async () => {
+    let cancelled = false;
+    const fetchUpcomingEvent = async (attempt = 1) => {
       try {
+        console.log(`Fetching upcoming event (attempt ${attempt})...`);
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 10000); // 10s timeout
+        
         const { data, error } = await supabase
           .from("events")
           .select("id, event_date")
           .eq("is_active", true)
-          .order("event_date", { ascending: true });
+          .order("event_date", { ascending: true })
+          .abortSignal(controller.signal);
+        
+        clearTimeout(timeout);
 
+        if (cancelled) return;
         if (error) {
           console.error("Error fetching upcoming event:", error);
           throw error;
@@ -498,7 +507,6 @@ const LiveBookings = () => {
           selectedDateRef.current = eventDate;
           console.log("Auto-selected upcoming event date:", eventDate);
         } else {
-          // Fallback to today if no upcoming events
           const now = new Date();
           const todayDate = toZonedTime(now, QATAR_TIMEZONE);
           setSelectedDate(todayDate);
@@ -506,8 +514,13 @@ const LiveBookings = () => {
         }
         setIsDateInitialized(true);
       } catch (error) {
-        console.error("Failed to fetch upcoming event:", error);
-        // Fallback to today on error
+        console.error(`Failed to fetch upcoming event (attempt ${attempt}):`, error);
+        if (!cancelled && attempt < 3) {
+          console.log(`Retrying in ${attempt * 2}s...`);
+          setTimeout(() => fetchUpcomingEvent(attempt + 1), attempt * 2000);
+          return;
+        }
+        // Final fallback to today on error
         const now = new Date();
         const todayDate = toZonedTime(now, QATAR_TIMEZONE);
         setSelectedDate(todayDate);
@@ -518,6 +531,7 @@ const LiveBookings = () => {
 
     fetchUpcomingEvent();
     fetchSettings();
+    return () => { cancelled = true; };
   }, []);
 
   // Setup realtime subscription after date is initialized
@@ -591,11 +605,17 @@ const LiveBookings = () => {
         const selectedDay = String(dateToUse.getDate()).padStart(2, '0');
         const dateStr = `${selectedYear}-${selectedMonth}-${selectedDay}`;
         
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 10000);
+        
         const { data: events, error: eventsError } = await supabase
           .from("events")
           .select("id, event_date")
           .gte("event_date", `${dateStr}T00:00:00`)
-          .lte("event_date", `${dateStr}T23:59:59`);
+          .lte("event_date", `${dateStr}T23:59:59`)
+          .abortSignal(controller.signal);
+        
+        clearTimeout(timeout);
         
         if (eventsError) throw eventsError;
         
