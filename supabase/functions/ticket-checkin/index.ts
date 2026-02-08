@@ -116,7 +116,12 @@ serve(async (req) => {
     }
 
     // First, always try to find a ticket holder with this exact QR code
-    console.log('[Ticket Check-in] Searching for ticket holder with QR code:', booking_reference);
+    // Only search in today's and upcoming events for faster lookup
+    const qatarTimeZone = "Asia/Qatar";
+    const nowInQatar = toZonedTime(new Date(), qatarTimeZone);
+    const todayStr = `${nowInQatar.getFullYear()}-${String(nowInQatar.getMonth() + 1).padStart(2, '0')}-${String(nowInQatar.getDate()).padStart(2, '0')}`;
+    
+    console.log('[Ticket Check-in] Searching for ticket holder with QR code:', booking_reference, '| today:', todayStr);
     
     let { data: ticketHolder, error: holderError } = await supabase
       .from('ticket_holders')
@@ -140,6 +145,7 @@ serve(async (req) => {
           total_amount,
           quantity,
           ticket_type,
+          n8n_responded_at,
           customers!inner (
             name,
             email,
@@ -153,6 +159,7 @@ serve(async (req) => {
         )
       `)
       .eq('qr_code', booking_reference)
+      .gte('orders.events.event_date', todayStr)
       .maybeSingle();
 
     console.log('[Ticket Check-in] Ticket holder search result:', ticketHolder ? 'FOUND' : 'NOT FOUND');
@@ -366,9 +373,10 @@ serve(async (req) => {
       .select(`
         *,
         customers(name, email, phone),
-        events(title, event_date, location)
+        events!inner(title, event_date, location)
       `)
       .eq('booking_reference', booking_reference)
+      .gte('events.event_date', todayStr)
       .single();
 
     if (fetchError || !order) {
