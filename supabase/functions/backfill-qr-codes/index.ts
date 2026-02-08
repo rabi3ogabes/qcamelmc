@@ -16,13 +16,11 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Fetch only ticket holders with text-based QR codes (not URLs)
+    // Fetch all ticket holders that have text-based QR codes (not URLs)
     const { data: holders, error: fetchError } = await supabase
       .from('ticket_holders')
       .select('id, qr_code')
-      .not('qr_code', 'is', null)
-      .not('qr_code', 'like', 'http%')
-      .limit(50); // Process max 50 at a time to avoid timeout
+      .not('qr_code', 'is', null);
 
     if (fetchError) {
       console.error('Fetch error:', fetchError);
@@ -32,72 +30,85 @@ serve(async (req) => {
       );
     }
 
-    console.log(`Found ${holders?.length || 0} ticket holders needing QR generation`);
-
-    if (!holders?.length) {
-      return new Response(
-        JSON.stringify({ success: true, updated: 0, skipped: 0, message: 'No QR codes to generate' }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
+    console.log(`Found ${holders?.length || 0} ticket holders`);
 
     let updated = 0;
+    let skipped = 0;
     const errors: string[] = [];
 
-    // Process in parallel batches of 5
-    const BATCH_SIZE = 5;
-    for (let i = 0; i < holders.length; i += BATCH_SIZE) {
-      const batch = holders.slice(i, i + BATCH_SIZE);
-      
-      const results = await Promise.allSettled(
-        batch.map(async (holder) => {
-          const qrText = holder.qr_code!;
-          const qrApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=800x800&data=${encodeURIComponent(qrText)}&format=png`;
-          
-          const qrResponse = await fetch(qrApiUrl);
-          if (!qrResponse.ok) throw new Error(`QR API returned ${qrResponse.status}`);
-          
-          const qrBuffer = new Uint8Array(await qrResponse.arrayBuffer());
+    for (const holder of holders || []) {
+      // Skip if already has a URL (starts with http)
+      if (holder.qr_code?.startsWith('http')) {
+        skipped++;
+        continue;
+      }
 
-          const { error: uploadError } = await supabase.storage
-            .from('qr-codes')
-            .upload(`${qrText}.png`, qrBuffer, { contentType: 'image/png', upsert: true });
+      const qrText = holder.qr_code;
+      console.log(`Generating QR for: ${qrText}`);
 
-          if (uploadError) throw new Error(uploadError.message);
-
-          const { data: { publicUrl } } = supabase.storage
-            .from('qr-codes')
-            .getPublicUrl(`${qrText}.png`);
-
-          const { error: updateError } = await supabase
-            .from('ticket_holders')
-            .update({ qr_code: publicUrl })
-            .eq('id', holder.id);
-
-          if (updateError) throw new Error(updateError.message);
-          return qrText;
-        })
-      );
-
-      results.forEach((result, idx) => {
-        if (result.status === 'fulfilled') {
-          updated++;
-        } else {
-          const qrText = batch[idx].qr_code || 'unknown';
-          errors.push(`${qrText}: ${result.reason}`);
-          console.error(`Error processing ${qrText}:`, result.reason);
+      try {
+        // Generate QR code using API
+        const qrApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=800x800&data=${encodeURIComponent(qrText)}&format=png`;
+        
+        console.log(`Fetching QR from API: ${qrApiUrl}`);
+        const qrResponse = await fetch(qrApiUrl);
+        
+        if (!qrResponse.ok) {
+          throw new Error(`QR API returned ${qrResponse.status}`);
         }
-      });
+        
+        const qrBuffer = new Uint8Array(await qrResponse.arrayBuffer());
+
+        // Upload to storage
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from('qr-codes')
+          .upload(`${qrText}.png`, qrBuffer, {
+            contentType: 'image/png',
+            upsert: true
+          });
+
+        if (uploadError) {
+          console.error(`Upload error for ${qrText}:`, uploadError);
+          errors.push(`${qrText}: ${uploadError.message}`);
+          continue;
+        }
+
+        // Get public URL
+        const { data: { publicUrl } } = supabase.storage
+          .from('qr-codes')
+          .getPublicUrl(`${qrText}.png`);
+
+        // Update ticket holder with the image URL
+        const { error: updateError } = await supabase
+          .from('ticket_holders')
+          .update({ qr_code: publicUrl })
+          .eq('id', holder.id);
+
+        if (updateError) {
+          console.error(`Update error for ${qrText}:`, updateError);
+          errors.push(`${qrText}: ${updateError.message}`);
+          continue;
+        }
+
+        updated++;
+        console.log(`Successfully updated ${qrText}`);
+
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        console.error(`Error processing ${qrText}:`, error);
+        errors.push(`${qrText}: ${errorMessage}`);
+      }
     }
 
-    console.log(`Completed: ${updated} updated, ${errors.length} errors`);
+    console.log(`Completed: ${updated} updated, ${skipped} skipped, ${errors.length} errors`);
 
     return new Response(
       JSON.stringify({ 
         success: true,
         updated,
+        skipped,
         errors: errors.length > 0 ? errors : undefined,
-        message: `Successfully updated ${updated} QR codes`
+        message: `Successfully updated ${updated} QR codes, skipped ${skipped} existing URLs`
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );

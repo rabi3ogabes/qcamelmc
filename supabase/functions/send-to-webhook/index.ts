@@ -27,7 +27,7 @@ Deno.serve(async (req) => {
     const { data: settings, error: settingsError } = await supabase
       .from('settings')
       .select('webhook_url, email_webhook_url')
-      .maybeSingle();
+      .single();
 
     if (settingsError) {
       console.error('Error fetching webhook URL from settings:', settingsError);

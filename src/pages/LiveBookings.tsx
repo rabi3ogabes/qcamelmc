@@ -474,25 +474,16 @@ const LiveBookings = () => {
     selectedDateRef.current = selectedDate;
   }, [selectedDate]);
 
-  // Auto-select upcoming event on page load (with timeout + retry)
+  // Auto-select upcoming event on page load
   useEffect(() => {
-    let cancelled = false;
-    const fetchUpcomingEvent = async (attempt = 1) => {
+    const fetchUpcomingEvent = async () => {
       try {
-        console.log(`Fetching upcoming event (attempt ${attempt})...`);
-        const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), 10000); // 10s timeout
-        
         const { data, error } = await supabase
           .from("events")
           .select("id, event_date")
           .eq("is_active", true)
-          .order("event_date", { ascending: true })
-          .abortSignal(controller.signal);
-        
-        clearTimeout(timeout);
+          .order("event_date", { ascending: true });
 
-        if (cancelled) return;
         if (error) {
           console.error("Error fetching upcoming event:", error);
           throw error;
@@ -507,6 +498,7 @@ const LiveBookings = () => {
           selectedDateRef.current = eventDate;
           console.log("Auto-selected upcoming event date:", eventDate);
         } else {
+          // Fallback to today if no upcoming events
           const now = new Date();
           const todayDate = toZonedTime(now, QATAR_TIMEZONE);
           setSelectedDate(todayDate);
@@ -514,13 +506,8 @@ const LiveBookings = () => {
         }
         setIsDateInitialized(true);
       } catch (error) {
-        console.error(`Failed to fetch upcoming event (attempt ${attempt}):`, error);
-        if (!cancelled && attempt < 3) {
-          console.log(`Retrying in ${attempt * 2}s...`);
-          setTimeout(() => fetchUpcomingEvent(attempt + 1), attempt * 2000);
-          return;
-        }
-        // Final fallback to today on error
+        console.error("Failed to fetch upcoming event:", error);
+        // Fallback to today on error
         const now = new Date();
         const todayDate = toZonedTime(now, QATAR_TIMEZONE);
         setSelectedDate(todayDate);
@@ -531,7 +518,6 @@ const LiveBookings = () => {
 
     fetchUpcomingEvent();
     fetchSettings();
-    return () => { cancelled = true; };
   }, []);
 
   // Setup realtime subscription after date is initialized
@@ -593,51 +579,15 @@ const LiveBookings = () => {
   const fetchBookings = async (useRefDate = false) => {
     // Use ref date for realtime callbacks to avoid stale closure issues
     const dateToUse = useRefDate ? selectedDateRef.current : selectedDate;
-    const startTime = performance.now();
     
     try {
-      // Step 1: Find event_id for the selected date (server-side filter to avoid loading all orders)
-      let targetEventId: string | null = null;
-      
-      if (dateToUse) {
-        const selectedYear = dateToUse.getFullYear();
-        const selectedMonth = String(dateToUse.getMonth() + 1).padStart(2, '0');
-        const selectedDay = String(dateToUse.getDate()).padStart(2, '0');
-        const dateStr = `${selectedYear}-${selectedMonth}-${selectedDay}`;
-        
-        const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), 10000);
-        
-        const { data: events, error: eventsError } = await supabase
-          .from("events")
-          .select("id, event_date")
-          .gte("event_date", `${dateStr}T00:00:00`)
-          .lte("event_date", `${dateStr}T23:59:59`)
-          .abortSignal(controller.signal);
-        
-        clearTimeout(timeout);
-        
-        if (eventsError) throw eventsError;
-        
-        if (!events || events.length === 0) {
-          console.log(`No events found for ${dateStr} in ${(performance.now() - startTime).toFixed(0)}ms`);
-          setBookings([]);
-          setTicketHolders([]);
-          calculateStats([], []);
-          setLoading(false);
-          return;
-        }
-        
-        targetEventId = events[0].id;
-        console.log(`Found event ${targetEventId} for ${dateStr} in ${(performance.now() - startTime).toFixed(0)}ms`);
-      }
-      
-      // Step 2: Fetch orders filtered by event_id (much faster than fetching all)
+      // IMPORTANT: PostgREST defaults to 1000 rows per request.
+      // We must paginate to get all orders across all events.
       const PAGE_SIZE = 1000;
       const allOrders: any[] = [];
 
       for (let from = 0; ; from += PAGE_SIZE) {
-        let query = supabase
+        const { data, error } = await supabase
           .from("orders")
           .select(`
             *,
@@ -649,12 +599,6 @@ const LiveBookings = () => {
           .eq("payment_status", "confirmed")
           .order("created_at", { ascending: false })
           .range(from, from + PAGE_SIZE - 1);
-        
-        if (targetEventId) {
-          query = query.eq("event_id", targetEventId);
-        }
-
-        const { data, error } = await query;
 
         if (error) throw error;
         if (data?.length) allOrders.push(...data);
@@ -663,9 +607,31 @@ const LiveBookings = () => {
         if (!data || data.length < PAGE_SIZE) break;
       }
 
-      console.log(`Fetched ${allOrders.length} orders in ${(performance.now() - startTime).toFixed(0)}ms`);
+      console.log("Raw data from Supabase (paginated):", allOrders.length, "orders");
+      console.log("Using date for filter:", dateToUse);
 
-      const filteredData = allOrders;
+      // Filter by event date on client side if date is selected
+      let filteredData = allOrders;
+      if (dateToUse) {
+        // Extract date components from selected date (ignoring time)
+        const selectedYear = dateToUse.getFullYear();
+        const selectedMonth = dateToUse.getMonth();
+        const selectedDay = dateToUse.getDate();
+        
+        console.log(`Filtering for date: ${selectedYear}-${selectedMonth + 1}-${selectedDay}`);
+        
+        filteredData = filteredData.filter((order: any) => {
+          if (!order.events?.event_date) return false;
+          // Convert event date to Qatar timezone
+          const eventDate = toZonedTime(new Date(order.events.event_date), QATAR_TIMEZONE);
+          // Compare year, month, and day only
+          return eventDate.getFullYear() === selectedYear &&
+                 eventDate.getMonth() === selectedMonth &&
+                 eventDate.getDate() === selectedDay;
+        });
+        
+        console.log(`Filtered ${allOrders.length} orders to ${filteredData.length} for selected date`);
+      }
 
       console.log("Filtered data:", filteredData);
       console.log("First filtered order:", filteredData[0]);

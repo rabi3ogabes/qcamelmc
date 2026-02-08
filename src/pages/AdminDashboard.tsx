@@ -92,92 +92,92 @@ const AdminDashboard = () => {
     setIsFullyLoaded(false);
     
     try {
+      // Build base query with server-side filtering for upcoming events
       const todayDate = getTodayQatar();
       
-      // Step 1: If upcomingOnly, fetch upcoming event IDs first (very fast, few rows)
-      let upcomingEventIds: string[] | null = null;
-      if (upcomingOnly) {
-        const { data: events, error: eventsError } = await supabase
-          .from("events")
-          .select("id")
-          .gte("event_date", todayDate);
-        
-        if (eventsError) throw eventsError;
-        upcomingEventIds = events?.map(e => e.id) || [];
-        
-        if (upcomingEventIds.length === 0) {
-          setOrders([]);
-          setLoading(false);
-          setIsFullyLoaded(true);
-          console.log(`No upcoming events found in ${(performance.now() - startTime).toFixed(0)}ms`);
-          return;
-        }
-      }
-      
-      // Step 2: Fetch orders with direct event_id filter (much faster than events!inner join filter)
+      // Build the query
       let query = supabase
         .from("orders")
-        .select("*, customers(name, email, phone, nationality), events(title, event_date, location), payment_error_reason, pos_users(name, icon)")
-        .order("created_at", { ascending: false })
-        .range(0, PAGE_SIZE - 1);
+        .select("*, customers(name, email, phone, nationality), events!inner(title, event_date, location), payment_error_reason, pos_users(name, icon), ticket_holders(ticket_type)")
+        .order("created_at", { ascending: false });
       
-      if (upcomingEventIds) {
-        query = query.in("event_id", upcomingEventIds);
+      // Apply server-side filter for upcoming events
+      if (upcomingOnly) {
+        query = query.gte("events.event_date", todayDate);
       }
       
-      const { data: firstPageData, error: firstError } = await query;
+      // Get count first
+      let countQuery = supabase
+        .from("orders")
+        .select("*, events!inner(event_date)", { count: "exact", head: true });
       
-      if (firstError) throw firstError;
+      if (upcomingOnly) {
+        countQuery = countQuery.gte("events.event_date", todayDate);
+      }
       
-      const firstPage = (firstPageData || []) as Order[];
-      setOrders(firstPage);
-      setLoading(false);
-      console.log(`First page loaded in ${(performance.now() - startTime).toFixed(0)}ms with ${firstPage.length} orders`);
+      const { count, error: countError } = await countQuery;
       
-      // If less than PAGE_SIZE, we have all data
-      if (firstPage.length < PAGE_SIZE) {
+      if (countError) throw countError;
+      
+      const totalCount = count || 0;
+      const totalPages = Math.ceil(totalCount / PAGE_SIZE);
+      
+      console.log(`Total orders (${upcomingOnly ? 'upcoming' : 'all'}): ${totalCount}, pages: ${totalPages}`);
+      
+      if (totalPages === 0) {
+        setOrders([]);
+        setLoading(false);
         setIsFullyLoaded(true);
         return;
       }
       
-      // Fetch remaining pages in parallel
-      const allOrders: Order[] = [...firstPage];
-      let pageNum = 1;
-      let hasMore = true;
+      // Fetch first page immediately
+      const { data: firstPageData, error: firstError } = await query.range(0, PAGE_SIZE - 1);
       
-      while (hasMore) {
-        const batchPromises = Array.from({ length: 3 }, (_, i) => {
-          const page = pageNum + i;
+      if (firstError) throw firstError;
+      
+      // Show first page immediately
+      if (firstPageData?.length) {
+        setOrders(firstPageData as Order[]);
+        setLoading(false);
+        console.log(`First page loaded in ${(performance.now() - startTime).toFixed(0)}ms with ${firstPageData.length} orders`);
+      }
+      
+      // If only one page, we're done
+      if (totalPages <= 1) {
+        setIsFullyLoaded(true);
+        return;
+      }
+      
+      // Fetch remaining pages in parallel (max 3 concurrent requests)
+      const remainingPages = Array.from({ length: totalPages - 1 }, (_, i) => i + 1);
+      const allOrders: Order[] = [...(firstPageData || []) as Order[]];
+      
+      // Process in batches of 3 concurrent requests
+      const BATCH_SIZE = 3;
+      for (let i = 0; i < remainingPages.length; i += BATCH_SIZE) {
+        const batch = remainingPages.slice(i, i + BATCH_SIZE);
+        const batchPromises = batch.map(pageNum => {
           let batchQuery = supabase
             .from("orders")
-            .select("*, customers(name, email, phone, nationality), events(title, event_date, location), payment_error_reason, pos_users(name, icon)")
-            .order("created_at", { ascending: false })
-            .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
+            .select("*, customers(name, email, phone, nationality), events!inner(title, event_date, location), payment_error_reason, pos_users(name, icon), ticket_holders(ticket_type)")
+            .order("created_at", { ascending: false });
           
-          if (upcomingEventIds) {
-            batchQuery = batchQuery.in("event_id", upcomingEventIds);
+          if (upcomingOnly) {
+            batchQuery = batchQuery.gte("events.event_date", todayDate);
           }
           
-          return batchQuery;
+          return batchQuery.range(pageNum * PAGE_SIZE, (pageNum + 1) * PAGE_SIZE - 1);
         });
         
         const results = await Promise.all(batchPromises);
         
-        let batchHasData = false;
         results.forEach(({ data, error }) => {
           if (error) console.error("Error fetching page:", error);
-          if (data?.length) {
-            allOrders.push(...data as Order[]);
-            batchHasData = true;
-            if (data.length < PAGE_SIZE) hasMore = false;
-          } else {
-            hasMore = false;
-          }
+          if (data?.length) allOrders.push(...data as Order[]);
         });
         
-        if (!batchHasData) hasMore = false;
-        pageNum += 3;
-        
+        // Update state with each batch for progressive loading
         setOrders([...allOrders].sort((a, b) => 
           new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
         ));
@@ -199,14 +199,14 @@ const AdminDashboard = () => {
     };
     initDashboard();
 
-    // Subscribe to real-time changes with longer debounce to prevent cascade reloads during rapid check-ins
+    // Subscribe to real-time order and ticket_holders changes with debouncing
     let refreshTimeout: NodeJS.Timeout;
     const refreshOrders = () => {
       console.log('Data changed, refreshing...');
       clearTimeout(refreshTimeout);
       refreshTimeout = setTimeout(() => {
         fetchOrders(showUpcomingOnly);
-      }, 3000); // 3s debounce to batch rapid updates (e.g. multi-ticket check-ins)
+      }, 500);
     };
 
     const ordersChannel = supabase
