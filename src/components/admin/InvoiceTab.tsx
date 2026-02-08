@@ -868,6 +868,7 @@ export const InvoiceTab = () => {
             <TableHeader>
               <TableRow>
                 <TableHead className="text-right whitespace-nowrap">الحالة</TableHead>
+                <TableHead className="text-right whitespace-nowrap">طريقة الإرسال</TableHead>
                 <TableHead className="text-right whitespace-nowrap">رقم الحجز</TableHead>
                 <TableHead className="text-right whitespace-nowrap">اسم العميل</TableHead>
                 <TableHead className="text-right whitespace-nowrap">الدولة</TableHead>
@@ -885,7 +886,7 @@ export const InvoiceTab = () => {
             <TableBody>
               {filteredOrders.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={13} className="text-center py-8 text-muted-foreground">
+                  <TableCell colSpan={14} className="text-center py-8 text-muted-foreground">
                     {filterTab === "pending" && "لا توجد طلبات قيد الإرسال"}
                     {filterTab === "sent" && "لا توجد طلبات تم إرسالها"}
                     {filterTab === "eventDone" && "لا توجد طلبات انتهت فعاليتها"}
@@ -955,6 +956,20 @@ export const InvoiceTab = () => {
                       ) : (
                         <Badge variant="outline">لم يتم الإرسال</Badge>
                       )}
+                    </TableCell>
+                    <TableCell>
+                      {(() => {
+                        const msg = order.n8n_response_message || '';
+                        const isEmail = msg.includes('اميل') || msg.includes('إيميل') || msg.includes('بريد') || msg.includes('email') || msg.includes('Email') || msg.includes('جاري إرسال البريد');
+                        const isWhatsApp = msg.includes('واتساب') || msg.includes('whatsapp') || msg.includes('WhatsApp');
+                        if (isEmail) {
+                          return <Badge variant="outline" className="gap-1 bg-blue-50 text-blue-700 border-blue-300">📧 إيميل</Badge>;
+                        }
+                        if (isWhatsApp || (msg && !isEmail)) {
+                          return <Badge variant="outline" className="gap-1 bg-green-50 text-green-700 border-green-300">💬 واتساب</Badge>;
+                        }
+                        return <span className="text-xs text-muted-foreground">-</span>;
+                      })()}
                     </TableCell>
                     <TableCell className="font-mono">{order.booking_reference}</TableCell>
                     <TableCell>{order.customers.name}</TableCell>
