@@ -97,7 +97,7 @@ const AdminDashboard = () => {
       // Fetch first page directly (skip separate count query to save time)
       let query = supabase
         .from("orders")
-        .select("*, customers(name, email, phone, nationality), events!inner(title, event_date, location), payment_error_reason, pos_users(name, icon), ticket_holders(ticket_type)")
+        .select("*, customers(name, email, phone, nationality), events!inner(title, event_date, location), payment_error_reason, pos_users(name, icon)")
         .order("created_at", { ascending: false })
         .range(0, PAGE_SIZE - 1);
       
@@ -130,7 +130,7 @@ const AdminDashboard = () => {
           const page = pageNum + i;
           let batchQuery = supabase
             .from("orders")
-            .select("*, customers(name, email, phone, nationality), events!inner(title, event_date, location), payment_error_reason, pos_users(name, icon), ticket_holders(ticket_type)")
+            .select("*, customers(name, email, phone, nationality), events!inner(title, event_date, location), payment_error_reason, pos_users(name, icon)")
             .order("created_at", { ascending: false })
             .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
           
