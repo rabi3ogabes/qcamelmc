@@ -92,92 +92,72 @@ const AdminDashboard = () => {
     setIsFullyLoaded(false);
     
     try {
-      // Build base query with server-side filtering for upcoming events
       const todayDate = getTodayQatar();
       
-      // Build the query
+      // Fetch first page directly (skip separate count query to save time)
       let query = supabase
         .from("orders")
         .select("*, customers(name, email, phone, nationality), events!inner(title, event_date, location), payment_error_reason, pos_users(name, icon), ticket_holders(ticket_type)")
-        .order("created_at", { ascending: false });
+        .order("created_at", { ascending: false })
+        .range(0, PAGE_SIZE - 1);
       
-      // Apply server-side filter for upcoming events
       if (upcomingOnly) {
         query = query.gte("events.event_date", todayDate);
       }
       
-      // Get count first
-      let countQuery = supabase
-        .from("orders")
-        .select("*, events!inner(event_date)", { count: "exact", head: true });
-      
-      if (upcomingOnly) {
-        countQuery = countQuery.gte("events.event_date", todayDate);
-      }
-      
-      const { count, error: countError } = await countQuery;
-      
-      if (countError) throw countError;
-      
-      const totalCount = count || 0;
-      const totalPages = Math.ceil(totalCount / PAGE_SIZE);
-      
-      console.log(`Total orders (${upcomingOnly ? 'upcoming' : 'all'}): ${totalCount}, pages: ${totalPages}`);
-      
-      if (totalPages === 0) {
-        setOrders([]);
-        setLoading(false);
-        setIsFullyLoaded(true);
-        return;
-      }
-      
-      // Fetch first page immediately
-      const { data: firstPageData, error: firstError } = await query.range(0, PAGE_SIZE - 1);
+      const { data: firstPageData, error: firstError } = await query;
       
       if (firstError) throw firstError;
       
-      // Show first page immediately
-      if (firstPageData?.length) {
-        setOrders(firstPageData as Order[]);
-        setLoading(false);
-        console.log(`First page loaded in ${(performance.now() - startTime).toFixed(0)}ms with ${firstPageData.length} orders`);
-      }
+      const firstPage = (firstPageData || []) as Order[];
+      setOrders(firstPage);
+      setLoading(false);
+      console.log(`First page loaded in ${(performance.now() - startTime).toFixed(0)}ms with ${firstPage.length} orders`);
       
-      // If only one page, we're done
-      if (totalPages <= 1) {
+      // If less than PAGE_SIZE, we have all data
+      if (firstPage.length < PAGE_SIZE) {
         setIsFullyLoaded(true);
         return;
       }
       
-      // Fetch remaining pages in parallel (max 3 concurrent requests)
-      const remainingPages = Array.from({ length: totalPages - 1 }, (_, i) => i + 1);
-      const allOrders: Order[] = [...(firstPageData || []) as Order[]];
+      // Fetch remaining pages in parallel
+      const allOrders: Order[] = [...firstPage];
+      let pageNum = 1;
+      let hasMore = true;
       
-      // Process in batches of 3 concurrent requests
-      const BATCH_SIZE = 3;
-      for (let i = 0; i < remainingPages.length; i += BATCH_SIZE) {
-        const batch = remainingPages.slice(i, i + BATCH_SIZE);
-        const batchPromises = batch.map(pageNum => {
+      while (hasMore) {
+        const batchPromises = Array.from({ length: 3 }, (_, i) => {
+          const page = pageNum + i;
           let batchQuery = supabase
             .from("orders")
             .select("*, customers(name, email, phone, nationality), events!inner(title, event_date, location), payment_error_reason, pos_users(name, icon), ticket_holders(ticket_type)")
-            .order("created_at", { ascending: false });
+            .order("created_at", { ascending: false })
+            .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
           
           if (upcomingOnly) {
             batchQuery = batchQuery.gte("events.event_date", todayDate);
           }
           
-          return batchQuery.range(pageNum * PAGE_SIZE, (pageNum + 1) * PAGE_SIZE - 1);
+          return batchQuery;
         });
         
         const results = await Promise.all(batchPromises);
         
+        let batchHasData = false;
         results.forEach(({ data, error }) => {
           if (error) console.error("Error fetching page:", error);
-          if (data?.length) allOrders.push(...data as Order[]);
+          if (data?.length) {
+            allOrders.push(...data as Order[]);
+            batchHasData = true;
+            if (data.length < PAGE_SIZE) hasMore = false;
+          } else {
+            hasMore = false;
+          }
         });
         
-        // Update state with each batch for progressive loading
+        if (!batchHasData) hasMore = false;
+        pageNum += 3;
+        
         setOrders([...allOrders].sort((a, b) => 
           new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
         ));
@@ -199,14 +179,14 @@ const AdminDashboard = () => {
     };
     initDashboard();
 
-    // Subscribe to real-time order and ticket_holders changes with debouncing
+    // Subscribe to real-time changes with longer debounce to prevent cascade reloads during rapid check-ins
     let refreshTimeout: NodeJS.Timeout;
     const refreshOrders = () => {
       console.log('Data changed, refreshing...');
       clearTimeout(refreshTimeout);
       refreshTimeout = setTimeout(() => {
         fetchOrders(showUpcomingOnly);
-      }, 500);
+      }, 3000); // 3s debounce to batch rapid updates (e.g. multi-ticket check-ins)
     };
 
     const ordersChannel = supabase
