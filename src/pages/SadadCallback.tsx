@@ -59,10 +59,10 @@ const SadadCallback = () => {
     localStorage.setItem('orderIds', JSON.stringify([orderId]));
     sessionStorage.removeItem('pendingOrderId');
     
-    // Redirect after 4 seconds so user can read the message
+    // Redirect after 8 seconds so user can read the message
     setTimeout(() => {
       navigate('/confirmation');
-    }, 4000);
+    }, 8000);
   };
 
   const handleCallback = async () => {
