@@ -9,6 +9,7 @@ const SadadCallback = () => {
   const [status, setStatus] = useState<'processing' | 'success' | 'failed'>('processing');
   const [message, setMessage] = useState('جاري معالجة الدفع...');
   const [attempts, setAttempts] = useState(0);
+  const [eventInfo, setEventInfo] = useState('');
   const navigate = useNavigate();
   const subscriptionRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const hasConfirmedRef = useRef(false);
@@ -24,9 +25,27 @@ const SadadCallback = () => {
     };
   }, []);
 
-  const handleSuccess = (orderId: string) => {
+  const handleSuccess = async (orderId: string) => {
     if (hasConfirmedRef.current) return;
     hasConfirmedRef.current = true;
+    
+    // Fetch event info for the success message
+    try {
+      const { data: orderData } = await supabase
+        .from('orders')
+        .select('events(title, event_date)')
+        .eq('id', orderId)
+        .maybeSingle();
+      
+      if (orderData?.events) {
+        const evt = orderData.events as any;
+        const d = new Date(evt.event_date + 'T00:00:00');
+        const dateStr = d.toLocaleDateString('ar-u-nu-latn', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+        setEventInfo(`${evt.title} - ${dateStr}`);
+      }
+    } catch (e) {
+      console.error('Error fetching event info:', e);
+    }
     
     setStatus('success');
     setMessage('تم الدفع بنجاح!');
@@ -40,10 +59,10 @@ const SadadCallback = () => {
     localStorage.setItem('orderIds', JSON.stringify([orderId]));
     sessionStorage.removeItem('pendingOrderId');
     
-    // Redirect to confirmation page after a short delay
+    // Redirect after 4 seconds so user can read the message
     setTimeout(() => {
       navigate('/confirmation');
-    }, 2000);
+    }, 4000);
   };
 
   const handleCallback = async () => {
@@ -232,7 +251,10 @@ const SadadCallback = () => {
           <>
             <CheckCircle2 className="w-16 h-16 mx-auto mb-4 text-green-500" />
             <h2 className="text-2xl font-bold mb-2 text-green-600">نجحت العملية!</h2>
-            <p className="text-muted-foreground mb-4">{message}</p>
+            <p className="text-muted-foreground mb-2">{message}</p>
+            {eventInfo && (
+              <p className="text-sm font-semibold text-primary mb-4">{eventInfo}</p>
+            )}
             <p className="text-sm text-muted-foreground">سيتم تحويلك إلى صفحة التأكيد...</p>
           </>
         )}
