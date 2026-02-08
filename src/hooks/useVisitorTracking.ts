@@ -152,6 +152,10 @@ const recordPageView = async (sessionId: string, geoInfo: GeoInfo) => {
 };
 
 export const useVisitorTracking = () => {
+  // TEMPORARILY DISABLED to reduce database load
+  // Remove this early return to re-enable visitor tracking
+  return;
+
   const sessionIdRef = useRef<string>(getSessionId());
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const lastPageRef = useRef<string>("");
