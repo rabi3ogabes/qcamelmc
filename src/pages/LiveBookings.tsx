@@ -770,9 +770,12 @@ const LiveBookings = () => {
           .order("created_at", { ascending: false })
           .range(from, from + PAGE_SIZE - 1);
 
-        // Apply server-side date filter (much faster than fetching all + client filter)
+        // Apply server-side date range filter (event_date is timestamp, not date)
         if (dateStr) {
-          query = query.eq("events.event_date", dateStr);
+          const nextDay = new Date(dateToUse!);
+          nextDay.setDate(nextDay.getDate() + 1);
+          const nextDayStr = `${nextDay.getFullYear()}-${String(nextDay.getMonth() + 1).padStart(2, '0')}-${String(nextDay.getDate()).padStart(2, '0')}`;
+          query = query.gte("events.event_date", dateStr).lt("events.event_date", nextDayStr);
         }
 
         const { data, error } = await query;
@@ -797,12 +800,16 @@ const LiveBookings = () => {
       const eventId = allOrders[0]?.event_id;
       if (eventId) {
         await fetchTicketCapacities(eventId);
-      } else if (dateStr) {
-        // No orders yet — find event by date to show capacities
+      } else if (dateStr && dateToUse) {
+        // No orders yet — find event by date range to show capacities
+        const nextDay = new Date(dateToUse);
+        nextDay.setDate(nextDay.getDate() + 1);
+        const nextDayStr = `${nextDay.getFullYear()}-${String(nextDay.getMonth() + 1).padStart(2, '0')}-${String(nextDay.getDate()).padStart(2, '0')}`;
         const { data: eventData } = await supabase
           .from("events")
           .select("id")
-          .eq("event_date", dateStr)
+          .gte("event_date", dateStr)
+          .lt("event_date", nextDayStr)
           .eq("is_active", true)
           .maybeSingle();
         if (eventData) {
