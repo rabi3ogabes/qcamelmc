@@ -40,11 +40,8 @@ export const PopupBanner = () => {
         .select("*")
         .eq("is_active", true)
         .maybeSingle();
-
-      if (error) throw error;
       
       if (data) {
-        // Check if user has already seen this banner in current session
         const seenBanners = JSON.parse(sessionStorage.getItem("seenBanners") || "[]");
         if (!seenBanners.includes(data.id)) {
           setBanner(data);
