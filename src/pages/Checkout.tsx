@@ -738,10 +738,12 @@ const Checkout = () => {
                   <Label htmlFor="name">{t('fullName')} *</Label>
                   <Input 
                     id="name" 
+                    name="name"
+                    autoComplete="name"
                     value={customerInfo.name} 
                     onChange={e => setCustomerInfo({
                       ...customerInfo,
-                      name: e.target.value
+                      name: e.target.value.trim().substring(0, 100)
                     })} 
                     required 
                     minLength={3}
@@ -754,10 +756,23 @@ const Checkout = () => {
                 </div>
                 <div>
                   <Label htmlFor="email">{t('email')}</Label>
-                  <Input id="email" type="email" value={customerInfo.email} onChange={e => setCustomerInfo({
-                  ...customerInfo,
-                  email: e.target.value
-                })} />
+                  <Input 
+                    id="email" 
+                    name="email"
+                    type="email" 
+                    autoComplete="email"
+                    value={customerInfo.email} 
+                    onChange={e => {
+                      // Extract only valid email - strip any non-email text
+                      const raw = e.target.value;
+                      const emailMatch = raw.match(/[^\s]+@[^\s]+/);
+                      const cleanEmail = emailMatch ? emailMatch[0] : raw.trim();
+                      setCustomerInfo({
+                        ...customerInfo,
+                        email: cleanEmail
+                      });
+                    }} 
+                  />
                 </div>
                 <div>
                   <Label htmlFor="nationality">{t('nationality')} *</Label>
