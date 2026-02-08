@@ -49,28 +49,36 @@ const EventHome = () => {
     fetchEvents();
   }, []);
 
-  const fetchEvents = async () => {
-    try {
-      // Fetch all active events
-      const { data, error } = await supabase
-        .from("events")
-        .select("*")
-        .eq("is_active", true)
-        .order("event_date", { ascending: true })
-        .order("display_order", { ascending: true })
-        .order("start_time", { ascending: true });
+  const fetchEvents = async (retries = 3) => {
+    for (let attempt = 1; attempt <= retries; attempt++) {
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 10000);
 
-      if (error) throw error;
-      
-      // Filter out expired events (past 6 PM on event day)
-      const availableEvents = (data || []).filter(event => !canPurchaseTickets(event.event_date) ? false : true);
-      
-      setEvents(availableEvents);
-    } catch (error) {
-      console.error("Error fetching events:", error);
-    } finally {
-      setLoading(false);
+        const { data, error } = await supabase
+          .from("events")
+          .select("*")
+          .eq("is_active", true)
+          .order("event_date", { ascending: true })
+          .order("display_order", { ascending: true })
+          .order("start_time", { ascending: true })
+          .abortSignal(controller.signal);
+
+        clearTimeout(timeoutId);
+        if (error) throw error;
+        
+        const availableEvents = (data || []).filter(event => canPurchaseTickets(event.event_date));
+        setEvents(availableEvents);
+        setLoading(false);
+        return;
+      } catch (error) {
+        console.error(`Error fetching events (attempt ${attempt}/${retries}):`, error);
+        if (attempt < retries) {
+          await new Promise(r => setTimeout(r, 2000 * attempt));
+        }
+      }
     }
+    setLoading(false);
   };
 
   return (
