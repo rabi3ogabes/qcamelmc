@@ -27,14 +27,31 @@ interface Event {
 }
 
 const EVENTS_PER_PAGE = 9;
+const EVENTS_CACHE_KEY = "cached_events";
+const EVENTS_CACHE_TTL = 2 * 60 * 1000; // 2 minutes
 
 const EventHome = () => {
   const { t } = useTranslation();
   const { settings } = useSettings();
-  const [events, setEvents] = useState<Event[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [currentPage, setCurrentPage] = useState(1);
   const navigate = useNavigate();
+
+  // Load cached events immediately
+  const cachedEvents = useMemo(() => {
+    try {
+      const cached = localStorage.getItem(EVENTS_CACHE_KEY);
+      if (cached) {
+        const { data, timestamp } = JSON.parse(cached);
+        if (Date.now() - timestamp < EVENTS_CACHE_TTL) {
+          return (data as Event[]).filter(event => canPurchaseTickets(event.event_date));
+        }
+      }
+    } catch {}
+    return null;
+  }, []);
+
+  const [events, setEvents] = useState<Event[]>(cachedEvents || []);
+  const [loading, setLoading] = useState(!cachedEvents);
+  const [currentPage, setCurrentPage] = useState(1);
 
   const formatTime12Hour = (time24: string) => {
     const [hours, minutes] = time24.split(':');
@@ -69,6 +86,10 @@ const EventHome = () => {
         
         const availableEvents = (data || []).filter(event => canPurchaseTickets(event.event_date));
         setEvents(availableEvents);
+        // Cache for next visit
+        try {
+          localStorage.setItem(EVENTS_CACHE_KEY, JSON.stringify({ data, timestamp: Date.now() }));
+        } catch {}
         setLoading(false);
         return;
       } catch (error) {
