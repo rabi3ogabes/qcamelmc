@@ -137,8 +137,52 @@ const SadadCallback = () => {
         await new Promise(resolve => setTimeout(resolve, 1000));
       }
 
-      // If we've exhausted attempts but order exists, show helpful message
+      // If we've exhausted attempts but order exists, try calling webhook directly as fallback
       if (!hasConfirmedRef.current) {
+        // Check if URL params indicate a successful payment from Sadad
+        const sadadStatus = urlParams.get('STATUS') || urlParams.get('RESPCODE') || urlParams.get('transactionStatus');
+        const isSadadSuccess = sadadStatus === 'TXN_SUCCESS' || sadadStatus === '1' || sadadStatus === '3';
+
+        if (isSadadSuccess && orderId) {
+          console.log('Polling exhausted but Sadad indicates success - calling webhook as fallback');
+          setMessage('جاري تأكيد الدفع مباشرة...');
+          
+          try {
+            // Build webhook payload from URL params
+            const webhookPayload: Record<string, string> = {};
+            for (const [key, value] of urlParams.entries()) {
+              webhookPayload[key] = value;
+            }
+            // Ensure order ID is set
+            if (!webhookPayload.ORDERID && !webhookPayload.websiteRefNo) {
+              webhookPayload.websiteRefNo = orderId;
+            }
+
+            const { data: funcData, error: funcError } = await supabase.functions.invoke('sadad-webhook', {
+              body: webhookPayload,
+            });
+            
+            console.log('Fallback webhook response:', funcData, funcError);
+
+            // Wait a moment then check order status again
+            await new Promise(resolve => setTimeout(resolve, 2000));
+            
+            const { data: retryCheck } = await supabase
+              .from('orders')
+              .select('*')
+              .eq('booking_reference', orderId)
+              .maybeSingle();
+
+            if (retryCheck?.payment_status === 'confirmed') {
+              handleSuccess(retryCheck.id);
+              return;
+            }
+          } catch (fallbackError) {
+            console.error('Fallback webhook call failed:', fallbackError);
+          }
+        }
+
+        // Final check after all attempts
         const { data: finalCheck } = await supabase
           .from('orders')
           .select('*')
@@ -153,6 +197,9 @@ const SadadCallback = () => {
         if (finalCheck?.payment_status === 'pending') {
           setStatus('failed');
           setMessage('الدفع قيد المعالجة. إذا تم خصم المبلغ، سيتم تأكيد الطلب تلقائياً. يرجى التحقق من بريدك الإلكتروني أو التواصل مع الدعم.');
+        } else if (finalCheck?.payment_status === 'cancelled') {
+          setStatus('failed');
+          setMessage(finalCheck.payment_error_reason || 'لم يتم تأكيد الدفع. يرجى التواصل مع الدعم إذا تم خصم المبلغ.');
         } else {
           setStatus('failed');
           setMessage('لم يتم العثور على الطلب. يرجى التواصل مع الدعم.');
