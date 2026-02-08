@@ -535,6 +535,176 @@ const LiveBookings = () => {
     }
   }, [selectedDate, isDateInitialized]);
 
+  // Refs for realtime callbacks (avoid stale closures)
+  const soundEnabledRef = useRef(soundEnabled);
+  const checkinNotificationsEnabledRef = useRef(checkinNotificationsEnabled);
+  useEffect(() => { soundEnabledRef.current = soundEnabled; }, [soundEnabled]);
+  useEffect(() => { checkinNotificationsEnabledRef.current = checkinNotificationsEnabled; }, [checkinNotificationsEnabled]);
+
+  // Auto-recalculate stats when data changes from incremental updates
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (!loading) {
+      calculateStats(bookings, ticketHolders);
+    }
+  }, [bookings, ticketHolders, loading]);
+
+  // Helper: extract ticket holders from a single order
+  const extractOrderTicketHolders = useCallback((order: any): TicketHolder[] => {
+    if (!order.ticket_holders || !Array.isArray(order.ticket_holders)) return [];
+    return order.ticket_holders.map((holder: any) => ({
+      ...holder,
+      booking_reference: order.booking_reference,
+      payment_method: order.payment_method,
+      n8n_responded_at: order.n8n_responded_at,
+      event_title: order.events?.title,
+      created_at: order.created_at,
+      pos_user_name: order.pos_users?.name,
+      pos_user_icon: order.pos_users?.icon
+    }));
+  }, []);
+
+  // Helper: check if order matches the currently selected date
+  const orderMatchesSelectedDate = useCallback((order: any): boolean => {
+    const d = selectedDateRef.current;
+    if (!d) return true;
+    if (!order.events?.event_date) return false;
+    const eventDate = toZonedTime(new Date(order.events.event_date), QATAR_TIMEZONE);
+    return eventDate.getFullYear() === d.getFullYear() &&
+      eventDate.getMonth() === d.getMonth() &&
+      eventDate.getDate() === d.getDate();
+  }, []);
+
+  // Helper: fetch a single order with all relations
+  const fetchSingleOrder = useCallback(async (orderId: string) => {
+    const { data, error } = await supabase
+      .from("orders")
+      .select(`*, customers(name, email, phone, id_number, nationality), events(title, event_date), ticket_holders(*), pos_users(name, icon)`)
+      .eq("id", orderId)
+      .maybeSingle();
+    if (error) { console.error("Error fetching single order:", error); return null; }
+    return data;
+  }, []);
+
+  // Helper: show new booking notification (uses refs to avoid stale closures)
+  const showNewBookingNotification = useCallback((fullOrder: any) => {
+    const isPOS = fullOrder.payment_method === 'cash_pos';
+    const nationality = fullOrder.customers?.nationality || 'غير محدد';
+    const flag = getNationalityFlag(nationality);
+    const quantity = fullOrder.quantity || 1;
+
+    if (isPOS) {
+      const customerName = fullOrder.customers?.name || 'عميل';
+      const posUserName = fullOrder.pos_users?.name || 'موظف';
+      const posUserIcon = fullOrder.pos_users?.icon || '👤';
+      if (soundEnabledRef.current) playPOSNotificationSound();
+      toast.success(
+        <div className="flex flex-col gap-2 text-right" dir="rtl">
+          <div className="flex items-center gap-2 justify-end">
+            <Store className="w-4 h-4 text-orange-500" />
+            <span className="font-bold text-orange-600">تسجيل من نقطة البيع</span>
+          </div>
+          <div className="flex items-center gap-2 justify-end">
+            <span className="text-lg">{flag}</span>
+            <span className="font-semibold">{customerName}</span>
+            <span className="text-muted-foreground">({nationality})</span>
+          </div>
+          <div className="flex items-center gap-3 justify-end text-sm">
+            <span className="bg-primary/10 text-primary px-2 py-0.5 rounded-full font-bold">
+              🎫 {quantity} {quantity === 1 ? 'تذكرة' : quantity === 2 ? 'تذكرتين' : quantity <= 10 ? 'تذاكر' : 'تذكرة'}
+            </span>
+          </div>
+          <div className="flex items-center gap-2 justify-end text-xs text-muted-foreground border-t pt-2 mt-1">
+            <span>{posUserIcon}</span>
+            <span>بواسطة: {posUserName}</span>
+          </div>
+        </div>,
+        {
+          duration: 6000,
+          position: 'top-right',
+          className: 'bg-gradient-to-r from-orange-50 to-amber-50 dark:from-orange-950/50 dark:to-amber-950/50 border-orange-200 dark:border-orange-800',
+        }
+      );
+    } else {
+      if (soundEnabledRef.current) playNotificationSound();
+      const eventDate = fullOrder.events?.event_date
+        ? new Date(fullOrder.events.event_date).toLocaleDateString('ar-u-nu-latn', { day: 'numeric', month: 'long' })
+        : '';
+      toast.success(
+        `${flag} حجز جديد من ${nationality}\n🎫 ${quantity} تذكرة ليوم ${eventDate}`,
+        {
+          duration: 5000,
+          style: { whiteSpace: 'pre-line', textAlign: 'right', direction: 'rtl' }
+        }
+      );
+    }
+  }, []);
+
+  // Helper: show check-in notification using local data (no DB fetch needed)
+  const showCheckinNotificationToast = useCallback((holder: TicketHolder) => {
+    if (!checkinNotificationsEnabledRef.current) return;
+    const nationality = holder.nationality || 'غير محدد';
+    const flag = getNationalityFlag(nationality);
+    const ticketTypeLabel = holder.ticket_type === 'vip' ? 'VIP' :
+                            holder.ticket_type === 'normal' ? 'عادي' :
+                            holder.ticket_type === 'parking' ? 'مواقف' : holder.ticket_type;
+    const getTicketStyle = () => {
+      switch (holder.ticket_type) {
+        case 'vip': return { background: 'linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%)', border: '2px solid #d97706', color: '#78350f', icon: '👑' };
+        case 'normal': return { background: 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)', border: '2px solid #15803d', color: '#ffffff', icon: '🎫' };
+        case 'parking': return { background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)', border: '2px solid #1d4ed8', color: '#ffffff', icon: '🅿️' };
+        default: return { background: 'linear-gradient(135deg, #6b7280 0%, #4b5563 100%)', border: '2px solid #374151', color: '#ffffff', icon: '🎫' };
+      }
+    };
+    const style = getTicketStyle();
+    if (soundEnabledRef.current) playCheckinSound(holder.ticket_type);
+    toast.success(
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', direction: 'rtl', textAlign: 'right' }}>
+        <div style={{ fontSize: '18px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'flex-end' }}>
+          <span>{holder.name}</span>
+          <span style={{ fontSize: '24px' }}>{flag}</span>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', justifyContent: 'flex-end', opacity: 0.9 }}>
+          <span style={{ fontWeight: 500 }}>تذكرة {ticketTypeLabel}</span>
+          <span style={{ fontSize: '16px' }}>{style.icon}</span>
+        </div>
+        <div style={{ fontSize: '12px', opacity: 0.8, marginTop: '2px' }}>
+          ✅ تم تسجيل الحضور
+        </div>
+      </div>,
+      {
+        duration: 5000,
+        style: {
+          background: style.background,
+          border: style.border,
+          color: style.color,
+          padding: '16px 20px',
+          borderRadius: '12px',
+          boxShadow: '0 10px 40px rgba(0,0,0,0.3)',
+          minWidth: '280px'
+        }
+      }
+    );
+  }, []);
+
+  // Helper: fetch and set ticket capacities for an event
+  const fetchTicketCapacities = useCallback(async (eventId: string) => {
+    const { data: ticketsData } = await supabase
+      .from("tickets")
+      .select("type, available_quantity")
+      .eq("event_id", eventId);
+    if (ticketsData) {
+      const capacities: { [key: string]: number } = {};
+      const capacitiesMap = new Map<string, number>();
+      ticketsData.forEach(ticket => {
+        capacities[ticket.type] = ticket.available_quantity;
+        capacitiesMap.set(ticket.type, ticket.available_quantity);
+      });
+      setTicketCapacities(capacities);
+      previousTicketCapacitiesRef.current = capacitiesMap;
+    }
+  }, []);
+
 
   useEffect(() => {
     const handleFullscreenChange = () => {
@@ -577,109 +747,66 @@ const LiveBookings = () => {
   };
 
   const fetchBookings = async (useRefDate = false) => {
-    // Use ref date for realtime callbacks to avoid stale closure issues
     const dateToUse = useRefDate ? selectedDateRef.current : selectedDate;
     
     try {
-      // IMPORTANT: PostgREST defaults to 1000 rows per request.
-      // We must paginate to get all orders across all events.
       const PAGE_SIZE = 1000;
       const allOrders: any[] = [];
 
+      // Server-side date filter — only fetch orders for the selected date
+      let dateStr: string | null = null;
+      if (dateToUse) {
+        const y = dateToUse.getFullYear();
+        const m = String(dateToUse.getMonth() + 1).padStart(2, '0');
+        const d = String(dateToUse.getDate()).padStart(2, '0');
+        dateStr = `${y}-${m}-${d}`;
+      }
+
       for (let from = 0; ; from += PAGE_SIZE) {
-        const { data, error } = await supabase
+        let query = supabase
           .from("orders")
-          .select(`
-            *,
-            customers(name, email, phone, id_number, nationality),
-            events(title, event_date),
-            ticket_holders(*),
-            pos_users(name, icon)
-          `)
+          .select(`*, customers(name, email, phone, id_number, nationality), events!inner(title, event_date), ticket_holders(*), pos_users(name, icon)`)
           .eq("payment_status", "confirmed")
           .order("created_at", { ascending: false })
           .range(from, from + PAGE_SIZE - 1);
 
+        // Apply server-side date filter (much faster than fetching all + client filter)
+        if (dateStr) {
+          query = query.eq("events.event_date", dateStr);
+        }
+
+        const { data, error } = await query;
         if (error) throw error;
         if (data?.length) allOrders.push(...data);
-
-        // If we got fewer than PAGE_SIZE, we've fetched all rows
         if (!data || data.length < PAGE_SIZE) break;
       }
 
-      console.log("Raw data from Supabase (paginated):", allOrders.length, "orders");
-      console.log("Using date for filter:", dateToUse);
+      console.log(`Fetched ${allOrders.length} orders (server-filtered: ${dateStr || 'all'})`);
 
-      // Filter by event date on client side if date is selected
-      let filteredData = allOrders;
-      if (dateToUse) {
-        // Extract date components from selected date (ignoring time)
-        const selectedYear = dateToUse.getFullYear();
-        const selectedMonth = dateToUse.getMonth();
-        const selectedDay = dateToUse.getDate();
-        
-        console.log(`Filtering for date: ${selectedYear}-${selectedMonth + 1}-${selectedDay}`);
-        
-        filteredData = filteredData.filter((order: any) => {
-          if (!order.events?.event_date) return false;
-          // Convert event date to Qatar timezone
-          const eventDate = toZonedTime(new Date(order.events.event_date), QATAR_TIMEZONE);
-          // Compare year, month, and day only
-          return eventDate.getFullYear() === selectedYear &&
-                 eventDate.getMonth() === selectedMonth &&
-                 eventDate.getDate() === selectedDay;
-        });
-        
-        console.log(`Filtered ${allOrders.length} orders to ${filteredData.length} for selected date`);
-      }
-
-      console.log("Filtered data:", filteredData);
-      console.log("First filtered order:", filteredData[0]);
-
-      // Extract all ticket holders from filtered bookings
+      // Extract ticket holders using helper
       const allTicketHolders: TicketHolder[] = [];
-      filteredData.forEach(order => {
-        console.log(`Order ${order.booking_reference} ticket_holders:`, order.ticket_holders);
-        if (order.ticket_holders && Array.isArray(order.ticket_holders)) {
-          order.ticket_holders.forEach((holder: any) => {
-            allTicketHolders.push({
-              ...holder,
-              booking_reference: order.booking_reference,
-              payment_method: order.payment_method,
-              n8n_responded_at: order.n8n_responded_at,
-              event_title: order.events?.title,
-              created_at: order.created_at,
-              pos_user_name: order.pos_users?.name,
-              pos_user_icon: order.pos_users?.icon
-            });
-          });
-        }
+      allOrders.forEach(order => {
+        allTicketHolders.push(...extractOrderTicketHolders(order));
       });
 
-      console.log("Total ticket holders extracted:", allTicketHolders.length);
-      console.log("Ticket holders:", allTicketHolders);
-
-      setBookings(filteredData);
+      setBookings(allOrders);
       setTicketHolders(allTicketHolders);
-      calculateStats(filteredData, allTicketHolders);
+      calculateStats(allOrders, allTicketHolders);
       
-      // Fetch ticket capacities for the event
-      if (filteredData.length > 0 && filteredData[0].event_id) {
-        const eventId = filteredData[0].event_id;
-        const { data: ticketsData } = await supabase
-          .from("tickets")
-          .select("type, available_quantity")
-          .eq("event_id", eventId);
-        
-        if (ticketsData) {
-          const capacities: { [key: string]: number } = {};
-          const capacitiesMap = new Map<string, number>();
-          ticketsData.forEach(ticket => {
-            capacities[ticket.type] = ticket.available_quantity;
-            capacitiesMap.set(ticket.type, ticket.available_quantity);
-          });
-          setTicketCapacities(capacities);
-          previousTicketCapacitiesRef.current = capacitiesMap;
+      // Fetch ticket capacities
+      const eventId = allOrders[0]?.event_id;
+      if (eventId) {
+        await fetchTicketCapacities(eventId);
+      } else if (dateStr) {
+        // No orders yet — find event by date to show capacities
+        const { data: eventData } = await supabase
+          .from("events")
+          .select("id")
+          .eq("event_date", dateStr)
+          .eq("is_active", true)
+          .maybeSingle();
+        if (eventData) {
+          await fetchTicketCapacities(eventData.id);
         }
       }
       
@@ -688,18 +815,14 @@ const LiveBookings = () => {
         const currentIds = new Set(allTicketHolders.map(h => h.id));
         const newIds = new Set<string>();
         currentIds.forEach(id => {
-          if (!previousTicketHolderIdsRef.current.has(id)) {
-            newIds.add(id);
-          }
+          if (!previousTicketHolderIdsRef.current.has(id)) newIds.add(id);
         });
         if (newIds.size > 0) {
           setNewTicketHolderIds(newIds);
-          // Clear animation after 5 seconds
           setTimeout(() => setNewTicketHolderIds(new Set()), 5000);
         }
         previousTicketHolderIdsRef.current = currentIds;
       } else {
-        // Store initial IDs
         previousTicketHolderIdsRef.current = new Set(allTicketHolders.map(h => h.id));
         isInitialLoadRef.current = false;
       }
@@ -712,284 +835,132 @@ const LiveBookings = () => {
   };
 
   const setupRealtimeSubscription = () => {
-    // Subscribe to orders changes
-    const ordersChannel = supabase
-      .channel('live-bookings-orders')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'orders'
-        },
-        async (payload) => {
-          console.log('Order update:', payload);
-          // Play sound and show detailed toast for new confirmed orders
-          if (payload.eventType === 'INSERT' && (payload.new as any)?.payment_status === 'confirmed') {
-            if (!isInitialLoadRef.current) {
-              const newOrder = payload.new as any;
-              
-              // Fetch additional details for the toast notification
-              try {
-               const isPOS = newOrder.payment_method === 'cash_pos';
-               
-               if (isPOS) {
-                 // Fetch POS user details for POS orders
-                 const { data: posOrderDetails } = await supabase
-                   .from('orders')
-                   .select(`
-                     quantity,
-                     customers(name, nationality),
-                     events(title, event_date),
-                     pos_users(name, icon)
-                   `)
-                   .eq('id', newOrder.id)
-                   .single();
-                 
-                 if (posOrderDetails) {
-                   const customerName = posOrderDetails.customers?.name || 'عميل';
-                   const nationality = posOrderDetails.customers?.nationality || 'غير محدد';
-                   const flag = getNationalityFlag(nationality);
-                   const quantity = posOrderDetails.quantity || 1;
-                   const posUserName = posOrderDetails.pos_users?.name || 'موظف';
-                   const posUserIcon = posOrderDetails.pos_users?.icon || '👤';
-                   
-                   if (soundEnabled) {
-                     playPOSNotificationSound();
-                   }
-                   
-                   toast.success(
-                     <div className="flex flex-col gap-2 text-right" dir="rtl">
-                       <div className="flex items-center gap-2 justify-end">
-                         <Store className="w-4 h-4 text-orange-500" />
-                         <span className="font-bold text-orange-600">تسجيل من نقطة البيع</span>
-                       </div>
-                       <div className="flex items-center gap-2 justify-end">
-                         <span className="text-lg">{flag}</span>
-                         <span className="font-semibold">{customerName}</span>
-                         <span className="text-muted-foreground">({nationality})</span>
-                       </div>
-                       <div className="flex items-center gap-3 justify-end text-sm">
-                         <span className="bg-primary/10 text-primary px-2 py-0.5 rounded-full font-bold">
-                           🎫 {quantity} {quantity === 1 ? 'تذكرة' : quantity === 2 ? 'تذكرتين' : quantity <= 10 ? 'تذاكر' : 'تذكرة'}
-                         </span>
-                       </div>
-                       <div className="flex items-center gap-2 justify-end text-xs text-muted-foreground border-t pt-2 mt-1">
-                         <span>{posUserIcon}</span>
-                         <span>بواسطة: {posUserName}</span>
-                       </div>
-                     </div>,
-                     {
-                       duration: 6000,
-                       position: 'top-right',
-                       className: 'bg-gradient-to-r from-orange-50 to-amber-50 dark:from-orange-950/50 dark:to-amber-950/50 border-orange-200 dark:border-orange-800',
-                      }
-                   );
-                 }
-               } else {
-                 // Online booking (Sadad) - existing notification
-                 const { data: orderDetails } = await supabase
-                   .from('orders')
-                   .select(`
-                     quantity,
-                     customers(nationality),
-                     events(title, event_date)
-                   `)
-                   .eq('id', newOrder.id)
-                   .single();
-                 
-                 if (orderDetails) {
-                   const nationality = orderDetails.customers?.nationality || 'غير محدد';
-                   const flag = getNationalityFlag(nationality);
-                   const quantity = orderDetails.quantity || 1;
-                   const eventDate = orderDetails.events?.event_date 
-                     ? new Date(orderDetails.events.event_date).toLocaleDateString('ar-u-nu-latn', { 
-                         day: 'numeric', 
-                         month: 'long' 
-                       })
-                     : '';
-                   
-                   if (soundEnabled) {
-                     playNotificationSound();
-                   }
-                   
-                   toast.success(
-                     `${flag} حجز جديد من ${nationality}\n🎫 ${quantity} تذكرة ليوم ${eventDate}`,
-                     {
-                       duration: 5000,
-                       style: {
-                         whiteSpace: 'pre-line',
-                         textAlign: 'right',
-                         direction: 'rtl'
-                       }
-                     }
-                   );
-                 }
-                }
-              } catch (err) {
-                console.error('Error fetching order details for toast:', err);
-                if (soundEnabled) {
-                  playNotificationSound();
-                }
-                toast.success("🎫 حجز جديد!");
-              }
-            }
-          }
-          // Use ref date to avoid stale closure
-          fetchBookings(true);
-        }
-      )
-      .subscribe();
+    let debounceTimer: ReturnType<typeof setTimeout>;
+    
+    // Debounced full refresh — fallback for edge cases
+    const debouncedRefresh = () => {
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => fetchBookings(true), 1500);
+    };
 
-    // Subscribe to ticket_holders changes
-    const ticketHoldersChannel = supabase
-      .channel('live-bookings-ticket-holders')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'ticket_holders'
-        },
+    // Single unified channel for all tables (reduces DB connections)
+    const channel = supabase
+      .channel('live-bookings-unified')
+      // Orders table
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' },
         async (payload) => {
-          console.log('Ticket holder change:', payload);
+          console.log('RT order:', payload.eventType);
           
-          // Show notification for check-ins (when is_present becomes true)
-          if (payload.eventType === 'UPDATE' && !isInitialLoadRef.current) {
-            const oldData = payload.old as any;
-            const newData = payload.new as any;
+          if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
+            const orderData = payload.new as any;
             
-            // Check if is_present changed from false/null to true
-            if (newData.is_present === true && oldData.is_present !== true) {
-              try {
-                // Fetch ticket holder details for the notification
-                const { data: holderDetails } = await supabase
-                  .from('ticket_holders')
-                  .select(`
-                    name,
-                    ticket_type,
-                    nationality,
-                    orders!inner(
-                      events!inner(title, event_date)
-                    )
-                  `)
-                  .eq('id', newData.id)
-                  .single();
-                
-                if (holderDetails && checkinNotificationsEnabled) {
-                  const nationality = holderDetails.nationality || 'غير محدد';
-                  const flag = getNationalityFlag(nationality);
-                  const ticketTypeLabel = holderDetails.ticket_type === 'vip' ? 'VIP' : 
-                                          holderDetails.ticket_type === 'normal' ? 'عادي' : 
-                                          holderDetails.ticket_type === 'parking' ? 'مواقف' : holderDetails.ticket_type;
-                  
-                  // Get styling based on ticket type
-                  const getTicketStyle = () => {
-                    switch (holderDetails.ticket_type) {
-                      case 'vip':
-                        return {
-                          background: 'linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%)',
-                          border: '2px solid #d97706',
-                          color: '#78350f',
-                          icon: '👑'
-                        };
-                      case 'normal':
-                        return {
-                          background: 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)',
-                          border: '2px solid #15803d',
-                          color: '#ffffff',
-                          icon: '🎫'
-                        };
-                      case 'parking':
-                        return {
-                          background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
-                          border: '2px solid #1d4ed8',
-                          color: '#ffffff',
-                          icon: '🅿️'
-                        };
-                      default:
-                        return {
-                          background: 'linear-gradient(135deg, #6b7280 0%, #4b5563 100%)',
-                          border: '2px solid #374151',
-                          color: '#ffffff',
-                          icon: '🎫'
-                        };
-                    }
-                  };
-                  
-                  const style = getTicketStyle();
-                  
-                  if (soundEnabled) {
-                    playCheckinSound(holderDetails.ticket_type);
-                  }
-                  
-                  toast.success(
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', direction: 'rtl', textAlign: 'right' }}>
-                      <div style={{ fontSize: '18px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'flex-end' }}>
-                        <span>{holderDetails.name}</span>
-                        <span style={{ fontSize: '24px' }}>{flag}</span>
-                      </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', justifyContent: 'flex-end', opacity: 0.9 }}>
-                        <span style={{ fontWeight: 500 }}>تذكرة {ticketTypeLabel}</span>
-                        <span style={{ fontSize: '16px' }}>{style.icon}</span>
-                      </div>
-                      <div style={{ fontSize: '12px', opacity: 0.8, marginTop: '2px' }}>
-                        ✅ تم تسجيل الحضور
-                      </div>
-                    </div>,
-                    {
-                      duration: 5000,
-                      style: {
-                        background: style.background,
-                        border: style.border,
-                        color: style.color,
-                        padding: '16px 20px',
-                        borderRadius: '12px',
-                        boxShadow: '0 10px 40px rgba(0,0,0,0.3)',
-                        minWidth: '280px'
-                      }
-                    }
-                  );
+            if (orderData?.payment_status === 'confirmed') {
+              // Fetch only this single order (not all orders)
+              const fullOrder = await fetchSingleOrder(orderData.id);
+              if (!fullOrder || !orderMatchesSelectedDate(fullOrder)) return;
+              
+              // Add or update in state
+              setBookings(prev => {
+                const existingIdx = prev.findIndex(b => b.id === orderData.id);
+                if (existingIdx >= 0) {
+                  const updated = [...prev];
+                  updated[existingIdx] = fullOrder as Booking;
+                  return updated;
                 }
-              } catch (err) {
-                console.error('Error fetching holder details for check-in toast:', err);
+                return [fullOrder as Booking, ...prev];
+              });
+              
+              // Update ticket holders
+              setTicketHolders(prev => {
+                const withoutOld = prev.filter(h => h.order_id !== orderData.id);
+                const newHolders = extractOrderTicketHolders(fullOrder);
+                
+                // Animation for new holders on INSERT
+                if (!isInitialLoadRef.current && payload.eventType === 'INSERT') {
+                  const newIds = new Set(newHolders.map(h => h.id));
+                  if (newIds.size > 0) {
+                    setNewTicketHolderIds(newIds);
+                    setTimeout(() => setNewTicketHolderIds(new Set()), 5000);
+                  }
+                  newHolders.forEach(h => previousTicketHolderIdsRef.current.add(h.id));
+                }
+                
+                return [...newHolders, ...withoutOld];
+              });
+              
+              // Show notification for new orders only
+              if (payload.eventType === 'INSERT' && !isInitialLoadRef.current) {
+                showNewBookingNotification(fullOrder);
               }
+            } else if (orderData?.payment_status === 'cancelled' && payload.eventType === 'UPDATE') {
+              // Remove cancelled order from state
+              setBookings(prev => prev.filter(b => b.id !== orderData.id));
+              setTicketHolders(prev => prev.filter(h => h.order_id !== orderData.id));
+            }
+          } else if (payload.eventType === 'DELETE') {
+            const deletedId = (payload.old as any)?.id;
+            if (deletedId) {
+              setBookings(prev => prev.filter(b => b.id !== deletedId));
+              setTicketHolders(prev => prev.filter(h => h.order_id !== deletedId));
             }
           }
-          
-          // Use ref date to avoid stale closure
-          fetchBookings(true);
         }
       )
-      .subscribe();
-
-    // Subscribe to tickets changes for capacity updates
-    const ticketsChannel = supabase
-      .channel('live-bookings-tickets')
-      .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'tickets'
-        },
+      // Ticket holders table — in-place updates (no full refetch)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'ticket_holders' },
         (payload) => {
-          console.log('Ticket capacity update:', payload);
+          console.log('RT ticket_holder:', payload.eventType);
+          
+          if (payload.eventType === 'UPDATE') {
+            const newData = payload.new as any;
+            const oldData = payload.old as any;
+            const isCheckin = newData.is_present === true && oldData.is_present !== true;
+            
+            // Update holder in-place — instant UI update, zero DB queries
+            setTicketHolders(prev => {
+              if (isCheckin && !isInitialLoadRef.current) {
+                const existingHolder = prev.find(h => h.id === newData.id);
+                if (existingHolder) {
+                  setTimeout(() => showCheckinNotificationToast({ ...existingHolder, ...newData }), 0);
+                }
+              }
+              return prev.map(h => h.id === newData.id ? { ...h, ...newData } : h);
+            });
+            
+            // Also update within bookings' ticket_holders array
+            setBookings(prev => prev.map(b => ({
+              ...b,
+              ticket_holders: b.ticket_holders?.map((h: any) =>
+                h.id === newData.id ? { ...h, ...newData } : h
+              )
+            })));
+          } else if (payload.eventType === 'DELETE') {
+            const deletedId = (payload.old as any)?.id;
+            if (deletedId) {
+              setTicketHolders(prev => prev.filter(h => h.id !== deletedId));
+              setBookings(prev => prev.map(b => ({
+                ...b,
+                ticket_holders: b.ticket_holders?.filter((h: any) => h.id !== deletedId)
+              })));
+            }
+          } else if (payload.eventType === 'INSERT') {
+            // New holder added — usually part of order creation handled above
+            // Debounced refresh as fallback
+            debouncedRefresh();
+          }
+        }
+      )
+      // Tickets table — capacity tracking (already efficient, kept as-is)
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'tickets' },
+        (payload) => {
           const newTicket = payload.new as any;
-
           if (!newTicket) return;
-
           const ticketType = newTicket.type as string;
           const newCapacity = Number(newTicket.available_quantity ?? 0);
           const oldCapacity = previousTicketCapacitiesRef.current.get(ticketType);
 
-          // Update the capacities state immediately
-          setTicketCapacities(prev => ({
-            ...prev,
-            [ticketType]: newCapacity
-          }));
+          setTicketCapacities(prev => ({ ...prev, [ticketType]: newCapacity }));
 
-          // If we don't know the previous capacity yet, seed and skip notifying (avoids false positives)
           if (typeof oldCapacity !== 'number') {
             previousTicketCapacitiesRef.current.set(ticketType, newCapacity);
             return;
@@ -997,53 +968,20 @@ const LiveBookings = () => {
 
           if (!isInitialLoadRef.current && newCapacity > oldCapacity) {
             const increase = newCapacity - oldCapacity;
-
-            if (soundEnabled) {
-              playCapacityIncreaseSound(ticketType);
-            }
-
-            // Show centered banner notification
+            if (soundEnabledRef.current) playCapacityIncreaseSound(ticketType);
             setCapacityNotification({ ticketType, increase, newCapacity });
             setShowCapacityNotification(true);
-
-            // Auto-dismiss after 4 seconds (reset if another increase arrives)
-            if (capacityDismissTimeoutRef.current) {
-              window.clearTimeout(capacityDismissTimeoutRef.current);
-            }
-            capacityDismissTimeoutRef.current = window.setTimeout(() => {
-              dismissCapacityNotification();
-            }, 4000);
+            if (capacityDismissTimeoutRef.current) window.clearTimeout(capacityDismissTimeoutRef.current);
+            capacityDismissTimeoutRef.current = window.setTimeout(() => dismissCapacityNotification(), 4000);
           }
-
-          // Always update stored capacity
           previousTicketCapacitiesRef.current.set(ticketType, newCapacity);
         }
       )
       .subscribe();
 
-    // Subscribe to pos_users changes to update names in real-time
-    const posUsersChannel = supabase
-      .channel('live-bookings-pos-users')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'pos_users'
-        },
-        (payload) => {
-          console.log('POS user change:', payload);
-          // Refetch bookings to get updated POS user names
-          fetchBookings(true);
-        }
-      )
-      .subscribe();
-
     return () => {
-      supabase.removeChannel(ordersChannel);
-      supabase.removeChannel(ticketHoldersChannel);
-      supabase.removeChannel(ticketsChannel);
-      supabase.removeChannel(posUsersChannel);
+      clearTimeout(debounceTimer);
+      supabase.removeChannel(channel);
     };
   };
 
@@ -1267,7 +1205,11 @@ const LiveBookings = () => {
       if (error) throw error;
       
       toast.success(currentStatus ? t("markedAsAbsent") : t("markedAsPresent"));
-      fetchBookings();
+      
+      // Update state locally instead of full refetch
+      setBookings(prev => prev.map(b =>
+        b.id === bookingId ? { ...b, is_present: !currentStatus } : b
+      ));
     } catch (error) {
       console.error("Error updating presence:", error);
       toast.error(t("failedToLoad"));
