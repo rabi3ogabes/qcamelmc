@@ -3,6 +3,11 @@ import { supabase } from "@/integrations/supabase/client";
 
 const SESSION_KEY = "visitor_session_id";
 const VISITOR_KEY = "is_returning_visitor";
+const GEO_CACHE_KEY = "visitor_geo_cache";
+const GEO_CACHE_TTL = 30 * 60 * 1000; // 30 minutes
+
+// Activity update interval: 2 minutes instead of 30 seconds
+const ACTIVITY_INTERVAL_MS = 120_000;
 
 // Admin/backend pages that should not be tracked
 const EXCLUDED_PATHS = [
@@ -14,18 +19,14 @@ const EXCLUDED_PATHS = [
   "/admin-pos",
 ];
 
-// Check if current path should be tracked
 const shouldTrackPage = (): boolean => {
   const path = window.location.pathname.toLowerCase();
   return !EXCLUDED_PATHS.some(excluded => path.startsWith(excluded));
 };
 
-// Generate a unique session ID
-const generateSessionId = (): string => {
-  return `${Date.now()}-${Math.random().toString(36).substring(2, 15)}`;
-};
+const generateSessionId = (): string =>
+  `${Date.now()}-${Math.random().toString(36).substring(2, 15)}`;
 
-// Get or create session ID
 const getSessionId = (): string => {
   let sessionId = sessionStorage.getItem(SESSION_KEY);
   if (!sessionId) {
@@ -35,7 +36,6 @@ const getSessionId = (): string => {
   return sessionId;
 };
 
-// Check if returning visitor
 const isNewVisitor = (): boolean => {
   const isReturning = localStorage.getItem(VISITOR_KEY);
   if (!isReturning) {
@@ -45,33 +45,25 @@ const isNewVisitor = (): boolean => {
   return false;
 };
 
-// Detect device type
 const getDeviceType = (): string => {
   const ua = navigator.userAgent;
-  if (/(tablet|ipad|playbook|silk)|(android(?!.*mobi))/i.test(ua)) {
-    return "tablet";
-  }
-  if (/Mobile|Android|iP(hone|od)|IEMobile|BlackBerry|Kindle|Silk-Accelerated|(hpw|web)OS|Opera M(obi|ini)/.test(ua)) {
-    return "mobile";
-  }
+  if (/(tablet|ipad|playbook|silk)|(android(?!.*mobi))/i.test(ua)) return "tablet";
+  if (/Mobile|Android|iP(hone|od)|IEMobile|BlackBerry|Kindle|Silk-Accelerated|(hpw|web)OS|Opera M(obi|ini)/.test(ua)) return "mobile";
   return "desktop";
 };
 
-// Detect browser
 const getBrowser = (): string => {
   const ua = navigator.userAgent;
   if (ua.includes("Firefox")) return "Firefox";
   if (ua.includes("SamsungBrowser")) return "Samsung Browser";
   if (ua.includes("Opera") || ua.includes("OPR")) return "Opera";
   if (ua.includes("Trident")) return "IE";
-  if (ua.includes("Edge")) return "Edge";
-  if (ua.includes("Edg")) return "Edge";
+  if (ua.includes("Edge") || ua.includes("Edg")) return "Edge";
   if (ua.includes("Chrome")) return "Chrome";
   if (ua.includes("Safari")) return "Safari";
   return "Unknown";
 };
 
-// Detect OS
 const getOS = (): string => {
   const ua = navigator.userAgent;
   if (ua.includes("Win")) return "Windows";
@@ -82,74 +74,68 @@ const getOS = (): string => {
   return "Unknown";
 };
 
-// Detect traffic source
 const getTrafficSource = (): string => {
   const referrer = document.referrer;
   if (!referrer) return "direct";
-  
-  const url = new URL(referrer);
-  const hostname = url.hostname.toLowerCase();
-  
-  // Social media
-  if (hostname.includes("facebook") || hostname.includes("fb.com")) return "facebook";
-  if (hostname.includes("twitter") || hostname.includes("x.com")) return "twitter";
-  if (hostname.includes("instagram")) return "instagram";
-  if (hostname.includes("linkedin")) return "linkedin";
-  if (hostname.includes("tiktok")) return "tiktok";
-  if (hostname.includes("youtube")) return "youtube";
-  if (hostname.includes("whatsapp")) return "whatsapp";
-  if (hostname.includes("telegram")) return "telegram";
-  if (hostname.includes("snapchat")) return "snapchat";
-  
-  // Search engines
-  if (hostname.includes("google")) return "google";
-  if (hostname.includes("bing")) return "bing";
-  if (hostname.includes("yahoo")) return "yahoo";
-  if (hostname.includes("duckduckgo")) return "duckduckgo";
-  
-  // Same site
-  if (hostname === window.location.hostname) return "internal";
-  
-  return "referral";
+  try {
+    const hostname = new URL(referrer).hostname.toLowerCase();
+    if (hostname.includes("facebook") || hostname.includes("fb.com")) return "facebook";
+    if (hostname.includes("twitter") || hostname.includes("x.com")) return "twitter";
+    if (hostname.includes("instagram")) return "instagram";
+    if (hostname.includes("linkedin")) return "linkedin";
+    if (hostname.includes("tiktok")) return "tiktok";
+    if (hostname.includes("youtube")) return "youtube";
+    if (hostname.includes("whatsapp")) return "whatsapp";
+    if (hostname.includes("telegram")) return "telegram";
+    if (hostname.includes("snapchat")) return "snapchat";
+    if (hostname.includes("google")) return "google";
+    if (hostname.includes("bing")) return "bing";
+    if (hostname.includes("yahoo")) return "yahoo";
+    if (hostname.includes("duckduckgo")) return "duckduckgo";
+    if (hostname === window.location.hostname) return "internal";
+    return "referral";
+  } catch {
+    return "referral";
+  }
 };
 
-// Fetch visitor's IP and geo info
-const fetchGeoInfo = async (): Promise<{
+interface GeoInfo {
   ip: string;
   country: string;
   country_code: string;
   city: string;
-}> => {
+}
+
+const DEFAULT_GEO: GeoInfo = { ip: "unknown", country: "Unknown", country_code: "XX", city: "Unknown" };
+
+// Cache geo info in sessionStorage to avoid repeated API calls
+const fetchGeoInfo = async (): Promise<GeoInfo> => {
   try {
+    const cached = sessionStorage.getItem(GEO_CACHE_KEY);
+    if (cached) {
+      const { data, timestamp } = JSON.parse(cached);
+      if (Date.now() - timestamp < GEO_CACHE_TTL) return data;
+    }
+
     const response = await fetch("https://ipapi.co/json/");
-    if (!response.ok) throw new Error("Failed to fetch geo info");
+    if (!response.ok) throw new Error("Geo fetch failed");
     const data = await response.json();
-    return {
+    const geoInfo: GeoInfo = {
       ip: data.ip || "unknown",
       country: data.country_name || "Unknown",
       country_code: data.country_code || "XX",
       city: data.city || "Unknown",
     };
-  } catch (error) {
-    console.error("Error fetching geo info:", error);
-    return {
-      ip: "unknown",
-      country: "Unknown",
-      country_code: "XX",
-      city: "Unknown",
-    };
+    sessionStorage.setItem(GEO_CACHE_KEY, JSON.stringify({ data: geoInfo, timestamp: Date.now() }));
+    return geoInfo;
+  } catch {
+    return DEFAULT_GEO;
   }
 };
 
-// Record page view for historical analytics
-const recordPageView = async (
-  sessionId: string,
-  geoInfo: { ip: string; country: string; country_code: string; city: string }
-) => {
-  // Only track front-end pages
+const recordPageView = async (sessionId: string, geoInfo: GeoInfo) => {
   if (!shouldTrackPage()) return;
-
-  const pageViewData = {
+  const { error } = await supabase.from("page_views").insert({
     session_id: sessionId,
     page_path: window.location.pathname,
     country: geoInfo.country,
@@ -161,22 +147,17 @@ const recordPageView = async (
     traffic_source: getTrafficSource(),
     is_new_visitor: isNewVisitor(),
     ip_address: geoInfo.ip,
-  };
-
-  const { error } = await supabase.from("page_views").insert(pageViewData);
-
-  if (error) {
-    console.error("Error recording page view:", error);
-  }
+  });
+  if (error) console.error("Error recording page view:", error);
 };
 
 export const useVisitorTracking = () => {
   const sessionIdRef = useRef<string>(getSessionId());
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const lastPageRef = useRef<string>("");
+  const geoRef = useRef<GeoInfo | null>(null);
 
   useEffect(() => {
-    // Don't track admin/backend pages
     if (!shouldTrackPage()) return;
 
     const sessionId = sessionIdRef.current;
@@ -184,8 +165,8 @@ export const useVisitorTracking = () => {
 
     const initTracking = async () => {
       const geoInfo = await fetchGeoInfo();
-      
       if (!isMounted) return;
+      geoRef.current = geoInfo;
 
       const visitorData = {
         session_id: sessionId,
@@ -204,16 +185,12 @@ export const useVisitorTracking = () => {
         last_seen_at: new Date().toISOString(),
       };
 
-      // Upsert visitor data
       const { error } = await supabase
         .from("active_visitors")
         .upsert(visitorData, { onConflict: "session_id" });
 
-      if (error) {
-        console.error("Error tracking visitor:", error);
-      }
+      if (error) console.error("Error tracking visitor:", error);
 
-      // Record page view for historical analytics (only if page changed)
       if (lastPageRef.current !== window.location.pathname) {
         lastPageRef.current = window.location.pathname;
         await recordPageView(sessionId, geoInfo);
@@ -231,45 +208,29 @@ export const useVisitorTracking = () => {
         })
         .eq("session_id", sessionId);
 
-      if (error) {
-        console.error("Error updating visitor activity:", error);
-      }
+      if (error) console.error("Error updating visitor activity:", error);
 
-      // Record page view if page changed
+      // Record page view only if page actually changed, using cached geo
       if (lastPageRef.current !== window.location.pathname) {
         lastPageRef.current = window.location.pathname;
-        const geoInfo = await fetchGeoInfo();
+        const geoInfo = geoRef.current || await fetchGeoInfo();
         await recordPageView(sessionId, geoInfo);
       }
     };
 
-    // Initialize tracking
     initTracking();
 
-    // Update activity every 30 seconds
-    intervalRef.current = setInterval(updateActivity, 30000);
+    // Update activity every 2 minutes (was 30 seconds)
+    intervalRef.current = setInterval(updateActivity, ACTIVITY_INTERVAL_MS);
 
-    // Track page changes
-    const handlePopState = () => {
-      updateActivity();
-    };
-
+    const handlePopState = () => updateActivity();
     window.addEventListener("popstate", handlePopState);
 
-    // Cleanup on unmount
     return () => {
       isMounted = false;
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-      }
+      if (intervalRef.current) clearInterval(intervalRef.current);
       window.removeEventListener("popstate", handlePopState);
-
-      // Remove visitor session when leaving
-      supabase
-        .from("active_visitors")
-        .delete()
-        .eq("session_id", sessionId)
-        .then(() => {});
+      supabase.from("active_visitors").delete().eq("session_id", sessionId).then(() => {});
     };
   }, []);
 };
