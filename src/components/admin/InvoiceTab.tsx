@@ -139,8 +139,8 @@ export const InvoiceTab = () => {
   // Check if an order is truly sent (n8n responded with success, not just "sending" status)
   const isPendingMessage = (message: string | null) => {
     if (!message) return true;
-    // If message indicates still sending, treat as pending
-    return message === 'جاري الإرسال إلى واتساب...';
+    // If message indicates still sending (WhatsApp or Email), treat as pending
+    return message === 'جاري الإرسال إلى واتساب...' || message === 'جاري إرسال البريد الإلكتروني...';
   };
 
   // Check if event date has passed (past 6 PM Qatar time on event day)
@@ -707,6 +707,7 @@ export const InvoiceTab = () => {
       }
 
       toast.success(`تم إرسال الفاتورة بالبريد لـ ${order.customers.name}`);
+      fetchOrders(); // Refresh to track n8n callback response
     } catch (error) {
       console.error("Error sending email invoice:", error);
       toast.error("حدث خطأ أثناء إرسال البريد");

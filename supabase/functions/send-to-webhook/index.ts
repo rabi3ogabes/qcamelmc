@@ -194,7 +194,7 @@ Deno.serve(async (req) => {
 
       // Mark order as "sending" - waiting for n8n to process and respond back via n8n-response endpoint
       // Do NOT set final message here - let n8n-response handle that
-      const pendingMessage = 'جاري الإرسال إلى واتساب...';
+      const pendingMessage = isEmailAction ? 'جاري إرسال البريد الإلكتروني...' : 'جاري الإرسال إلى واتساب...';
       
       if (orderId) {
         console.log('Marking order as pending (waiting for n8n response):', orderId);
