@@ -868,7 +868,7 @@ export const InvoiceTab = () => {
             <TableHeader>
               <TableRow>
                 <TableHead className="text-right whitespace-nowrap">الحالة</TableHead>
-                <TableHead className="text-right whitespace-nowrap">طريقة الإرسال</TableHead>
+                
                 <TableHead className="text-right whitespace-nowrap">رقم الحجز</TableHead>
                 <TableHead className="text-right whitespace-nowrap">اسم العميل</TableHead>
                 <TableHead className="text-right whitespace-nowrap">الدولة</TableHead>
@@ -898,79 +898,104 @@ export const InvoiceTab = () => {
                 filteredOrders.map((order) => (
                 <TableRow key={order.id}>
                     <TableCell>
-                      {order.n8n_response_message ? (
-                        <div className="flex flex-col gap-1">
-                          <Badge variant="default" className="gap-1">
-                            <CheckCircle className="w-3 h-3" />
-                            رد من n8n
-                          </Badge>
-                          {order.n8n_responded_at && (
-                            <span className="text-xs text-muted-foreground" dir="ltr">
-                              {format(new Date(order.n8n_responded_at), "dd/MM/yyyy HH:mm:ss")}
-                            </span>
-                          )}
-                          <span className="text-xs text-muted-foreground italic">
-                            {order.n8n_response_message}
-                          </span>
-                        </div>
-                      ) : sentOrders.has(order.id) ? (
-                        <div className="flex flex-col gap-1">
-                          <Badge variant="default" className="gap-1">
-                            <CheckCircle className="w-3 h-3" />
-                            تم الإرسال
-                          </Badge>
-                          <span className="text-xs text-muted-foreground" dir="ltr">
-                            {format(sentOrders.get(order.id)!.sentAt, "dd/MM/yyyy HH:mm:ss")}
-                          </span>
-                          {sentOrders.get(order.id)?.message && (
-                            <span className="text-xs text-muted-foreground italic">
-                              {sentOrders.get(order.id)!.message}
-                            </span>
-                          )}
-                        </div>
-                      ) : currentlySending === order.id ? (
-                        <Badge variant="secondary" className="gap-1">
-                          <Loader2 className="w-3 h-3 animate-spin" />
-                          جاري الإرسال...
-                        </Badge>
-                      ) : sending ? (
-                        <Badge variant="secondary" className="gap-1">
-                          <Clock className="w-3 h-3" />
-                          قيد الانتظار
-                        </Badge>
-                      ) : isEventDone(order) ? (
-                        <Badge variant="outline" className="gap-1 bg-orange-100 text-orange-700 border-orange-300">
-                          <CalendarX className="w-3 h-3" />
-                          انتهت الفعالية
-                        </Badge>
-                      ) : isOnHold(order) ? (
-                        <div className="flex flex-col gap-1">
-                          <Badge variant="outline" className="gap-1 bg-red-100 text-red-700 border-red-300">
-                            <PauseCircle className="w-3 h-3" />
-                            موقوف
-                          </Badge>
-                          <span className="text-xs text-muted-foreground">
-                            محاولات: {order.send_attempt_count || 0}
-                          </span>
-                        </div>
-                      ) : (
-                        <Badge variant="outline">لم يتم الإرسال</Badge>
-                      )}
-                    </TableCell>
-                    <TableCell>
                       {(() => {
                         const msg = order.n8n_response_message || '';
-                        const isEmail = msg.includes('اميل') || msg.includes('إيميل') || msg.includes('بريد') || msg.includes('email') || msg.includes('Email') || msg.includes('جاري إرسال البريد');
-                        const isWhatsApp = msg.includes('واتساب') || msg.includes('whatsapp') || msg.includes('WhatsApp');
-                        if (isEmail) {
-                          return <Badge variant="outline" className="gap-1 bg-blue-50 text-blue-700 border-blue-300">📧 إيميل</Badge>;
+                        const msgIsEmail = msg.includes('اميل') || msg.includes('إيميل') || msg.includes('بريد') || msg.includes('email') || msg.includes('Email') || msg.includes('جاري إرسال البريد');
+                        const msgIsWhatsApp = msg.includes('واتساب') || msg.includes('whatsapp') || msg.includes('WhatsApp');
+
+                        if (order.n8n_response_message && !isPendingMessage(order.n8n_response_message)) {
+                          return (
+                            <div className="flex flex-col gap-1">
+                              <Badge variant="default" className={`gap-1 ${msgIsEmail ? 'bg-blue-600 hover:bg-blue-700' : ''}`}>
+                                <CheckCircle className="w-3 h-3" />
+                                {msgIsEmail ? '📧 تم الإرسال بالإيميل' : msgIsWhatsApp ? '💬 تم الإرسال بالواتساب' : 'تم الإرسال'}
+                              </Badge>
+                              {order.n8n_responded_at && (
+                                <span className="text-xs text-muted-foreground" dir="ltr">
+                                  {format(new Date(order.n8n_responded_at), "dd/MM/yyyy HH:mm:ss")}
+                                </span>
+                              )}
+                              <span className="text-xs text-muted-foreground italic">
+                                {order.n8n_response_message}
+                              </span>
+                            </div>
+                          );
                         }
-                        if (isWhatsApp || (msg && !isEmail)) {
-                          return <Badge variant="outline" className="gap-1 bg-green-50 text-green-700 border-green-300">💬 واتساب</Badge>;
+                        if (sentOrders.has(order.id)) {
+                          return (
+                            <div className="flex flex-col gap-1">
+                              <Badge variant="default" className="gap-1">
+                                <CheckCircle className="w-3 h-3" />
+                                تم الإرسال
+                              </Badge>
+                              <span className="text-xs text-muted-foreground" dir="ltr">
+                                {format(sentOrders.get(order.id)!.sentAt, "dd/MM/yyyy HH:mm:ss")}
+                              </span>
+                              {sentOrders.get(order.id)?.message && (
+                                <span className="text-xs text-muted-foreground italic">
+                                  {sentOrders.get(order.id)!.message}
+                                </span>
+                              )}
+                            </div>
+                          );
                         }
-                        return <span className="text-xs text-muted-foreground">-</span>;
+                        if (sendingEmail === order.id) {
+                          return (
+                            <Badge variant="secondary" className="gap-1 bg-blue-50 text-blue-700 border-blue-300">
+                              <Loader2 className="w-3 h-3 animate-spin" />
+                              📧 جاري الإرسال بالإيميل...
+                            </Badge>
+                          );
+                        }
+                        if (currentlySending === order.id) {
+                          return (
+                            <Badge variant="secondary" className="gap-1">
+                              <Loader2 className="w-3 h-3 animate-spin" />
+                              💬 جاري الإرسال...
+                            </Badge>
+                          );
+                        }
+                        if (isPendingMessage(order.n8n_response_message) && order.n8n_response_message) {
+                          return (
+                            <Badge variant="secondary" className={`gap-1 ${msgIsEmail ? 'bg-blue-50 text-blue-700 border-blue-300' : ''}`}>
+                              <Loader2 className="w-3 h-3 animate-spin" />
+                              {msgIsEmail ? '📧 بانتظار رد الإيميل...' : '💬 بانتظار رد الواتساب...'}
+                            </Badge>
+                          );
+                        }
+                        if (sending) {
+                          return (
+                            <Badge variant="secondary" className="gap-1">
+                              <Clock className="w-3 h-3" />
+                              قيد الانتظار
+                            </Badge>
+                          );
+                        }
+                        if (isEventDone(order)) {
+                          return (
+                            <Badge variant="outline" className="gap-1 bg-orange-100 text-orange-700 border-orange-300">
+                              <CalendarX className="w-3 h-3" />
+                              انتهت الفعالية
+                            </Badge>
+                          );
+                        }
+                        if (isOnHold(order)) {
+                          return (
+                            <div className="flex flex-col gap-1">
+                              <Badge variant="outline" className="gap-1 bg-red-100 text-red-700 border-red-300">
+                                <PauseCircle className="w-3 h-3" />
+                                موقوف
+                              </Badge>
+                              <span className="text-xs text-muted-foreground">
+                                محاولات: {order.send_attempt_count || 0}
+                              </span>
+                            </div>
+                          );
+                        }
+                        return <Badge variant="outline">لم يتم الإرسال</Badge>;
                       })()}
                     </TableCell>
+                    
                     <TableCell className="font-mono">{order.booking_reference}</TableCell>
                     <TableCell>{order.customers.name}</TableCell>
                     <TableCell className="text-2xl">{COUNTRY_FLAGS[order.customers.nationality || "قطر"] || "🇶🇦"}</TableCell>
