@@ -94,15 +94,35 @@ const AdminDashboard = () => {
     try {
       const todayDate = getTodayQatar();
       
-      // Fetch first page directly (skip separate count query to save time)
+      // Step 1: If upcomingOnly, fetch upcoming event IDs first (very fast, few rows)
+      let upcomingEventIds: string[] | null = null;
+      if (upcomingOnly) {
+        const { data: events, error: eventsError } = await supabase
+          .from("events")
+          .select("id")
+          .gte("event_date", todayDate);
+        
+        if (eventsError) throw eventsError;
+        upcomingEventIds = events?.map(e => e.id) || [];
+        
+        if (upcomingEventIds.length === 0) {
+          setOrders([]);
+          setLoading(false);
+          setIsFullyLoaded(true);
+          console.log(`No upcoming events found in ${(performance.now() - startTime).toFixed(0)}ms`);
+          return;
+        }
+      }
+      
+      // Step 2: Fetch orders with direct event_id filter (much faster than events!inner join filter)
       let query = supabase
         .from("orders")
-        .select("*, customers(name, email, phone, nationality), events!inner(title, event_date, location), payment_error_reason, pos_users(name, icon)")
+        .select("*, customers(name, email, phone, nationality), events(title, event_date, location), payment_error_reason, pos_users(name, icon)")
         .order("created_at", { ascending: false })
         .range(0, PAGE_SIZE - 1);
       
-      if (upcomingOnly) {
-        query = query.gte("events.event_date", todayDate);
+      if (upcomingEventIds) {
+        query = query.in("event_id", upcomingEventIds);
       }
       
       const { data: firstPageData, error: firstError } = await query;
@@ -130,12 +150,12 @@ const AdminDashboard = () => {
           const page = pageNum + i;
           let batchQuery = supabase
             .from("orders")
-            .select("*, customers(name, email, phone, nationality), events!inner(title, event_date, location), payment_error_reason, pos_users(name, icon)")
+            .select("*, customers(name, email, phone, nationality), events(title, event_date, location), payment_error_reason, pos_users(name, icon)")
             .order("created_at", { ascending: false })
             .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
           
-          if (upcomingOnly) {
-            batchQuery = batchQuery.gte("events.event_date", todayDate);
+          if (upcomingEventIds) {
+            batchQuery = batchQuery.in("event_id", upcomingEventIds);
           }
           
           return batchQuery;
