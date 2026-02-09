@@ -14,3 +14,6 @@ verify_jwt = false
 
 [functions.parse-pos-receipt]
 verify_jwt = true
+
+[functions.recover-pending-orders]
+verify_jwt = false
