@@ -6,7 +6,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { CalendarIcon, CheckCircle, XCircle, Users, LayoutGrid, Table as TableIcon, User, Phone, CreditCard, Hash, Maximize, Minimize, Globe, Store, Volume2, VolumeX, Clock, Send, SendHorizonal, CircleDashed, BarChart3, Bell, BellOff, Copy } from "lucide-react";
+import { CalendarIcon, CheckCircle, XCircle, Users, LayoutGrid, Table as TableIcon, User, Phone, CreditCard, Hash, Maximize, Minimize, Globe, Store, Volume2, VolumeX, Clock, Send, SendHorizonal, CircleDashed, BarChart3, Bell, BellOff, Copy, Download } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -395,6 +395,7 @@ const LiveBookings = () => {
     newCapacity: number;
   } | null>(null);
   const [showCapacityNotification, setShowCapacityNotification] = useState(false);
+  const [invoiceDownloadedRefs, setInvoiceDownloadedRefs] = useState<Set<string>>(new Set());
 
   const dismissCapacityNotification = useCallback(() => {
     setShowCapacityNotification(false);
@@ -795,6 +796,22 @@ const LiveBookings = () => {
       setBookings(allOrders);
       setTicketHolders(allTicketHolders);
       calculateStats(allOrders, allTicketHolders);
+
+      // Fetch invoice download logs
+      const { data: allDownloadLogs } = await supabase
+        .from('activity_logs')
+        .select('action_data')
+        .eq('activity_type', 'pos_form')
+        .limit(500);
+      
+      const downloadedRefs = new Set<string>();
+      allDownloadLogs?.forEach(log => {
+        const data = log.action_data as any;
+        if (data?.action === 'invoice_download' && data?.booking_reference) {
+          downloadedRefs.add(data.booking_reference);
+        }
+      });
+      setInvoiceDownloadedRefs(downloadedRefs);
       
       // Fetch ticket capacities
       const eventId = allOrders[0]?.event_id;
@@ -1741,6 +1758,9 @@ const LiveBookings = () => {
                         ) : (
                           <span title="لم يتم إرسال الفاتورة"><CircleDashed className="w-3 h-3 sm:w-4 sm:h-4 text-muted-foreground" /></span>
                         )}
+                        {holder.booking_reference && invoiceDownloadedRefs.has(holder.booking_reference) && (
+                          <span title="تم تحميل الفاتورة"><Download className="w-3 h-3 sm:w-4 sm:h-4 text-blue-500" /></span>
+                        )}
                       </div>
                     </div>
 
@@ -1879,6 +1899,9 @@ const LiveBookings = () => {
                               >
                                 <Copy className="w-3 h-3 text-muted-foreground hover:text-primary" />
                               </button>
+                            )}
+                            {holder.booking_reference && invoiceDownloadedRefs.has(holder.booking_reference) && (
+                              <span title="تم تحميل الفاتورة"><Download className="w-3 h-3 text-blue-500" /></span>
                             )}
                           </span>
                         </TableCell>
