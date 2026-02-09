@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Trash2, Loader2, Search, FileText, ScanLine, Filter } from "lucide-react";
+import { Trash2, Loader2, Search, FileText, ScanLine, Filter, Download } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { format } from "date-fns";
@@ -24,7 +24,7 @@ interface ActivityLog {
 export const ActivityLogsTab = () => {
   const [logs, setLogs] = useState<ActivityLog[]>([]);
   const [loading, setLoading] = useState(true);
-  const [filterType, setFilterType] = useState<"all" | "pos_form" | "qr_search" | "ticket_scan">("all");
+  const [filterType, setFilterType] = useState<"all" | "pos_form" | "qr_search" | "ticket_scan" | "invoice_download">("all");
   const [deleting, setDeleting] = useState<string | null>(null);
 
   useEffect(() => {
@@ -108,7 +108,12 @@ export const ActivityLogsTab = () => {
     }
   };
 
-  const getActivityIcon = (type: string) => {
+  const isInvoiceDownload = (log: ActivityLog) => {
+    return log.activity_type === 'pos_form' && log.action_data?.action === 'invoice_download';
+  };
+
+  const getActivityIcon = (type: string, log?: ActivityLog) => {
+    if (log && isInvoiceDownload(log)) return <Download className="w-4 h-4 text-blue-500" />;
     switch (type) {
       case 'pos_form':
         return <FileText className="w-4 h-4" />;
@@ -121,7 +126,8 @@ export const ActivityLogsTab = () => {
     }
   };
 
-  const getActivityLabel = (type: string) => {
+  const getActivityLabel = (type: string, log?: ActivityLog) => {
+    if (log && isInvoiceDownload(log)) return 'تحميل فاتورة';
     switch (type) {
       case 'pos_form':
         return 'نموذج POS';
@@ -158,9 +164,13 @@ export const ActivityLogsTab = () => {
     }
   };
 
-  const filteredLogs = logs.filter(log => 
-    filterType === "all" || log.activity_type === filterType
-  );
+  const invoiceDownloadLogs = logs.filter(isInvoiceDownload);
+
+  const filteredLogs = logs.filter(log => {
+    if (filterType === "all") return true;
+    if (filterType === "invoice_download") return isInvoiceDownload(log);
+    return log.activity_type === filterType && !isInvoiceDownload(log);
+  });
 
   if (loading) {
     return (
@@ -193,12 +203,16 @@ export const ActivityLogsTab = () => {
 
         <Tabs value={filterType} onValueChange={(v) => setFilterType(v as any)} className="w-full">
           <div className="mb-4">
-            <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4">
+            <TabsList className="grid w-full grid-cols-3 sm:grid-cols-5">
               <TabsTrigger value="all" className="text-xs sm:text-sm">
                 الكل ({logs.length})
               </TabsTrigger>
+              <TabsTrigger value="invoice_download" className="text-xs sm:text-sm">
+                <Download className="w-3 h-3 ml-1" />
+                فواتير ({invoiceDownloadLogs.length})
+              </TabsTrigger>
               <TabsTrigger value="pos_form" className="text-xs sm:text-sm">
-                POS ({logs.filter(l => l.activity_type === 'pos_form').length})
+                POS ({logs.filter(l => l.activity_type === 'pos_form' && !isInvoiceDownload(l)).length})
               </TabsTrigger>
               <TabsTrigger value="qr_search" className="text-xs sm:text-sm">
                 بحث ({logs.filter(l => l.activity_type === 'qr_search').length})
@@ -234,8 +248,8 @@ export const ActivityLogsTab = () => {
                       <TableRow key={log.id}>
                         <TableCell>
                           <div className="flex items-center gap-2">
-                            {getActivityIcon(log.activity_type)}
-                            <span className="text-xs sm:text-sm">{getActivityLabel(log.activity_type)}</span>
+                            {getActivityIcon(log.activity_type, log)}
+                            <span className="text-xs sm:text-sm">{getActivityLabel(log.activity_type, log)}</span>
                           </div>
                         </TableCell>
                         <TableCell>
