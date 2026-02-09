@@ -142,7 +142,8 @@ Deno.serve(async (req) => {
     console.log(`Payment status determined: ${paymentStatus} (from status: ${transactionStatus}), error: ${paymentErrorReason}`);
     
     // CRITICAL: Check current order status to prevent race conditions
-    // Never overwrite a 'confirmed' order with 'cancelled' (prevents duplicate webhook issues)
+    // - Never overwrite 'confirmed' with 'cancelled' (prevents duplicate webhook issues)
+    // - DO allow 'cancelled' → 'confirmed' (handles late success webhooks after auto-recovery)
     const { data: existingOrder } = await supabase
       .from('orders')
       .select('payment_status')
@@ -159,6 +160,24 @@ Deno.serve(async (req) => {
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
       );
+    }
+
+    if (existingOrder?.payment_status === 'confirmed' && paymentStatus === 'confirmed') {
+      console.log(`Order ${websiteRefNo} already confirmed - ignoring duplicate success webhook`);
+      return new Response(
+        JSON.stringify({ 
+          success: true,
+          payment_status: 'confirmed',
+          message: 'Order already confirmed',
+          order_id: websiteRefNo
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
+      );
+    }
+
+    // Log when re-confirming a previously cancelled order
+    if (existingOrder?.payment_status === 'cancelled' && paymentStatus === 'confirmed') {
+      console.log(`⚠️ Re-confirming previously cancelled order ${websiteRefNo} - late success webhook received`);
     }
     
     const { error: updateError } = await supabase

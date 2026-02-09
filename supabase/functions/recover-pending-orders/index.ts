@@ -20,8 +20,7 @@ Deno.serve(async (req) => {
 
     // Find orders that are still pending after 5 minutes (likely stuck)
     const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
-    // Don't touch orders older than 24 hours (too old to auto-recover)
-    const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+    // Process ALL old pending orders (no upper limit - clean up everything)
 
     const { data: pendingOrders, error: fetchError } = await supabase
       .from('orders')
@@ -29,7 +28,6 @@ Deno.serve(async (req) => {
       .eq('payment_status', 'pending')
       .eq('payment_method', 'sadad')
       .lt('created_at', fiveMinutesAgo)
-      .gt('created_at', twentyFourHoursAgo)
       .order('created_at', { ascending: false })
       .limit(50);
 
