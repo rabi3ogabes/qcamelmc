@@ -17,69 +17,12 @@ Deno.serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseServiceKey)
 
     console.log('=== RECOVER PENDING ORDERS ===');
-
-    // Find orders that are still pending after 5 minutes (likely stuck)
-    const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
-    // Process ALL old pending orders (no upper limit - clean up everything)
-
-    const { data: pendingOrders, error: fetchError } = await supabase
-      .from('orders')
-      .select('id, booking_reference, total_amount, created_at, payment_method')
-      .eq('payment_status', 'pending')
-      .eq('payment_method', 'sadad')
-      .lt('created_at', fiveMinutesAgo)
-      .order('created_at', { ascending: false })
-      .limit(50);
-
-    if (fetchError) {
-      console.error('Error fetching pending orders:', fetchError);
-      throw fetchError;
-    }
-
-    console.log(`Found ${pendingOrders?.length || 0} stuck pending orders`);
-
-    const results: { recovered: string[]; cancelled: string[]; errors: string[] } = {
-      recovered: [],
-      cancelled: [],
-      errors: []
-    };
-
-    // For each pending order, mark as cancelled with a clear message
-    // Since we can't verify with Sadad API, we cancel old pending orders
-    // and instruct users to contact support if money was deducted
-    for (const order of (pendingOrders || [])) {
-      try {
-        const minutesOld = Math.floor((Date.now() - new Date(order.created_at!).getTime()) / 60000);
-        
-        const { error: updateError } = await supabase
-          .from('orders')
-          .update({
-            payment_status: 'cancelled',
-            payment_error_reason: `انتهت مهلة الدفع بعد ${minutesOld} دقيقة. إذا تم خصم المبلغ من حسابكم، يرجى التواصل مع الدعم لتأكيد الطلب يدوياً.`
-          })
-          .eq('id', order.id)
-          .eq('payment_status', 'pending'); // Only update if still pending (prevent race condition)
-
-        if (updateError) {
-          console.error(`Error updating order ${order.booking_reference}:`, updateError);
-          results.errors.push(order.booking_reference);
-        } else {
-          console.log(`Cancelled stuck order ${order.booking_reference} (${minutesOld} min old)`);
-          results.cancelled.push(order.booking_reference);
-        }
-      } catch (err) {
-        console.error(`Error processing order ${order.booking_reference}:`, err);
-        results.errors.push(order.booking_reference);
-      }
-    }
-
-    console.log('Recovery results:', results);
+    console.log('Auto-processing disabled. Pending/failed orders must be handled manually by admin.');
 
     return new Response(
       JSON.stringify({
         success: true,
-        total_found: pendingOrders?.length || 0,
-        ...results
+        message: 'Auto-processing disabled. Use admin dashboard to manually review pending orders.'
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
     );
