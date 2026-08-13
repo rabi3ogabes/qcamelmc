@@ -339,7 +339,17 @@ export const CustomersTab = () => {
     }
   };
 
-  const filteredCustomers = customers.filter(
+  // Scope customers to the selected view (current season vs archived seasons)
+  const scopedCustomers = customers
+    .map((customer) => ({
+      ...customer,
+      orders: customer.orders.filter((order) =>
+        view === "archived" ? order.event_archived : !order.event_archived
+      ),
+    }))
+    .filter((customer) => customer.orders.length > 0);
+
+  const filteredCustomers = scopedCustomers.filter(
     (customer) =>
       customer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       customer.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -355,6 +365,61 @@ export const CustomersTab = () => {
         )
       )
   );
+
+  // Group customers into season "folders" (merging consecutive months), same as the events page
+  const monthIndexOf = (iso?: string) => {
+    if (!iso) return null;
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return null;
+    return d.getFullYear() * 12 + d.getMonth();
+  };
+  const monthNameOf = (idx: number) =>
+    new Date(Math.floor(idx / 12), idx % 12, 1).toLocaleDateString("ar-u-nu-latn", { month: "long" });
+  const monthYearOf = (idx: number) =>
+    new Date(Math.floor(idx / 12), idx % 12, 1).toLocaleDateString("ar-u-nu-latn", {
+      month: "long",
+      year: "numeric",
+    });
+
+  const customerMonth = (customer: Customer) => {
+    const indexes = customer.orders
+      .map((o) => monthIndexOf(o.event_date))
+      .filter((v): v is number => v !== null);
+    return indexes.length ? Math.max(...indexes) : null;
+  };
+
+  const byMonth = new Map<number, Customer[]>();
+  const undated: Customer[] = [];
+  filteredCustomers.forEach((customer) => {
+    const idx = customerMonth(customer);
+    if (idx === null) undated.push(customer);
+    else byMonth.set(idx, [...(byMonth.get(idx) ?? []), customer]);
+  });
+
+  const sortedMonths = Array.from(byMonth.keys()).sort((a, b) => a - b);
+  const customerGroups: { key: string; label: string; items: Customer[] }[] = [];
+  let run: number[] = [];
+  const flushRun = () => {
+    if (run.length === 0) return;
+    const items = run.flatMap((m) => byMonth.get(m) ?? []);
+    const label =
+      run.length === 1
+        ? monthYearOf(run[0])
+        : `${monthNameOf(run[0])} - ${monthYearOf(run[run.length - 1])}`;
+    customerGroups.push({ key: `${run[0]}-${run[run.length - 1]}`, label, items });
+    run = [];
+  };
+  sortedMonths.forEach((m) => {
+    if (run.length === 0 || m === run[run.length - 1] + 1) run.push(m);
+    else {
+      flushRun();
+      run.push(m);
+    }
+  });
+  flushRun();
+  if (undated.length) customerGroups.push({ key: "undated", label: "بدون تاريخ", items: undated });
+  customerGroups.reverse();
+
 
   const sendInvoiceToWhatsApp = async (customer: Customer, orderId: string, e: React.MouseEvent) => {
     e.stopPropagation(); // Prevent opening the customer dialog
