@@ -583,40 +583,15 @@ const Checkout = () => {
       localStorage.removeItem("ticketSelection");
       localStorage.removeItem("selectedEventId");
 
-      // Call webhook asynchronously (non-blocking)
+      // Call webhook asynchronously (non-blocking) — handled server-side so the
+      // webhook URL and admin phone are never exposed in the browser.
       (async () => {
         try {
-          const {
-            data: settings
-          } = await supabase.from("settings").select("webhook_url, admin_phone").maybeSingle();
-          if (settings?.webhook_url) {
-            const formatPhoneNumber = (phone: string | null | undefined) => {
-              if (!phone) return null;
-              const cleanPhone = phone.replace(/[\+\s]/g, '');
-              return cleanPhone.startsWith('974') ? cleanPhone : `974${cleanPhone}`;
-            };
-            await fetch(settings.webhook_url, {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json"
-              },
-              body: JSON.stringify({
-                customer: {
-                  ...customer,
-                  phone: formatPhoneNumber(customer.phone)
-                },
-                order,
-                ticketHolders: holdersToInsert.map(h => ({
-                  ...h,
-                  phone: formatPhoneNumber(h.phone)
-                })),
-                bookingReference: bookingRef,
-                adminPhone: formatPhoneNumber(settings.admin_phone),
-                timestamp: new Date().toISOString()
-              })
-            });
-          }
+          await supabase.functions.invoke("checkout-webhook", {
+            body: { bookingReference: bookingRef },
+          });
         } catch (error) {
+
           console.error("Webhook call failed:", error);
         }
       })();
