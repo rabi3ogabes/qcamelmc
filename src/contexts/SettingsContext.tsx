@@ -92,11 +92,12 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
         hero_text: data?.hero_text || "",
         copyright_text: data?.copyright_text || "جميع الحقوق محفوظة",
         admin_phone: data?.admin_phone || null,
-        auto_invoice_interval_seconds: data?.auto_invoice_interval_seconds || 60,
-        invoice_batch_min: data?.invoice_batch_min || 1,
-        invoice_batch_max: data?.invoice_batch_max || 10,
-        invoice_send_delay_min: data?.invoice_send_delay_min || 300,
-        invoice_send_delay_max: data?.invoice_send_delay_max || 600,
+        auto_invoice_interval_seconds: 60,
+        invoice_batch_min: 1,
+        invoice_batch_max: 10,
+        invoice_send_delay_min: 300,
+        invoice_send_delay_max: 600,
+
         current_event_id: data?.current_event_id || null,
       };
 
