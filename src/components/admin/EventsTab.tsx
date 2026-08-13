@@ -458,6 +458,10 @@ export const EventsTab = () => {
               </div>
             </div>
           </Card>
+                ))}
+              </div>
+            </CollapsibleContent>
+          </Collapsible>
         ))}
       </div>
 
