@@ -89,6 +89,13 @@ export const generateInvoicePdf = (data: InvoiceData) => {
       <p>الجنسية: ${data.nationality || '-'}</p>
     </div>
 
+    <div class="section-title">بيانات الدفع</div>
+    <div class="details-line">
+      <p>وسيلة الدفع: ${data.payment_method === 'cash_pos' ? 'نقاط البيع' : 'سداد (أونلاين)'}</p>
+      <p>رقم عملية سداد: ${data.payment_id || '-'}</p>
+      <p>تاريخ الدفع: ${data.paid_at ? new Date(data.paid_at).toLocaleString('ar-u-nu-latn', { timeZone: 'Asia/Qatar', dateStyle: 'medium', timeStyle: 'short' }) : '-'}</p>
+    </div>
+
     <div class="section-title">تفاصيل التذاكر</div>
     <div class="order-summary">
       <table>
