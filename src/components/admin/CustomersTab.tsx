@@ -139,6 +139,7 @@ export const CustomersTab = () => {
   const [ticketHolderEditForm, setTicketHolderEditForm] = useState({ phone: "", country_code: "" });
   const [sendingSingleTicket, setSendingSingleTicket] = useState<string | null>(null);
   const [phoneTicketCounts, setPhoneTicketCounts] = useState<Record<string, number>>({});
+  const [view, setView] = useState<"current" | "archived">("current");
 
   const gulfNationalities = [
     { name: "قطر", flag: "🇶🇦" },
