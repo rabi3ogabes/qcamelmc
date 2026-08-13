@@ -1305,6 +1305,10 @@ export const CustomersTab = () => {
               </Card>
             );
           })}
+              </div>
+            </CollapsibleContent>
+          </Collapsible>
+          ))}
         </div>
       )}
 
