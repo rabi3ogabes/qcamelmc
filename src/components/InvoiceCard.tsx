@@ -40,6 +40,7 @@ const Row = ({ label, value }: { label: string; value: React.ReactNode }) => (
 export const InvoiceCard = ({ data }: InvoiceCardProps) => {
   const captureRef = useRef<HTMLDivElement>(null);
   const [savingImage, setSavingImage] = useState(false);
+  const navigate = useNavigate();
 
   const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
   const qrUrls = (data.qr_codes || []).map((qr) =>
