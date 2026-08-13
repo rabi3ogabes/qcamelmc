@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { Calendar as CalendarIcon, MapPin, Edit, X, Trash2 } from "lucide-react";
+import { Calendar as CalendarIcon, MapPin, Edit, X, Trash2, Archive, ArchiveRestore } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -20,6 +20,7 @@ import { useTranslation } from "react-i18next";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { CreateEventDialog } from "./CreateEventDialog";
+import { StartNewEventDialog } from "./StartNewEventDialog";
 import { EditEventDialog } from "./EditEventDialog";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -31,8 +32,11 @@ interface Event {
   title: string;
   description: string;
   event_date: string;
+  end_date?: string | null;
   location: string;
   is_active: boolean;
+  is_archived?: boolean;
+  archived_at?: string | null;
   image_url: string | null;
   display_order?: number;
   tickets_sold?: { type: string; count: number; max: number }[];
@@ -46,11 +50,12 @@ export const EventsTab = () => {
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [filterDate, setFilterDate] = useState<Date | undefined>(undefined);
   const [showDeleteEventButton, setShowDeleteEventButton] = useState(false);
+  const [view, setView] = useState<"current" | "archived">("current");
 
   useEffect(() => {
     fetchEvents();
     fetchSettings();
-  }, []);
+  }, [view]);
 
   const fetchSettings = async () => {
     const { data } = await supabase
@@ -68,6 +73,7 @@ export const EventsTab = () => {
       const { data, error } = await supabase
         .from("events")
         .select("*")
+        .eq("is_archived", view === "archived")
         .order("display_order", { ascending: true })
         .order("event_date", { ascending: true });
 
