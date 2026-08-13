@@ -1,6 +1,7 @@
 # Audit result + hardening plan
 
 ## What I checked
+
 - Production build: passes (14.5s), no TypeScript errors.
 - Lint: 128 errors, all cosmetic (`any` types, `prefer-const`) — no runtime impact.
 - Backend security scan: **5 critical issues**.
@@ -19,29 +20,35 @@ Admin login already uses real authentication (`admin_users` + `auth.uid()`), so 
 ## Fix plan
 
 ### 1. Settings
+
 - Remove the public read rule on `settings`.
 - Add a read-only public view exposing only display fields (logo, colors, hero text, copyright, current event, button flags).
 - Point all public pages (home, ticket selection, checkout, confirmation, login header) at that view.
 - Move the checkout's `webhook_url` / `admin_phone` read into the existing edge function (server-side only).
 
 ### 2. Customers / orders / ticket holders
+
 - Drop the `true` read rules and the broken "own orders" rule.
 - Keep public INSERT (checkout must keep working).
 - Add an edge function `order-lookup` that returns one order + its tickets by booking reference — used by Confirmation, Sadad callback and the ticket viewer.
 - Add a database function returning only ticket **counts** per event for availability checks (no personal data).
 - Admin screens keep working unchanged through the existing admin rules.
 
-### 3. Staff pages
+### 3. Staff pages (just add a password popup before opening)
+
 `/live-bookings`, `/live-visitors`, `/admin/pos`, `/admin/qr-scanner` will require an admin session (redirect to login when signed out), since their data is no longer public.
 
 ### 4. Database functions
+
 Set a fixed `search_path` on all functions flagged by the linter.
 
 ## Performance / cleanliness
+
 - Lifetime ticket totals currently pull **every** ticket holder row into the browser; replace with a single aggregated database function (big win on the Live Bookings page).
 - Split the largest bundles (`xlsx`, settings page, scanner libs) so the public pages load only what they need.
 - Add indexes for the hot lookups (booking reference, order id, event id + status) so 1000 concurrent visitors don't hit slow scans.
 - Auto-fix the safe lint errors and drop the remaining dead code.
 
 ## Notes
+
 No data is deleted or modified anywhere in this plan — only access rules, queries and bundling change.
