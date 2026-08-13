@@ -213,7 +213,7 @@ const Checkout = () => {
     const {
       data,
       error
-    } = await supabase.from("settings").select("logo_url, header_bg_color").maybeSingle();
+    } = await supabase.from("public_settings").select("logo_url, header_bg_color").maybeSingle();
     if (error) {
       console.error("Error fetching settings:", error);
       return;

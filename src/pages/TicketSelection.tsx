@@ -87,7 +87,7 @@ const TicketSelection = () => {
 
       // Enforce the admin-selected current event (when one is set)
       const { data: settingsRow } = await supabase
-        .from("settings")
+        .from("public_settings")
         .select("current_event_id")
         .maybeSingle();
 
@@ -115,7 +115,7 @@ const TicketSelection = () => {
 
   const fetchSettings = async () => {
     const { data, error } = await supabase
-      .from("settings")
+      .from("public_settings")
       .select("logo_url, header_bg_color")
       .maybeSingle();
 

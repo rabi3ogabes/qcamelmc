@@ -38,7 +38,7 @@ const Confirmation = () => {
 
   const fetchSettings = async () => {
     const { data, error } = await supabase
-      .from("settings")
+      .from("public_settings")
       .select("logo_url")
       .maybeSingle();
 
