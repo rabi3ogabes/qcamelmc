@@ -327,6 +327,7 @@ export const CustomersTab = () => {
             event_title: order.events?.title || "",
             event_location: order.events?.location || "",
             event_date: order.events?.event_date || "",
+            event_archived: order.events?.is_archived === true,
           }))
       })).filter(customer => customer.orders.length > 0); // Remove customers with no confirmed orders
 
