@@ -9,7 +9,6 @@ import { Calendar, MapPin, Ticket, Lock, ChevronLeft, ChevronRight } from "lucid
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
 import heroImage from "@/assets/qatar-event-hero.jpg";
-import { PopupBanner } from "@/components/PopupBanner";
 import { Footer } from "@/components/Footer";
 import { WhatsAppButton } from "@/components/WhatsAppButton";
 import { useSettings } from "@/contexts/SettingsContext";
@@ -119,8 +118,6 @@ const EventHome = () => {
 
   return (
     <div className="min-h-screen font-lusail" style={{ backgroundColor: '#F5EFE7' }}>
-      {/* Popup Banner */}
-      <PopupBanner />
       
       {/* Header */}
       <header 

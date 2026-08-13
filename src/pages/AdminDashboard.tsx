@@ -264,7 +264,6 @@ const AdminDashboard = () => {
     { to: "/admin/dashboard/settings", label: "الإعدادات العامة", icon: Settings },
     { to: "/admin/dashboard/pos-users", label: "مستخدمي POS", icon: UserCog },
     { to: "/admin/dashboard/visitors", label: "الزوار النشطون", icon: Eye },
-    { to: "/admin/dashboard/popups", label: "إعلانات البوب أب", icon: Image },
     { to: "/admin/dashboard/reports", label: "التقارير", icon: FileText },
     { to: "/admin/dashboard/activity-logs", label: "سجلات النشاط", icon: FileText },
   ];
