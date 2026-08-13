@@ -1,4 +1,4 @@
-interface InvoiceData {
+export interface InvoiceData {
   booking_reference: string;
   customer_name: string;
   customer_phone: string;
@@ -12,6 +12,9 @@ interface InvoiceData {
   qr_codes: string[];
   ticket_types: string[];
   logo_url?: string | null;
+  payment_id?: string | null;
+  payment_method?: string | null;
+  paid_at?: string | null;
 }
 
 export const generateInvoicePdf = (data: InvoiceData) => {
@@ -84,6 +87,13 @@ export const generateInvoicePdf = (data: InvoiceData) => {
       <p>الاسم: ${data.customer_name}</p>
       <p>رقم الهاتف: ${data.customer_phone}</p>
       <p>الجنسية: ${data.nationality || '-'}</p>
+    </div>
+
+    <div class="section-title">بيانات الدفع</div>
+    <div class="details-line">
+      <p>وسيلة الدفع: ${data.payment_method === 'cash_pos' ? 'نقاط البيع' : 'سداد (أونلاين)'}</p>
+      <p>رقم عملية سداد: ${data.payment_id || '-'}</p>
+      <p>تاريخ الدفع: ${data.paid_at ? new Date(data.paid_at).toLocaleString('ar-u-nu-latn', { timeZone: 'Asia/Qatar', dateStyle: 'medium', timeStyle: 'short' }) : '-'}</p>
     </div>
 
     <div class="section-title">تفاصيل التذاكر</div>
