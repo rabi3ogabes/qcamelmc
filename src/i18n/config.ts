@@ -126,8 +126,6 @@ const resources = {
       "upcomingEvents": "الفعاليات القادمة",
       "discoverUpcomingEvents": "اكتشف أحدث الفعاليات والمناسبات",
       
-      // Popup Banners
-      "popupBanners": "إعلانات البوب أب",
       "createBanner": "إنشاء إعلان",
       "editBanner": "تعديل الإعلان",
       "bannerTitle": "عنوان الإعلان",
