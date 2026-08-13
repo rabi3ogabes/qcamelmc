@@ -160,14 +160,17 @@ export type Database = {
       }
       events: {
         Row: {
+          archived_at: string | null
           created_at: string | null
           description: string | null
           display_order: number | null
+          end_date: string | null
           end_time: string | null
           event_date: string
           id: string
           image_url: string | null
           is_active: boolean | null
+          is_archived: boolean
           location: string
           start_time: string | null
           title: string
@@ -175,14 +178,17 @@ export type Database = {
           video_url: string | null
         }
         Insert: {
+          archived_at?: string | null
           created_at?: string | null
           description?: string | null
           display_order?: number | null
+          end_date?: string | null
           end_time?: string | null
           event_date: string
           id?: string
           image_url?: string | null
           is_active?: boolean | null
+          is_archived?: boolean
           location: string
           start_time?: string | null
           title: string
@@ -190,14 +196,17 @@ export type Database = {
           video_url?: string | null
         }
         Update: {
+          archived_at?: string | null
           created_at?: string | null
           description?: string | null
           display_order?: number | null
+          end_date?: string | null
           end_time?: string | null
           event_date?: string
           id?: string
           image_url?: string | null
           is_active?: boolean | null
+          is_archived?: boolean
           location?: string
           start_time?: string | null
           title?: string
