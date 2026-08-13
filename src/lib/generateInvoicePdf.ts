@@ -1,4 +1,4 @@
-interface InvoiceData {
+export interface InvoiceData {
   booking_reference: string;
   customer_name: string;
   customer_phone: string;
@@ -12,6 +12,9 @@ interface InvoiceData {
   qr_codes: string[];
   ticket_types: string[];
   logo_url?: string | null;
+  payment_id?: string | null;
+  payment_method?: string | null;
+  paid_at?: string | null;
 }
 
 export const generateInvoicePdf = (data: InvoiceData) => {
