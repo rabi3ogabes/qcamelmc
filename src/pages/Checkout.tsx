@@ -174,11 +174,10 @@ const Checkout = () => {
       }
 
       // 2) Count CONFIRMED ticket holders per type (pending orders should not reduce availability)
-      const { data: confirmedHolders, error: holdersError } = await supabase
-        .from("ticket_holders")
-        .select("ticket_type, orders!inner(event_id, payment_status)")
-        .eq("orders.event_id", selectedEventId)
-        .eq("orders.payment_status", "confirmed");
+      const { data: confirmedHolders, error: holdersError } = await supabase.rpc(
+        "get_event_ticket_counts",
+        { p_event_id: selectedEventId }
+      );
 
       if (holdersError) {
         console.error("Error fetching confirmed holders:", holdersError);
@@ -187,10 +186,10 @@ const Checkout = () => {
       }
 
       const holderCounts: Record<string, number> = {};
-      (confirmedHolders || []).forEach(holder => {
-        const type = holder.ticket_type;
-        holderCounts[type] = (holderCounts[type] || 0) + 1;
+      (confirmedHolders || []).forEach((row) => {
+        holderCounts[row.ticket_type] = Number(row.confirmed_count) || 0;
       });
+
 
       const availability: TicketAvailability[] = (tickets || []).map(ticket => {
         const soldCount = holderCounts[ticket.type] || 0;
