@@ -87,7 +87,7 @@ const TicketSelection = () => {
 
       // Enforce the admin-selected current event (when one is set)
       const { data: settingsRow } = await supabase
-        .from("settings")
+        .from("public_settings")
         .select("current_event_id")
         .maybeSingle();
 
@@ -115,7 +115,7 @@ const TicketSelection = () => {
 
   const fetchSettings = async () => {
     const { data, error } = await supabase
-      .from("settings")
+      .from("public_settings")
       .select("logo_url, header_bg_color")
       .maybeSingle();
 
@@ -186,11 +186,9 @@ const TicketSelection = () => {
   const fetchHolderCounts = async (eventIdParam: string) => {
     try {
       // Only count confirmed tickets for availability (not pending)
-      const { data: activeHolders, error } = await supabase
-        .from("ticket_holders")
-        .select("ticket_type, orders!inner(event_id, payment_status)")
-        .eq("orders.event_id", eventIdParam)
-        .eq("orders.payment_status", "confirmed");
+      const { data: activeHolders, error } = await supabase.rpc("get_event_ticket_counts", {
+        p_event_id: eventIdParam,
+      });
 
       if (error) {
         console.error("Error fetching holder counts:", error);
@@ -198,12 +196,12 @@ const TicketSelection = () => {
       }
 
       const counts: Record<string, number> = {};
-      (activeHolders || []).forEach(holder => {
-        const type = holder.ticket_type;
-        counts[type] = (counts[type] || 0) + 1;
+      (activeHolders || []).forEach((row) => {
+        counts[row.ticket_type] = Number(row.confirmed_count) || 0;
       });
       
       setHolderCounts(counts);
+
     } catch (error) {
       console.error("Failed to fetch holder counts:", error);
     }

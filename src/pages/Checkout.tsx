@@ -174,11 +174,10 @@ const Checkout = () => {
       }
 
       // 2) Count CONFIRMED ticket holders per type (pending orders should not reduce availability)
-      const { data: confirmedHolders, error: holdersError } = await supabase
-        .from("ticket_holders")
-        .select("ticket_type, orders!inner(event_id, payment_status)")
-        .eq("orders.event_id", selectedEventId)
-        .eq("orders.payment_status", "confirmed");
+      const { data: confirmedHolders, error: holdersError } = await supabase.rpc(
+        "get_event_ticket_counts",
+        { p_event_id: selectedEventId }
+      );
 
       if (holdersError) {
         console.error("Error fetching confirmed holders:", holdersError);
@@ -187,10 +186,10 @@ const Checkout = () => {
       }
 
       const holderCounts: Record<string, number> = {};
-      (confirmedHolders || []).forEach(holder => {
-        const type = holder.ticket_type;
-        holderCounts[type] = (holderCounts[type] || 0) + 1;
+      (confirmedHolders || []).forEach((row) => {
+        holderCounts[row.ticket_type] = Number(row.confirmed_count) || 0;
       });
+
 
       const availability: TicketAvailability[] = (tickets || []).map(ticket => {
         const soldCount = holderCounts[ticket.type] || 0;
@@ -213,7 +212,7 @@ const Checkout = () => {
     const {
       data,
       error
-    } = await supabase.from("settings").select("logo_url, header_bg_color").maybeSingle();
+    } = await supabase.from("public_settings").select("logo_url, header_bg_color").maybeSingle();
     if (error) {
       console.error("Error fetching settings:", error);
       return;
@@ -584,40 +583,15 @@ const Checkout = () => {
       localStorage.removeItem("ticketSelection");
       localStorage.removeItem("selectedEventId");
 
-      // Call webhook asynchronously (non-blocking)
+      // Call webhook asynchronously (non-blocking) — handled server-side so the
+      // webhook URL and admin phone are never exposed in the browser.
       (async () => {
         try {
-          const {
-            data: settings
-          } = await supabase.from("settings").select("webhook_url, admin_phone").maybeSingle();
-          if (settings?.webhook_url) {
-            const formatPhoneNumber = (phone: string | null | undefined) => {
-              if (!phone) return null;
-              const cleanPhone = phone.replace(/[\+\s]/g, '');
-              return cleanPhone.startsWith('974') ? cleanPhone : `974${cleanPhone}`;
-            };
-            await fetch(settings.webhook_url, {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json"
-              },
-              body: JSON.stringify({
-                customer: {
-                  ...customer,
-                  phone: formatPhoneNumber(customer.phone)
-                },
-                order,
-                ticketHolders: holdersToInsert.map(h => ({
-                  ...h,
-                  phone: formatPhoneNumber(h.phone)
-                })),
-                bookingReference: bookingRef,
-                adminPhone: formatPhoneNumber(settings.admin_phone),
-                timestamp: new Date().toISOString()
-              })
-            });
-          }
+          await supabase.functions.invoke("checkout-webhook", {
+            body: { bookingReference: bookingRef },
+          });
         } catch (error) {
+
           console.error("Webhook call failed:", error);
         }
       })();

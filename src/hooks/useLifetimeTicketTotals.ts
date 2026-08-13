@@ -24,27 +24,14 @@ export const useLifetimeTicketTotals = () => {
 
   const fetchTotals = useCallback(async () => {
     try {
-      const PAGE_SIZE = 1000;
+      // Aggregated in the database — avoids downloading every ticket row.
+      const { data, error } = await supabase.rpc("get_lifetime_ticket_totals");
+      if (error) throw error;
+
       const map: Record<string, number> = {};
-
-      for (let from = 0; ; from += PAGE_SIZE) {
-        const { data, error } = await supabase
-          .from("ticket_holders")
-          .select("id, phone, id_number, orders!inner(payment_status)")
-          .eq("orders.payment_status", "confirmed")
-          .range(from, from + PAGE_SIZE - 1);
-
-        if (error) throw error;
-        (data || []).forEach((row: any) => {
-          const keys = normalizePersonKeys(row.phone, row.id_number);
-          // Count once per person-key so both identifiers resolve to same total
-          keys.forEach((k) => {
-            map[k] = (map[k] || 0) + 1;
-          });
-        });
-
-        if (!data || data.length < PAGE_SIZE) break;
-      }
+      (data || []).forEach((row) => {
+        map[row.person_key] = Number(row.total) || 0;
+      });
 
       setTotals(map);
     } catch (e) {
@@ -53,6 +40,7 @@ export const useLifetimeTicketTotals = () => {
       setLoading(false);
     }
   }, []);
+
 
   useEffect(() => {
     fetchTotals();

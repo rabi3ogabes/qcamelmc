@@ -74,7 +74,7 @@ const EventHome = () => {
         // Respect the admin-selected "current event" so customers only ever
         // see the live event; archived events are never exposed.
         const { data: settingsRow } = await supabase
-          .from("settings")
+          .from("public_settings")
           .select("current_event_id")
           .maybeSingle();
         const currentEventId = settingsRow?.current_event_id || null;

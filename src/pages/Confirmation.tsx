@@ -38,7 +38,7 @@ const Confirmation = () => {
 
   const fetchSettings = async () => {
     const { data, error } = await supabase
-      .from("settings")
+      .from("public_settings")
       .select("logo_url")
       .maybeSingle();
 
@@ -54,22 +54,22 @@ const Confirmation = () => {
 
   const fetchOrders = async () => {
     try {
-      const orderIds = JSON.parse(localStorage.getItem("orderIds") || "[]");
+      const orderIds: string[] = JSON.parse(localStorage.getItem("orderIds") || "[]");
 
       if (orderIds.length === 0) {
         navigate("/");
         return;
       }
 
-      const { data, error } = await supabase
-        .from("orders")
-        .select(
-          "*, customers(name, phone, country_code, nationality), events(title, event_date), ticket_holders(qr_code, ticket_type)"
-        )
-        .in("id", orderIds);
+      const results = await Promise.all(
+        orderIds.map((id) => supabase.rpc("get_public_order", { p_order_id: id }))
+      );
 
-      if (error) throw error;
-      setOrders((data as unknown as Order[]) || []);
+      const loaded = results
+        .map((r) => r.data as unknown as Order | null)
+        .filter(Boolean) as Order[];
+
+      setOrders(loaded);
       localStorage.removeItem("orderIds");
     } catch (error) {
       console.error("Error fetching orders:", error);
@@ -77,6 +77,7 @@ const Confirmation = () => {
       setLoading(false);
     }
   };
+
 
   const toInvoiceData = (order: Order): InvoiceData => {
     const holders = order.ticket_holders || [];

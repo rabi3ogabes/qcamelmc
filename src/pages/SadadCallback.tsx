@@ -31,11 +31,7 @@ const SadadCallback = () => {
     
     // Fetch event info for the success message
     try {
-      const { data: orderData } = await supabase
-        .from('orders')
-        .select('events(title, event_date)')
-        .eq('id', orderId)
-        .maybeSingle();
+      const { data: orderData } = await supabase.rpc('get_public_order', { p_order_id: orderId }) as { data: any };
       
       if (orderData?.events) {
         const evt = orderData.events as any;
@@ -112,11 +108,7 @@ const SadadCallback = () => {
           // Check if webhook confirmed the payment
           if (funcData?.payment_status === 'confirmed') {
             // Fetch order ID (not booking_reference) for handleSuccess
-            const { data: confirmedOrder } = await supabase
-              .from('orders')
-              .select('id')
-              .eq('booking_reference', orderId)
-              .maybeSingle();
+            const { data: confirmedOrder } = await supabase.rpc('get_public_order', { p_booking_reference: orderId }) as { data: any };
             
             if (confirmedOrder) {
               handleSuccess(confirmedOrder.id);
@@ -161,11 +153,7 @@ const SadadCallback = () => {
         currentAttempt++;
         setAttempts(currentAttempt);
         
-        const { data, error } = await supabase
-          .from('orders')
-          .select('*')
-          .eq('booking_reference', orderId)
-          .maybeSingle();
+        const { data, error } = await supabase.rpc('get_public_order', { p_booking_reference: orderId }) as { data: any; error: any };
 
         if (error) {
           console.error('Error fetching order:', error);
@@ -192,11 +180,7 @@ const SadadCallback = () => {
 
       // Final check
       if (!hasConfirmedRef.current) {
-        const { data: finalCheck } = await supabase
-          .from('orders')
-          .select('*')
-          .eq('booking_reference', orderId)
-          .maybeSingle();
+        const { data: finalCheck } = await supabase.rpc('get_public_order', { p_booking_reference: orderId }) as { data: any };
 
         if (finalCheck?.payment_status === 'confirmed') {
           handleSuccess(finalCheck.id);

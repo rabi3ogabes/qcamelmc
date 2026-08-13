@@ -59,7 +59,7 @@ const TicketViewer = () => {
 
   const fetchSettings = async () => {
     const { data, error } = await supabase
-      .from("settings")
+      .from("public_settings")
       .select("logo_url, header_bg_color")
       .maybeSingle();
 
@@ -111,29 +111,17 @@ const TicketViewer = () => {
   const fetchTickets = async () => {
     try {
       setLoading(true);
-      
-      // Fetch order with customer and event details
-      const { data: orderData, error: orderError } = await supabase
-        .from("orders")
-        .select(`
-          booking_reference,
-          customers (
-            name,
-            email,
-            phone
-          ),
-          events (
-            title,
-            event_date,
-            location
-          )
-        `)
-        .eq("booking_reference", bookingRef)
-        .single();
 
-      if (orderError) throw orderError;
+      // Fetch order + customer + event + holders through a safe public lookup
+      const { data, error } = await supabase.rpc("get_public_order", {
+        p_booking_reference: bookingRef,
+      });
 
-      const order: any = orderData;
+      if (error) throw error;
+
+      const order: any = data;
+      if (!order) throw new Error("Order not found");
+
       setOrderDetails({
         booking_reference: order.booking_reference,
         event_title: order.events.title,
@@ -144,45 +132,16 @@ const TicketViewer = () => {
         customer_phone: order.customers.phone,
       });
 
-      // Fetch ticket holders
-      const { data: holdersData, error: holdersError } = await supabase
-        .from("ticket_holders")
-        .select("*")
-        .eq("qr_code", `${bookingRef}-TKT%`)
-        .ilike("qr_code", `${bookingRef}-TKT%`);
-
-      if (holdersError) throw holdersError;
-
-      // Also try direct order_id match as fallback
-      if (!holdersData || holdersData.length === 0) {
-        const { data: orderIdData } = await supabase
-          .from("orders")
-          .select("id")
-          .eq("booking_reference", bookingRef)
-          .single();
-
-        if (orderIdData) {
-          const { data: holdersByOrderId, error: holdersByOrderIdError } = await supabase
-            .from("ticket_holders")
-            .select("*")
-            .eq("order_id", orderIdData.id);
-
-          if (!holdersByOrderIdError && holdersByOrderId) {
-            setTicketHolders(holdersByOrderId);
-            generateAllQRCodes(holdersByOrderId);
-            return;
-          }
-        }
-      }
-
-      setTicketHolders(holdersData || []);
-      generateAllQRCodes(holdersData || []);
+      const holders = (order.ticket_holders || []) as TicketHolder[];
+      setTicketHolders(holders);
+      generateAllQRCodes(holders);
     } catch (error) {
       console.error("Error fetching tickets:", error);
       toast.error("فشل تحميل التذاكر");
     } finally {
       setLoading(false);
     }
+
   };
 
   const generateAllQRCodes = async (holders: TicketHolder[]) => {
@@ -466,18 +425,7 @@ const TicketViewer = () => {
   const sendTicketToWhatsApp = async (holder: TicketHolder) => {
     setSendingTicket(holder.id);
     try {
-      // Fetch webhook URL from settings
-      const { data: settings, error: settingsError } = await supabase
-        .from("settings")
-        .select("webhook_url")
-        .maybeSingle();
 
-      if (settingsError) throw settingsError;
-
-      if (!settings?.webhook_url) {
-        toast.error("لم يتم تكوين رابط الويب هوك");
-        return;
-      }
 
       // Convert QR code data URL to blob and upload to storage
       let qrCodeImageUrl = "";
