@@ -192,6 +192,24 @@ export const EventsTab = () => {
       })
     : events;
 
+  // Group events into month "folders" (e.g. يناير 2026)
+  const monthKey = (iso: string) => {
+    const d = new Date(iso);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+  };
+  const monthLabel = (iso: string) =>
+    new Date(iso).toLocaleDateString("ar-u-nu-latn", { month: "long", year: "numeric" });
+
+  const groupedEvents = Array.from(
+    filteredEvents.reduce((map, event) => {
+      const key = monthKey(event.event_date);
+      const group = map.get(key) ?? { key, label: monthLabel(event.event_date), items: [] as Event[] };
+      group.items.push(event);
+      map.set(key, group);
+      return map;
+    }, new Map<string, { key: string; label: string; items: Event[] }>())
+  ).map(([, group]) => group);
+
   return (
     <div className="space-y-6" dir="rtl">
       <div className="flex justify-between items-center gap-4">
