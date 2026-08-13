@@ -16,6 +16,7 @@ import { cn } from "@/lib/utils";
 import { Footer } from "@/components/Footer";
 import { canPurchaseTickets } from "@/lib/eventUtils";
 import { CapacityNotificationBanner } from "@/components/admin/CapacityNotificationBanner";
+import { useLifetimeTicketTotals } from "@/hooks/useLifetimeTicketTotals";
 
 const QATAR_TIMEZONE = "Asia/Qatar";
 
@@ -348,6 +349,7 @@ interface Booking {
 
 const LiveBookings = () => {
   const { t } = useTranslation();
+  const { getTotal: getLifetimeTickets, refresh: refreshLifetimeTotals } = useLifetimeTicketTotals();
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [ticketHolders, setTicketHolders] = useState<TicketHolder[]>([]);
   const [loading, setLoading] = useState(true);
