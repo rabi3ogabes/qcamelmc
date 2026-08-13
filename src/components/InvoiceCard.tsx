@@ -155,6 +155,15 @@ export const InvoiceCard = ({ data }: InvoiceCardProps) => {
           حفظ كصورة (PNG)
         </Button>
       </div>
+
+      <Button
+        size="lg"
+        variant="secondary"
+        className="w-full"
+        onClick={() => navigate("/")}
+      >
+        <Home className="ml-2 h-5 w-5" /> للتحويل للصفحة الرئيسية
+      </Button>
     </div>
   );
 };
