@@ -142,6 +142,25 @@ export const EventsTab = () => {
     }
   };
 
+  const setArchived = async (eventId: string, archived: boolean) => {
+    try {
+      const { error } = await supabase
+        .from("events")
+        .update({
+          is_archived: archived,
+          archived_at: archived ? new Date().toISOString() : null,
+          ...(archived ? { is_active: false } : {}),
+        })
+        .eq("id", eventId);
+
+      if (error) throw error;
+      toast.success(archived ? "تمت أرشفة الفعالية (البيانات محفوظة)" : "تمت استعادة الفعالية");
+      fetchEvents();
+    } catch (error) {
+      toast.error(t("failedToLoad"));
+    }
+  };
+
   const toggleEventStatus = async (eventId: string, currentStatus: boolean) => {
     try {
       const { error } = await supabase
@@ -210,7 +229,27 @@ export const EventsTab = () => {
               <X className="w-4 h-4" />
             </Button>
           )}
+          <div className="flex rounded-lg border p-1 bg-muted/40">
+            <Button
+              variant={view === "current" ? "default" : "ghost"}
+              size="sm"
+              className="font-lusail"
+              onClick={() => setView("current")}
+            >
+              الحالية
+            </Button>
+            <Button
+              variant={view === "archived" ? "default" : "ghost"}
+              size="sm"
+              className="font-lusail gap-1"
+              onClick={() => setView("archived")}
+            >
+              <Archive className="w-4 h-4" />
+              الأرشيف
+            </Button>
+          </div>
           <CreateEventDialog onEventCreated={fetchEvents} />
+          <StartNewEventDialog onEventCreated={() => { setView("current"); fetchEvents(); }} />
         </div>
       </div>
 
@@ -250,6 +289,16 @@ export const EventsTab = () => {
                       month: 'long',
                       day: 'numeric'
                     })}
+                    {event.end_date && new Date(event.end_date).toDateString() !== new Date(event.event_date).toDateString() && (
+                      <>
+                        {" — "}
+                        {new Date(event.end_date).toLocaleDateString('en-US', {
+                          year: 'numeric',
+                          month: 'long',
+                          day: 'numeric'
+                        })}
+                      </>
+                    )}
                   </span>
                 </div>
                 <div className="flex items-center gap-2 text-sm">
@@ -319,6 +368,15 @@ export const EventsTab = () => {
                   >
                     {t("edit")}
                     <Edit className="w-4 h-4" />
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="font-lusail"
+                    onClick={() => setArchived(event.id, !event.is_archived)}
+                    title={event.is_archived ? "استعادة" : "أرشفة"}
+                  >
+                    {event.is_archived ? <ArchiveRestore className="w-4 h-4" /> : <Archive className="w-4 h-4" />}
                   </Button>
                   {showDeleteEventButton && (
                     <AlertDialog>
