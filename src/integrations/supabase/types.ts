@@ -686,12 +686,78 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      public_settings: {
+        Row: {
+          before_footer_image_url: string | null
+          copyright_text: string | null
+          current_event_id: string | null
+          header_bg_color: string | null
+          header_bg_image_url: string | null
+          hero_image_url: string | null
+          hero_text: string | null
+          id: string | null
+          logo_url: string | null
+          show_delete_customer_button: boolean | null
+          show_delete_event_button: boolean | null
+          show_generate_qr_button: boolean | null
+        }
+        Insert: {
+          before_footer_image_url?: string | null
+          copyright_text?: string | null
+          current_event_id?: string | null
+          header_bg_color?: string | null
+          header_bg_image_url?: string | null
+          hero_image_url?: string | null
+          hero_text?: string | null
+          id?: string | null
+          logo_url?: string | null
+          show_delete_customer_button?: boolean | null
+          show_delete_event_button?: boolean | null
+          show_generate_qr_button?: boolean | null
+        }
+        Update: {
+          before_footer_image_url?: string | null
+          copyright_text?: string | null
+          current_event_id?: string | null
+          header_bg_color?: string | null
+          header_bg_image_url?: string | null
+          hero_image_url?: string | null
+          hero_text?: string | null
+          id?: string | null
+          logo_url?: string | null
+          show_delete_customer_button?: boolean | null
+          show_delete_event_button?: boolean | null
+          show_generate_qr_button?: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "settings_current_event_id_fkey"
+            columns: ["current_event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       cleanup_stale_visitors: { Args: never; Returns: undefined }
       generate_booking_reference: { Args: never; Returns: string }
       generate_ticket_holder_reference: { Args: never; Returns: string }
+      get_event_ticket_counts: {
+        Args: { p_event_id: string }
+        Returns: {
+          confirmed_count: number
+          ticket_type: string
+        }[]
+      }
+      get_lifetime_ticket_totals: {
+        Args: never
+        Returns: {
+          person_key: string
+          total: number
+        }[]
+      }
       get_page_view_stats: {
         Args: { end_date: string; start_date: string }
         Returns: {
@@ -699,6 +765,10 @@ export type Database = {
           unique_visitors: number
           view_count: number
         }[]
+      }
+      get_public_order: {
+        Args: { p_booking_reference?: string; p_order_id?: string }
+        Returns: Json
       }
       get_visitors_per_country: {
         Args: { end_date: string; start_date: string }
