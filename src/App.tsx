@@ -76,10 +76,10 @@ const App = () => (
                     <Route path="/confirmation" element={<Confirmation />} />
                     <Route path="/sadad-callback" element={<SadadCallback />} />
                     <Route path="/sadad-redirect" element={<SadadRedirect />} />
-                    <Route path="/live-bookings" element={<LiveBookings />} />
-                    <Route path="/live-visitors" element={<LiveVisitors />} />
+                    <Route path="/live-bookings" element={<RequireAdmin><LiveBookings /></RequireAdmin>} />
+                    <Route path="/live-visitors" element={<RequireAdmin><LiveVisitors /></RequireAdmin>} />
                     <Route path="/admin/login" element={<AdminLogin />} />
-                    <Route path="/admin/dashboard" element={<AdminDashboard />}>
+                    <Route path="/admin/dashboard" element={<RequireAdmin><AdminDashboard /></RequireAdmin>}>
                       <Route index element={<Navigate to="orders" replace />} />
                       <Route path="orders" element={<OrdersPage />} />
                       <Route path="customers" element={<CustomersPage />} />
@@ -92,10 +92,11 @@ const App = () => (
                       <Route path="reports" element={<ReportsPage />} />
                       <Route path="activity-logs" element={<ActivityLogsPage />} />
                     </Route>
-                    <Route path="/admin/qr-scanner" element={<QRScanner />} />
-                    <Route path="/admin/pos" element={<AdminPOS />} />
-                    <Route path="/admin/pos-receipts" element={<POSReceiptPage />} />
+                    <Route path="/admin/qr-scanner" element={<RequireAdmin><QRScanner /></RequireAdmin>} />
+                    <Route path="/admin/pos" element={<RequireAdmin><AdminPOS /></RequireAdmin>} />
+                    <Route path="/admin/pos-receipts" element={<RequireAdmin><POSReceiptPage /></RequireAdmin>} />
                     <Route path="/admin/tickets" element={<TicketViewer />} />
+
                     <Route path="*" element={<NotFound />} />
                   </Routes>
                 </Suspense>
