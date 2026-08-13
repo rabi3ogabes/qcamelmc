@@ -21,6 +21,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { CreateEventDialog } from "./CreateEventDialog";
 import { StartNewEventDialog } from "./StartNewEventDialog";
+import { CurrentEventSelector } from "./CurrentEventSelector";
 import { EditEventDialog } from "./EditEventDialog";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -252,6 +253,9 @@ export const EventsTab = () => {
           <StartNewEventDialog onEventCreated={() => { setView("current"); fetchEvents(); }} />
         </div>
       </div>
+
+      <CurrentEventSelector key={events.length} />
+
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {filteredEvents.map((event) => (

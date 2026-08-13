@@ -72,10 +72,25 @@ const EventHome = () => {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 10000);
 
-        const { data, error } = await supabase
+        // Respect the admin-selected "current event" so customers only ever
+        // see the live event; archived events are never exposed.
+        const { data: settingsRow } = await supabase
+          .from("settings")
+          .select("current_event_id")
+          .maybeSingle();
+        const currentEventId = settingsRow?.current_event_id || null;
+
+        let query = supabase
           .from("events")
           .select("*")
           .eq("is_active", true)
+          .eq("is_archived", false);
+
+        if (currentEventId) {
+          query = query.eq("id", currentEventId);
+        }
+
+        const { data, error } = await query
           .order("event_date", { ascending: true })
           .order("display_order", { ascending: true })
           .order("start_time", { ascending: true })

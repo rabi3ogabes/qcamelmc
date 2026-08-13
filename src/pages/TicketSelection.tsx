@@ -68,12 +68,13 @@ const TicketSelection = () => {
       const qatarTime = toZonedTime(new Date(), "Asia/Qatar");
       const qatarISOString = fromZonedTime(qatarTime, "Asia/Qatar").toISOString();
       
-      // Check if the selected event exists and is active
+      // Check if the selected event exists, is active and not archived
       const { data: selectedEvent, error: eventError } = await supabase
         .from("events")
         .select("id, event_date")
         .eq("id", eventId)
         .eq("is_active", true)
+        .eq("is_archived", false)
         .maybeSingle();
 
       if (eventError) throw eventError;
@@ -81,6 +82,18 @@ const TicketSelection = () => {
       // If event doesn't exist, redirect to home
       if (!selectedEvent) {
         toast.error("لا يمكن حجز تذاكر لهذا التاريخ");
+        navigate("/");
+        return;
+      }
+
+      // Enforce the admin-selected current event (when one is set)
+      const { data: settingsRow } = await supabase
+        .from("settings")
+        .select("current_event_id")
+        .maybeSingle();
+
+      if (settingsRow?.current_event_id && settingsRow.current_event_id !== eventId) {
+        toast.error("هذه الفعالية غير متاحة للحجز حالياً");
         navigate("/");
         return;
       }

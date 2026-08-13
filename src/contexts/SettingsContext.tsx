@@ -18,6 +18,7 @@ interface Settings {
   invoice_batch_max: number;
   invoice_send_delay_min: number;
   invoice_send_delay_max: number;
+  current_event_id: string | null;
 }
 
 const DEFAULT_SETTINGS: Settings = {
@@ -34,6 +35,7 @@ const DEFAULT_SETTINGS: Settings = {
   invoice_batch_max: 10,
   invoice_send_delay_min: 300,
   invoice_send_delay_max: 600,
+  current_event_id: null,
 };
 
 interface SettingsContextType {
@@ -78,7 +80,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
     try {
       const { data, error } = await supabase
         .from("settings")
-        .select("logo_url, hero_image_url, before_footer_image_url, header_bg_color, header_bg_image_url, hero_text, copyright_text, admin_phone, auto_invoice_interval_seconds, invoice_batch_min, invoice_batch_max, invoice_send_delay_min, invoice_send_delay_max")
+        .select("logo_url, hero_image_url, before_footer_image_url, header_bg_color, header_bg_image_url, hero_text, copyright_text, admin_phone, auto_invoice_interval_seconds, invoice_batch_min, invoice_batch_max, invoice_send_delay_min, invoice_send_delay_max, current_event_id")
         .maybeSingle();
 
       const resolved: Settings = {
@@ -95,6 +97,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
         invoice_batch_max: data?.invoice_batch_max || 10,
         invoice_send_delay_min: data?.invoice_send_delay_min || 300,
         invoice_send_delay_max: data?.invoice_send_delay_max || 600,
+        current_event_id: data?.current_event_id || null,
       };
 
       setSettings(resolved);
