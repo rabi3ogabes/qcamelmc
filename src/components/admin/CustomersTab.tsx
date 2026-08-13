@@ -294,7 +294,8 @@ export const CustomersTab = () => {
             events (
               title,
               location,
-              event_date
+              event_date,
+              is_archived
             ),
             ticket_holders (
               id,
