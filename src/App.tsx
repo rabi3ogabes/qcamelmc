@@ -8,6 +8,8 @@ import { lazy, Suspense } from "react";
 import i18n from "./i18n/config";
 import { SettingsProvider } from "./contexts/SettingsContext";
 import ChunkLoadErrorBoundary from "@/components/ChunkLoadErrorBoundary";
+import RequireAdmin from "@/components/RequireAdmin";
+
 import EventHome from "./pages/EventHome";
 import { useVisitorTracking } from "./hooks/useVisitorTracking";
 
