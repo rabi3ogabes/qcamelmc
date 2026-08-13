@@ -117,6 +117,12 @@ export const StartNewEventDialog = ({ onEventCreated }: StartNewEventDialogProps
 
       if (ticketsError) throw ticketsError;
 
+      // 3.5) Make the new event the one customers see
+      const { data: settingsRow } = await supabase.from("settings").select("id").maybeSingle();
+      if (settingsRow?.id) {
+        await supabase.from("settings").update({ current_event_id: event.id }).eq("id", settingsRow.id);
+      }
+
       // 4) Log the season start
       await supabase.from("activity_logs").insert({
         activity_type: "new_event_started",
