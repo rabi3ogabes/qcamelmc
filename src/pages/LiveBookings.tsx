@@ -552,6 +552,14 @@ const LiveBookings = () => {
     }
   }, [bookings, ticketHolders, loading]);
 
+  // Keep lifetime ticket totals in sync as new bookings arrive
+  useEffect(() => {
+    if (loading) return;
+    const timer = setTimeout(() => { refreshLifetimeTotals(); }, 1500);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ticketHolders.length, loading]);
+
   // Helper: extract ticket holders from a single order
   const extractOrderTicketHolders = useCallback((order: any): TicketHolder[] => {
     if (!order.ticket_holders || !Array.isArray(order.ticket_holders)) return [];
@@ -1713,6 +1721,7 @@ const LiveBookings = () => {
               ticketHolders.map((holder, index) => {
                 const isRecent = isRecentBooking(holder.created_at);
                 const ticketNumber = ticketHolders.length - index; // Descending order (newest first, so reverse the number)
+                const lifetimeTickets = getLifetimeTickets(holder.phone, holder.id_number);
                 return (
                 <Card 
                   key={holder.id} 
@@ -1791,6 +1800,32 @@ const LiveBookings = () => {
                       </div>
                     )}
 
+                    {/* Lifetime tickets across all events (incl. archive) */}
+                    {lifetimeTickets > 0 && (
+                      <div
+                        className={cn(
+                          "flex items-center justify-between gap-2 rounded-lg px-2 py-1 sm:py-1.5 border",
+                          lifetimeTickets > 1
+                            ? "border-amber-400/50 bg-gradient-to-l from-amber-500/15 via-amber-400/10 to-transparent"
+                            : "border-border bg-muted/40"
+                        )}
+                        title="إجمالي التذاكر لهذا الشخص في كل الفعاليات (بما فيها الأرشيف)"
+                      >
+                        <div className="flex items-center gap-1.5 min-w-0">
+                          <Hash className={cn("w-3.5 h-3.5 flex-shrink-0", lifetimeTickets > 1 ? "text-amber-600" : "text-muted-foreground")} />
+                          <span className="text-[9px] sm:text-[11px] text-muted-foreground truncate">إجمالي التذاكر</span>
+                        </div>
+                        <span
+                          className={cn(
+                            "text-[11px] sm:text-sm font-bold tabular-nums px-1.5 rounded",
+                            lifetimeTickets > 1 ? "text-amber-700 dark:text-amber-400" : "text-foreground"
+                          )}
+                        >
+                          {lifetimeTickets}
+                        </span>
+                      </div>
+                    )}
+
                     {/* Ticket Type and Attendance */}
                     <div className="flex items-center justify-between gap-1 sm:gap-2">
                       {/* Ticket Type */}
@@ -1850,6 +1885,7 @@ const LiveBookings = () => {
                     <TableHead className="text-right font-lusail text-xs sm:text-sm whitespace-nowrap hidden sm:table-cell">الهاتف</TableHead>
                     <TableHead className="text-right font-lusail text-xs sm:text-sm whitespace-nowrap hidden md:table-cell">الجنسية</TableHead>
                     <TableHead className="text-right font-lusail text-xs sm:text-sm whitespace-nowrap hidden lg:table-cell">الرقم المرجعي</TableHead>
+                    <TableHead className="text-right font-lusail text-xs sm:text-sm whitespace-nowrap">إجمالي التذاكر</TableHead>
                     <TableHead className="text-right font-lusail text-xs sm:text-sm whitespace-nowrap">نوع التذكرة</TableHead>
                     <TableHead className="text-right font-lusail text-xs sm:text-sm whitespace-nowrap">الحضور</TableHead>
                     <TableHead className="text-right font-lusail text-xs sm:text-sm whitespace-nowrap hidden xl:table-cell">وقت التأكيد</TableHead>
@@ -1858,7 +1894,7 @@ const LiveBookings = () => {
                 <TableBody>
                   {ticketHolders.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={7} className="text-center py-6 sm:py-12">
+                      <TableCell colSpan={8} className="text-center py-6 sm:py-12">
                         <p className="text-muted-foreground font-lusail text-sm">{t("noBookingsForDate")}</p>
                       </TableCell>
                     </TableRow>
