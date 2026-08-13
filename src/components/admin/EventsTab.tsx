@@ -275,8 +275,22 @@ export const EventsTab = () => {
       <CurrentEventSelector key={events.length} />
 
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {filteredEvents.map((event) => (
+      <div className="space-y-4">
+        {groupedEvents.map((group) => (
+          <Collapsible key={group.key} defaultOpen={view === "current"}>
+            <CollapsibleTrigger className="flex w-full items-center justify-between rounded-xl border bg-card px-4 py-3 text-right transition-colors hover:bg-muted/50 [&[data-state=open]>div>svg.chevron]:rotate-180">
+              <div className="flex items-center gap-3">
+                <Folder className="h-5 w-5 text-primary" />
+                <span className="font-lusail text-lg font-bold">{group.label}</span>
+                <Badge variant="secondary" className="font-lusail">
+                  {group.items.length} فعالية
+                </Badge>
+                <ChevronDown className="chevron h-4 w-4 text-muted-foreground transition-transform" />
+              </div>
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pt-4">
+                {group.items.map((event) => (
           <Card key={event.id} className="overflow-hidden hover:shadow-lg transition-shadow">
             {event.image_url && (
               <img 
