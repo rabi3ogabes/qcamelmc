@@ -15,12 +15,15 @@ const RELOAD_GUARD_KEY = "__lovable_chunk_reload_ts__";
 function isLikelyChunkLoadError(error?: Error) {
   const message = (error?.message ?? "").toLowerCase();
 
+  // Only treat *module/chunk loading* failures as auto-recoverable.
+  // Generic network errors (e.g. a failed API call) must NOT trigger a reload,
+  // otherwise a temporary connection hiccup silently reloads the page.
   return (
     message.includes("dynamically imported module") ||
     message.includes("importing a module script failed") ||
     message.includes("loading chunk") ||
     message.includes("chunkloaderror") ||
-    message.includes("failed to fetch")
+    (message.includes("failed to fetch") && message.includes("module"))
   );
 }
 
@@ -28,7 +31,7 @@ function hasRecentlyReloaded() {
   const raw = sessionStorage.getItem(RELOAD_GUARD_KEY);
   const ts = raw ? Number(raw) : 0;
   if (!Number.isFinite(ts) || ts <= 0) return false;
-  return Date.now() - ts < 30_000;
+  return Date.now() - ts < 5 * 60_000;
 }
 
 function hardReloadWithCacheBust() {
