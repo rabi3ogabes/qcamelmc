@@ -5,7 +5,8 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useTranslation } from "react-i18next";
-import { User, Phone, Mail, Ticket, Calendar, Send, MessageCircle, Edit, QrCode, Trash2, UserX, CreditCard } from "lucide-react";
+import { User, Phone, Mail, Ticket, Calendar, Send, MessageCircle, Edit, QrCode, Trash2, UserX, CreditCard, Archive, Folder, ChevronDown } from "lucide-react";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { toast } from "sonner";
 import QRCode from "qrcode";
 import {
@@ -36,6 +37,7 @@ interface Customer {
     event_location?: string;
     event_date?: string;
     event_title?: string;
+    event_archived?: boolean;
     ticket_holders: Array<{
       id: string;
       name: string;
@@ -138,6 +140,7 @@ export const CustomersTab = () => {
   const [ticketHolderEditForm, setTicketHolderEditForm] = useState({ phone: "", country_code: "" });
   const [sendingSingleTicket, setSendingSingleTicket] = useState<string | null>(null);
   const [phoneTicketCounts, setPhoneTicketCounts] = useState<Record<string, number>>({});
+  const [view, setView] = useState<"current" | "archived">("current");
 
   const gulfNationalities = [
     { name: "قطر", flag: "🇶🇦" },
@@ -293,7 +296,8 @@ export const CustomersTab = () => {
             events (
               title,
               location,
-              event_date
+              event_date,
+              is_archived
             ),
             ticket_holders (
               id,
@@ -325,6 +329,7 @@ export const CustomersTab = () => {
             event_title: order.events?.title || "",
             event_location: order.events?.location || "",
             event_date: order.events?.event_date || "",
+            event_archived: order.events?.is_archived === true,
           }))
       })).filter(customer => customer.orders.length > 0); // Remove customers with no confirmed orders
 
@@ -336,7 +341,17 @@ export const CustomersTab = () => {
     }
   };
 
-  const filteredCustomers = customers.filter(
+  // Scope customers to the selected view (current season vs archived seasons)
+  const scopedCustomers = customers
+    .map((customer) => ({
+      ...customer,
+      orders: customer.orders.filter((order) =>
+        view === "archived" ? order.event_archived : !order.event_archived
+      ),
+    }))
+    .filter((customer) => customer.orders.length > 0);
+
+  const filteredCustomers = scopedCustomers.filter(
     (customer) =>
       customer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       customer.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -352,6 +367,61 @@ export const CustomersTab = () => {
         )
       )
   );
+
+  // Group customers into season "folders" (merging consecutive months), same as the events page
+  const monthIndexOf = (iso?: string) => {
+    if (!iso) return null;
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return null;
+    return d.getFullYear() * 12 + d.getMonth();
+  };
+  const monthNameOf = (idx: number) =>
+    new Date(Math.floor(idx / 12), idx % 12, 1).toLocaleDateString("ar-u-nu-latn", { month: "long" });
+  const monthYearOf = (idx: number) =>
+    new Date(Math.floor(idx / 12), idx % 12, 1).toLocaleDateString("ar-u-nu-latn", {
+      month: "long",
+      year: "numeric",
+    });
+
+  const customerMonth = (customer: Customer) => {
+    const indexes = customer.orders
+      .map((o) => monthIndexOf(o.event_date))
+      .filter((v): v is number => v !== null);
+    return indexes.length ? Math.max(...indexes) : null;
+  };
+
+  const byMonth = new Map<number, Customer[]>();
+  const undated: Customer[] = [];
+  filteredCustomers.forEach((customer) => {
+    const idx = customerMonth(customer);
+    if (idx === null) undated.push(customer);
+    else byMonth.set(idx, [...(byMonth.get(idx) ?? []), customer]);
+  });
+
+  const sortedMonths = Array.from(byMonth.keys()).sort((a, b) => a - b);
+  const customerGroups: { key: string; label: string; items: Customer[] }[] = [];
+  let run: number[] = [];
+  const flushRun = () => {
+    if (run.length === 0) return;
+    const items = run.flatMap((m) => byMonth.get(m) ?? []);
+    const label =
+      run.length === 1
+        ? monthYearOf(run[0])
+        : `${monthNameOf(run[0])} - ${monthYearOf(run[run.length - 1])}`;
+    customerGroups.push({ key: `${run[0]}-${run[run.length - 1]}`, label, items });
+    run = [];
+  };
+  sortedMonths.forEach((m) => {
+    if (run.length === 0 || m === run[run.length - 1] + 1) run.push(m);
+    else {
+      flushRun();
+      run.push(m);
+    }
+  });
+  flushRun();
+  if (undated.length) customerGroups.push({ key: "undated", label: "بدون تاريخ", items: undated });
+  customerGroups.reverse();
+
 
   const sendInvoiceToWhatsApp = async (customer: Customer, orderId: string, e: React.MouseEvent) => {
     e.stopPropagation(); // Prevent opening the customer dialog
@@ -1019,12 +1089,33 @@ export const CustomersTab = () => {
     <div className="space-y-6">
       <div className="flex flex-row-reverse justify-between items-center">
         <h2 className="text-2xl font-bold font-lusail">العملاء والحجوزات</h2>
-        <Input
-          placeholder="بحث بالاسم، الهاتف، أو رمز التذكرة..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="max-w-sm font-lusail"
-        />
+        <div className="flex items-center gap-2">
+          <div className="flex rounded-lg border p-1 bg-muted/40">
+            <Button
+              variant={view === "current" ? "default" : "ghost"}
+              size="sm"
+              className="font-lusail"
+              onClick={() => setView("current")}
+            >
+              الحالية
+            </Button>
+            <Button
+              variant={view === "archived" ? "default" : "ghost"}
+              size="sm"
+              className="font-lusail gap-1"
+              onClick={() => setView("archived")}
+            >
+              <Archive className="w-4 h-4" />
+              الأرشيف
+            </Button>
+          </div>
+          <Input
+            placeholder="بحث بالاسم، الهاتف، أو رمز التذكرة..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="max-w-sm font-lusail"
+          />
+        </div>
       </div>
 
       {filteredCustomers.length === 0 ? (
@@ -1032,8 +1123,22 @@ export const CustomersTab = () => {
           <p className="text-muted-foreground font-lusail">لا يوجد عملاء مع حجوزات</p>
         </Card>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 auto-rows-fr">
-          {filteredCustomers.map((customer) => {
+        <div className="space-y-4">
+          {customerGroups.map((group) => (
+          <Collapsible key={group.key} defaultOpen={view === "current" || customerGroups.length === 1}>
+            <CollapsibleTrigger className="flex w-full items-center justify-between rounded-xl border bg-card px-4 py-3 text-right transition-colors hover:bg-muted/50 [&[data-state=open]>div>svg.chevron]:rotate-180">
+              <div className="flex items-center gap-3">
+                <Folder className="h-5 w-5 text-primary" />
+                <span className="font-lusail text-lg font-bold">{group.label}</span>
+                <Badge variant="secondary" className="font-lusail">
+                  {group.items.length} عميل
+                </Badge>
+                <ChevronDown className="chevron h-4 w-4 text-muted-foreground transition-transform" />
+              </div>
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 auto-rows-fr pt-4">
+          {group.items.map((customer) => {
             // Collect all ticket holders from all orders with their details
             const allTickets = customer.orders.flatMap(order => 
               order.ticket_holders?.map(holder => ({
@@ -1221,6 +1326,10 @@ export const CustomersTab = () => {
               </Card>
             );
           })}
+              </div>
+            </CollapsibleContent>
+          </Collapsible>
+          ))}
         </div>
       )}
 
