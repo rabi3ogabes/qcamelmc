@@ -1,8 +1,9 @@
 import { useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { toPng } from "html-to-image";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { FileDown, ImageDown, CheckCircle2, Loader2 } from "lucide-react";
+import { FileDown, ImageDown, CheckCircle2, Loader2, Home } from "lucide-react";
 import { generateInvoicePdf, type InvoiceData } from "@/lib/generateInvoicePdf";
 
 interface InvoiceCardProps {
@@ -39,6 +40,7 @@ const Row = ({ label, value }: { label: string; value: React.ReactNode }) => (
 export const InvoiceCard = ({ data }: InvoiceCardProps) => {
   const captureRef = useRef<HTMLDivElement>(null);
   const [savingImage, setSavingImage] = useState(false);
+  const navigate = useNavigate();
 
   const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
   const qrUrls = (data.qr_codes || []).map((qr) =>
@@ -153,6 +155,15 @@ export const InvoiceCard = ({ data }: InvoiceCardProps) => {
           حفظ كصورة (PNG)
         </Button>
       </div>
+
+      <Button
+        size="lg"
+        variant="secondary"
+        className="w-full"
+        onClick={() => navigate("/")}
+      >
+        <Home className="ml-2 h-5 w-5" /> للتحويل للصفحة الرئيسية
+      </Button>
     </div>
   );
 };
