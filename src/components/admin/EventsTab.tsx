@@ -4,7 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { Calendar as CalendarIcon, MapPin, Edit, X, Trash2, Archive, ArchiveRestore } from "lucide-react";
+import { Calendar as CalendarIcon, MapPin, Edit, X, Trash2, Archive, ArchiveRestore, Folder, ChevronDown } from "lucide-react";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import {
   AlertDialog,
   AlertDialogAction,
