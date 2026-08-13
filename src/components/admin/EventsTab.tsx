@@ -20,7 +20,6 @@ import {
 import { useTranslation } from "react-i18next";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { CreateEventDialog } from "./CreateEventDialog";
 import { StartNewEventDialog } from "./StartNewEventDialog";
 import { CurrentEventSelector } from "./CurrentEventSelector";
 import { EditEventDialog } from "./EditEventDialog";
@@ -294,7 +293,6 @@ export const EventsTab = () => {
               الأرشيف
             </Button>
           </div>
-          <CreateEventDialog onEventCreated={fetchEvents} />
           <StartNewEventDialog onEventCreated={() => { setView("current"); fetchEvents(); }} />
         </div>
       </div>
