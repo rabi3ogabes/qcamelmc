@@ -1944,6 +1944,25 @@ const LiveBookings = () => {
                           </span>
                         </TableCell>
                         <TableCell className="py-2 sm:py-4">
+                          {(() => {
+                            const lifetimeTickets = getLifetimeTickets(holder.phone, holder.id_number);
+                            return (
+                              <span
+                                title="إجمالي التذاكر لهذا الشخص في كل الفعاليات (بما فيها الأرشيف)"
+                                className={cn(
+                                  "inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-[11px] sm:text-xs font-bold tabular-nums",
+                                  lifetimeTickets > 1
+                                    ? "border-amber-400/60 bg-gradient-to-l from-amber-500/20 to-transparent text-amber-700 dark:text-amber-400"
+                                    : "border-border bg-muted/40 text-foreground"
+                                )}
+                              >
+                                <Hash className="w-3 h-3 opacity-70" />
+                                {lifetimeTickets}
+                              </span>
+                            );
+                          })()}
+                        </TableCell>
+                        <TableCell className="py-2 sm:py-4">
                           <Badge variant="outline" className="text-[10px] sm:text-xs">
                             {holder.ticket_type === 'vip' ? 'VIP' : holder.ticket_type === 'normal' ? 'عادي' : holder.ticket_type === 'parking' ? 'مواقف' : holder.ticket_type}
                           </Badge>
