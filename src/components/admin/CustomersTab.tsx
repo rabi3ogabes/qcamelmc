@@ -1102,8 +1102,22 @@ export const CustomersTab = () => {
           <p className="text-muted-foreground font-lusail">لا يوجد عملاء مع حجوزات</p>
         </Card>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 auto-rows-fr">
-          {filteredCustomers.map((customer) => {
+        <div className="space-y-4">
+          {customerGroups.map((group) => (
+          <Collapsible key={group.key} defaultOpen={view === "current" || customerGroups.length === 1}>
+            <CollapsibleTrigger className="flex w-full items-center justify-between rounded-xl border bg-card px-4 py-3 text-right transition-colors hover:bg-muted/50 [&[data-state=open]>div>svg.chevron]:rotate-180">
+              <div className="flex items-center gap-3">
+                <Folder className="h-5 w-5 text-primary" />
+                <span className="font-lusail text-lg font-bold">{group.label}</span>
+                <Badge variant="secondary" className="font-lusail">
+                  {group.items.length} عميل
+                </Badge>
+                <ChevronDown className="chevron h-4 w-4 text-muted-foreground transition-transform" />
+              </div>
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 auto-rows-fr pt-4">
+          {group.items.map((customer) => {
             // Collect all ticket holders from all orders with their details
             const allTickets = customer.orders.flatMap(order => 
               order.ticket_holders?.map(holder => ({
