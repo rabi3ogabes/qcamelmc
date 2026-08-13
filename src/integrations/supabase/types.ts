@@ -496,6 +496,7 @@ export type Database = {
           before_footer_image_url: string | null
           copyright_text: string | null
           created_at: string | null
+          current_event_id: string | null
           email_webhook_url: string | null
           header_bg_color: string | null
           header_bg_image_url: string | null
@@ -524,6 +525,7 @@ export type Database = {
           before_footer_image_url?: string | null
           copyright_text?: string | null
           created_at?: string | null
+          current_event_id?: string | null
           email_webhook_url?: string | null
           header_bg_color?: string | null
           header_bg_image_url?: string | null
@@ -552,6 +554,7 @@ export type Database = {
           before_footer_image_url?: string | null
           copyright_text?: string | null
           created_at?: string | null
+          current_event_id?: string | null
           email_webhook_url?: string | null
           header_bg_color?: string | null
           header_bg_image_url?: string | null
@@ -574,7 +577,15 @@ export type Database = {
           updated_at?: string | null
           webhook_url?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "settings_current_event_id_fkey"
+            columns: ["current_event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       ticket_holders: {
         Row: {
