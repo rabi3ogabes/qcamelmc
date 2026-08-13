@@ -157,7 +157,7 @@ export const useVisitorTracking = () => {
   return;
 
   const sessionIdRef = useRef<string>(getSessionId());
-  const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const lastPageRef = useRef<string>("");
   const geoRef = useRef<GeoInfo | null>(null);
 
