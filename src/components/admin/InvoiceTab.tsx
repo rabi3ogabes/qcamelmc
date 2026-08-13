@@ -186,7 +186,7 @@ export const InvoiceTab = () => {
   }, [pendingOrdersCount, autoInvoiceInterval]); // Only run when orders are loaded
 
   useEffect(() => {
-    let timer: NodeJS.Timeout;
+    let timer: ReturnType<typeof setTimeout>;
     
     // Only run countdown if there are pending orders
     const hasPendingOrders = pendingOrdersCount > 0;

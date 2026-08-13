@@ -1,28 +1,33 @@
-import { useEffect, useState, useCallback, useMemo } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useEffect, useState, useCallback } from "react";
+import { useNavigate, Outlet, NavLink, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Badge } from "@/components/ui/badge";
-import { LogOut, ShoppingCart, Calendar, Ticket, Settings, ExternalLink, Image, ScanLine, Users, CreditCard, FileText, Eye, Receipt, UserCog } from "lucide-react";
+import {
+  LogOut,
+  ShoppingCart,
+  Calendar,
+  Ticket,
+  Settings,
+  ExternalLink,
+  Image,
+  ScanLine,
+  Users,
+  CreditCard,
+  FileText,
+  Eye,
+  Receipt,
+  UserCog,
+  Menu,
+  X,
+} from "lucide-react";
 import { toZonedTime } from "date-fns-tz";
 import { useTranslation } from "react-i18next";
-import { OrdersTab } from "@/components/admin/OrdersTab";
-import { EventsTab } from "@/components/admin/EventsTab";
-import { TicketsTab } from "@/components/admin/TicketsTab";
-import { SettingsTab } from "@/components/admin/SettingsTab";
-import { PopupBannersTab } from "@/components/admin/PopupBannersTab";
-import { CustomersTab } from "@/components/admin/CustomersTab";
-import { InvoiceTab } from "@/components/admin/InvoiceTab";
-import { ReportsTab } from "@/components/admin/ReportsTab";
-import { ActivityLogsTab } from "@/components/admin/ActivityLogsTab";
-import { VisitorAnalyticsTab } from "@/components/admin/VisitorAnalyticsTab";
-import { POSUsersTab } from "@/components/admin/POSUsersTab";
 import { CapacityAlert } from "@/components/admin/CapacityAlert";
+import { cn } from "@/lib/utils";
 
 import "../i18n/config";
 
-interface Order {
+export interface AdminOrder {
   id: string;
   booking_reference: string;
   payment_status: string;
@@ -39,23 +44,36 @@ interface Order {
   ticket_holders?: { ticket_type: string }[];
 }
 
+export interface AdminOutletContext {
+  orders: AdminOrder[];
+  isFullyLoaded: boolean;
+  showUpcomingOnly: boolean;
+  setShowUpcomingOnly: (v: boolean) => void;
+  refreshOrders: () => void;
+}
+
 const AdminDashboard = () => {
   const { t } = useTranslation();
-  const [orders, setOrders] = useState<Order[]>([]);
+  const [orders, setOrders] = useState<AdminOrder[]>([]);
   const [loading, setLoading] = useState(true);
   const [isFullyLoaded, setIsFullyLoaded] = useState(false);
-  const [activeTab, setActiveTab] = useState("orders");
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
   const [headerBgColor, setHeaderBgColor] = useState<string>("hsl(var(--card) / 0.5)");
   const [showUpcomingOnly, setShowUpcomingOnly] = useState(true);
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
+
+  useEffect(() => {
+    setMobileNavOpen(false);
+  }, [location.pathname]);
 
   // Get today's date in Qatar timezone for server-side filtering
   const getTodayQatar = useCallback(() => {
     const qatarNow = toZonedTime(new Date(), "Asia/Qatar");
     const year = qatarNow.getFullYear();
-    const month = String(qatarNow.getMonth() + 1).padStart(2, '0');
-    const day = String(qatarNow.getDate()).padStart(2, '0');
+    const month = String(qatarNow.getMonth() + 1).padStart(2, "0");
+    const day = String(qatarNow.getDate()).padStart(2, "0");
     return `${year}-${month}-${day}`;
   }, []);
 
@@ -73,7 +91,7 @@ const AdminDashboard = () => {
     if (data?.logo_url) {
       setLogoUrl(data.logo_url);
     }
-    
+
     if (data?.header_bg_color) {
       setHeaderBgColor(data.header_bg_color);
     }
@@ -90,69 +108,69 @@ const AdminDashboard = () => {
     const PAGE_SIZE = 1000;
     const startTime = performance.now();
     setIsFullyLoaded(false);
-    
+
     try {
       // Build base query with server-side filtering for upcoming events
       const todayDate = getTodayQatar();
-      
+
       // Build the query
       let query = supabase
         .from("orders")
         .select("*, customers(name, email, phone, nationality), events!inner(title, event_date, location), payment_error_reason, pos_users(name, icon), ticket_holders(ticket_type)")
         .order("created_at", { ascending: false });
-      
+
       // Apply server-side filter for upcoming events
       if (upcomingOnly) {
         query = query.gte("events.event_date", todayDate);
       }
-      
+
       // Get count first
       let countQuery = supabase
         .from("orders")
         .select("*, events!inner(event_date)", { count: "exact", head: true });
-      
+
       if (upcomingOnly) {
         countQuery = countQuery.gte("events.event_date", todayDate);
       }
-      
+
       const { count, error: countError } = await countQuery;
-      
+
       if (countError) throw countError;
-      
+
       const totalCount = count || 0;
       const totalPages = Math.ceil(totalCount / PAGE_SIZE);
-      
+
       console.log(`Total orders (${upcomingOnly ? 'upcoming' : 'all'}): ${totalCount}, pages: ${totalPages}`);
-      
+
       if (totalPages === 0) {
         setOrders([]);
         setLoading(false);
         setIsFullyLoaded(true);
         return;
       }
-      
+
       // Fetch first page immediately
       const { data: firstPageData, error: firstError } = await query.range(0, PAGE_SIZE - 1);
-      
+
       if (firstError) throw firstError;
-      
+
       // Show first page immediately
       if (firstPageData?.length) {
-        setOrders(firstPageData as Order[]);
+        setOrders(firstPageData as AdminOrder[]);
         setLoading(false);
         console.log(`First page loaded in ${(performance.now() - startTime).toFixed(0)}ms with ${firstPageData.length} orders`);
       }
-      
+
       // If only one page, we're done
       if (totalPages <= 1) {
         setIsFullyLoaded(true);
         return;
       }
-      
+
       // Fetch remaining pages in parallel (max 3 concurrent requests)
       const remainingPages = Array.from({ length: totalPages - 1 }, (_, i) => i + 1);
-      const allOrders: Order[] = [...(firstPageData || []) as Order[]];
-      
+      const allOrders: AdminOrder[] = [...(firstPageData || []) as AdminOrder[]];
+
       // Process in batches of 3 concurrent requests
       const BATCH_SIZE = 3;
       for (let i = 0; i < remainingPages.length; i += BATCH_SIZE) {
@@ -162,27 +180,27 @@ const AdminDashboard = () => {
             .from("orders")
             .select("*, customers(name, email, phone, nationality), events!inner(title, event_date, location), payment_error_reason, pos_users(name, icon), ticket_holders(ticket_type)")
             .order("created_at", { ascending: false });
-          
+
           if (upcomingOnly) {
             batchQuery = batchQuery.gte("events.event_date", todayDate);
           }
-          
+
           return batchQuery.range(pageNum * PAGE_SIZE, (pageNum + 1) * PAGE_SIZE - 1);
         });
-        
+
         const results = await Promise.all(batchPromises);
-        
+
         results.forEach(({ data, error }) => {
           if (error) console.error("Error fetching page:", error);
-          if (data?.length) allOrders.push(...data as Order[]);
+          if (data?.length) allOrders.push(...data as AdminOrder[]);
         });
-        
+
         // Update state with each batch for progressive loading
-        setOrders([...allOrders].sort((a, b) => 
+        setOrders([...allOrders].sort((a, b) =>
           new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
         ));
       }
-      
+
       setIsFullyLoaded(true);
       console.log(`All ${allOrders.length} orders loaded in ${(performance.now() - startTime).toFixed(0)}ms`);
     } catch (error) {
@@ -200,7 +218,7 @@ const AdminDashboard = () => {
     initDashboard();
 
     // Subscribe to real-time order and ticket_holders changes with debouncing
-    let refreshTimeout: NodeJS.Timeout;
+    let refreshTimeout: ReturnType<typeof setTimeout>;
     const refreshOrders = () => {
       console.log('Data changed, refreshing...');
       clearTimeout(refreshTimeout);
@@ -213,20 +231,12 @@ const AdminDashboard = () => {
       .channel('orders-realtime')
       .on(
         'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'orders'
-        },
+        { event: '*', schema: 'public', table: 'orders' },
         refreshOrders
       )
       .on(
         'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'ticket_holders'
-        },
+        { event: '*', schema: 'public', table: 'ticket_holders' },
         refreshOrders
       )
       .subscribe();
@@ -242,195 +252,171 @@ const AdminDashboard = () => {
     navigate("/admin/login");
   };
 
+  const mainNav = [
+    { to: "/admin/dashboard/orders", label: t("orders"), icon: ShoppingCart },
+    { to: "/admin/dashboard/customers", label: "العملاء", icon: Users },
+    { to: "/admin/dashboard/events", label: t("events"), icon: Calendar },
+    { to: "/admin/dashboard/tickets", label: t("tickets"), icon: Ticket },
+    { to: "/admin/dashboard/invoices", label: "إرسال الفواتير", icon: FileText },
+  ];
+
+  const settingsNav = [
+    { to: "/admin/dashboard/settings", label: "الإعدادات العامة", icon: Settings },
+    { to: "/admin/dashboard/pos-users", label: "مستخدمي POS", icon: UserCog },
+    { to: "/admin/dashboard/visitors", label: "الزوار النشطون", icon: Eye },
+    { to: "/admin/dashboard/popups", label: "إعلانات البوب أب", icon: Image },
+    { to: "/admin/dashboard/reports", label: "التقارير", icon: FileText },
+    { to: "/admin/dashboard/activity-logs", label: "سجلات النشاط", icon: FileText },
+  ];
+
+  const quickActions = [
+    { label: "نقاط البيع", icon: CreditCard, onClick: () => window.open("/admin/pos", "_blank") },
+    { label: t("scanTicket") || "مسح التذكرة", icon: ScanLine, onClick: () => navigate("/admin/qr-scanner") },
+    { label: "قراءة إيصال POS", icon: Receipt, onClick: () => navigate("/admin/pos-receipts") },
+    { label: t("liveBookings"), icon: ExternalLink, onClick: () => window.open("/live-bookings", "_blank") },
+    { label: "الزوار المباشرون", icon: Eye, onClick: () => window.open("/live-visitors", "_blank") },
+    { label: t("mainWebsite"), icon: ExternalLink, onClick: () => window.open("/", "_blank") },
+  ];
+
+  const navItemClass = ({ isActive }: { isActive: boolean }) =>
+    cn(
+      "group relative flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-all duration-200",
+      isActive
+        ? "bg-primary text-primary-foreground shadow-[var(--shadow-elegant)]"
+        : "text-muted-foreground hover:bg-muted hover:text-foreground"
+    );
+
+  const NavSections = () => (
+    <nav className="space-y-6">
+      <div>
+        <p className="px-3 pb-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground/70">
+          الإدارة
+        </p>
+        <div className="space-y-1">
+          {mainNav.map(({ to, label, icon: Icon }) => (
+            <NavLink key={to} to={to} className={navItemClass}>
+              <Icon className="h-4 w-4 shrink-0" />
+              <span className="truncate font-medium">{label}</span>
+            </NavLink>
+          ))}
+        </div>
+      </div>
+
+      <div>
+        <p className="px-3 pb-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground/70">
+          {t("settings")}
+        </p>
+        <div className="space-y-1">
+          {settingsNav.map(({ to, label, icon: Icon }) => (
+            <NavLink key={to} to={to} className={navItemClass}>
+              <Icon className="h-4 w-4 shrink-0" />
+              <span className="truncate font-medium">{label}</span>
+            </NavLink>
+          ))}
+        </div>
+      </div>
+
+      <div>
+        <p className="px-3 pb-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground/70">
+          روابط سريعة
+        </p>
+        <div className="space-y-1">
+          {quickActions.map(({ label, icon: Icon, onClick }) => (
+            <button
+              key={label}
+              onClick={onClick}
+              className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+            >
+              <Icon className="h-4 w-4 shrink-0" />
+              <span className="truncate">{label}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+    </nav>
+  );
+
+  const outletContext: AdminOutletContext = {
+    orders,
+    isFullyLoaded,
+    showUpcomingOnly,
+    setShowUpcomingOnly,
+    refreshOrders: () => fetchOrders(showUpcomingOnly),
+  };
+
   return (
     <div className="min-h-screen bg-background font-lusail" dir="rtl">
       {/* Header */}
-      <header className="border-b backdrop-blur-sm sticky top-0 z-10" style={{ backgroundColor: headerBgColor }}>
-        <div className="container mx-auto px-3 sm:px-4 py-3 sm:py-4 flex justify-between items-center gap-2">
-          <button onClick={() => navigate("/")} className="focus:outline-none hover:opacity-80 transition-opacity">
-            {logoUrl ? (
-              <img src={logoUrl} alt="Logo" className="h-8 sm:h-10 md:h-12 object-contain" />
-            ) : (
-              <h1 className="text-lg sm:text-xl md:text-2xl font-bold">{t("adminDashboard")}</h1>
-            )}
-          </button>
+      <header
+        className="sticky top-0 z-30 border-b backdrop-blur-md"
+        style={{ backgroundColor: headerBgColor }}
+      >
+        <div className="mx-auto flex items-center justify-between gap-2 px-3 py-3 sm:px-6 sm:py-4">
+          <div className="flex items-center gap-2">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="lg:hidden"
+              onClick={() => setMobileNavOpen((v) => !v)}
+              aria-label="القائمة"
+            >
+              {mobileNavOpen ? <Menu className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+            </Button>
+            <button
+              onClick={() => navigate("/")}
+              className="focus:outline-none transition-opacity hover:opacity-80"
+            >
+              {logoUrl ? (
+                <img src={logoUrl} alt="Logo" className="h-8 object-contain sm:h-10 md:h-12" />
+              ) : (
+                <h1 className="text-lg font-bold sm:text-xl md:text-2xl">{t("adminDashboard")}</h1>
+              )}
+            </button>
+          </div>
           <Button variant="outline" onClick={handleLogout} className="text-xs sm:text-sm">
-            <LogOut className="w-3 h-3 sm:w-4 sm:h-4 ml-1 sm:ml-2" />
+            <LogOut className="ml-1 h-3 w-3 sm:ml-2 sm:h-4 sm:w-4" />
             <span className="hidden sm:inline">{t("logout")}</span>
             <span className="sm:hidden">خروج</span>
           </Button>
         </div>
       </header>
 
-      <div className="max-w-7xl mx-auto py-4 sm:py-6 md:py-8 px-3 sm:px-4">
-        {/* Capacity Alert */}
-        <CapacityAlert />
+      <div className="flex">
+        {/* Desktop sidebar */}
+        <aside className="sticky top-[73px] hidden h-[calc(100vh-73px)] w-72 shrink-0 overflow-y-auto border-l bg-sidebar/60 px-4 py-6 backdrop-blur-sm lg:block">
+          <NavSections />
+        </aside>
 
-        {/* Main Content */}
-        {loading ? (
-          <div className="text-center py-12">{t("loading")}</div>
-        ) : (
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 mb-6 sm:mb-8 h-auto gap-2">
-              <TabsTrigger value="orders" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm px-2 sm:px-4">
-                <ShoppingCart className="w-3 h-3 sm:w-4 sm:h-4" />
-                <span className="hidden sm:inline">{t("orders")}</span>
-              </TabsTrigger>
-              <TabsTrigger value="customers" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm px-2 sm:px-4">
-                <Users className="w-3 h-3 sm:w-4 sm:h-4" />
-                <span className="hidden sm:inline">العملاء</span>
-              </TabsTrigger>
-              <TabsTrigger value="events" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm px-2 sm:px-4">
-                <Calendar className="w-3 h-3 sm:w-4 sm:h-4" />
-                <span className="hidden sm:inline">{t("events")}</span>
-              </TabsTrigger>
-              <TabsTrigger value="tickets" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm px-2 sm:px-4">
-                <Ticket className="w-3 h-3 sm:w-4 sm:h-4" />
-                <span className="hidden sm:inline">{t("tickets")}</span>
-              </TabsTrigger>
-              <TabsTrigger value="invoices" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm px-2 sm:px-4">
-                <FileText className="w-3 h-3 sm:w-4 sm:h-4" />
-                <span className="hidden sm:inline">إرسال الفواتير</span>
-              </TabsTrigger>
-              <TabsTrigger value="settings" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm px-2 sm:px-4">
-                <Settings className="w-3 h-3 sm:w-4 sm:h-4" />
-                <span className="hidden sm:inline">{t("settings")}</span>
-              </TabsTrigger>
-            </TabsList>
-
-            <div className="flex flex-col sm:flex-row sm:flex-wrap justify-center mb-6 gap-2">
-              <Button
-                variant="outline"
-                onClick={() => window.open('/admin/pos', '_blank')}
-                className="font-lusail flex items-center justify-center gap-2 bg-primary/10 hover:bg-primary/20 border-primary text-xs sm:text-sm w-full sm:w-auto"
-              >
-                <CreditCard className="w-4 h-4" />
-                نقاط البيع
-              </Button>
-              <Button
-                variant="outline"
-                onClick={() => navigate('/admin/qr-scanner')}
-                className="font-lusail flex items-center justify-center gap-2 bg-primary/10 hover:bg-primary/20 border-primary text-xs sm:text-sm w-full sm:w-auto"
-              >
-                <ScanLine className="w-4 h-4" />
-                {t("scanTicket") || "مسح التذكرة"}
-              </Button>
-              <Button
-                variant="outline"
-                onClick={() => window.open('/live-bookings', '_blank')}
-                className="font-lusail flex items-center justify-center gap-2 text-xs sm:text-sm w-full sm:w-auto"
-              >
-                <ExternalLink className="w-4 h-4" />
-                {t("liveBookings")}
-              </Button>
-              <Button
-                variant="outline"
-                onClick={() => window.open('/live-visitors', '_blank')}
-                className="font-lusail flex items-center justify-center gap-2 bg-green-500/10 hover:bg-green-500/20 border-green-500 text-green-600 dark:text-green-400 text-xs sm:text-sm w-full sm:w-auto"
-              >
-                <Eye className="w-4 h-4" />
-                الزوار المباشرون
-              </Button>
-              <Button
-                variant="outline"
-                onClick={() => window.open('/', '_blank')}
-                className="font-lusail flex items-center justify-center gap-2 text-xs sm:text-sm w-full sm:w-auto"
-                title={t("openMainWebsite")}
-              >
-                <ExternalLink className="w-4 h-4" />
-                {t("mainWebsite")}
-              </Button>
-              <Button
-                variant="outline"
-                onClick={() => navigate('/admin/pos-receipts')}
-                className="font-lusail flex items-center justify-center gap-2 bg-orange-500/10 hover:bg-orange-500/20 border-orange-500 text-orange-600 dark:text-orange-400 text-xs sm:text-sm w-full sm:w-auto"
-              >
-                <Receipt className="w-4 h-4" />
-                قراءة إيصال POS
-              </Button>
-            </div>
-
-            <TabsContent value="orders">
-              <OrdersTab 
-                orders={orders} 
-                onRefresh={() => fetchOrders(showUpcomingOnly)}
-                isFullyLoaded={isFullyLoaded}
-                showUpcomingOnly={showUpcomingOnly}
-                onUpcomingOnlyChange={setShowUpcomingOnly}
-              />
-            </TabsContent>
-
-            <TabsContent value="customers">
-              <CustomersTab />
-            </TabsContent>
-
-            <TabsContent value="events">
-              <EventsTab />
-            </TabsContent>
-
-            <TabsContent value="tickets">
-              <TicketsTab />
-            </TabsContent>
-
-            <TabsContent value="invoices">
-              <InvoiceTab />
-            </TabsContent>
-
-            <TabsContent value="settings">
-              <Tabs defaultValue="general" className="w-full">
-                <TabsList className="grid w-full grid-cols-3 sm:grid-cols-6 mb-6 gap-2 h-auto">
-                  <TabsTrigger value="general" className="font-lusail text-xs sm:text-sm">
-                    الإعدادات العامة
-                  </TabsTrigger>
-                  <TabsTrigger value="pos_users" className="flex items-center gap-2 font-lusail text-xs sm:text-sm">
-                    <UserCog className="w-3 h-3 sm:w-4 sm:h-4" />
-                    مستخدمي POS
-                  </TabsTrigger>
-                  <TabsTrigger value="visitors" className="flex items-center gap-2 font-lusail text-xs sm:text-sm">
-                    <Eye className="w-3 h-3 sm:w-4 sm:h-4" />
-                    الزوار النشطون
-                  </TabsTrigger>
-                  <TabsTrigger value="popups" className="flex items-center gap-2 font-lusail text-xs sm:text-sm">
-                    <Image className="w-3 h-3 sm:w-4 sm:h-4" />
-                    إعلانات البوب أب
-                  </TabsTrigger>
-                  <TabsTrigger value="reports" className="flex items-center gap-2 font-lusail text-xs sm:text-sm">
-                    <FileText className="w-3 h-3 sm:w-4 sm:h-4" />
-                    التقارير
-                  </TabsTrigger>
-                  <TabsTrigger value="activity_logs" className="flex items-center gap-2 font-lusail text-xs sm:text-sm">
-                    <FileText className="w-3 h-3 sm:w-4 sm:h-4" />
-                    سجلات النشاط
-                  </TabsTrigger>
-                </TabsList>
-
-                <TabsContent value="general">
-                  <SettingsTab />
-                </TabsContent>
-
-                <TabsContent value="pos_users">
-                  <POSUsersTab />
-                </TabsContent>
-
-                <TabsContent value="visitors">
-                  <VisitorAnalyticsTab />
-                </TabsContent>
-
-                <TabsContent value="popups">
-                  <PopupBannersTab />
-                </TabsContent>
-
-                <TabsContent value="reports">
-                  <ReportsTab />
-                </TabsContent>
-
-                <TabsContent value="activity_logs">
-                  <ActivityLogsTab />
-                </TabsContent>
-              </Tabs>
-            </TabsContent>
-          </Tabs>
+        {/* Mobile drawer */}
+        {mobileNavOpen && (
+          <div className="fixed inset-0 z-40 lg:hidden">
+            <div
+              className="absolute inset-0 bg-foreground/40 backdrop-blur-sm"
+              onClick={() => setMobileNavOpen(false)}
+            />
+            <aside className="absolute inset-y-0 right-0 w-72 max-w-[85vw] overflow-y-auto border-l bg-background px-4 py-5 shadow-[var(--shadow-elegant)]">
+              <div className="mb-4 flex items-center justify-between">
+                <span className="text-sm font-semibold">القائمة</span>
+                <Button variant="ghost" size="icon" onClick={() => setMobileNavOpen(false)}>
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+              <NavSections />
+            </aside>
+          </div>
         )}
+
+        {/* Main content */}
+        <main className="min-w-0 flex-1 px-3 py-4 sm:px-6 sm:py-6 md:py-8">
+          <div className="mx-auto max-w-7xl">
+            <CapacityAlert />
+            {loading ? (
+              <div className="py-12 text-center">{t("loading")}</div>
+            ) : (
+              <Outlet context={outletContext} />
+            )}
+          </div>
+        </main>
       </div>
     </div>
   );

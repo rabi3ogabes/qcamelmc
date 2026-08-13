@@ -182,7 +182,7 @@ const POSReceiptPage = () => {
     try {
       const { error } = await supabase
         .from("pos_receipts")
-        .update({ [ticketType]: value })
+        .update({ [ticketType]: value } as never)
         .eq("id", receiptId);
 
       if (error) throw error;
