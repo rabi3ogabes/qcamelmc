@@ -1089,12 +1089,33 @@ export const CustomersTab = () => {
     <div className="space-y-6">
       <div className="flex flex-row-reverse justify-between items-center">
         <h2 className="text-2xl font-bold font-lusail">العملاء والحجوزات</h2>
-        <Input
-          placeholder="بحث بالاسم، الهاتف، أو رمز التذكرة..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="max-w-sm font-lusail"
-        />
+        <div className="flex items-center gap-2">
+          <div className="flex rounded-lg border p-1 bg-muted/40">
+            <Button
+              variant={view === "current" ? "default" : "ghost"}
+              size="sm"
+              className="font-lusail"
+              onClick={() => setView("current")}
+            >
+              الحالية
+            </Button>
+            <Button
+              variant={view === "archived" ? "default" : "ghost"}
+              size="sm"
+              className="font-lusail gap-1"
+              onClick={() => setView("archived")}
+            >
+              <Archive className="w-4 h-4" />
+              الأرشيف
+            </Button>
+          </div>
+          <Input
+            placeholder="بحث بالاسم، الهاتف، أو رمز التذكرة..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="max-w-sm font-lusail"
+          />
+        </div>
       </div>
 
       {filteredCustomers.length === 0 ? (
