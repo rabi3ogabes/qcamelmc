@@ -4,7 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { Calendar as CalendarIcon, MapPin, Edit, X, Trash2, Archive, ArchiveRestore } from "lucide-react";
+import { Calendar as CalendarIcon, MapPin, Edit, X, Trash2, Archive, ArchiveRestore, Folder, ChevronDown } from "lucide-react";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -192,6 +193,24 @@ export const EventsTab = () => {
       })
     : events;
 
+  // Group events into month "folders" (e.g. يناير 2026)
+  const monthKey = (iso: string) => {
+    const d = new Date(iso);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+  };
+  const monthLabel = (iso: string) =>
+    new Date(iso).toLocaleDateString("ar-u-nu-latn", { month: "long", year: "numeric" });
+
+  const groupedEvents = Array.from(
+    filteredEvents.reduce((map, event) => {
+      const key = monthKey(event.event_date);
+      const group = map.get(key) ?? { key, label: monthLabel(event.event_date), items: [] as Event[] };
+      group.items.push(event);
+      map.set(key, group);
+      return map;
+    }, new Map<string, { key: string; label: string; items: Event[] }>())
+  ).map(([, group]) => group);
+
   return (
     <div className="space-y-6" dir="rtl">
       <div className="flex justify-between items-center gap-4">
@@ -257,8 +276,22 @@ export const EventsTab = () => {
       <CurrentEventSelector key={events.length} />
 
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {filteredEvents.map((event) => (
+      <div className="space-y-4">
+        {groupedEvents.map((group) => (
+          <Collapsible key={group.key} defaultOpen={view === "current"}>
+            <CollapsibleTrigger className="flex w-full items-center justify-between rounded-xl border bg-card px-4 py-3 text-right transition-colors hover:bg-muted/50 [&[data-state=open]>div>svg.chevron]:rotate-180">
+              <div className="flex items-center gap-3">
+                <Folder className="h-5 w-5 text-primary" />
+                <span className="font-lusail text-lg font-bold">{group.label}</span>
+                <Badge variant="secondary" className="font-lusail">
+                  {group.items.length} فعالية
+                </Badge>
+                <ChevronDown className="chevron h-4 w-4 text-muted-foreground transition-transform" />
+              </div>
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pt-4">
+                {group.items.map((event) => (
           <Card key={event.id} className="overflow-hidden hover:shadow-lg transition-shadow">
             {event.image_url && (
               <img 
@@ -426,6 +459,10 @@ export const EventsTab = () => {
               </div>
             </div>
           </Card>
+                ))}
+              </div>
+            </CollapsibleContent>
+          </Collapsible>
         ))}
       </div>
 
