@@ -688,6 +688,7 @@ export type Database = {
     Views: {
       public_settings: {
         Row: {
+          admin_phone: string | null
           before_footer_image_url: string | null
           copyright_text: string | null
           current_event_id: string | null
@@ -702,6 +703,7 @@ export type Database = {
           show_generate_qr_button: boolean | null
         }
         Insert: {
+          admin_phone?: string | null
           before_footer_image_url?: string | null
           copyright_text?: string | null
           current_event_id?: string | null
@@ -716,6 +718,7 @@ export type Database = {
           show_generate_qr_button?: boolean | null
         }
         Update: {
+          admin_phone?: string | null
           before_footer_image_url?: string | null
           copyright_text?: string | null
           current_event_id?: string | null
