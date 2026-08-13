@@ -33,6 +33,19 @@ const POSReceiptPage = lazy(() => import("./pages/POSReceiptPage"));
 const TicketViewer = lazy(() => import("./pages/TicketViewer"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
+// Admin dashboard sub-pages
+const OrdersPage = lazy(() => import("./pages/admin/OrdersPage"));
+const CustomersPage = lazy(() => import("./pages/admin/CustomersPage"));
+const EventsPage = lazy(() => import("./pages/admin/EventsPage"));
+const TicketsPage = lazy(() => import("./pages/admin/TicketsPage"));
+const InvoicesPage = lazy(() => import("./pages/admin/InvoicesPage"));
+const SettingsPage = lazy(() => import("./pages/admin/SettingsPage"));
+const POSUsersPage = lazy(() => import("./pages/admin/POSUsersPage"));
+const VisitorsPage = lazy(() => import("./pages/admin/VisitorsPage"));
+const PopupsPage = lazy(() => import("./pages/admin/PopupsPage"));
+const ReportsPage = lazy(() => import("./pages/admin/ReportsPage"));
+const ActivityLogsPage = lazy(() => import("./pages/admin/ActivityLogsPage"));
+
 const queryClient = new QueryClient();
 
 const App = () => (

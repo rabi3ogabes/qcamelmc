@@ -218,7 +218,7 @@ const AdminDashboard = () => {
     initDashboard();
 
     // Subscribe to real-time order and ticket_holders changes with debouncing
-    let refreshTimeout: NodeJS.Timeout;
+    let refreshTimeout: ReturnType<typeof setTimeout>;
     const refreshOrders = () => {
       console.log('Data changed, refreshing...');
       clearTimeout(refreshTimeout);
