@@ -425,18 +425,7 @@ const TicketViewer = () => {
   const sendTicketToWhatsApp = async (holder: TicketHolder) => {
     setSendingTicket(holder.id);
     try {
-      // Fetch webhook URL from settings
-      const { data: settings, error: settingsError } = await supabase
-        .from("settings")
-        .select("webhook_url")
-        .maybeSingle();
 
-      if (settingsError) throw settingsError;
-
-      if (!settings?.webhook_url) {
-        toast.error("لم يتم تكوين رابط الويب هوك");
-        return;
-      }
 
       // Convert QR code data URL to blob and upload to storage
       let qrCodeImageUrl = "";
