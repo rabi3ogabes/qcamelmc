@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { Calendar as CalendarIcon, MapPin, Edit, X, Trash2 } from "lucide-react";
+import { Calendar as CalendarIcon, MapPin, Edit, X, Trash2, Archive, ArchiveRestore } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -20,6 +20,7 @@ import { useTranslation } from "react-i18next";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { CreateEventDialog } from "./CreateEventDialog";
+import { StartNewEventDialog } from "./StartNewEventDialog";
 import { EditEventDialog } from "./EditEventDialog";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -31,8 +32,11 @@ interface Event {
   title: string;
   description: string;
   event_date: string;
+  end_date?: string | null;
   location: string;
   is_active: boolean;
+  is_archived?: boolean;
+  archived_at?: string | null;
   image_url: string | null;
   display_order?: number;
   tickets_sold?: { type: string; count: number; max: number }[];
@@ -46,11 +50,12 @@ export const EventsTab = () => {
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [filterDate, setFilterDate] = useState<Date | undefined>(undefined);
   const [showDeleteEventButton, setShowDeleteEventButton] = useState(false);
+  const [view, setView] = useState<"current" | "archived">("current");
 
   useEffect(() => {
     fetchEvents();
     fetchSettings();
-  }, []);
+  }, [view]);
 
   const fetchSettings = async () => {
     const { data } = await supabase
@@ -68,6 +73,7 @@ export const EventsTab = () => {
       const { data, error } = await supabase
         .from("events")
         .select("*")
+        .eq("is_archived", view === "archived")
         .order("display_order", { ascending: true })
         .order("event_date", { ascending: true });
 
@@ -130,6 +136,25 @@ export const EventsTab = () => {
 
       if (error) throw error;
       toast.success(t("deletedSuccessfully"));
+      fetchEvents();
+    } catch (error) {
+      toast.error(t("failedToLoad"));
+    }
+  };
+
+  const setArchived = async (eventId: string, archived: boolean) => {
+    try {
+      const { error } = await supabase
+        .from("events")
+        .update({
+          is_archived: archived,
+          archived_at: archived ? new Date().toISOString() : null,
+          ...(archived ? { is_active: false } : {}),
+        })
+        .eq("id", eventId);
+
+      if (error) throw error;
+      toast.success(archived ? "تمت أرشفة الفعالية (البيانات محفوظة)" : "تمت استعادة الفعالية");
       fetchEvents();
     } catch (error) {
       toast.error(t("failedToLoad"));
@@ -204,7 +229,27 @@ export const EventsTab = () => {
               <X className="w-4 h-4" />
             </Button>
           )}
+          <div className="flex rounded-lg border p-1 bg-muted/40">
+            <Button
+              variant={view === "current" ? "default" : "ghost"}
+              size="sm"
+              className="font-lusail"
+              onClick={() => setView("current")}
+            >
+              الحالية
+            </Button>
+            <Button
+              variant={view === "archived" ? "default" : "ghost"}
+              size="sm"
+              className="font-lusail gap-1"
+              onClick={() => setView("archived")}
+            >
+              <Archive className="w-4 h-4" />
+              الأرشيف
+            </Button>
+          </div>
           <CreateEventDialog onEventCreated={fetchEvents} />
+          <StartNewEventDialog onEventCreated={() => { setView("current"); fetchEvents(); }} />
         </div>
       </div>
 
@@ -244,6 +289,16 @@ export const EventsTab = () => {
                       month: 'long',
                       day: 'numeric'
                     })}
+                    {event.end_date && new Date(event.end_date).toDateString() !== new Date(event.event_date).toDateString() && (
+                      <>
+                        {" — "}
+                        {new Date(event.end_date).toLocaleDateString('en-US', {
+                          year: 'numeric',
+                          month: 'long',
+                          day: 'numeric'
+                        })}
+                      </>
+                    )}
                   </span>
                 </div>
                 <div className="flex items-center gap-2 text-sm">
@@ -313,6 +368,15 @@ export const EventsTab = () => {
                   >
                     {t("edit")}
                     <Edit className="w-4 h-4" />
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="font-lusail"
+                    onClick={() => setArchived(event.id, !event.is_archived)}
+                    title={event.is_archived ? "استعادة" : "أرشفة"}
+                  >
+                    {event.is_archived ? <ArchiveRestore className="w-4 h-4" /> : <Archive className="w-4 h-4" />}
                   </Button>
                   {showDeleteEventButton && (
                     <AlertDialog>
