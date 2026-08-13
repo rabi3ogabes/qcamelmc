@@ -1180,6 +1180,19 @@ const AdminPOS = () => {
                     </p>
                   </CardHeader>
                   <CardContent className="space-y-4">
+                  <div className="rounded-lg border border-dashed p-3 bg-muted/30">
+                    <Label className="mb-2 block">استدعاء عميل سابق</Label>
+                    <CustomerLookup
+                      onSelect={(c) => {
+                        setCustomerName(c.name || "");
+                        setCustomerEmail(c.email || "");
+                        setCustomerPhone(c.phone || "");
+                        setCustomerCountryCode(c.country_code || "+974");
+                        setCustomerNationality(c.nationality || "قطر");
+                        setCustomerIdNumber(c.id_number || "");
+                      }}
+                    />
+                  </div>
                   <div>
                     <Label htmlFor="name">الاسم *</Label>
                     <Input
