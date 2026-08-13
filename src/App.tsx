@@ -42,7 +42,6 @@ const InvoicesPage = lazy(() => import("./pages/admin/InvoicesPage"));
 const SettingsPage = lazy(() => import("./pages/admin/SettingsPage"));
 const POSUsersPage = lazy(() => import("./pages/admin/POSUsersPage"));
 const VisitorsPage = lazy(() => import("./pages/admin/VisitorsPage"));
-const PopupsPage = lazy(() => import("./pages/admin/PopupsPage"));
 const ReportsPage = lazy(() => import("./pages/admin/ReportsPage"));
 const ActivityLogsPage = lazy(() => import("./pages/admin/ActivityLogsPage"));
 
@@ -90,7 +89,6 @@ const App = () => (
                       <Route path="settings" element={<SettingsPage />} />
                       <Route path="pos-users" element={<POSUsersPage />} />
                       <Route path="visitors" element={<VisitorsPage />} />
-                      <Route path="popups" element={<PopupsPage />} />
                       <Route path="reports" element={<ReportsPage />} />
                       <Route path="activity-logs" element={<ActivityLogsPage />} />
                     </Route>

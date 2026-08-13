@@ -11,7 +11,6 @@ import { Crown, Users, Car, ArrowRight, Plus, Minus } from "lucide-react";
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
 import { toZonedTime, fromZonedTime } from "date-fns-tz";
-import { PopupBanner } from "@/components/PopupBanner";
 import { Footer } from "@/components/Footer";
 import { isEventExpired } from "@/lib/eventUtils";
 import { useSettings } from "@/contexts/SettingsContext";
@@ -391,8 +390,6 @@ const TicketSelection = () => {
 
   return (
     <div className="min-h-screen font-lusail" style={{ backgroundColor: '#F5EFE7' }}>
-      {/* Popup Banner */}
-      <PopupBanner />
       
       {/* Header */}
       <header className="backdrop-blur-sm sticky top-0 z-10 bg-background" style={{ backgroundColor: headerBgColor }}>
