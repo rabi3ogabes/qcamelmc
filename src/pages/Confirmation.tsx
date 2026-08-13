@@ -6,15 +6,22 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { CheckCircle, Clock } from "lucide-react";
 import { Footer } from "@/components/Footer";
+import { InvoiceCard } from "@/components/InvoiceCard";
+import type { InvoiceData } from "@/lib/generateInvoicePdf";
 
 interface Order {
   id: string;
   booking_reference: string;
   payment_status: string;
   payment_method: string;
+  payment_id: string | null;
+  confirmed_at: string | null;
   ticket_type: string;
   quantity: number;
   total_amount: number;
+  customers: { name: string; phone: string; country_code: string | null; nationality: string | null } | null;
+  events: { title: string; event_date: string } | null;
+  ticket_holders: { qr_code: string | null; ticket_type: string }[] | null;
 }
 
 const Confirmation = () => {
@@ -22,8 +29,6 @@ const Confirmation = () => {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
-  const [headerBgColor, setHeaderBgColor] = useState<string>("hsl(var(--card) / 0.5)");
-  const [countdown, setCountdown] = useState(20);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -31,23 +36,10 @@ const Confirmation = () => {
     fetchSettings();
   }, []);
 
-  useEffect(() => {
-    if (countdown <= 0) {
-      navigate("/");
-      return;
-    }
-
-    const timer = setInterval(() => {
-      setCountdown((prev) => prev - 1);
-    }, 1000);
-
-    return () => clearInterval(timer);
-  }, [countdown, navigate]);
-
   const fetchSettings = async () => {
     const { data, error } = await supabase
       .from("settings")
-      .select("logo_url, header_bg_color")
+      .select("logo_url")
       .maybeSingle();
 
     if (error) {
@@ -58,16 +50,12 @@ const Confirmation = () => {
     if (data?.logo_url) {
       setLogoUrl(data.logo_url);
     }
-    
-    if (data?.header_bg_color) {
-      setHeaderBgColor(data.header_bg_color);
-    }
   };
 
   const fetchOrders = async () => {
     try {
       const orderIds = JSON.parse(localStorage.getItem("orderIds") || "[]");
-      
+
       if (orderIds.length === 0) {
         navigate("/");
         return;
@@ -75,11 +63,13 @@ const Confirmation = () => {
 
       const { data, error } = await supabase
         .from("orders")
-        .select("*")
+        .select(
+          "*, customers(name, phone, country_code, nationality), events(title, event_date), ticket_holders(qr_code, ticket_type)"
+        )
         .in("id", orderIds);
 
       if (error) throw error;
-      setOrders(data || []);
+      setOrders((data as unknown as Order[]) || []);
       localStorage.removeItem("orderIds");
     } catch (error) {
       console.error("Error fetching orders:", error);
@@ -88,15 +78,37 @@ const Confirmation = () => {
     }
   };
 
+  const toInvoiceData = (order: Order): InvoiceData => {
+    const holders = order.ticket_holders || [];
+    return {
+      booking_reference: order.booking_reference,
+      customer_name: order.customers?.name || "-",
+      customer_phone: `${order.customers?.country_code || ""}${order.customers?.phone || ""}`,
+      nationality: order.customers?.nationality || null,
+      ticket_type: order.ticket_type,
+      quantity: order.quantity,
+      total_amount: order.total_amount,
+      payment_status: order.payment_status,
+      event_title: order.events?.title || "-",
+      event_date: order.events?.event_date || "",
+      qr_codes: holders.map((h) => h.qr_code).filter(Boolean) as string[],
+      ticket_types: holders.filter((h) => h.qr_code).map((h) => h.ticket_type),
+      logo_url: logoUrl,
+      payment_id: order.payment_id,
+      payment_method: order.payment_method,
+      paid_at: order.confirmed_at,
+    };
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center font-lusail">
-        <div className="animate-pulse text-lg">{t('loading')}</div>
+        <div className="animate-pulse text-lg">{t("loading")}</div>
       </div>
     );
   }
 
-  const isConfirmed = orders.some(order => order.payment_status === 'confirmed');
+  const isConfirmed = orders.some((order) => order.payment_status === "confirmed");
 
   return (
     <div className="min-h-screen bg-background py-8 sm:py-12 px-4 sm:px-6 font-lusail">
@@ -107,7 +119,11 @@ const Confirmation = () => {
           </div>
         )}
         <div className="text-center mb-8">
-          <div className={`inline-flex items-center justify-center w-16 h-16 ${isConfirmed ? 'bg-green-500/20' : 'bg-secondary/20'} rounded-full mb-4`}>
+          <div
+            className={`inline-flex items-center justify-center w-16 h-16 ${
+              isConfirmed ? "bg-green-500/20" : "bg-secondary/20"
+            } rounded-full mb-4`}
+          >
             {isConfirmed ? (
               <CheckCircle className="w-8 h-8 text-green-500" />
             ) : (
@@ -115,103 +131,97 @@ const Confirmation = () => {
             )}
           </div>
           <h1 className="text-4xl font-bold mb-4">
-            {isConfirmed ? t('bookingConfirmed') || 'تم تأكيد الحجز!' : t('bookingReceived')}
+            {isConfirmed ? t("bookingConfirmed") || "تم تأكيد الحجز!" : t("bookingReceived")}
           </h1>
           <p className="text-lg text-muted-foreground">
-            {isConfirmed 
-              ? t('paymentSuccessDesc') || 'تم تأكيد دفعتك بنجاح. ستتلقى تذاكرك عبر البريد الإلكتروني قريباً.'
-              : t('bookingPending')
-            }
+            {isConfirmed
+              ? "تم تأكيد دفعتك بنجاح. يمكنك تحميل الفاتورة الآن."
+              : t("bookingPending")}
           </p>
         </div>
 
-        <Card className="p-8 mb-8">
-          <div className="space-y-6">
-            {!isConfirmed && (
+        {isConfirmed ? (
+          <div className="space-y-8 mb-8">
+            {orders
+              .filter((o) => o.payment_status === "confirmed")
+              .map((order) => (
+                <InvoiceCard key={order.id} data={toInvoiceData(order)} />
+              ))}
+          </div>
+        ) : (
+          <Card className="p-8 mb-8">
+            <div className="space-y-6">
               <div className="bg-accent/50 p-6 rounded-lg border-l-4 border-secondary">
-                <h3 className="font-semibold text-lg mb-2">{t('paymentPendingTitle')}</h3>
-                <p className="text-muted-foreground">
-                  {t('paymentPendingDesc')}
-                </p>
+                <h3 className="font-semibold text-lg mb-2">{t("paymentPendingTitle")}</h3>
+                <p className="text-muted-foreground">{t("paymentPendingDesc")}</p>
               </div>
-            )}
-            {isConfirmed && (
-              <div className="bg-green-500/10 p-6 rounded-lg border-l-4 border-green-500">
-                <h3 className="font-semibold text-lg mb-2 text-green-600">
-                  {t('paymentConfirmedTitle') || 'تم تأكيد الدفع!'}
-                </h3>
-                <p className="text-muted-foreground">
-                  {t('paymentConfirmedDesc') || 'تم تأكيد دفعتك بنجاح. ستتلقى تذاكرك مع رموز QR عبر البريد الإلكتروني قريباً.'}
-                </p>
-              </div>
-            )}
 
-            <div>
-              <h3 className="text-xl font-semibold mb-4">{t('bookingDetails')}</h3>
-              {orders.map((order, index) => (
-                <div key={order.id} className="mb-4 pb-4 border-b last:border-b-0">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <p className="text-sm text-muted-foreground">{t('bookingReference')}</p>
-                      <p className="font-mono font-semibold text-lg">{order.booking_reference}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-muted-foreground">{t('ticketType')}</p>
-                      <p className="font-semibold capitalize">{order.ticket_type}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-muted-foreground">{t('quantity')}</p>
-                      <p className="font-semibold">{order.quantity}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-muted-foreground">{t('amount')}</p>
-                      <p className="font-semibold">{order.total_amount.toFixed(2)} {t('qar')}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-muted-foreground">{t('paymentMethod')}</p>
-                      <p className="font-semibold capitalize">
-                        {order.payment_method === "sadad" ? t('sadadOnline') : t('cashAtVenue')}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-muted-foreground">{t('status')}</p>
-                      <p className="font-semibold text-secondary capitalize">{order.payment_status}</p>
+              <div>
+                <h3 className="text-xl font-semibold mb-4">{t("bookingDetails")}</h3>
+                {orders.map((order) => (
+                  <div key={order.id} className="mb-4 pb-4 border-b last:border-b-0">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <p className="text-sm text-muted-foreground">{t("bookingReference")}</p>
+                        <p className="font-mono font-semibold text-lg">{order.booking_reference}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-muted-foreground">{t("ticketType")}</p>
+                        <p className="font-semibold capitalize">{order.ticket_type}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-muted-foreground">{t("quantity")}</p>
+                        <p className="font-semibold">{order.quantity}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-muted-foreground">{t("amount")}</p>
+                        <p className="font-semibold">
+                          {order.total_amount.toFixed(2)} {t("qar")}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-muted-foreground">{t("paymentMethod")}</p>
+                        <p className="font-semibold capitalize">
+                          {order.payment_method === "sadad" ? t("sadadOnline") : t("cashAtVenue")}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-muted-foreground">{t("status")}</p>
+                        <p className="font-semibold text-secondary capitalize">{order.payment_status}</p>
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
 
-            <div className="bg-muted p-4 rounded-lg">
-              <h4 className="font-semibold mb-2">{t('nextSteps')}</h4>
-              <ul className="space-y-2 text-sm text-muted-foreground">
-                <li className="flex items-start gap-2">
-                  <CheckCircle className="w-4 h-4 mt-0.5 text-secondary shrink-0" />
-                  <span>{t('saveReference')}</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <CheckCircle className="w-4 h-4 mt-0.5 text-secondary shrink-0" />
-                  <span>{t('adminReview')}</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <CheckCircle className="w-4 h-4 mt-0.5 text-secondary shrink-0" />
-                  <span>{t('receiveEmail')}</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <CheckCircle className="w-4 h-4 mt-0.5 text-secondary shrink-0" />
-                  <span>{t('presentQR')}</span>
-                </li>
-              </ul>
+              <div className="bg-muted p-4 rounded-lg">
+                <h4 className="font-semibold mb-2">{t("nextSteps")}</h4>
+                <ul className="space-y-2 text-sm text-muted-foreground">
+                  <li className="flex items-start gap-2">
+                    <CheckCircle className="w-4 h-4 mt-0.5 text-secondary shrink-0" />
+                    <span>{t("saveReference")}</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <CheckCircle className="w-4 h-4 mt-0.5 text-secondary shrink-0" />
+                    <span>{t("adminReview")}</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <CheckCircle className="w-4 h-4 mt-0.5 text-secondary shrink-0" />
+                    <span>{t("receiveEmail")}</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <CheckCircle className="w-4 h-4 mt-0.5 text-secondary shrink-0" />
+                    <span>{t("presentQR")}</span>
+                  </li>
+                </ul>
+              </div>
             </div>
-          </div>
-        </Card>
+          </Card>
+        )}
 
-        <div className="text-center space-y-4">
-          <div className="text-lg text-muted-foreground">
-            سيتم التحويل تلقائياً إلى الصفحة الرئيسية خلال <span className="font-bold text-foreground">{countdown}</span> ثانية
-          </div>
-          <Button size="lg" onClick={() => navigate("/")}>
-            {t('returnToHome')}
+        <div className="text-center">
+          <Button size="lg" variant="secondary" onClick={() => navigate("/")}>
+            {t("returnToHome")}
           </Button>
         </div>
       </div>
