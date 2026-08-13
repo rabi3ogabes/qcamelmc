@@ -193,23 +193,49 @@ export const EventsTab = () => {
       })
     : events;
 
-  // Group events into month "folders" (e.g. يناير 2026)
-  const monthKey = (iso: string) => {
+  // Group events into season "folders", merging consecutive months (e.g. يناير - فبراير 2026)
+  const monthIndex = (iso: string) => {
     const d = new Date(iso);
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+    return d.getFullYear() * 12 + d.getMonth();
   };
-  const monthLabel = (iso: string) =>
+  const monthName = (iso: string) =>
+    new Date(iso).toLocaleDateString("ar-u-nu-latn", { month: "long" });
+  const monthYearLabel = (iso: string) =>
     new Date(iso).toLocaleDateString("ar-u-nu-latn", { month: "long", year: "numeric" });
 
-  const groupedEvents = Array.from(
-    filteredEvents.reduce((map, event) => {
-      const key = monthKey(event.event_date);
-      const group = map.get(key) ?? { key, label: monthLabel(event.event_date), items: [] as Event[] };
-      group.items.push(event);
-      map.set(key, group);
-      return map;
-    }, new Map<string, { key: string; label: string; items: Event[] }>())
-  ).map(([, group]) => group);
+  const byMonth = new Map<number, Event[]>();
+  filteredEvents.forEach((event) => {
+    const idx = monthIndex(event.event_date);
+    byMonth.set(idx, [...(byMonth.get(idx) ?? []), event]);
+  });
+
+  const sortedMonths = Array.from(byMonth.keys()).sort((a, b) => a - b);
+  const groupedEvents: { key: string; label: string; items: Event[] }[] = [];
+  let currentRun: number[] = [];
+
+  const flushRun = () => {
+    if (currentRun.length === 0) return;
+    const items = currentRun.flatMap((m) => byMonth.get(m) ?? []);
+    const first = items.reduce((a, b) => (a.event_date <= b.event_date ? a : b));
+    const last = items.reduce((a, b) => (a.event_date >= b.event_date ? a : b));
+    const label =
+      currentRun.length === 1
+        ? monthYearLabel(first.event_date)
+        : `${monthName(first.event_date)} - ${monthYearLabel(last.event_date)}`;
+    groupedEvents.push({ key: `${currentRun[0]}-${currentRun[currentRun.length - 1]}`, label, items });
+    currentRun = [];
+  };
+
+  sortedMonths.forEach((m) => {
+    if (currentRun.length === 0 || m === currentRun[currentRun.length - 1] + 1) {
+      currentRun.push(m);
+    } else {
+      flushRun();
+      currentRun.push(m);
+    }
+  });
+  flushRun();
+
 
   return (
     <div className="space-y-6" dir="rtl">
