@@ -36,6 +36,7 @@ interface Customer {
     event_location?: string;
     event_date?: string;
     event_title?: string;
+    event_archived?: boolean;
     ticket_holders: Array<{
       id: string;
       name: string;
