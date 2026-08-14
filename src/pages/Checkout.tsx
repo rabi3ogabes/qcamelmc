@@ -13,6 +13,7 @@ import { CreditCard, Banknote, Loader2, Plus, Minus, X, AlertTriangle } from "lu
 import { Checkbox } from "@/components/ui/checkbox";
 import { Footer } from "@/components/Footer";
 import { useSettings } from "@/contexts/SettingsContext";
+import { checkTicketLimits, formatLimitViolation, isTicketLimitError, ticketLimitErrorMessage } from "@/lib/ticketLimit";
 import { useReserveTickets } from "@/hooks/useReserveTickets";
 
 // Convert Arabic numerals to English numerals
@@ -432,6 +433,25 @@ const Checkout = () => {
       toast.error("Please fill in information for all ticket holders");
       return;
     }
+
+    // Enforce the 5-ticket-per-person rule before payment starts
+    const eventIdForLimit = localStorage.getItem("selectedEventId") || "";
+    if (eventIdForLimit) {
+      const violations = await checkTicketLimits(
+        ticketHolders.map(h => ({
+          name: h.name,
+          idNumber: h.idNumber,
+          phone: h.phone,
+          ticketType: h.ticketType
+        })),
+        eventIdForLimit
+      );
+      if (violations.length > 0) {
+        violations.forEach(v => toast.error(formatLimitViolation(v)));
+        return;
+      }
+    }
+
     setLoading(true);
     try {
       // Create customer - clean phone number first
@@ -599,7 +619,11 @@ const Checkout = () => {
       navigate("/confirmation");
     } catch (error) {
       console.error("Error creating booking:", error);
-      toast.error("Failed to create booking. Please try again.");
+      if (isTicketLimitError(error)) {
+        toast.error(ticketLimitErrorMessage(error));
+      } else {
+        toast.error("Failed to create booking. Please try again.");
+      }
     } finally {
       setLoading(false);
     }

@@ -17,6 +17,7 @@ import { format } from "date-fns";
 import { canPurchaseTickets } from "@/lib/eventUtils";
 import { useActivityLog } from "@/hooks/useActivityLog";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { checkTicketLimits, formatLimitViolation, isTicketLimitError, ticketLimitErrorMessage } from "@/lib/ticketLimit";
 import { useReserveTickets } from "@/hooks/useReserveTickets";
 import { CapacityAlert } from "@/components/admin/CapacityAlert";
 import { CapacityNotificationBanner } from "@/components/admin/CapacityNotificationBanner";
@@ -812,6 +813,32 @@ const AdminPOS = () => {
         return;
       }
 
+      // Enforce the 5-ticket-per-person rule before creating anything
+      const limitHolders = [
+        {
+          name: customerName,
+          idNumber: customerIdNumber,
+          phone: customerPhone,
+          ticketType: cart[0].ticketType,
+        },
+        ...ticketHolders.map(h => ({
+          name: h.name,
+          idNumber: h.idNumber,
+          phone: h.phone || customerPhone,
+          ticketType: h.ticketType,
+        })),
+      ];
+      const limitViolations = await checkTicketLimits(limitHolders, currentEventId);
+      if (limitViolations.length > 0) {
+        toast({
+          title: "تجاوز الحد الأقصى للتذاكر",
+          description: limitViolations.map(formatLimitViolation).join(" — "),
+          variant: "destructive",
+        });
+        setProcessing(false);
+        return;
+      }
+
       const ticketSelections = cart.map(item => ({
         type: item.ticketType,
         quantity: item.quantity
@@ -992,8 +1019,10 @@ const AdminPOS = () => {
     } catch (error) {
       console.error("Error creating orders:", error);
       toast({
-        title: "خطأ",
-        description: "فشل إنشاء الطلبات",
+        title: isTicketLimitError(error) ? "تجاوز الحد الأقصى للتذاكر" : "خطأ",
+        description: isTicketLimitError(error)
+          ? ticketLimitErrorMessage(error)
+          : "فشل إنشاء الطلبات",
         variant: "destructive",
       });
     } finally {
@@ -1184,6 +1213,7 @@ const AdminPOS = () => {
                   <div className="rounded-lg border border-dashed p-3 bg-muted/30">
                     <Label className="mb-2 block">استدعاء عميل سابق</Label>
                     <CustomerLookup
+                      eventId={currentEventId}
                       onSelect={(c) => {
                         setCustomerName(c.name || "");
                         setCustomerEmail(c.email || "");
