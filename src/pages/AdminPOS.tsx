@@ -1213,6 +1213,7 @@ const AdminPOS = () => {
                   <div className="rounded-lg border border-dashed p-3 bg-muted/30">
                     <Label className="mb-2 block">استدعاء عميل سابق</Label>
                     <CustomerLookup
+                      eventId={currentEventId}
                       onSelect={(c) => {
                         setCustomerName(c.name || "");
                         setCustomerEmail(c.email || "");
