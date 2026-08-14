@@ -812,6 +812,32 @@ const AdminPOS = () => {
         return;
       }
 
+      // Enforce the 5-ticket-per-person rule before creating anything
+      const limitHolders = [
+        {
+          name: customerName,
+          idNumber: customerIdNumber,
+          phone: customerPhone,
+          ticketType: cart[0].ticketType,
+        },
+        ...ticketHolders.map(h => ({
+          name: h.name,
+          idNumber: h.idNumber,
+          phone: h.phone || customerPhone,
+          ticketType: h.ticketType,
+        })),
+      ];
+      const limitViolations = await checkTicketLimits(limitHolders, currentEventId);
+      if (limitViolations.length > 0) {
+        toast({
+          title: "تجاوز الحد الأقصى للتذاكر",
+          description: limitViolations.map(formatLimitViolation).join(" — "),
+          variant: "destructive",
+        });
+        setProcessing(false);
+        return;
+      }
+
       const ticketSelections = cart.map(item => ({
         type: item.ticketType,
         quantity: item.quantity
