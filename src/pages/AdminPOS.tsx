@@ -1019,8 +1019,10 @@ const AdminPOS = () => {
     } catch (error) {
       console.error("Error creating orders:", error);
       toast({
-        title: "خطأ",
-        description: "فشل إنشاء الطلبات",
+        title: isTicketLimitError(error) ? "تجاوز الحد الأقصى للتذاكر" : "خطأ",
+        description: isTicketLimitError(error)
+          ? ticketLimitErrorMessage(error)
+          : "فشل إنشاء الطلبات",
         variant: "destructive",
       });
     } finally {
