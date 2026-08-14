@@ -619,7 +619,11 @@ const Checkout = () => {
       navigate("/confirmation");
     } catch (error) {
       console.error("Error creating booking:", error);
-      toast.error("Failed to create booking. Please try again.");
+      if (isTicketLimitError(error)) {
+        toast.error(ticketLimitErrorMessage(error));
+      } else {
+        toast.error("Failed to create booking. Please try again.");
+      }
     } finally {
       setLoading(false);
     }
