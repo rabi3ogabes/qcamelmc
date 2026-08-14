@@ -769,6 +769,10 @@ export type Database = {
           view_count: number
         }[]
       }
+      get_person_ticket_count: {
+        Args: { p_event_id: string; p_id_number: string; p_phone: string }
+        Returns: number
+      }
       get_public_order: {
         Args: { p_booking_reference?: string; p_order_id?: string }
         Returns: Json
