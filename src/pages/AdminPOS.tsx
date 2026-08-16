@@ -87,7 +87,9 @@ const AdminPOS = () => {
   const [customerIdNumber, setCustomerIdNumber] = useState("");
   const [showAllNationalities, setShowAllNationalities] = useState(false);
   const [phoneMatches, setPhoneMatches] = useState<LookupCustomer[]>([]);
+  const [phoneHistories, setPhoneHistories] = useState<Record<string, PersonEventHistoryItem[]>>({});
   const [phoneSearching, setPhoneSearching] = useState(false);
+
   const suppressPhoneSearchRef = useRef(false);
 
   const [ticketHolders, setTicketHolders] = useState<TicketHolderInput[]>([]);
