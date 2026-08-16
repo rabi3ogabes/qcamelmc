@@ -23,3 +23,6 @@ verify_jwt = false
 
 [functions.send-invoice-email]
 verify_jwt = false
+
+[functions.staff-customer-lookup]
+verify_jwt = false
