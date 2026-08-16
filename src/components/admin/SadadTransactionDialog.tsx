@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Loader2, RefreshCw, AlertCircle, ReceiptText } from "lucide-react";
@@ -68,7 +68,22 @@ export const SadadTransactionDialog = ({ orderId, bookingReference, onOpenChange
       const { data, error: fnError } = await supabase.functions.invoke("sadad-transaction", {
         body: { orderId: id },
       });
-      if (fnError) throw fnError;
+      if (fnError) {
+        // Extract the real message returned by the edge function body
+        let message = "";
+        const ctx = (fnError as any)?.context;
+        try {
+          if (ctx && typeof ctx.json === "function") {
+            const body = await ctx.json();
+            message = body?.error || "";
+          } else if (typeof ctx?.body === "string") {
+            message = JSON.parse(ctx.body)?.error || "";
+          }
+        } catch {
+          /* ignore parse errors */
+        }
+        throw new Error(message || "تعذر الاتصال بسداد. حاول مرة أخرى لاحقاً.");
+      }
       if (data?.error) throw new Error(data.error);
       setTx(data.transaction as SadadTransaction);
     } catch (e) {
@@ -77,6 +92,7 @@ export const SadadTransactionDialog = ({ orderId, bookingReference, onOpenChange
       setLoading(false);
     }
   };
+
 
   useEffect(() => {
     if (orderId) load(orderId);
@@ -93,6 +109,8 @@ export const SadadTransactionDialog = ({ orderId, bookingReference, onOpenChange
             تفاصيل عملية سداد
           </DialogTitle>
         </DialogHeader>
+        <DialogDescription className="sr-only">تفاصيل عملية الدفع عبر سداد</DialogDescription>
+
 
         {bookingReference && (
           <p className="text-xs text-muted-foreground font-mono">{bookingReference}</p>
