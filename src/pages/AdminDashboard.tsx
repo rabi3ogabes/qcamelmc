@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, Outlet, NavLink, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -20,46 +20,17 @@ import {
   Menu,
   X,
 } from "lucide-react";
-import { toZonedTime } from "date-fns-tz";
 import { useTranslation } from "react-i18next";
 import { CapacityAlert } from "@/components/admin/CapacityAlert";
 import { cn } from "@/lib/utils";
 
 import "../i18n/config";
 
-export interface AdminOrder {
-  id: string;
-  booking_reference: string;
-  payment_status: string;
-  payment_method: string;
-  ticket_type: string;
-  quantity: number;
-  total_amount: number;
-  created_at: string;
-  event_id: string;
-  payment_error_reason?: string | null;
-  customers: { name: string; email: string; phone: string; nationality?: string } | null;
-  events: { title: string; event_date: string; location: string };
-  pos_users?: { name: string; icon: string | null } | null;
-  ticket_holders?: { ticket_type: string }[];
-}
-
-export interface AdminOutletContext {
-  orders: AdminOrder[];
-  isFullyLoaded: boolean;
-  showUpcomingOnly: boolean;
-  setShowUpcomingOnly: (v: boolean) => void;
-  refreshOrders: () => void;
-}
-
 const AdminDashboard = () => {
   const { t } = useTranslation();
-  const [orders, setOrders] = useState<AdminOrder[]>([]);
   const [loading, setLoading] = useState(true);
-  const [isFullyLoaded, setIsFullyLoaded] = useState(false);
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
   const [headerBgColor, setHeaderBgColor] = useState<string>("hsl(var(--card) / 0.5)");
-  const [showUpcomingOnly, setShowUpcomingOnly] = useState(true);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
@@ -67,15 +38,6 @@ const AdminDashboard = () => {
   useEffect(() => {
     setMobileNavOpen(false);
   }, [location.pathname]);
-
-  // Get today's date in Qatar timezone for server-side filtering
-  const getTodayQatar = useCallback(() => {
-    const qatarNow = toZonedTime(new Date(), "Asia/Qatar");
-    const year = qatarNow.getFullYear();
-    const month = String(qatarNow.getMonth() + 1).padStart(2, "0");
-    const day = String(qatarNow.getDate()).padStart(2, "0");
-    return `${year}-${month}-${day}`;
-  }, []);
 
   const fetchSettings = async () => {
     const { data, error } = await supabase
@@ -88,13 +50,8 @@ const AdminDashboard = () => {
       return;
     }
 
-    if (data?.logo_url) {
-      setLogoUrl(data.logo_url);
-    }
-
-    if (data?.header_bg_color) {
-      setHeaderBgColor(data.header_bg_color);
-    }
+    if (data?.logo_url) setLogoUrl(data.logo_url);
+    if (data?.header_bg_color) setHeaderBgColor(data.header_bg_color);
   };
 
   const checkAuth = async () => {
@@ -104,148 +61,11 @@ const AdminDashboard = () => {
     }
   };
 
-  const fetchOrders = useCallback(async (upcomingOnly: boolean = true) => {
-    const PAGE_SIZE = 1000;
-    const startTime = performance.now();
-    setIsFullyLoaded(false);
-
-    try {
-      // Build base query with server-side filtering for upcoming events
-      const todayDate = getTodayQatar();
-
-      // Build the query
-      let query = supabase
-        .from("orders")
-        .select("*, customers(name, email, phone, nationality), events!inner(title, event_date, location), payment_error_reason, pos_users(name, icon), ticket_holders(ticket_type)")
-        .order("created_at", { ascending: false });
-
-      // Apply server-side filter for upcoming events
-      if (upcomingOnly) {
-        query = query.gte("events.event_date", todayDate);
-      }
-
-      // Get count first
-      let countQuery = supabase
-        .from("orders")
-        .select("*, events!inner(event_date)", { count: "exact", head: true });
-
-      if (upcomingOnly) {
-        countQuery = countQuery.gte("events.event_date", todayDate);
-      }
-
-      const { count, error: countError } = await countQuery;
-
-      if (countError) throw countError;
-
-      const totalCount = count || 0;
-      const totalPages = Math.ceil(totalCount / PAGE_SIZE);
-
-      console.log(`Total orders (${upcomingOnly ? 'upcoming' : 'all'}): ${totalCount}, pages: ${totalPages}`);
-
-      if (totalPages === 0) {
-        setOrders([]);
-        setLoading(false);
-        setIsFullyLoaded(true);
-        return;
-      }
-
-      // Fetch first page immediately
-      const { data: firstPageData, error: firstError } = await query.range(0, PAGE_SIZE - 1);
-
-      if (firstError) throw firstError;
-
-      // Show first page immediately
-      if (firstPageData?.length) {
-        setOrders(firstPageData as AdminOrder[]);
-        setLoading(false);
-        console.log(`First page loaded in ${(performance.now() - startTime).toFixed(0)}ms with ${firstPageData.length} orders`);
-      }
-
-      // If only one page, we're done
-      if (totalPages <= 1) {
-        setIsFullyLoaded(true);
-        return;
-      }
-
-      // Fetch remaining pages in parallel (max 3 concurrent requests)
-      const remainingPages = Array.from({ length: totalPages - 1 }, (_, i) => i + 1);
-      const allOrders: AdminOrder[] = [...(firstPageData || []) as AdminOrder[]];
-
-      // Process in batches of 3 concurrent requests
-      const BATCH_SIZE = 3;
-      for (let i = 0; i < remainingPages.length; i += BATCH_SIZE) {
-        const batch = remainingPages.slice(i, i + BATCH_SIZE);
-        const batchPromises = batch.map(pageNum => {
-          let batchQuery = supabase
-            .from("orders")
-            .select("*, customers(name, email, phone, nationality), events!inner(title, event_date, location), payment_error_reason, pos_users(name, icon), ticket_holders(ticket_type)")
-            .order("created_at", { ascending: false });
-
-          if (upcomingOnly) {
-            batchQuery = batchQuery.gte("events.event_date", todayDate);
-          }
-
-          return batchQuery.range(pageNum * PAGE_SIZE, (pageNum + 1) * PAGE_SIZE - 1);
-        });
-
-        const results = await Promise.all(batchPromises);
-
-        results.forEach(({ data, error }) => {
-          if (error) console.error("Error fetching page:", error);
-          if (data?.length) allOrders.push(...data as AdminOrder[]);
-        });
-
-        // Update state with each batch for progressive loading
-        setOrders([...allOrders].sort((a, b) =>
-          new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-        ));
-      }
-
-      setIsFullyLoaded(true);
-      console.log(`All ${allOrders.length} orders loaded in ${(performance.now() - startTime).toFixed(0)}ms`);
-    } catch (error) {
-      console.error("Error fetching orders:", error);
-      setLoading(false);
-      setIsFullyLoaded(true);
-    }
-  }, [getTodayQatar]);
-
   useEffect(() => {
     checkAuth();
-    const initDashboard = async () => {
-      await Promise.all([fetchOrders(showUpcomingOnly), fetchSettings()]);
-    };
-    initDashboard();
-
-    // Subscribe to real-time order and ticket_holders changes with debouncing
-    let refreshTimeout: ReturnType<typeof setTimeout>;
-    const refreshOrders = () => {
-      console.log('Data changed, refreshing...');
-      clearTimeout(refreshTimeout);
-      refreshTimeout = setTimeout(() => {
-        fetchOrders(showUpcomingOnly);
-      }, 500);
-    };
-
-    const ordersChannel = supabase
-      .channel('orders-realtime')
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'orders' },
-        refreshOrders
-      )
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'ticket_holders' },
-        refreshOrders
-      )
-      .subscribe();
-
-    return () => {
-      clearTimeout(refreshTimeout);
-      supabase.removeChannel(ordersChannel);
-    };
-  }, [showUpcomingOnly, fetchOrders]);
+    fetchSettings().finally(() => setLoading(false));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -335,14 +155,6 @@ const AdminDashboard = () => {
     </nav>
   );
 
-  const outletContext: AdminOutletContext = {
-    orders,
-    isFullyLoaded,
-    showUpcomingOnly,
-    setShowUpcomingOnly,
-    refreshOrders: () => fetchOrders(showUpcomingOnly),
-  };
-
   return (
     <div className="min-h-screen bg-background font-lusail" dir="rtl">
       {/* Header */}
@@ -412,7 +224,7 @@ const AdminDashboard = () => {
             {loading ? (
               <div className="py-12 text-center">{t("loading")}</div>
             ) : (
-              <Outlet context={outletContext} />
+              <Outlet />
             )}
           </div>
         </main>

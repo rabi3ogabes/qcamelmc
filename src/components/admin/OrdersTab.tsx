@@ -20,6 +20,8 @@ import QRCodeLib from "qrcode";
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
 import { toZonedTime } from "date-fns-tz";
+import { useOrdersQuery } from "@/hooks/useOrdersQuery";
+
 interface TicketHolder {
   id: string;
   name: string;
@@ -98,31 +100,21 @@ interface Order {
   } | null;
   ticket_holders?: { ticket_type: string }[];
 }
-interface OrdersTabProps {
-  orders: Order[];
-  onRefresh: () => void;
-  isFullyLoaded?: boolean;
-  showUpcomingOnly?: boolean;
-  onUpcomingOnlyChange?: (value: boolean) => void;
-}
-export const OrdersTab = ({
-  orders,
-  onRefresh,
-  isFullyLoaded = true,
-  showUpcomingOnly: externalShowUpcomingOnly,
-  onUpcomingOnlyChange
-}: OrdersTabProps) => {
+const PAGE_SIZE = 30;
+
+export const OrdersTab = () => {
   const {
     t
   } = useTranslation();
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState("success");
+  const [activeTab, setActiveTab] = useState<"success" | "failed">("success");
   const [paymentMethodFilter, setPaymentMethodFilter] = useState<"all" | "sadad" | "cash_pos">("all");
   const [viewMode, setViewMode] = useState<"grid" | "list">(() => {
     const saved = localStorage.getItem("ordersViewMode");
     return saved === "grid" || saved === "list" ? saved : "list";
   });
   const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [selectedEventFilter, setSelectedEventFilter] = useState<string>("all");
   const [selectedOrder, setSelectedOrder] = useState<string | null>(null);
   const [ticketHolders, setTicketHolders] = useState<TicketHolder[]>([]);
@@ -132,16 +124,45 @@ export const OrdersTab = ({
   const [orderToDelete, setOrderToDelete] = useState<string | null>(null);
   const [showDeleteButton, setShowDeleteButton] = useState(false);
   const [showGenerateQrButton, setShowGenerateQrButton] = useState(false);
-  const [internalShowUpcomingOnly, setInternalShowUpcomingOnly] = useState(true);
-  
-  // Use external state if provided, otherwise use internal state
-  const showUpcomingOnly = externalShowUpcomingOnly !== undefined ? externalShowUpcomingOnly : internalShowUpcomingOnly;
-  const setShowUpcomingOnly = onUpcomingOnlyChange || setInternalShowUpcomingOnly;
+  const [showUpcomingOnly, setShowUpcomingOnly] = useState(true);
+  const [page, setPage] = useState(0);
+
+  // Debounce the search so typing doesn't hammer the database
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedSearch(searchQuery), 400);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  // Reset to first page whenever filters change
+  useEffect(() => {
+    setPage(0);
+  }, [activeTab, paymentMethodFilter, selectedEventFilter, debouncedSearch, showUpcomingOnly]);
+
+  const {
+    orders,
+    totalCount,
+    stats: serverStats,
+    loading,
+    refresh: onRefresh
+  } = useOrdersQuery({
+    status: activeTab,
+    paymentMethod: paymentMethodFilter,
+    eventId: selectedEventFilter,
+    search: debouncedSearch,
+    upcomingOnly: showUpcomingOnly,
+    page,
+    pageSize: PAGE_SIZE
+  });
+
+  const isSearching = debouncedSearch.trim().length > 0;
+  const totalPages = isSearching ? 1 : Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
+
   const [availableEvents, setAvailableEvents] = useState<Array<{
     id: string;
     title: string;
     event_date: string;
   }>>([]);
+
 
   // Generate QR code image when selectedHolder changes
   useEffect(() => {
@@ -518,46 +539,8 @@ export const OrdersTab = ({
       setOrderToDelete(null);
     }
   };
-  const filterOrders = (status: string) => {
-    // Apply status filter
-    let filtered = orders;
-    if (status === "success") filtered = orders.filter(o => o.payment_status === "confirmed");
-    if (status === "failed") filtered = orders.filter(o => o.payment_status === "cancelled" || o.payment_status === "pending");
 
-    // Apply payment method filter
-    if (paymentMethodFilter !== "all") {
-      filtered = filtered.filter(o => o.payment_method === paymentMethodFilter);
-    }
 
-    // Apply event date filter
-    if (selectedEventFilter !== "all") {
-      filtered = filtered.filter(o => o.event_id === selectedEventFilter);
-    }
-
-    // Apply upcoming orders filter (today and future) - using Qatar timezone
-    // Skip client-side filtering if data is already filtered server-side
-    if (showUpcomingOnly && externalShowUpcomingOnly === undefined) {
-      const qatarNow = toZonedTime(new Date(), "Asia/Qatar");
-      const todayQatar = new Date(qatarNow.getFullYear(), qatarNow.getMonth(), qatarNow.getDate());
-      filtered = filtered.filter(o => {
-        if (!o.events?.event_date) return false;
-        const eventDateQatar = toZonedTime(new Date(o.events.event_date), "Asia/Qatar");
-        const eventDateOnly = new Date(eventDateQatar.getFullYear(), eventDateQatar.getMonth(), eventDateQatar.getDate());
-        return eventDateOnly >= todayQatar;
-      });
-    }
-
-    // Apply search filter
-    if (!searchQuery.trim()) return filtered;
-    const query = searchQuery.toLowerCase().trim();
-    return filtered.filter(o => {
-      const customerName = o.customers?.name ?? "";
-      const customerPhone = o.customers?.phone ?? "";
-      return o.booking_reference.toLowerCase().includes(query)
-        || customerName.toLowerCase().includes(query)
-        || customerPhone.toLowerCase().includes(query);
-    });
-  };
 
   const getOrderTicketTypes = (order: Order): string[] => {
     const holderTypes = order.ticket_holders?.map(h => h.ticket_type).filter(Boolean) ?? [];
@@ -777,42 +760,21 @@ export const OrdersTab = ({
       </div>
       </Card>;
   };
-  const filteredOrders = filterOrders(activeTab);
+  // Orders are already filtered, sorted and paginated server-side
+  const filteredOrders = orders;
 
-  // Calculate stats - pending and cancelled go to failed
+  // Stats come from lightweight server-side count queries
   const stats = {
-    success: orders.filter(o => o.payment_status === "confirmed").length,
-    failed: orders.filter(o => o.payment_status === "cancelled" || o.payment_status === "pending").length
+    success: serverStats.success,
+    failed: serverStats.failed
   };
 
-  // Calculate payment method stats based on current activeTab filter
-  // Payment method stats show orders matching status AND upcoming filter
-  const getBaseOrdersForStats = () => {
-    let filtered = orders.filter(o => o.payment_status === "confirmed");
-    
-    // Apply upcoming filter if enabled - using Qatar timezone
-    // Skip client-side filtering if data is already filtered server-side
-    if (showUpcomingOnly && externalShowUpcomingOnly === undefined) {
-      const qatarNow = toZonedTime(new Date(), "Asia/Qatar");
-      const todayQatar = new Date(qatarNow.getFullYear(), qatarNow.getMonth(), qatarNow.getDate());
-      filtered = filtered.filter(o => {
-        if (!o.events?.event_date) return false;
-        const eventDateQatar = toZonedTime(new Date(o.events.event_date), "Asia/Qatar");
-        const eventDateOnly = new Date(eventDateQatar.getFullYear(), eventDateQatar.getMonth(), eventDateQatar.getDate());
-        return eventDateOnly >= todayQatar;
-      });
-    }
-    
-    return filtered;
-  };
-  
-  const confirmedOrders = getBaseOrdersForStats();
-  
   const paymentMethodStats = {
-    all: confirmedOrders.length,
-    sadad: confirmedOrders.filter(o => o.payment_method === "sadad").length,
-    cash_pos: confirmedOrders.filter(o => o.payment_method === "cash_pos").length
+    all: serverStats.methodAll,
+    sadad: serverStats.methodSadad,
+    cash_pos: serverStats.methodCashPos
   };
+
   return <div className="space-y-6">
       {/* Generate QR Codes Button */}
       {showGenerateQrButton && <div className="flex justify-end">
@@ -840,7 +802,7 @@ export const OrdersTab = ({
       </div>
 
       {/* Orders Tabs */}
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+      <Tabs value={activeTab} onValueChange={v => setActiveTab(v as "success" | "failed")} className="w-full">
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 mb-4">
           <TabsList className="grid grid-cols-2 font-lusail">
             <TabsTrigger value="success">{t("success")} ({stats.success})</TabsTrigger>
@@ -869,9 +831,10 @@ export const OrdersTab = ({
             >
               cash_pos ({paymentMethodStats.cash_pos})
             </button>
-            {!isFullyLoaded && (
+            {loading && (
               <Loader2 className="w-4 h-4 animate-spin text-primary mr-1" />
             )}
+
           </div>
           
           <Select value={selectedEventFilter} onValueChange={setSelectedEventFilter}>
@@ -902,9 +865,10 @@ export const OrdersTab = ({
             </Label>
             {showUpcomingOnly && (
               <Badge variant="secondary" className="font-lusail text-xs">
-                {filteredOrders.length}
+                {totalCount}
               </Badge>
             )}
+
           </div>
           
           <div className="flex gap-2">
@@ -936,6 +900,39 @@ export const OrdersTab = ({
                 {filteredOrders.map(order => <OrderCard key={order.id} order={order} />)}
               </div>}
         </TabsContent>
+
+        {/* Pagination */}
+        {!isSearching && totalCount > PAGE_SIZE && (
+          <div className="mt-6 flex flex-col items-center justify-between gap-3 rounded-xl border bg-card/60 px-4 py-3 backdrop-blur-sm sm:flex-row">
+            <p className="font-lusail text-xs text-muted-foreground">
+              عرض {totalCount === 0 ? 0 : page * PAGE_SIZE + 1}–{Math.min((page + 1) * PAGE_SIZE, totalCount)} من {totalCount} حجز
+            </p>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                className="font-lusail"
+                disabled={page === 0 || loading}
+                onClick={() => setPage(p => Math.max(0, p - 1))}
+              >
+                السابق
+              </Button>
+              <span className="font-lusail text-xs text-muted-foreground">
+                صفحة {page + 1} من {totalPages}
+              </span>
+              <Button
+                variant="outline"
+                size="sm"
+                className="font-lusail"
+                disabled={page + 1 >= totalPages || loading}
+                onClick={() => setPage(p => p + 1)}
+              >
+                التالي
+              </Button>
+            </div>
+          </div>
+        )}
+
       </Tabs>
 
       {/* Order Details Dialog */}
