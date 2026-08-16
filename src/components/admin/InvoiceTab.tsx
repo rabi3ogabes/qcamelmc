@@ -864,7 +864,10 @@ export const InvoiceTab = () => {
         {!webhookUrl && (
           <div className="mb-4 p-4 bg-destructive/10 border border-destructive/20 rounded-lg">
             <p className="text-destructive text-sm">
-              ⚠️ لم يتم تكوين رابط الويب هوك. يرجى تحديثه في إعدادات النظام.
+              {webhookDisabled
+                ? "⚠️ رابط الويب هوك (واتساب) معطّل حاليًا. فعّله من: الإعدادات ← رابط Webhook واتساب (n8n) ← بدّل المفتاح إلى «مفعّل»."
+                : "⚠️ لم يتم تكوين رابط الويب هوك. أضِفه من: الإعدادات ← رابط Webhook واتساب (n8n)."}
+
             </p>
           </div>
         )}
