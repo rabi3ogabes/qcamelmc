@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef } from "react";
 import { CustomerLookup, type LookupCustomer } from "@/components/admin/CustomerLookup";
 import { searchCustomers, dedupeCustomers } from "@/lib/customerLookup";
+import { getPersonEventHistory, formatHistoryDate, PersonEventHistoryItem } from "@/lib/personEventHistory";
+
 
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
