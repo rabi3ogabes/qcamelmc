@@ -111,7 +111,10 @@ const Email = ({
           {payment_id ? (
             <>
               <Hr style={hr} />
-              <DetailRow label="رقم عملية الدفع" value={payment_id} />
+              <DetailRow
+                label={payment_method === 'cash_pos' ? 'رقم العملية' : 'رقم عملية سداد'}
+                value={payment_id}
+              />
             </>
           ) : null}
           {paid_at ? (
@@ -125,9 +128,9 @@ const Email = ({
         {invoice_url ? (
           <Section style={{ textAlign: 'center' as const, margin: '26px 0 4px' }}>
             <Button href={invoice_url} style={cta}>
-              تحميل الفاتورة PDF
+              عرض الفاتورة أونلاين
             </Button>
-            <Text style={ctaHint}>يفتح صفحة فاتورتك مع رمز الدخول وإمكانية الحفظ PDF أو صورة</Text>
+            <Text style={ctaHint}>اضغط لعرض فاتورتك كاملة أونلاين مع كل التفاصيل ورموز الدخول</Text>
           </Section>
         ) : null}
 
