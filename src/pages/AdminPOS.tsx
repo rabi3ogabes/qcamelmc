@@ -1,5 +1,6 @@
-import { useState, useEffect } from "react";
-import { CustomerLookup } from "@/components/admin/CustomerLookup";
+import { useState, useEffect, useRef } from "react";
+import { CustomerLookup, type LookupCustomer } from "@/components/admin/CustomerLookup";
+
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
