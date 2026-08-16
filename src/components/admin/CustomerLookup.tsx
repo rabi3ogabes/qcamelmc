@@ -36,7 +36,7 @@ export const CustomerLookup = ({ onSelect, eventId }: CustomerLookupProps) => {
     if (trimmed.length < 3) {
       setResults([]);
       setSearched(false);
-      setAllowances({});
+      setHistories({});
       return;
     }
     setSearching(true);
@@ -45,16 +45,16 @@ export const CustomerLookup = ({ onSelect, eventId }: CustomerLookupProps) => {
       const found = dedupeCustomers(await searchCustomers(trimmed)) as LookupCustomer[];
       setResults(found);
 
-      if (eventId && found.length > 0) {
+      if (found.length > 0) {
         const entries = await Promise.all(
           found.map(async (c) => [
             c.id,
-            await getRemainingAllowance(c.id_number, `${c.country_code || ""}${c.phone}`, eventId),
+            await getPersonEventHistory(c.id_number, `${c.country_code || ""}${c.phone}`),
           ] as const)
         );
-        setAllowances(Object.fromEntries(entries));
+        setHistories(Object.fromEntries(entries));
       } else {
-        setAllowances({});
+        setHistories({});
       }
     } catch (error) {
       console.error("Customer lookup failed:", error);
