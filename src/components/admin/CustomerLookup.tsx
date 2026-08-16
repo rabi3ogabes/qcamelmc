@@ -6,7 +6,7 @@ import { Search, UserCheck, Loader2, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { searchCustomers, dedupeCustomers } from "@/lib/customerLookup";
-import { getRemainingAllowance, MAX_TICKETS_PER_PERSON } from "@/lib/ticketLimit";
+import { getPersonEventHistory, formatHistoryDate, PersonEventHistoryItem } from "@/lib/personEventHistory";
 
 export interface LookupCustomer {
   id: string;
