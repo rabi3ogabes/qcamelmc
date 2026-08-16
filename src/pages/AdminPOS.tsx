@@ -329,20 +329,35 @@ const AdminPOS = () => {
     }
     if (term.length < 4) {
       setPhoneMatches([]);
+      setPhoneHistories({});
       return;
     }
     let cancelled = false;
     setPhoneSearching(true);
     const timer = setTimeout(async () => {
       try {
-        const found = await searchCustomers(term);
-        if (!cancelled) {
-          setPhoneMatches(dedupeCustomers(found) as LookupCustomer[]);
+        const found = dedupeCustomers(await searchCustomers(term)) as LookupCustomer[];
+        if (cancelled) return;
+        setPhoneMatches(found);
+        if (found.length > 0) {
+          const entries = await Promise.all(
+            found.map(async (c) => [
+              c.id,
+              await getPersonEventHistory(c.id_number, `${c.country_code || ""}${c.phone}`),
+            ] as const)
+          );
+          if (!cancelled) setPhoneHistories(Object.fromEntries(entries));
+        } else {
+          setPhoneHistories({});
         }
       } catch (err) {
         console.error("Phone lookup failed:", err);
-        if (!cancelled) setPhoneMatches([]);
+        if (!cancelled) {
+          setPhoneMatches([]);
+          setPhoneHistories({});
+        }
       } finally {
+
         if (!cancelled) setPhoneSearching(false);
       }
     }, 350);
