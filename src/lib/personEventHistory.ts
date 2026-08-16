@@ -18,46 +18,25 @@ export const getPersonEventHistory = async (
   phone?: string | null
 ): Promise<PersonEventHistoryItem[]> => {
   const id = (idNumber || "").replace(/\D/g, "");
-  const ph = (phone || "").replace(/\D/g, "").slice(-8);
+  const ph = (phone || "").replace(/\D/g, "");
   if (id.length < 6 && ph.length < 8) return [];
 
-  let query = supabase
-    .from("ticket_holders")
-    .select(
-      "ticket_type, orders!inner(payment_status, event_id, events!inner(title, event_date))"
-    )
-    .eq("orders.payment_status", "confirmed")
-    .limit(500);
+  const { data, error } = await supabase.rpc("get_person_event_history", {
+    p_id_number: id,
+    p_phone: ph,
+  });
 
-  query = id.length >= 6 ? query.eq("id_number", id) : query.ilike("phone", `%${ph}`);
-
-  const { data, error } = await query;
   if (error) {
     console.error("Person event history failed:", error);
     return [];
   }
 
-  const map = new Map<string, PersonEventHistoryItem>();
-  (data || []).forEach((row: any) => {
-    const order = row.orders;
-    if (!order?.events) return;
-    const key = order.event_id as string;
-    const current = map.get(key);
-    if (current) {
-      current.count += 1;
-    } else {
-      map.set(key, {
-        eventId: key,
-        title: order.events.title,
-        date: order.events.event_date ?? null,
-        count: 1,
-      });
-    }
-  });
-
-  return Array.from(map.values()).sort(
-    (a, b) => new Date(b.date || 0).getTime() - new Date(a.date || 0).getTime()
-  );
+  return (data || []).map((row: any) => ({
+    eventId: row.event_id as string,
+    title: row.title as string,
+    date: (row.event_date as string) ?? null,
+    count: Number(row.ticket_count) || 0,
+  }));
 };
 
 export const formatHistoryDate = (date: string | null) =>
