@@ -77,9 +77,13 @@ Deno.serve(async (req) => {
     const sadadId = settings?.sadad_merchant_id;
     const domain = settings?.sadad_website_domain || "qcamelmc.org";
 
-    // Sadad API login uses the API secret key. Some setups store it in
-    // sadad_api_key, others only have sadad_secret — try both.
-    const candidates = [settings?.sadad_api_key, settings?.sadad_secret]
+    // Transaction API login uses its own private credential. Prefer the
+    // encrypted function secret; retain legacy settings only as fallbacks.
+    const candidates = [
+      Deno.env.get("SADAD_API_SECRET_KEY"),
+      settings?.sadad_api_key,
+      settings?.sadad_secret,
+    ]
       .map((v) => (typeof v === "string" ? v.trim() : ""))
       .filter((v) => v.length > 0)
       .filter((v, i, arr) => arr.indexOf(v) === i);
