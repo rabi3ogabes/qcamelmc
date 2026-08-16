@@ -82,6 +82,7 @@ interface Order {
   created_at: string;
   event_id: string;
   sadad_manually_verified?: boolean;
+  payment_id?: string | null;
   payment_error_reason?: string | null;
   customers: {
     name: string;
