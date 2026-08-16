@@ -302,7 +302,19 @@ export const InvoiceTab = () => {
         return true;
       });
       
-      setOrders(filteredData);
+      // Guard against orders whose customer record is missing/inaccessible
+      const safeData = filteredData.map((order: any) => ({
+        ...order,
+        customers: order.customers ?? {
+          name: "غير معروف",
+          email: "",
+          phone: "",
+          country_code: "+974",
+          nationality: null,
+        },
+      }));
+
+      setOrders(safeData);
     } catch (error) {
       console.error("Failed to load orders:", error);
       toast.error("فشل في تحميل الطلبات");
