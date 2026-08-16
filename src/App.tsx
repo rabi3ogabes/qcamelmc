@@ -23,6 +23,7 @@ const VisitorTracker = ({ children }: { children: React.ReactNode }) => {
 const TicketSelection = lazy(() => import("./pages/TicketSelection"));
 const Checkout = lazy(() => import("./pages/Checkout"));
 const Confirmation = lazy(() => import("./pages/Confirmation"));
+const InvoicePage = lazy(() => import("./pages/InvoicePage"));
 const SadadCallback = lazy(() => import("./pages/SadadCallback"));
 const SadadRedirect = lazy(() => import("./pages/SadadRedirect"));
 const AdminLogin = lazy(() => import("./pages/AdminLogin"));
