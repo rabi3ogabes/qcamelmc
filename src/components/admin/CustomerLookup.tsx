@@ -118,18 +118,19 @@ export const CustomerLookup = ({ onSelect, eventId }: CustomerLookupProps) => {
                   {customer.phone}
                   {customer.id_number ? ` · ${customer.id_number}` : ""}
                 </p>
-                {allowances[customer.id] !== undefined && allowances[customer.id] !== null && (
-                  <span
-                    className={`mt-1 inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-lusail font-bold ${
-                      allowances[customer.id] === 0
-                        ? "bg-destructive/10 text-destructive"
-                        : "bg-primary/10 text-primary"
-                    }`}
-                  >
-                    {allowances[customer.id] === 0
-                      ? `بلغ الحد الأقصى (${MAX_TICKETS_PER_PERSON} تذاكر)`
-                      : `متبقٍ له ${allowances[customer.id]} تذكرة`}
-                  </span>
+                {histories[customer.id]?.length > 0 && (
+                  <div className="mt-1.5 flex flex-wrap gap-1">
+                    {histories[customer.id].map((h) => (
+                      <span
+                        key={h.eventId}
+                        className="inline-flex items-center gap-1 rounded-full border border-primary/20 bg-primary/5 px-2 py-0.5 text-[11px] font-lusail text-foreground/80"
+                        title={h.title}
+                      >
+                        <span className="opacity-70">{formatHistoryDate(h.date) || h.title}</span>
+                        <span className="font-bold text-primary">{h.count} تذكرة</span>
+                      </span>
+                    ))}
+                  </div>
                 )}
               </div>
               <Button
