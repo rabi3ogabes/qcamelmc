@@ -649,7 +649,7 @@ export const OrdersTab = () => {
             <p className="text-xs text-muted-foreground" dir="ltr">{customer.phone}</p>
             {customer.email && <p className="text-xs text-muted-foreground truncate" dir="ltr">{customer.email}</p>}
           </div>
-          <div className="text-left shrink-0">
+          <div className="text-end shrink-0">
             <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-0.5">{t("qar")}</p>
             <p className="text-lg font-bold text-primary tabular-nums">{order.total_amount.toFixed(2)}</p>
           </div>
@@ -737,7 +737,7 @@ export const OrdersTab = () => {
             toast.error("فشل في تحديث حالة التأكد");
           }
         }} className={`font-lusail text-[11px] px-2.5 py-1 cursor-pointer transition-opacity hover:opacity-80 ${order.sadad_manually_verified ? "bg-green-600 hover:bg-green-700 text-white border-green-600" : "bg-muted text-muted-foreground hover:bg-muted/80"}`} title={order.sadad_manually_verified ? "اضغط لإلغاء التأكد" : "اضغط للتأكد من الدفع"}>
-          {order.sadad_manually_verified ? <><CheckCircle className="w-3 h-3 ml-1 inline" />تم تأكيد سداد</> : <><XCircle className="w-3 h-3 ml-1 inline" />تأكيد سداد</>}
+          {order.sadad_manually_verified ? <><CheckCircle className="w-3 h-3 ms-1 inline" />تم تأكيد سداد</> : <><XCircle className="w-3 h-3 ms-1 inline" />تأكيد سداد</>}
         </Badge>
       </div>
       </Card>;
@@ -758,16 +758,16 @@ export const OrdersTab = () => {
     cash_pos: serverStats.methodCashPos
   };
 
-  return <div className="space-y-6">
+  return <div dir="rtl" className="space-y-6">
       <SadadTransactionDialog orderId={sadadTxOrder?.id ?? null} bookingReference={sadadTxOrder?.ref} onOpenChange={open => !open && setSadadTxOrder(null)} />
       {/* Generate QR Codes Button */}
-      {showGenerateQrButton && <div className="flex justify-end">
+      {showGenerateQrButton && <div className="flex justify-start">
           <Button onClick={generateMissingQrCodes} disabled={generatingQrCodes} className="font-lusail">
             {generatingQrCodes ? <>
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                <Loader2 className="w-4 h-4 ms-2 animate-spin" />
                 Generating QR Codes...
               </> : <>
-                <QrCode className="w-4 h-4 mr-2" />
+                <QrCode className="w-4 h-4 ms-2" />
                 Generate Missing QR Codes
               </>}
           </Button>
@@ -813,10 +813,10 @@ export const OrdersTab = () => {
               onClick={() => setPaymentMethodFilter("cash_pos")}
               className={`inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1.5 text-sm font-medium font-lusail ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ${paymentMethodFilter === "cash_pos" ? "bg-background text-foreground shadow-sm" : ""}`}
             >
-              cash_pos ({paymentMethodStats.cash_pos})
+              نقدي / POS ({paymentMethodStats.cash_pos})
             </button>
             {loading && (
-              <Loader2 className="w-4 h-4 animate-spin text-primary mr-1" />
+              <Loader2 className="w-4 h-4 animate-spin text-primary ms-1" />
             )}
 
           </div>
