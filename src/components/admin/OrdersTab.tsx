@@ -595,7 +595,7 @@ export const OrdersTab = () => {
 
     return <Card dir="rtl" className={`group relative overflow-hidden flex flex-col h-full border-border/70 bg-card transition-all duration-300 hover:shadow-[var(--shadow-elegant)] hover:border-primary/40 ${order.sadad_manually_verified ? 'ring-1 ring-green-500/30' : ''}`}>
       {/* Luxury accent rail */}
-      <div className="absolute inset-y-0 right-0 w-1 bg-[var(--gradient-primary)] opacity-80" />
+      <div className="absolute inset-y-0 left-0 w-1 bg-[var(--gradient-primary)] opacity-80" />
 
       {/* Header */}
       <div className="pr-5 pl-4 py-3 flex items-start justify-between gap-3 border-b bg-muted/30">
