@@ -38,7 +38,7 @@ export interface AdminOrder {
   created_at: string;
   event_id: string;
   payment_error_reason?: string | null;
-  customers: { name: string; email: string; phone: string; nationality?: string };
+  customers: { name: string; email: string; phone: string; nationality?: string } | null;
   events: { title: string; event_date: string; location: string };
   pos_users?: { name: string; icon: string | null } | null;
   ticket_holders?: { ticket_type: string }[];
