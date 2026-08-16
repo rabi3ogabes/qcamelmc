@@ -25,7 +25,7 @@ const RequireAdmin = ({ children }: { children: React.ReactNode }) => {
     let active = true;
 
     const check = async () => {
-      if (sessionStorage.getItem(PASS_KEY) === "1" || localStorage.getItem(PASS_KEY) === "1") {
+      if (hasStaffAccess()) {
         if (active) setStatus("allowed");
         return;
       }
@@ -54,8 +54,8 @@ const RequireAdmin = ({ children }: { children: React.ReactNode }) => {
   const handleUnlock = (e: React.FormEvent) => {
     e.preventDefault();
     if (passcode === STAFF_PASSCODE) {
-      localStorage.setItem(PASS_KEY, "1");
-      sessionStorage.setItem(PASS_KEY, "1");
+      grantStaffAccess();
+
       setStatus("allowed");
       toast.success("تم فتح الصفحة");
     } else {
