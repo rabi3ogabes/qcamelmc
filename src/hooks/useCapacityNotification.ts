@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { playAlertSound } from "@/lib/sfx";
 
 interface TicketCapacity {
   type: string;
@@ -19,34 +20,15 @@ export const useCapacityNotification = (eventId: string | null) => {
   const [notification, setNotification] = useState<CapacityNotification | null>(null);
   const [showNotification, setShowNotification] = useState(false);
   const previousCapacitiesRef = useRef<Map<string, number>>(new Map());
-  const audioRef = useRef<HTMLAudioElement | null>(null);
-
-  // Initialize audio on first user interaction
-  useEffect(() => {
-    // Create audio element for notification sound
-    audioRef.current = new Audio();
-    // Use a clear, loud notification bell sound from free sound library
-    audioRef.current.src = "https://cdn.pixabay.com/audio/2024/02/19/audio_e4043e8c7f.mp3";
-    audioRef.current.volume = 1.0;
-    
-    // Preload the audio
-    audioRef.current.load();
-    
-    return () => {
-      if (audioRef.current) {
-        audioRef.current = null;
-      }
-    };
-  }, []);
 
   const playNotificationSound = useCallback(() => {
-    if (audioRef.current) {
-      audioRef.current.currentTime = 0;
-      audioRef.current.play().catch(err => {
-        console.log("Audio playback failed:", err);
-      });
+    try {
+      playAlertSound();
+    } catch (err) {
+      console.log("Audio playback failed:", err);
     }
   }, []);
+
 
   const dismissNotification = useCallback(() => {
     setShowNotification(false);

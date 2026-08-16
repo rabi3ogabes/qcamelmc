@@ -122,6 +122,7 @@ const resources = {
       "noBookingsForDate": "لا توجد حجوزات لهذا التاريخ",
       "openInNewTab": "فتح في تبويب جديد",
       "mainWebsite": "الموقع الرئيسي",
+      "scanTicket": "مسح التذكرة",
       "openMainWebsite": "فتح الموقع الرئيسي",
       "upcomingEvents": "الفعاليات القادمة",
       "discoverUpcomingEvents": "اكتشف أحدث الفعاليات والمناسبات",
