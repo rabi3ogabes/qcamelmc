@@ -107,7 +107,10 @@ export const SadadTransactionDialog = ({ orderId, bookingReference, onOpenChange
     if (orderId) load(orderId);
   }, [orderId]);
 
-  const qar = (n: number) => `${n.toFixed(2)} ر.ق`;
+  const qar = (value: unknown) => {
+    const amount = Number(value);
+    return `${(Number.isFinite(amount) ? amount : 0).toFixed(2)} ر.ق`;
+  };
 
   return (
     <Dialog open={!!orderId} onOpenChange={onOpenChange}>
