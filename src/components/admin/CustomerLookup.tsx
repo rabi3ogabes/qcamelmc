@@ -92,18 +92,18 @@ export const CustomerLookup = ({ onSelect, eventId }: CustomerLookupProps) => {
         <Input
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") {
-              e.preventDefault();
-              search();
-            }
-          }}
           placeholder="ابحث بالاسم أو رقم الهاتف أو رقم الهوية"
           className="font-lusail"
         />
-        <Button type="button" variant="outline" onClick={search} disabled={searching} className="font-lusail gap-2">
-          {searching ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
-          بحث
+        <Button
+          type="button"
+          variant="outline"
+          onClick={clearSearch}
+          disabled={!query && results.length === 0}
+          className="font-lusail gap-2 shrink-0"
+        >
+          {searching ? <Loader2 className="w-4 h-4 animate-spin" /> : <X className="w-4 h-4" />}
+          مسح
         </Button>
       </div>
 
