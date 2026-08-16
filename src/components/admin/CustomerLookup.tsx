@@ -5,6 +5,7 @@ import { Card } from "@/components/ui/card";
 import { Search, UserCheck, Loader2, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { searchCustomers, dedupeCustomers } from "@/lib/customerLookup";
 import { getRemainingAllowance, MAX_TICKETS_PER_PERSON } from "@/lib/ticketLimit";
 
 export interface LookupCustomer {
@@ -41,15 +42,7 @@ export const CustomerLookup = ({ onSelect, eventId }: CustomerLookupProps) => {
     setSearching(true);
     setSearched(true);
     try {
-      const { data, error } = await supabase
-        .from("customers")
-        .select("id, name, email, phone, country_code, nationality, id_number")
-        .or(`phone.ilike.%${trimmed}%,id_number.ilike.%${trimmed}%,name.ilike.%${trimmed}%`)
-        .order("created_at", { ascending: false })
-        .limit(8);
-
-      if (error) throw error;
-      const found = (data || []) as LookupCustomer[];
+      const found = dedupeCustomers(await searchCustomers(trimmed)) as LookupCustomer[];
       setResults(found);
 
       if (eventId && found.length > 0) {
