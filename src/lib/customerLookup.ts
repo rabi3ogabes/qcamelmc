@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { hasStaffAccess } from "@/lib/staffAccess";
 
 export interface LookupCustomerRecord {
   id: string;
@@ -11,10 +12,9 @@ export interface LookupCustomerRecord {
 }
 
 const STAFF_PASSCODE = "@@@Qatar123";
-const PASS_KEY = "staff_passcode_ok";
 
-const hasPasscodeAccess = () =>
-  sessionStorage.getItem(PASS_KEY) === "1" || localStorage.getItem(PASS_KEY) === "1";
+const hasPasscodeAccess = () => hasStaffAccess();
+
 
 /**
  * Searches saved customers by phone number only.

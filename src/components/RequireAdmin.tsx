@@ -7,9 +7,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Lock } from "lucide-react";
 import { toast } from "sonner";
+import { grantStaffAccess, hasStaffAccess } from "@/lib/staffAccess";
 
 const STAFF_PASSCODE = "@@@Qatar123";
-const PASS_KEY = "staff_passcode_ok";
+
 
 /**
  * Guards staff-only routes: allows a signed-in admin, or anyone who enters the staff passcode.
@@ -24,7 +25,7 @@ const RequireAdmin = ({ children }: { children: React.ReactNode }) => {
     let active = true;
 
     const check = async () => {
-      if (sessionStorage.getItem(PASS_KEY) === "1" || localStorage.getItem(PASS_KEY) === "1") {
+      if (hasStaffAccess()) {
         if (active) setStatus("allowed");
         return;
       }
@@ -53,8 +54,8 @@ const RequireAdmin = ({ children }: { children: React.ReactNode }) => {
   const handleUnlock = (e: React.FormEvent) => {
     e.preventDefault();
     if (passcode === STAFF_PASSCODE) {
-      localStorage.setItem(PASS_KEY, "1");
-      sessionStorage.setItem(PASS_KEY, "1");
+      grantStaffAccess();
+
       setStatus("allowed");
       toast.success("تم فتح الصفحة");
     } else {
