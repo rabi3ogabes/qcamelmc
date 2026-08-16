@@ -372,7 +372,7 @@ const AdminPOS = () => {
     setCustomerNationality(c.nationality || "قطر");
     setCustomerIdNumber(c.id_number || "");
     setPhoneMatches([]);
-    toast.success(`تم تعبئة بيانات ${c.name}`);
+    toast({ title: "تم", description: `تم تعبئة بيانات ${c.name}` });
   };
 
 
