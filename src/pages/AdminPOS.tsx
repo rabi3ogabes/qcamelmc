@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef } from "react";
 import { CustomerLookup, type LookupCustomer } from "@/components/admin/CustomerLookup";
 import { searchCustomers, dedupeCustomers } from "@/lib/customerLookup";
+import { getPersonEventHistory, formatHistoryDate, PersonEventHistoryItem } from "@/lib/personEventHistory";
+
 
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -87,7 +89,9 @@ const AdminPOS = () => {
   const [customerIdNumber, setCustomerIdNumber] = useState("");
   const [showAllNationalities, setShowAllNationalities] = useState(false);
   const [phoneMatches, setPhoneMatches] = useState<LookupCustomer[]>([]);
+  const [phoneHistories, setPhoneHistories] = useState<Record<string, PersonEventHistoryItem[]>>({});
   const [phoneSearching, setPhoneSearching] = useState(false);
+
   const suppressPhoneSearchRef = useRef(false);
 
   const [ticketHolders, setTicketHolders] = useState<TicketHolderInput[]>([]);
@@ -325,20 +329,35 @@ const AdminPOS = () => {
     }
     if (term.length < 4) {
       setPhoneMatches([]);
+      setPhoneHistories({});
       return;
     }
     let cancelled = false;
     setPhoneSearching(true);
     const timer = setTimeout(async () => {
       try {
-        const found = await searchCustomers(term);
-        if (!cancelled) {
-          setPhoneMatches(dedupeCustomers(found) as LookupCustomer[]);
+        const found = dedupeCustomers(await searchCustomers(term)) as LookupCustomer[];
+        if (cancelled) return;
+        setPhoneMatches(found);
+        if (found.length > 0) {
+          const entries = await Promise.all(
+            found.map(async (c) => [
+              c.id,
+              await getPersonEventHistory(c.id_number, `${c.country_code || ""}${c.phone}`),
+            ] as const)
+          );
+          if (!cancelled) setPhoneHistories(Object.fromEntries(entries));
+        } else {
+          setPhoneHistories({});
         }
       } catch (err) {
         console.error("Phone lookup failed:", err);
-        if (!cancelled) setPhoneMatches([]);
+        if (!cancelled) {
+          setPhoneMatches([]);
+          setPhoneHistories({});
+        }
       } finally {
+
         if (!cancelled) setPhoneSearching(false);
       }
     }, 350);
@@ -359,6 +378,8 @@ const AdminPOS = () => {
     setCustomerNationality(c.nationality || "قطر");
     setCustomerIdNumber(c.id_number || "");
     setPhoneMatches([]);
+    setPhoneHistories({});
+
     toast({ title: "تم", description: `تم تعبئة بيانات ${c.name}` });
   };
 
@@ -1347,7 +1368,22 @@ const AdminPOS = () => {
                                 {c.id_number ? ` · ${c.id_number}` : ""}
                                 {c.nationality ? ` · ${c.nationality}` : ""}
                               </span>
+                              {phoneHistories[c.id]?.length > 0 && (
+                                <span className="mt-1.5 flex flex-wrap gap-1">
+                                  {phoneHistories[c.id].map((h) => (
+                                    <span
+                                      key={h.eventId}
+                                      title={h.title}
+                                      className="inline-flex items-center gap-1 rounded-full border border-primary/20 bg-primary/5 px-2 py-0.5 text-[11px] text-foreground/80"
+                                    >
+                                      <span className="opacity-70">{formatHistoryDate(h.date) || h.title}</span>
+                                      <span className="font-bold text-primary">{h.count} تذكرة</span>
+                                    </span>
+                                  ))}
+                                </span>
+                              )}
                             </span>
+
                             <User className="w-4 h-4 text-primary shrink-0" />
                           </button>
                         ))}
