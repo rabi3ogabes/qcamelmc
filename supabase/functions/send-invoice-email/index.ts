@@ -85,11 +85,13 @@ Deno.serve(async (req) => {
       .from('email_delivery_events')
       .select('id', { count: 'exact', head: true })
       .eq('order_id', order.id)
-      .eq('status', 'queued')
+      .in('status', ['queued', 'retried'])
     attempt = (count ?? 0) + 1
 
-    await logEvent(attempt > 1 ? 'retried' : 'queued', attempt > 1 ? `إعادة إرسال (محاولة ${attempt})` : 'تمت جدولة الإرسال')
-    if (attempt > 1) await logEvent('queued', `محاولة رقم ${attempt}`)
+    await logEvent(
+      attempt > 1 ? 'retried' : 'queued',
+      attempt > 1 ? `إعادة إرسال — المحاولة رقم ${attempt}` : 'تمت جدولة الإرسال',
+    )
 
     const { data: settings } = await supabase
       .from('settings')
