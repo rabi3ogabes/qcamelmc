@@ -30,6 +30,15 @@ const formatDate = (value?: string | null) =>
       })
     : "-";
 
+const TICKET_TYPE_LABELS: Record<string, string> = {
+  normal: "عادي",
+  vip: "VIP",
+  parking: "مواقف",
+};
+
+const ticketLabel = (type?: string | null) =>
+  (type && TICKET_TYPE_LABELS[type.toLowerCase()]) || type || "-";
+
 const Row = ({ label, value }: { label: string; value: React.ReactNode }) => (
   <div className="flex flex-col gap-1">
     <span className="text-xs text-muted-foreground">{label}</span>
