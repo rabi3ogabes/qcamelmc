@@ -778,6 +778,25 @@ export const InvoiceTab = () => {
             <p className="text-sm md:text-base text-muted-foreground">
               إرسال يدوي للفواتير - قم بتفعيل العد التنازلي للإرسال التلقائي
             </p>
+            <div className="flex rounded-lg border p-1 bg-muted/40 w-fit mt-3">
+              <Button
+                variant={view === "current" ? "default" : "ghost"}
+                size="sm"
+                className="font-lusail"
+                onClick={() => setView("current")}
+              >
+                الحالية
+              </Button>
+              <Button
+                variant={view === "archived" ? "default" : "ghost"}
+                size="sm"
+                className="font-lusail gap-1"
+                onClick={() => setView("archived")}
+              >
+                <Archive className="w-4 h-4" />
+                الأرشيف
+              </Button>
+            </div>
           </div>
           
           {/* Mobile & Tablet Layout */}
