@@ -86,7 +86,7 @@ interface Order {
     email: string;
     phone: string;
     nationality?: string;
-  };
+  } | null;
   events?: {
     title: string;
     event_date: string;
@@ -550,7 +550,13 @@ export const OrdersTab = ({
     // Apply search filter
     if (!searchQuery.trim()) return filtered;
     const query = searchQuery.toLowerCase().trim();
-    return filtered.filter(o => o.booking_reference.toLowerCase().includes(query) || o.customers.name.toLowerCase().includes(query) || o.customers.phone.toLowerCase().includes(query));
+    return filtered.filter(o => {
+      const customerName = o.customers?.name ?? "";
+      const customerPhone = o.customers?.phone ?? "";
+      return o.booking_reference.toLowerCase().includes(query)
+        || customerName.toLowerCase().includes(query)
+        || customerPhone.toLowerCase().includes(query);
+    });
   };
 
   const getOrderTicketTypes = (order: Order): string[] => {
@@ -583,7 +589,15 @@ export const OrdersTab = ({
     order
   }: {
     order: Order;
-  }) => <Card className={`overflow-hidden hover:shadow-lg transition-shadow flex flex-col h-full ${order.sadad_manually_verified ? 'bg-green-50 dark:bg-green-950/20 border-green-200 dark:border-green-800' : ''}`}>
+  }) => {
+    const customer = order.customers ?? {
+      name: "عميل غير معروف",
+      email: "",
+      phone: "غير متوفر",
+      nationality: undefined,
+    };
+
+    return <Card className={`overflow-hidden hover:shadow-lg transition-shadow flex flex-col h-full ${order.sadad_manually_verified ? 'bg-green-50 dark:bg-green-950/20 border-green-200 dark:border-green-800' : ''}`}>
       {/* Event Date - Top Banner */}
       <div className="text-center py-2 bg-primary text-primary-foreground">
         <p className="text-sm font-semibold">
@@ -659,11 +673,11 @@ export const OrdersTab = ({
           <div className="flex-col flex items-end justify-center">
             <p className="text-sm text-muted-foreground mb-1">{t("customer")}</p>
             <p className="font-semibold flex items-center gap-2">
-              <span className="text-xl">{getCountryFlag(order.customers.nationality)}</span>
-              {order.customers.name}
+              <span className="text-xl">{getCountryFlag(customer.nationality)}</span>
+              {customer.name}
             </p>
-            <p className="text-xs text-muted-foreground">{order.customers.phone}</p>
-            <p className="text-sm text-muted-foreground min-h-[20px]">{order.customers.email || '\u00A0'}</p>
+            <p className="text-xs text-muted-foreground">{customer.phone}</p>
+            <p className="text-sm text-muted-foreground min-h-[20px]">{customer.email || '\u00A0'}</p>
           </div>
           
           <div className="flex flex-col" dir="rtl">
@@ -761,7 +775,8 @@ export const OrdersTab = ({
           تاريخ الحجز: {format(new Date(order.created_at), 'dd/MM/yyyy - HH:mm')}
         </p>
       </div>
-    </Card>;
+      </Card>;
+  };
   const filteredOrders = filterOrders(activeTab);
 
   // Calculate stats - pending and cancelled go to failed
