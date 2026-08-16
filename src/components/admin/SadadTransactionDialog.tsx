@@ -109,6 +109,8 @@ export const SadadTransactionDialog = ({ orderId, bookingReference, onOpenChange
             تفاصيل عملية سداد
           </DialogTitle>
         </DialogHeader>
+        <DialogDescription className="sr-only">تفاصيل عملية الدفع عبر سداد</DialogDescription>
+
 
         {bookingReference && (
           <p className="text-xs text-muted-foreground font-mono">{bookingReference}</p>
