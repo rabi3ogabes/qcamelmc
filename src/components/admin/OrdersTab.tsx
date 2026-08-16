@@ -20,6 +20,8 @@ import QRCodeLib from "qrcode";
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
 import { toZonedTime } from "date-fns-tz";
+import { useOrdersQuery } from "@/hooks/useOrdersQuery";
+
 interface TicketHolder {
   id: string;
   name: string;
@@ -537,46 +539,8 @@ export const OrdersTab = () => {
       setOrderToDelete(null);
     }
   };
-  const filterOrders = (status: string) => {
-    // Apply status filter
-    let filtered = orders;
-    if (status === "success") filtered = orders.filter(o => o.payment_status === "confirmed");
-    if (status === "failed") filtered = orders.filter(o => o.payment_status === "cancelled" || o.payment_status === "pending");
 
-    // Apply payment method filter
-    if (paymentMethodFilter !== "all") {
-      filtered = filtered.filter(o => o.payment_method === paymentMethodFilter);
-    }
 
-    // Apply event date filter
-    if (selectedEventFilter !== "all") {
-      filtered = filtered.filter(o => o.event_id === selectedEventFilter);
-    }
-
-    // Apply upcoming orders filter (today and future) - using Qatar timezone
-    // Skip client-side filtering if data is already filtered server-side
-    if (showUpcomingOnly && externalShowUpcomingOnly === undefined) {
-      const qatarNow = toZonedTime(new Date(), "Asia/Qatar");
-      const todayQatar = new Date(qatarNow.getFullYear(), qatarNow.getMonth(), qatarNow.getDate());
-      filtered = filtered.filter(o => {
-        if (!o.events?.event_date) return false;
-        const eventDateQatar = toZonedTime(new Date(o.events.event_date), "Asia/Qatar");
-        const eventDateOnly = new Date(eventDateQatar.getFullYear(), eventDateQatar.getMonth(), eventDateQatar.getDate());
-        return eventDateOnly >= todayQatar;
-      });
-    }
-
-    // Apply search filter
-    if (!searchQuery.trim()) return filtered;
-    const query = searchQuery.toLowerCase().trim();
-    return filtered.filter(o => {
-      const customerName = o.customers?.name ?? "";
-      const customerPhone = o.customers?.phone ?? "";
-      return o.booking_reference.toLowerCase().includes(query)
-        || customerName.toLowerCase().includes(query)
-        || customerPhone.toLowerCase().includes(query);
-    });
-  };
 
   const getOrderTicketTypes = (order: Order): string[] => {
     const holderTypes = order.ticket_holders?.map(h => h.ticket_type).filter(Boolean) ?? [];
@@ -796,42 +760,21 @@ export const OrdersTab = () => {
       </div>
       </Card>;
   };
-  const filteredOrders = filterOrders(activeTab);
+  // Orders are already filtered, sorted and paginated server-side
+  const filteredOrders = orders;
 
-  // Calculate stats - pending and cancelled go to failed
+  // Stats come from lightweight server-side count queries
   const stats = {
-    success: orders.filter(o => o.payment_status === "confirmed").length,
-    failed: orders.filter(o => o.payment_status === "cancelled" || o.payment_status === "pending").length
+    success: serverStats.success,
+    failed: serverStats.failed
   };
 
-  // Calculate payment method stats based on current activeTab filter
-  // Payment method stats show orders matching status AND upcoming filter
-  const getBaseOrdersForStats = () => {
-    let filtered = orders.filter(o => o.payment_status === "confirmed");
-    
-    // Apply upcoming filter if enabled - using Qatar timezone
-    // Skip client-side filtering if data is already filtered server-side
-    if (showUpcomingOnly && externalShowUpcomingOnly === undefined) {
-      const qatarNow = toZonedTime(new Date(), "Asia/Qatar");
-      const todayQatar = new Date(qatarNow.getFullYear(), qatarNow.getMonth(), qatarNow.getDate());
-      filtered = filtered.filter(o => {
-        if (!o.events?.event_date) return false;
-        const eventDateQatar = toZonedTime(new Date(o.events.event_date), "Asia/Qatar");
-        const eventDateOnly = new Date(eventDateQatar.getFullYear(), eventDateQatar.getMonth(), eventDateQatar.getDate());
-        return eventDateOnly >= todayQatar;
-      });
-    }
-    
-    return filtered;
-  };
-  
-  const confirmedOrders = getBaseOrdersForStats();
-  
   const paymentMethodStats = {
-    all: confirmedOrders.length,
-    sadad: confirmedOrders.filter(o => o.payment_method === "sadad").length,
-    cash_pos: confirmedOrders.filter(o => o.payment_method === "cash_pos").length
+    all: serverStats.methodAll,
+    sadad: serverStats.methodSadad,
+    cash_pos: serverStats.methodCashPos
   };
+
   return <div className="space-y-6">
       {/* Generate QR Codes Button */}
       {showGenerateQrButton && <div className="flex justify-end">
