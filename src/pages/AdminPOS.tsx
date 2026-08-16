@@ -310,6 +310,68 @@ const AdminPOS = () => {
     return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
   }, []);
 
+  // Live customer suggestions while typing the phone number
+  useEffect(() => {
+    const term = customerPhone.replace(/\D/g, "");
+    if (suppressPhoneSearchRef.current) {
+      suppressPhoneSearchRef.current = false;
+      return;
+    }
+    if (term.length < 4) {
+      setPhoneMatches([]);
+      return;
+    }
+    let cancelled = false;
+    setPhoneSearching(true);
+    const timer = setTimeout(async () => {
+      try {
+        const { data, error } = await supabase
+          .from("customers")
+          .select("id, name, email, phone, country_code, nationality, id_number")
+          .ilike("phone", `%${term}%`)
+          .order("created_at", { ascending: false })
+          .limit(6);
+        if (error) throw error;
+        if (!cancelled) {
+          // de-duplicate by phone + id number, keeping the most recent record
+          const seen = new Set<string>();
+          const unique = (data || []).filter((c) => {
+            const key = `${c.phone}|${c.id_number || ""}`;
+            if (seen.has(key)) return false;
+            seen.add(key);
+            return true;
+          });
+          setPhoneMatches(unique as LookupCustomer[]);
+        }
+      } catch (err) {
+        console.error("Phone lookup failed:", err);
+        if (!cancelled) setPhoneMatches([]);
+      } finally {
+        if (!cancelled) setPhoneSearching(false);
+      }
+    }, 350);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+      setPhoneSearching(false);
+      clearTimeout(timer);
+    };
+  }, [customerPhone]);
+
+  const applyCustomer = (c: LookupCustomer) => {
+    suppressPhoneSearchRef.current = true;
+    setCustomerName(c.name || "");
+    setCustomerEmail(c.email || "");
+    setCustomerPhone(c.phone || "");
+    setCustomerCountryCode(c.country_code || "+974");
+    setCustomerNationality(c.nationality || "قطر");
+    setCustomerIdNumber(c.id_number || "");
+    setPhoneMatches([]);
+    toast.success(`تم تعبئة بيانات ${c.name}`);
+  };
+
+
+
   // Auto-populate name, phone and ID number from the main customer info to all ticket holders
   useEffect(() => {
     setTicketHolders(prev => prev.map(holder => ({
