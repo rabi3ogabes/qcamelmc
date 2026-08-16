@@ -71,6 +71,16 @@ const Confirmation = () => {
 
       setOrders(loaded);
       localStorage.removeItem("orderIds");
+
+      // Email the invoice to the customer (fire-and-forget, deduped server-side)
+      loaded
+        .filter((o) => o.payment_status === "confirmed")
+        .forEach((o) => {
+          supabase.functions
+            .invoke("send-invoice-email", { body: { order_id: o.id } })
+            .catch((e) => console.error("Invoice email failed:", e));
+        });
+
     } catch (error) {
       console.error("Error fetching orders:", error);
     } finally {

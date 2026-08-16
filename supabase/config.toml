@@ -17,3 +17,9 @@ verify_jwt = true
 
 [functions.recover-pending-orders]
 verify_jwt = false
+
+[functions.preview-transactional-email]
+verify_jwt = false
+
+[functions.send-invoice-email]
+verify_jwt = false

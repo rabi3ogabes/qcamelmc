@@ -251,6 +251,7 @@ export type Database = {
           customer_id: string
           event_id: string
           id: string
+          invoice_email_sent_at: string | null
           is_present: boolean | null
           n8n_responded_at: string | null
           n8n_response_message: string | null
@@ -274,6 +275,7 @@ export type Database = {
           customer_id: string
           event_id: string
           id?: string
+          invoice_email_sent_at?: string | null
           is_present?: boolean | null
           n8n_responded_at?: string | null
           n8n_response_message?: string | null
@@ -297,6 +299,7 @@ export type Database = {
           customer_id?: string
           event_id?: string
           id?: string
+          invoice_email_sent_at?: string | null
           is_present?: boolean | null
           n8n_responded_at?: string | null
           n8n_response_message?: string | null
