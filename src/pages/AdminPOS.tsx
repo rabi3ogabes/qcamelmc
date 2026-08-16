@@ -1340,7 +1340,34 @@ const AdminPOS = () => {
                         </SelectContent>
                       </Select>
                     </div>
+
+                    {(phoneSearching || phoneMatches.length > 0) && (
+                      <div className="mt-2 rounded-xl border border-primary/30 bg-card shadow-lg overflow-hidden" dir="rtl">
+                        {phoneSearching && phoneMatches.length === 0 && (
+                          <p className="px-3 py-2 text-xs text-muted-foreground">جاري البحث عن عملاء سابقين…</p>
+                        )}
+                        {phoneMatches.map((c) => (
+                          <button
+                            key={c.id}
+                            type="button"
+                            onClick={() => applyCustomer(c)}
+                            className="w-full text-right px-3 py-2 flex items-center justify-between gap-3 hover:bg-primary/10 transition-colors border-b last:border-b-0 border-border/50"
+                          >
+                            <span className="min-w-0">
+                              <span className="block font-bold truncate">{c.name}</span>
+                              <span className="block text-[11px] text-muted-foreground" dir="ltr">
+                                {c.country_code || "+974"}{c.phone}
+                                {c.id_number ? ` · ${c.id_number}` : ""}
+                                {c.nationality ? ` · ${c.nationality}` : ""}
+                              </span>
+                            </span>
+                            <User className="w-4 h-4 text-primary shrink-0" />
+                          </button>
+                        ))}
+                      </div>
+                    )}
                   </div>
+
 
                   <div>
                     <Label htmlFor="id_number">رقم الهوية *</Label>
