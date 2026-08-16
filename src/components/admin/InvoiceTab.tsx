@@ -77,6 +77,8 @@ export const InvoiceTab = () => {
   const [sending, setSending] = useState(false);
   const [sentOrders, setSentOrders] = useState<Map<string, { sentAt: Date; message?: string }>>(new Map());
   const [webhookUrl, setWebhookUrl] = useState<string | null>(null);
+  const [webhookDisabled, setWebhookDisabled] = useState(false);
+
   const [emailWebhookUrl, setEmailWebhookUrl] = useState<string | null>(null);
   const [currentlySending, setCurrentlySending] = useState<string | null>(null);
   const [autoInvoiceInterval, setAutoInvoiceInterval] = useState<number>(60);
@@ -228,8 +230,10 @@ export const InvoiceTab = () => {
     }
 
     const d = data as any;
+    setWebhookDisabled(d?.webhook_enabled === false && !!d?.webhook_url);
     setWebhookUrl(d?.webhook_enabled === false ? null : d?.webhook_url || null);
     setEmailWebhookUrl(d?.email_webhook_enabled === false ? null : d?.email_webhook_url || null);
+
   };
 
   const fetchAutoInvoiceInterval = async () => {
