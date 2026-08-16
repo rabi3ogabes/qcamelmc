@@ -7,8 +7,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { CheckCircle, MapPin, Calendar, Eye, QrCode, Loader2, XCircle, Printer, Trash2, Grid3x3, List, Search, Banknote, CreditCard, AlertCircle, Ticket, Crown, Car, Copy } from "lucide-react";
+import { CheckCircle, MapPin, Calendar, Eye, QrCode, Loader2, XCircle, Printer, Trash2, Grid3x3, List, Search, Banknote, CreditCard, AlertCircle, Ticket, Crown, Car, Copy, ReceiptText } from "lucide-react";
 import { EventShiftBadge } from "./EventShiftBadge";
+import { SadadTransactionDialog } from "./SadadTransactionDialog";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
@@ -82,6 +83,7 @@ interface Order {
   created_at: string;
   event_id: string;
   sadad_manually_verified?: boolean;
+  payment_id?: string | null;
   payment_error_reason?: string | null;
   customers: {
     name: string;
@@ -126,6 +128,7 @@ export const OrdersTab = () => {
   const [showGenerateQrButton, setShowGenerateQrButton] = useState(false);
   const [showUpcomingOnly, setShowUpcomingOnly] = useState(true);
   const [page, setPage] = useState(0);
+  const [sadadTxOrder, setSadadTxOrder] = useState<{ id: string; ref: string } | null>(null);
 
   // Debounce the search so typing doesn't hammer the database
   useEffect(() => {
@@ -682,6 +685,10 @@ export const OrdersTab = () => {
             <Eye className="w-3 h-3" />
             {t("viewDetails")}
           </Button>
+          {order.payment_method === "sadad" && <Button size="sm" variant="outline" onClick={() => setSadadTxOrder({ id: order.id, ref: order.booking_reference })} className="font-lusail flex items-center gap-1 text-xs px-2 py-1 h-8 border-primary/40 text-primary hover:bg-primary/10">
+              <ReceiptText className="w-3 h-3" />
+              تفاصيل سداد
+            </Button>}
           {order.payment_status === "pending" && <Button size="sm" variant="default" onClick={() => togglePaymentStatus(order.id, order.payment_status)} className="font-lusail flex items-center gap-1 text-xs px-2 py-1 h-8 bg-green-600 hover:bg-green-700 text-white">
               <CheckCircle className="w-3 h-3" />
               تأكيد الدفع ✓
@@ -776,6 +783,7 @@ export const OrdersTab = () => {
   };
 
   return <div className="space-y-6">
+      <SadadTransactionDialog orderId={sadadTxOrder?.id ?? null} bookingReference={sadadTxOrder?.ref} onOpenChange={open => !open && setSadadTxOrder(null)} />
       {/* Generate QR Codes Button */}
       {showGenerateQrButton && <div className="flex justify-end">
           <Button onClick={generateMissingQrCodes} disabled={generatingQrCodes} className="font-lusail">
