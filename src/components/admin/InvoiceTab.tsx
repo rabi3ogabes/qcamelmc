@@ -734,8 +734,13 @@ export const InvoiceTab = () => {
     }
   };
 
+  // Scope orders to the selected view (current season vs archived seasons)
+  const scopedOrders = orders.filter((order) =>
+    view === "archived" ? order.events?.is_archived === true : order.events?.is_archived !== true
+  );
+
   // Filter orders based on selected tab
-  const filteredOrders = orders.filter((order) => {
+  const filteredOrders = scopedOrders.filter((order) => {
     const isPending = isPendingMessage(order.n8n_response_message) || !order.n8n_responded_at;
     const eventDone = isEventDone(order);
     const onHold = isOnHold(order);
