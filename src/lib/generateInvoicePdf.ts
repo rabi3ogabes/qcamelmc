@@ -17,12 +17,21 @@ export interface InvoiceData {
   paid_at?: string | null;
 }
 
+const TICKET_TYPE_LABELS: Record<string, string> = {
+  normal: 'عادي',
+  vip: 'VIP',
+  parking: 'مواقف',
+};
+
+const ticketLabel = (type?: string | null) =>
+  (type && TICKET_TYPE_LABELS[type.toLowerCase()]) || type || '-';
+
 export const generateInvoicePdf = (data: InvoiceData) => {
   const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 
   const qrItems = data.qr_codes.map((qr, i) => {
     const url = qr.startsWith('http') ? qr : `${supabaseUrl}/storage/v1/object/public/qr-codes/${qr}.png`;
-    const type = data.ticket_types[i] || data.ticket_type;
+    const type = ticketLabel(data.ticket_types[i] || data.ticket_type);
     return `<div class="qr-item"><img src="${url}" alt="QR" /><span>${type}</span></div>`;
   }).join('');
 
