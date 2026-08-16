@@ -75,28 +75,49 @@ Deno.serve(async (req) => {
       .maybeSingle();
 
     const sadadId = settings?.sadad_merchant_id;
-    const secretKey = settings?.sadad_api_key || settings?.sadad_secret;
     const domain = settings?.sadad_website_domain || "qcamelmc.org";
 
-    if (!sadadId || !secretKey) {
+    // Sadad API login uses the API secret key. Some setups store it in
+    // sadad_api_key, others only have sadad_secret — try both.
+    const candidates = [settings?.sadad_api_key, settings?.sadad_secret]
+      .map((v) => (typeof v === "string" ? v.trim() : ""))
+      .filter((v) => v.length > 0)
+      .filter((v, i, arr) => arr.indexOf(v) === i);
+
+    if (!sadadId || candidates.length === 0) {
       return json({ error: "إعدادات سداد غير مكتملة (Sadad ID / Secret Key)" }, 400);
     }
 
     // 1) Authenticate with Sadad
-    const loginRes = await fetch("https://api-s.sadad.qa/api/userbusinesses/login", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Accept: "application/json" },
-      body: JSON.stringify({ sadadId: Number(sadadId), secretKey, domain }),
-    });
-    const loginJson = await loginRes.json().catch(() => ({}));
-    const accessToken = loginJson?.accessToken;
-    if (!loginRes.ok || !accessToken) {
-      console.error("Sadad login failed", loginRes.status, loginJson);
+    let accessToken: string | undefined;
+    let lastError = "";
+    for (const secretKey of candidates) {
+      const loginRes = await fetch("https://api-s.sadad.qa/api/userbusinesses/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Accept: "application/json" },
+        body: JSON.stringify({ sadadId: Number(sadadId), secretKey, domain }),
+      });
+      const loginJson = await loginRes.json().catch(() => ({}));
+      if (loginRes.ok && loginJson?.accessToken) {
+        accessToken = loginJson.accessToken;
+        break;
+      }
+      lastError = loginJson?.error?.message || `HTTP ${loginRes.status}`;
+      console.error("Sadad login attempt failed", loginRes.status, lastError);
+    }
+
+    if (!accessToken) {
       return json(
-        { error: loginJson?.error?.message || "فشل تسجيل الدخول إلى سداد" },
+        {
+          error:
+            `فشل تسجيل الدخول إلى سداد (${lastError}). ` +
+            "يرجى إدخال مفتاح API السري الصحيح من لوحة سداد → API في إعدادات النظام، " +
+            `والتأكد من أن النطاق المسجل لدى سداد هو ${domain}.`,
+        },
         502,
       );
     }
+
 
     // 2) Fetch the transaction (GET with JSON body, per Sadad docs)
     const txRes = await fetch("https://api-s.sadad.qa/api/transactions/getTransaction", {
