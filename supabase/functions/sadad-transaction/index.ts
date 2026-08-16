@@ -1,9 +1,15 @@
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient } from "npm:@supabase/supabase-js@2";
+import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
+import { z } from "npm:zod@3";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+const RequestSchema = z
+  .object({
+    orderId: z.string().uuid().optional(),
+    transactionno: z.string().trim().min(1).max(100).optional(),
+  })
+  .refine((value) => value.orderId || value.transactionno, {
+    message: "يجب تحديد الطلب أو رقم عملية سداد",
+  });
 
 const STATUS_AR: Record<string, string> = {
   INPROGRESS: "قيد المعالجة",
@@ -47,9 +53,12 @@ Deno.serve(async (req) => {
     const { data: isAdmin } = await admin.rpc("is_admin", { user_id: user.id });
     if (!isAdmin) return json({ error: "Forbidden" }, 403);
 
-    const body = await req.json().catch(() => ({}));
-    const orderId: string | undefined = body?.orderId;
-    let transactionNo: string | undefined = body?.transactionno;
+    const parsedBody = RequestSchema.safeParse(await req.json().catch(() => ({})));
+    if (!parsedBody.success) {
+      return json({ error: parsedBody.error.issues[0]?.message || "بيانات الطلب غير صالحة" }, 400);
+    }
+    const orderId = parsedBody.data.orderId;
+    let transactionNo = parsedBody.data.transactionno;
 
     if (!transactionNo && orderId) {
       const { data: order } = await admin
@@ -70,33 +79,29 @@ Deno.serve(async (req) => {
 
     const { data: settings } = await admin
       .from("settings")
-      .select("sadad_merchant_id, sadad_api_key, sadad_secret, sadad_website_domain")
+      .select("sadad_merchant_id, sadad_website_domain")
       .limit(1)
       .maybeSingle();
 
     const sadadId = settings?.sadad_merchant_id;
     const domain = settings?.sadad_website_domain || "qcamelmc.org";
 
-    // Transaction API login uses its own private credential. Prefer the
-    // encrypted function secret; retain legacy settings only as fallbacks.
-    const candidates = [
-      Deno.env.get("SADAD_API_SECRET_KEY"),
-      settings?.sadad_api_key,
-      settings?.sadad_secret,
-    ]
-      .map((v) => (typeof v === "string" ? v.trim() : ""))
-      .filter((v) => v.length > 0)
-      .filter((v, i, arr) => arr.indexOf(v) === i);
+    // API Login has a dedicated credential. Support PIN and checksum keys
+    // are intentionally never attempted because Sadad rejects both.
+    const apiLoginSecret = Deno.env.get("SADAD_API_SECRET_KEY")?.trim();
 
-    if (!sadadId || candidates.length === 0) {
-      return json({ error: "إعدادات سداد غير مكتملة (Sadad ID / Secret Key)" }, 400);
+    if (!sadadId || !apiLoginSecret) {
+      return json({
+        success: false,
+        code: "SADAD_API_LOGIN_NOT_CONFIGURED",
+        error: "تفاصيل العملية غير متاحة حالياً: مفتاح API Login الخاص بسداد غير مضبوط.",
+      });
     }
 
     console.log(
-      "Sadad login candidates:",
-      candidates.map((c) => c.length).join(","),
-      "envSet:",
-      Boolean(Deno.env.get("SADAD_API_SECRET_KEY")),
+      "Sadad API login:",
+      "credentialSet:",
+      true,
       "sadadId:",
       sadadId,
       "domain:",
@@ -105,39 +110,32 @@ Deno.serve(async (req) => {
 
 
     // 1) Authenticate with Sadad
-    let accessToken: string | undefined;
-    let lastError = "";
-    for (const secretKey of candidates) {
-      const loginRes = await fetch("https://api-s.sadad.qa/api/userbusinesses/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Accept: "application/json" },
-        body: JSON.stringify({ sadadId: Number(sadadId), secretKey, domain }),
-      });
-      const loginJson = await loginRes.json().catch(() => ({}));
-      if (loginRes.ok && loginJson?.accessToken) {
-        accessToken = loginJson.accessToken;
-        break;
-      }
-      lastError = loginJson?.error?.message || `HTTP ${loginRes.status}`;
-      console.error("Sadad login attempt failed", loginRes.status, lastError);
-    }
+    const loginRes = await fetch("https://api-s.sadad.qa/api/userbusinesses/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Accept: "application/json" },
+      body: JSON.stringify({ sadadId: Number(sadadId), secretKey: apiLoginSecret, domain }),
+    });
+    const loginJson = await loginRes.json().catch(() => ({}));
+    const accessToken = loginRes.ok && typeof loginJson?.accessToken === "string"
+      ? loginJson.accessToken
+      : undefined;
 
     if (!accessToken) {
+      console.error("Sadad API login rejected", loginRes.status);
       return json(
         {
-          error:
-            `فشل تسجيل الدخول إلى سداد (${lastError}). ` +
-            "يرجى إدخال مفتاح API السري الصحيح من لوحة سداد → API في إعدادات النظام، " +
-            `والتأكد من أن النطاق المسجل لدى سداد هو ${domain}.`,
+          success: false,
+          code: "SADAD_API_LOGIN_REJECTED",
+          error: `تعذر التحقق من بيانات API Login لدى سداد. تحقق من المفتاح المخصص للـ API والنطاق ${domain}.`,
         },
-        502,
       );
     }
 
 
-    // 2) Fetch the transaction (GET with JSON body, per Sadad docs)
+    // 2) Fetch the transaction. A POST is required because Fetch forbids a
+    // request body on GET/HEAD and the Sadad endpoint expects JSON input.
     const txRes = await fetch("https://api-s.sadad.qa/api/transactions/getTransaction", {
-      method: "GET",
+      method: "POST",
       headers: {
         "Content-Type": "application/json",
         Accept: "application/json",
