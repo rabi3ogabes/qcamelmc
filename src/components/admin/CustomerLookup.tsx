@@ -6,7 +6,7 @@ import { Search, UserCheck, Loader2, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { searchCustomers, dedupeCustomers } from "@/lib/customerLookup";
-import { getRemainingAllowance, MAX_TICKETS_PER_PERSON } from "@/lib/ticketLimit";
+import { getPersonEventHistory, formatHistoryDate, PersonEventHistoryItem } from "@/lib/personEventHistory";
 
 export interface LookupCustomer {
   id: string;
@@ -25,7 +25,7 @@ interface CustomerLookupProps {
 }
 
 export const CustomerLookup = ({ onSelect, eventId }: CustomerLookupProps) => {
-  const [allowances, setAllowances] = useState<Record<string, number | null>>({});
+  const [histories, setHistories] = useState<Record<string, PersonEventHistoryItem[]>>({});
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<LookupCustomer[]>([]);
   const [searching, setSearching] = useState(false);
@@ -36,7 +36,7 @@ export const CustomerLookup = ({ onSelect, eventId }: CustomerLookupProps) => {
     if (trimmed.length < 3) {
       setResults([]);
       setSearched(false);
-      setAllowances({});
+      setHistories({});
       return;
     }
     setSearching(true);
@@ -45,16 +45,16 @@ export const CustomerLookup = ({ onSelect, eventId }: CustomerLookupProps) => {
       const found = dedupeCustomers(await searchCustomers(trimmed)) as LookupCustomer[];
       setResults(found);
 
-      if (eventId && found.length > 0) {
+      if (found.length > 0) {
         const entries = await Promise.all(
           found.map(async (c) => [
             c.id,
-            await getRemainingAllowance(c.id_number, `${c.country_code || ""}${c.phone}`, eventId),
+            await getPersonEventHistory(c.id_number, `${c.country_code || ""}${c.phone}`),
           ] as const)
         );
-        setAllowances(Object.fromEntries(entries));
+        setHistories(Object.fromEntries(entries));
       } else {
-        setAllowances({});
+        setHistories({});
       }
     } catch (error) {
       console.error("Customer lookup failed:", error);
@@ -75,7 +75,7 @@ export const CustomerLookup = ({ onSelect, eventId }: CustomerLookupProps) => {
     setQuery("");
     setResults([]);
     setSearched(false);
-    setAllowances({});
+    setHistories({});
   };
 
 
@@ -118,18 +118,19 @@ export const CustomerLookup = ({ onSelect, eventId }: CustomerLookupProps) => {
                   {customer.phone}
                   {customer.id_number ? ` · ${customer.id_number}` : ""}
                 </p>
-                {allowances[customer.id] !== undefined && allowances[customer.id] !== null && (
-                  <span
-                    className={`mt-1 inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-lusail font-bold ${
-                      allowances[customer.id] === 0
-                        ? "bg-destructive/10 text-destructive"
-                        : "bg-primary/10 text-primary"
-                    }`}
-                  >
-                    {allowances[customer.id] === 0
-                      ? `بلغ الحد الأقصى (${MAX_TICKETS_PER_PERSON} تذاكر)`
-                      : `متبقٍ له ${allowances[customer.id]} تذكرة`}
-                  </span>
+                {histories[customer.id]?.length > 0 && (
+                  <div className="mt-1.5 flex flex-wrap gap-1">
+                    {histories[customer.id].map((h) => (
+                      <span
+                        key={h.eventId}
+                        className="inline-flex items-center gap-1 rounded-full border border-primary/20 bg-primary/5 px-2 py-0.5 text-[11px] font-lusail text-foreground/80"
+                        title={h.title}
+                      >
+                        <span className="opacity-70">{formatHistoryDate(h.date) || h.title}</span>
+                        <span className="font-bold text-primary">{h.count} تذكرة</span>
+                      </span>
+                    ))}
+                  </div>
                 )}
               </div>
               <Button
