@@ -718,7 +718,7 @@ export const OrdersTab = () => {
       </div>
 
       {/* Footer */}
-      <div className="pl-5 pr-4 py-2 border-t bg-muted/40 flex items-center justify-between gap-2">
+      <div className="pr-5 pl-4 py-2 border-t bg-muted/40 flex items-center justify-between gap-2">
         <span className="text-[11px] text-muted-foreground flex items-center gap-1">
           <Calendar className="w-3 h-3" />
           {bookedLabel}
