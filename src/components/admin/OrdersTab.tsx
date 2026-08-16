@@ -802,7 +802,7 @@ export const OrdersTab = () => {
       </div>
 
       {/* Orders Tabs */}
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+      <Tabs value={activeTab} onValueChange={v => setActiveTab(v as "success" | "failed")} className="w-full">
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 mb-4">
           <TabsList className="grid grid-cols-2 font-lusail">
             <TabsTrigger value="success">{t("success")} ({stats.success})</TabsTrigger>
@@ -831,9 +831,10 @@ export const OrdersTab = () => {
             >
               cash_pos ({paymentMethodStats.cash_pos})
             </button>
-            {!isFullyLoaded && (
+            {loading && (
               <Loader2 className="w-4 h-4 animate-spin text-primary mr-1" />
             )}
+
           </div>
           
           <Select value={selectedEventFilter} onValueChange={setSelectedEventFilter}>
@@ -864,9 +865,10 @@ export const OrdersTab = () => {
             </Label>
             {showUpcomingOnly && (
               <Badge variant="secondary" className="font-lusail text-xs">
-                {filteredOrders.length}
+                {totalCount}
               </Badge>
             )}
+
           </div>
           
           <div className="flex gap-2">
@@ -898,6 +900,39 @@ export const OrdersTab = () => {
                 {filteredOrders.map(order => <OrderCard key={order.id} order={order} />)}
               </div>}
         </TabsContent>
+
+        {/* Pagination */}
+        {!isSearching && totalCount > PAGE_SIZE && (
+          <div className="mt-6 flex flex-col items-center justify-between gap-3 rounded-xl border bg-card/60 px-4 py-3 backdrop-blur-sm sm:flex-row">
+            <p className="font-lusail text-xs text-muted-foreground">
+              عرض {totalCount === 0 ? 0 : page * PAGE_SIZE + 1}–{Math.min((page + 1) * PAGE_SIZE, totalCount)} من {totalCount} حجز
+            </p>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                className="font-lusail"
+                disabled={page === 0 || loading}
+                onClick={() => setPage(p => Math.max(0, p - 1))}
+              >
+                السابق
+              </Button>
+              <span className="font-lusail text-xs text-muted-foreground">
+                صفحة {page + 1} من {totalPages}
+              </span>
+              <Button
+                variant="outline"
+                size="sm"
+                className="font-lusail"
+                disabled={page + 1 >= totalPages || loading}
+                onClick={() => setPage(p => p + 1)}
+              >
+                التالي
+              </Button>
+            </div>
+          </div>
+        )}
+
       </Tabs>
 
       {/* Order Details Dialog */}
