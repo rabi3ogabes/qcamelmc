@@ -85,6 +85,10 @@ const AdminPOS = () => {
   const [customerNationality, setCustomerNationality] = useState("قطر");
   const [customerIdNumber, setCustomerIdNumber] = useState("");
   const [showAllNationalities, setShowAllNationalities] = useState(false);
+  const [phoneMatches, setPhoneMatches] = useState<LookupCustomer[]>([]);
+  const [phoneSearching, setPhoneSearching] = useState(false);
+  const suppressPhoneSearchRef = useRef(false);
+
   const [ticketHolders, setTicketHolders] = useState<TicketHolderInput[]>([]);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
