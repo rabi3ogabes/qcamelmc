@@ -7,9 +7,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Lock } from "lucide-react";
 import { toast } from "sonner";
+import { grantStaffAccess, hasStaffAccess } from "@/lib/staffAccess";
 
 const STAFF_PASSCODE = "@@@Qatar123";
-const PASS_KEY = "staff_passcode_ok";
+
 
 /**
  * Guards staff-only routes: allows a signed-in admin, or anyone who enters the staff passcode.
