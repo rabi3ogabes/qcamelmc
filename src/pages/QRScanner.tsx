@@ -12,6 +12,7 @@ import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { useActivityLog } from "@/hooks/useActivityLog";
 import { format } from "date-fns";
+import { playErrorSound } from "@/lib/sfx";
 
 interface TicketHolder {
   id: string;
@@ -79,6 +80,11 @@ const QRScanner = () => {
   const [successData, setSuccessData] = useState<SuccessData | null>(null);
   const [collapsedDates, setCollapsedDates] = useState<Record<string, boolean>>({});
   const [errorDialogMessage, setErrorDialogMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (errorDialogMessage) playErrorSound();
+  }, [errorDialogMessage]);
+
   const scannerRef = useRef<Html5Qrcode | null>(null);
   const isScanning = useRef(false);
 
@@ -1826,15 +1832,8 @@ const QRScanner = () => {
         onOpenChange={(open) => !open && setErrorDialogMessage(null)}
       >
         <DialogContent className="sm:max-w-md text-center p-8">
-          {/* Play error sound when dialog opens */}
-          {errorDialogMessage && (
-            <audio 
-              autoPlay 
-              src="https://cdn.pixabay.com/audio/2022/03/10/audio_7f3ecf6458.mp3"
-              style={{ display: 'none' }}
-            />
-          )}
           <div className="flex flex-col items-center gap-6">
+
             <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center">
               <XCircle className="w-12 h-12 text-red-600" />
             </div>
