@@ -595,13 +595,23 @@ export const OrdersTab = () => {
 
     return <Card dir="rtl" className={`group relative overflow-hidden flex flex-col h-full border-border/70 bg-card transition-all duration-300 hover:shadow-[var(--shadow-elegant)] hover:border-primary/40 ${order.sadad_manually_verified ? 'ring-1 ring-green-500/30' : ''}`}>
       {/* Luxury accent rail */}
-      <div className="absolute inset-y-0 left-0 w-1 bg-[var(--gradient-primary)] opacity-80" />
+      <div className="absolute inset-y-0 right-0 w-1 bg-[var(--gradient-primary)] opacity-80" />
 
       {/* Header */}
-      <div className="pl-5 pr-4 py-3 flex items-start justify-between gap-3 border-b bg-muted/30">
-        <div className="min-w-0">
-          <div className="flex items-center gap-1.5">
-            <p className="font-mono text-xs font-bold text-primary truncate max-w-[130px]" title={order.booking_reference}>{order.booking_reference}</p>
+      <div className="pr-5 pl-4 py-3 flex items-start justify-between gap-3 border-b bg-muted/30">
+        <div className="flex flex-col items-start gap-1.5 shrink-0">
+          <Badge variant={order.payment_status === "confirmed" ? "default" : order.payment_status === "cancelled" ? "destructive" : "secondary"} className="font-lusail text-[11px] px-2.5 py-0.5">
+            {statusLabel}
+          </Badge>
+          <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+            {order.payment_method === 'cash_pos' ? <Banknote className="w-3.5 h-3.5 text-green-600" /> : <CreditCard className="w-3.5 h-3.5 text-blue-600" />}
+            <span className="capitalize">{order.pos_users?.name || order.payment_method}</span>
+          </div>
+        </div>
+
+        <div className="min-w-0 text-end">
+          <div className="flex items-center justify-end gap-1.5">
+            <EventShiftBadge orderId={order.id} />
             <button
               onClick={() => {
                 navigator.clipboard.writeText(order.booking_reference);
@@ -612,26 +622,16 @@ export const OrdersTab = () => {
             >
               <Copy className="w-3 h-3 text-muted-foreground" />
             </button>
-            <EventShiftBadge orderId={order.id} />
+            <p className="font-mono text-xs font-bold text-primary truncate max-w-[130px]" title={order.booking_reference}>{order.booking_reference}</p>
           </div>
-          <p className="mt-1 text-[11px] text-muted-foreground flex items-center gap-1">
-            <Calendar className="w-3 h-3" />
+          <p className="mt-1 text-[11px] text-muted-foreground flex items-center justify-end gap-1">
             {eventDateLabel}
+            <Calendar className="w-3 h-3" />
           </p>
-        </div>
-
-        <div className="flex flex-col items-end gap-1.5 shrink-0">
-          <Badge variant={order.payment_status === "confirmed" ? "default" : order.payment_status === "cancelled" ? "destructive" : "secondary"} className="font-lusail text-[11px] px-2.5 py-0.5">
-            {statusLabel}
-          </Badge>
-          <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
-            {order.payment_method === 'cash_pos' ? <Banknote className="w-3.5 h-3.5 text-green-600" /> : <CreditCard className="w-3.5 h-3.5 text-blue-600" />}
-            <span className="capitalize">{order.pos_users?.name || order.payment_method}</span>
-          </div>
         </div>
       </div>
 
-      <div className="pl-5 pr-4 py-4 space-y-4 flex-1">
+      <div className="pr-5 pl-4 py-4 space-y-4 flex-1">
         {/* Failure reason */}
         {order.payment_status !== "confirmed" && order.payment_error_reason && <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-2.5 flex items-start gap-2">
             <AlertCircle className="w-4 h-4 text-destructive mt-0.5 shrink-0" />
@@ -640,24 +640,23 @@ export const OrdersTab = () => {
 
         {/* Customer + amount */}
         <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0">
+          <div className="text-start shrink-0">
+            <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-0.5">{t("qar")}</p>
+            <p className="text-lg font-bold text-primary tabular-nums">{order.total_amount.toFixed(2)}</p>
+          </div>
+          <div className="min-w-0 text-end">
             <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-0.5">{t("customer")}</p>
-            <p className="font-semibold flex items-center gap-2 truncate">
-              <span className="text-lg leading-none">{getCountryFlag(customer.nationality)}</span>
+            <p className="font-semibold flex items-center justify-end gap-2 truncate">
               <span className="truncate">{customer.name}</span>
+              <span className="text-lg leading-none">{getCountryFlag(customer.nationality)}</span>
             </p>
             <p className="text-xs text-muted-foreground" dir="ltr">{customer.phone}</p>
             {customer.email && <p className="text-xs text-muted-foreground truncate" dir="ltr">{customer.email}</p>}
-          </div>
-          <div className="text-end shrink-0">
-            <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-0.5">{t("qar")}</p>
-            <p className="text-lg font-bold text-primary tabular-nums">{order.total_amount.toFixed(2)}</p>
           </div>
         </div>
 
         {/* Tickets */}
         <div className="rounded-lg border bg-muted/30 px-3 py-2 flex items-center justify-between gap-2">
-          <p className="text-xs font-semibold capitalize truncate">{getOrderTicketSummary(order)}</p>
           <div className="flex items-center gap-0.5 shrink-0">
             {getOrderTicketTypes(order).slice(0, Math.min(order.quantity, 8)).map((type, i) => type === 'vip'
               ? <Crown key={i} className="w-3 h-3 text-ticket-vip" />
@@ -665,6 +664,7 @@ export const OrdersTab = () => {
                 ? <Car key={i} className="w-3 h-3 text-ticket-parking" />
                 : <Ticket key={i} className="w-3 h-3 text-ticket-normal" />)}
           </div>
+          <p className="text-xs font-semibold capitalize truncate text-end">{getOrderTicketSummary(order)}</p>
         </div>
 
         {/* Actions */}
@@ -718,11 +718,7 @@ export const OrdersTab = () => {
       </div>
 
       {/* Footer */}
-      <div className="pl-5 pr-4 py-2 border-t bg-muted/40 flex items-center justify-between gap-2">
-        <span className="text-[11px] text-muted-foreground flex items-center gap-1">
-          <Calendar className="w-3 h-3" />
-          {bookedLabel}
-        </span>
+      <div className="pr-5 pl-4 py-2 border-t bg-muted/40 flex items-center justify-between gap-2">
         <Badge variant={order.sadad_manually_verified ? "default" : "secondary"} onClick={async e => {
           e.stopPropagation();
           try {
@@ -739,6 +735,10 @@ export const OrdersTab = () => {
         }} className={`font-lusail text-[11px] px-2.5 py-1 cursor-pointer transition-opacity hover:opacity-80 ${order.sadad_manually_verified ? "bg-green-600 hover:bg-green-700 text-white border-green-600" : "bg-muted text-muted-foreground hover:bg-muted/80"}`} title={order.sadad_manually_verified ? "اضغط لإلغاء التأكد" : "اضغط للتأكد من الدفع"}>
           {order.sadad_manually_verified ? <><CheckCircle className="w-3 h-3 ms-1 inline" />تم تأكيد سداد</> : <><XCircle className="w-3 h-3 ms-1 inline" />تأكيد سداد</>}
         </Badge>
+        <span className="text-[11px] text-muted-foreground flex items-center justify-end gap-1">
+          {bookedLabel}
+          <Calendar className="w-3 h-3" />
+        </span>
       </div>
       </Card>;
   };
