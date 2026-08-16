@@ -92,6 +92,18 @@ Deno.serve(async (req) => {
       return json({ error: "إعدادات سداد غير مكتملة (Sadad ID / Secret Key)" }, 400);
     }
 
+    console.log(
+      "Sadad login candidates:",
+      candidates.map((c) => c.length).join(","),
+      "envSet:",
+      Boolean(Deno.env.get("SADAD_API_SECRET_KEY")),
+      "sadadId:",
+      sadadId,
+      "domain:",
+      domain,
+    );
+
+
     // 1) Authenticate with Sadad
     let accessToken: string | undefined;
     let lastError = "";
