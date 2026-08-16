@@ -158,6 +158,50 @@ export type Database = {
         }
         Relationships: []
       }
+      email_delivery_events: {
+        Row: {
+          attempt: number
+          booking_reference: string | null
+          created_at: string
+          detail: string | null
+          id: string
+          order_id: string | null
+          recipient: string | null
+          status: string
+          template: string
+        }
+        Insert: {
+          attempt?: number
+          booking_reference?: string | null
+          created_at?: string
+          detail?: string | null
+          id?: string
+          order_id?: string | null
+          recipient?: string | null
+          status: string
+          template?: string
+        }
+        Update: {
+          attempt?: number
+          booking_reference?: string | null
+          created_at?: string
+          detail?: string | null
+          id?: string
+          order_id?: string | null
+          recipient?: string | null
+          status?: string
+          template?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_delivery_events_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       events: {
         Row: {
           archived_at: string | null

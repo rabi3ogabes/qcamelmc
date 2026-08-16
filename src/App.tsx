@@ -23,6 +23,7 @@ const VisitorTracker = ({ children }: { children: React.ReactNode }) => {
 const TicketSelection = lazy(() => import("./pages/TicketSelection"));
 const Checkout = lazy(() => import("./pages/Checkout"));
 const Confirmation = lazy(() => import("./pages/Confirmation"));
+const InvoicePage = lazy(() => import("./pages/InvoicePage"));
 const SadadCallback = lazy(() => import("./pages/SadadCallback"));
 const SadadRedirect = lazy(() => import("./pages/SadadRedirect"));
 const AdminLogin = lazy(() => import("./pages/AdminLogin"));
@@ -76,6 +77,7 @@ const App = () => (
                     <Route path="/tickets/:eventId" element={<TicketSelection />} />
                     <Route path="/checkout" element={<Checkout />} />
                     <Route path="/confirmation" element={<Confirmation />} />
+                    <Route path="/invoice/:bookingReference" element={<InvoicePage />} />
                     <Route path="/sadad-callback" element={<SadadCallback />} />
                     <Route path="/sadad-redirect" element={<SadadRedirect />} />
                     <Route path="/live-bookings" element={<RequireAdmin><LiveBookings /></RequireAdmin>} />

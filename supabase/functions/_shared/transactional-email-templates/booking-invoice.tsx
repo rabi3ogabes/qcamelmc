@@ -4,6 +4,7 @@ import {
   Container,
   Head,
   Heading,
+  Button,
   Hr,
   Html,
   Img,
@@ -28,6 +29,7 @@ interface Props {
   payment_method?: string | null
   paid_at?: string | null
   logo_url?: string | null
+  invoice_url?: string | null
 }
 
 const GOLD = '#C9A227'
@@ -69,6 +71,7 @@ const Email = ({
   payment_method,
   paid_at,
   logo_url,
+  invoice_url,
 }: Props) => (
   <Html lang="ar" dir="rtl">
     <Head />
@@ -119,6 +122,15 @@ const Email = ({
           ) : null}
         </Section>
 
+        {invoice_url ? (
+          <Section style={{ textAlign: 'center' as const, margin: '26px 0 4px' }}>
+            <Button href={invoice_url} style={cta}>
+              تحميل الفاتورة PDF
+            </Button>
+            <Text style={ctaHint}>يفتح صفحة فاتورتك مع رمز الدخول وإمكانية الحفظ PDF أو صورة</Text>
+          </Section>
+        ) : null}
+
         <Text style={note}>
           يرجى الاحتفاظ بهذه الفاتورة. تذاكرك ورمز الدخول تصلك عبر واتساب على الرقم المسجل.
         </Text>
@@ -148,6 +160,7 @@ export const template = {
     payment_method: 'sadad',
     paid_at: '2026-02-01',
     logo_url: null,
+    invoice_url: 'https://qcamelmc.org/invoice/QC-2026-00123',
   },
 } satisfies TemplateEntry
 
@@ -192,5 +205,16 @@ const detailRow = { padding: '10px 0' }
 const detailLabel = { fontSize: '13px', color: MUTED, width: '45%' }
 const detailValue = { fontSize: '14px', color: INK, fontWeight: 600, textAlign: 'left' as const }
 const hr = { borderColor: LINE, margin: '0' }
+const cta = {
+  backgroundColor: GOLD,
+  color: '#ffffff',
+  fontSize: '15px',
+  fontWeight: 700,
+  borderRadius: '999px',
+  padding: '13px 34px',
+  textDecoration: 'none',
+  display: 'inline-block',
+}
+const ctaHint = { fontSize: '12px', color: MUTED, margin: '10px 0 0' }
 const note = { fontSize: '13px', color: MUTED, lineHeight: '22px', marginTop: '20px' }
 const footer = { fontSize: '12px', color: MUTED, textAlign: 'center' as const }
