@@ -1347,7 +1347,22 @@ const AdminPOS = () => {
                                 {c.id_number ? ` · ${c.id_number}` : ""}
                                 {c.nationality ? ` · ${c.nationality}` : ""}
                               </span>
+                              {phoneHistories[c.id]?.length > 0 && (
+                                <span className="mt-1.5 flex flex-wrap gap-1">
+                                  {phoneHistories[c.id].map((h) => (
+                                    <span
+                                      key={h.eventId}
+                                      title={h.title}
+                                      className="inline-flex items-center gap-1 rounded-full border border-primary/20 bg-primary/5 px-2 py-0.5 text-[11px] text-foreground/80"
+                                    >
+                                      <span className="opacity-70">{formatHistoryDate(h.date) || h.title}</span>
+                                      <span className="font-bold text-primary">{h.count} تذكرة</span>
+                                    </span>
+                                  ))}
+                                </span>
+                              )}
                             </span>
+
                             <User className="w-4 h-4 text-primary shrink-0" />
                           </button>
                         ))}
