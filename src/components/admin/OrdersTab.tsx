@@ -598,7 +598,7 @@ export const OrdersTab = () => {
       <div className="absolute inset-y-0 left-0 w-1 bg-[var(--gradient-primary)] opacity-80" />
 
       {/* Header */}
-      <div className="pr-5 pl-4 py-3 flex items-start justify-between gap-3 border-b bg-muted/30">
+      <div className="pl-5 pr-4 py-3 flex items-start justify-between gap-3 border-b bg-muted/30">
         <div className="min-w-0">
           <div className="flex items-center gap-1.5">
             <p className="font-mono text-xs font-bold text-primary truncate max-w-[130px]" title={order.booking_reference}>{order.booking_reference}</p>
@@ -631,7 +631,7 @@ export const OrdersTab = () => {
         </div>
       </div>
 
-      <div className="pr-5 pl-4 py-4 space-y-4 flex-1">
+      <div className="pl-5 pr-4 py-4 space-y-4 flex-1">
         {/* Failure reason */}
         {order.payment_status !== "confirmed" && order.payment_error_reason && <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-2.5 flex items-start gap-2">
             <AlertCircle className="w-4 h-4 text-destructive mt-0.5 shrink-0" />
@@ -718,7 +718,7 @@ export const OrdersTab = () => {
       </div>
 
       {/* Footer */}
-      <div className="pr-5 pl-4 py-2 border-t bg-muted/40 flex items-center justify-between gap-2">
+      <div className="pl-5 pr-4 py-2 border-t bg-muted/40 flex items-center justify-between gap-2">
         <span className="text-[11px] text-muted-foreground flex items-center gap-1">
           <Calendar className="w-3 h-3" />
           {bookedLabel}
