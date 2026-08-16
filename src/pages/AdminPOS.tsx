@@ -1,5 +1,6 @@
-import { useState, useEffect } from "react";
-import { CustomerLookup } from "@/components/admin/CustomerLookup";
+import { useState, useEffect, useRef } from "react";
+import { CustomerLookup, type LookupCustomer } from "@/components/admin/CustomerLookup";
+
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -84,6 +85,10 @@ const AdminPOS = () => {
   const [customerNationality, setCustomerNationality] = useState("قطر");
   const [customerIdNumber, setCustomerIdNumber] = useState("");
   const [showAllNationalities, setShowAllNationalities] = useState(false);
+  const [phoneMatches, setPhoneMatches] = useState<LookupCustomer[]>([]);
+  const [phoneSearching, setPhoneSearching] = useState(false);
+  const suppressPhoneSearchRef = useRef(false);
+
   const [ticketHolders, setTicketHolders] = useState<TicketHolderInput[]>([]);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
@@ -309,6 +314,68 @@ const AdminPOS = () => {
     document.addEventListener('fullscreenchange', handleFullscreenChange);
     return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
   }, []);
+
+  // Live customer suggestions while typing the phone number
+  useEffect(() => {
+    const term = customerPhone.replace(/\D/g, "");
+    if (suppressPhoneSearchRef.current) {
+      suppressPhoneSearchRef.current = false;
+      return;
+    }
+    if (term.length < 4) {
+      setPhoneMatches([]);
+      return;
+    }
+    let cancelled = false;
+    setPhoneSearching(true);
+    const timer = setTimeout(async () => {
+      try {
+        const { data, error } = await supabase
+          .from("customers")
+          .select("id, name, email, phone, country_code, nationality, id_number")
+          .ilike("phone", `%${term}%`)
+          .order("created_at", { ascending: false })
+          .limit(6);
+        if (error) throw error;
+        if (!cancelled) {
+          // de-duplicate by phone + id number, keeping the most recent record
+          const seen = new Set<string>();
+          const unique = (data || []).filter((c) => {
+            const key = `${c.phone}|${c.id_number || ""}`;
+            if (seen.has(key)) return false;
+            seen.add(key);
+            return true;
+          });
+          setPhoneMatches(unique as LookupCustomer[]);
+        }
+      } catch (err) {
+        console.error("Phone lookup failed:", err);
+        if (!cancelled) setPhoneMatches([]);
+      } finally {
+        if (!cancelled) setPhoneSearching(false);
+      }
+    }, 350);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+      setPhoneSearching(false);
+      clearTimeout(timer);
+    };
+  }, [customerPhone]);
+
+  const applyCustomer = (c: LookupCustomer) => {
+    suppressPhoneSearchRef.current = true;
+    setCustomerName(c.name || "");
+    setCustomerEmail(c.email || "");
+    setCustomerPhone(c.phone || "");
+    setCustomerCountryCode(c.country_code || "+974");
+    setCustomerNationality(c.nationality || "قطر");
+    setCustomerIdNumber(c.id_number || "");
+    setPhoneMatches([]);
+    toast({ title: "تم", description: `تم تعبئة بيانات ${c.name}` });
+  };
+
+
 
   // Auto-populate name, phone and ID number from the main customer info to all ticket holders
   useEffect(() => {
@@ -1273,7 +1340,34 @@ const AdminPOS = () => {
                         </SelectContent>
                       </Select>
                     </div>
+
+                    {(phoneSearching || phoneMatches.length > 0) && (
+                      <div className="mt-2 rounded-xl border border-primary/30 bg-card shadow-lg overflow-hidden" dir="rtl">
+                        {phoneSearching && phoneMatches.length === 0 && (
+                          <p className="px-3 py-2 text-xs text-muted-foreground">جاري البحث عن عملاء سابقين…</p>
+                        )}
+                        {phoneMatches.map((c) => (
+                          <button
+                            key={c.id}
+                            type="button"
+                            onClick={() => applyCustomer(c)}
+                            className="w-full text-right px-3 py-2 flex items-center justify-between gap-3 hover:bg-primary/10 transition-colors border-b last:border-b-0 border-border/50"
+                          >
+                            <span className="min-w-0">
+                              <span className="block font-bold truncate">{c.name}</span>
+                              <span className="block text-[11px] text-muted-foreground" dir="ltr">
+                                {c.country_code || "+974"}{c.phone}
+                                {c.id_number ? ` · ${c.id_number}` : ""}
+                                {c.nationality ? ` · ${c.nationality}` : ""}
+                              </span>
+                            </span>
+                            <User className="w-4 h-4 text-primary shrink-0" />
+                          </button>
+                        ))}
+                      </div>
+                    )}
                   </div>
+
 
                   <div>
                     <Label htmlFor="id_number">رقم الهوية *</Label>
