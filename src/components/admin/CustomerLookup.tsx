@@ -25,7 +25,7 @@ interface CustomerLookupProps {
 }
 
 export const CustomerLookup = ({ onSelect, eventId }: CustomerLookupProps) => {
-  const [allowances, setAllowances] = useState<Record<string, number | null>>({});
+  const [histories, setHistories] = useState<Record<string, PersonEventHistoryItem[]>>({});
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<LookupCustomer[]>([]);
   const [searching, setSearching] = useState(false);
