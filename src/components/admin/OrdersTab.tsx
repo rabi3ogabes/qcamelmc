@@ -589,151 +589,144 @@ export const OrdersTab = () => {
       ? format(eventDate, "dd/MM/yyyy", { locale: ar })
       : "غير متوفر";
 
-    return <Card className={`overflow-hidden hover:shadow-lg transition-shadow flex flex-col h-full ${order.sadad_manually_verified ? 'bg-green-50 dark:bg-green-950/20 border-green-200 dark:border-green-800' : ''}`}>
-      {/* Event Date - Top Banner */}
-      <div className="text-center py-2 bg-primary text-primary-foreground">
-        <p className="text-sm font-semibold">
-          تاريخ الفعالية: {eventDateLabel}
-        </p>
-      </div>
-      
-      <div className="p-6 space-y-4 flex-1">
-        {/* Header Row - Reference and Status */}
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 pb-4 border-b">
-          <div>
-            <p className="text-sm text-muted-foreground mb-1">{t("reference")}</p>
-            <div className="flex items-center gap-1">
-              <p className="font-mono font-semibold text-primary text-[10px] max-w-[100px] truncate">{order.booking_reference}</p>
-              <button
-                onClick={() => {
-                  navigator.clipboard.writeText(order.booking_reference);
-                  toast.success("تم نسخ رقم الحجز");
-                }}
-                className="p-1 hover:bg-muted rounded transition-colors"
-                title={order.booking_reference}
-              >
-                <Copy className="w-3 h-3 text-muted-foreground hover:text-primary" />
-              </button>
-              <EventShiftBadge orderId={order.id} />
-            </div>
+    const statusLabel = order.payment_status === "confirmed" ? t("confirmed") : order.payment_status === "cancelled" ? t("failed") : t("pending");
+    const bookedAt = new Date(order.created_at);
+    const bookedLabel = Number.isNaN(bookedAt.getTime()) ? "—" : format(bookedAt, "dd/MM/yyyy - HH:mm");
+
+    return <Card dir="rtl" className={`group relative overflow-hidden flex flex-col h-full border-border/70 bg-card transition-all duration-300 hover:shadow-[var(--shadow-elegant)] hover:border-primary/40 ${order.sadad_manually_verified ? 'ring-1 ring-green-500/30' : ''}`}>
+      {/* Luxury accent rail */}
+      <div className="absolute inset-y-0 right-0 w-1 bg-[var(--gradient-primary)] opacity-80" />
+
+      {/* Header */}
+      <div className="pr-5 pl-4 py-3 flex items-start justify-between gap-3 border-b bg-muted/30">
+        <div className="min-w-0">
+          <div className="flex items-center gap-1.5">
+            <p className="font-mono text-xs font-bold text-primary truncate max-w-[130px]" title={order.booking_reference}>{order.booking_reference}</p>
+            <button
+              onClick={() => {
+                navigator.clipboard.writeText(order.booking_reference);
+                toast.success("تم نسخ رقم الحجز");
+              }}
+              className="p-1 rounded-md hover:bg-primary/10 transition-colors"
+              title={order.booking_reference}
+            >
+              <Copy className="w-3 h-3 text-muted-foreground" />
+            </button>
+            <EventShiftBadge orderId={order.id} />
           </div>
-          
-          {/* Ticket Icons */}
-          <div className="grid grid-cols-4 gap-0.5 max-w-[56px]">
-            {getOrderTicketTypes(order).slice(0, order.quantity).map((type, i) => {
-              if (type === 'vip') {
-                return <Crown key={i} className="w-3 h-3 text-ticket-vip" />;
-              } else if (type === 'parking') {
-                return <Car key={i} className="w-3 h-3 text-ticket-parking" />;
-              }
-              return <Ticket key={i} className="w-3 h-3 text-ticket-normal" />;
-            })}
-          </div>
-          
-          <div className="flex flex-col gap-2">
-            <Badge variant={order.payment_status === "confirmed" ? "default" : order.payment_status === "cancelled" ? "destructive" : "secondary"} className="font-lusail text-sm px-3 py-0.5">
-              {order.payment_status === "confirmed" ? t("confirmed") : order.payment_status === "cancelled" ? t("failed") : t("pending")}
-            </Badge>
-            <div className="flex items-center gap-2 justify-end">
-              {order.payment_method === 'cash_pos' ? (
-                <div className="flex flex-col items-center">
-                  <Banknote className="w-4 h-4 text-green-600" />
-                  {order.pos_users?.name && (
-                    <span className="text-[10px] text-muted-foreground truncate max-w-[60px]">{order.pos_users.name}</span>
-                  )}
-                </div>
-              ) : (
-                <CreditCard className="w-4 h-4 text-blue-600" />
-              )}
-              <span className="text-xs font-medium capitalize">{order.payment_method}</span>
-            </div>
-          </div>
+          <p className="mt-1 text-[11px] text-muted-foreground flex items-center gap-1">
+            <Calendar className="w-3 h-3" />
+            {eventDateLabel}
+          </p>
         </div>
 
-        {/* Payment Error Reason - Only show for failed/pending orders */}
-        {order.payment_status !== "confirmed" && order.payment_error_reason && <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-3 flex items-start gap-2">
-            <AlertCircle className="w-4 h-4 text-destructive mt-0.5 flex-shrink-0" />
-            <div>
-              <p className="text-xs font-semibold text-destructive mb-1">سبب الفشل:</p>
-              <p className="text-xs text-destructive/80">{order.payment_error_reason}</p>
-            </div>
+        <div className="flex flex-col items-end gap-1.5 shrink-0">
+          <Badge variant={order.payment_status === "confirmed" ? "default" : order.payment_status === "cancelled" ? "destructive" : "secondary"} className="font-lusail text-[11px] px-2.5 py-0.5">
+            {statusLabel}
+          </Badge>
+          <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+            {order.payment_method === 'cash_pos' ? <Banknote className="w-3.5 h-3.5 text-green-600" /> : <CreditCard className="w-3.5 h-3.5 text-blue-600" />}
+            <span className="capitalize">{order.pos_users?.name || order.payment_method}</span>
+          </div>
+        </div>
+      </div>
+
+      <div className="pr-5 pl-4 py-4 space-y-4 flex-1">
+        {/* Failure reason */}
+        {order.payment_status !== "confirmed" && order.payment_error_reason && <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-2.5 flex items-start gap-2">
+            <AlertCircle className="w-4 h-4 text-destructive mt-0.5 shrink-0" />
+            <p className="text-[11px] text-destructive/90 leading-relaxed">{order.payment_error_reason}</p>
           </div>}
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pb-4 min-h-[100px]">
-          <div className="flex-col flex items-end justify-center">
-            <p className="text-sm text-muted-foreground mb-1">{t("customer")}</p>
-            <p className="font-semibold flex items-center gap-2">
-              <span className="text-xl">{getCountryFlag(customer.nationality)}</span>
-              {customer.name}
+        {/* Customer + amount */}
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-0.5">{t("customer")}</p>
+            <p className="font-semibold flex items-center gap-2 truncate">
+              <span className="text-lg leading-none">{getCountryFlag(customer.nationality)}</span>
+              <span className="truncate">{customer.name}</span>
             </p>
-            <p className="text-xs text-muted-foreground">{customer.phone}</p>
-            <p className="text-sm text-muted-foreground min-h-[20px]">{customer.email || '\u00A0'}</p>
+            <p className="text-xs text-muted-foreground" dir="ltr">{customer.phone}</p>
+            {customer.email && <p className="text-xs text-muted-foreground truncate" dir="ltr">{customer.email}</p>}
           </div>
-          
-          <div className="flex flex-col" dir="rtl">
-            <p className="text-sm text-muted-foreground mb-1">{t("ticket")}</p>
-            <p className="font-semibold capitalize">
-              {getOrderTicketSummary(order)}
-            </p>
-            <p className="text-sm font-semibold text-primary">{order.total_amount.toFixed(2)} {t("qar")}</p>
+          <div className="text-left shrink-0">
+            <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-0.5">{t("qar")}</p>
+            <p className="text-lg font-bold text-primary tabular-nums">{order.total_amount.toFixed(2)}</p>
           </div>
         </div>
 
-        {/* Primary Action Buttons */}
-        <div className="flex flex-wrap gap-2 pb-4 border-b">
-          <Button size="sm" variant="outline" onClick={() => navigate(`/admin/tickets?ref=${order.booking_reference}`)} className="font-lusail flex items-center gap-1 text-xs px-2 py-1 h-8">
+        {/* Tickets */}
+        <div className="rounded-lg border bg-muted/30 px-3 py-2 flex items-center justify-between gap-2">
+          <p className="text-xs font-semibold capitalize truncate">{getOrderTicketSummary(order)}</p>
+          <div className="flex items-center gap-0.5 shrink-0">
+            {getOrderTicketTypes(order).slice(0, Math.min(order.quantity, 8)).map((type, i) => type === 'vip'
+              ? <Crown key={i} className="w-3 h-3 text-ticket-vip" />
+              : type === 'parking'
+                ? <Car key={i} className="w-3 h-3 text-ticket-parking" />
+                : <Ticket key={i} className="w-3 h-3 text-ticket-normal" />)}
+          </div>
+        </div>
+
+        {/* Actions */}
+        <div className="flex flex-wrap gap-1.5">
+          <Button size="sm" variant="outline" onClick={() => navigate(`/admin/tickets?ref=${order.booking_reference}`)} className="font-lusail flex items-center gap-1 text-xs px-2 h-8">
             <Printer className="w-3 h-3" />
             عرض التذاكر
           </Button>
-          <Button size="sm" variant="outline" onClick={() => viewOrderDetails(order.id)} className="font-lusail flex items-center gap-1 text-xs px-2 py-1 h-8">
+          <Button size="sm" variant="outline" onClick={() => viewOrderDetails(order.id)} className="font-lusail flex items-center gap-1 text-xs px-2 h-8">
             <Eye className="w-3 h-3" />
             {t("viewDetails")}
           </Button>
-          {order.payment_method === "sadad" && <Button size="sm" variant="outline" onClick={() => setSadadTxOrder({ id: order.id, ref: order.booking_reference })} className="font-lusail flex items-center gap-1 text-xs px-2 py-1 h-8 border-primary/40 text-primary hover:bg-primary/10">
+          {order.payment_method === "sadad" && <Button size="sm" variant="outline" onClick={() => setSadadTxOrder({ id: order.id, ref: order.booking_reference })} className="font-lusail flex items-center gap-1 text-xs px-2 h-8 border-primary/40 text-primary hover:bg-primary/10">
               <ReceiptText className="w-3 h-3" />
               تفاصيل سداد
             </Button>}
-          {order.payment_status === "pending" && <Button size="sm" variant="default" onClick={() => togglePaymentStatus(order.id, order.payment_status)} className="font-lusail flex items-center gap-1 text-xs px-2 py-1 h-8 bg-green-600 hover:bg-green-700 text-white">
+          {order.payment_status === "pending" && <Button size="sm" onClick={() => togglePaymentStatus(order.id, order.payment_status)} className="font-lusail flex items-center gap-1 text-xs px-2 h-8 bg-green-600 hover:bg-green-700 text-white">
               <CheckCircle className="w-3 h-3" />
-              تأكيد الدفع ✓
+              تأكيد الدفع
             </Button>}
-          {order.payment_status === "confirmed" && <Button size="sm" variant="destructive" onClick={() => togglePaymentStatus(order.id, order.payment_status)} className="font-lusail flex items-center gap-1 text-xs px-2 py-1 h-8">
+          {order.payment_status === "confirmed" && <Button size="sm" variant="destructive" onClick={() => togglePaymentStatus(order.id, order.payment_status)} className="font-lusail flex items-center gap-1 text-xs px-2 h-8">
               <XCircle className="w-3 h-3" />
               إلغاء التأكيد
             </Button>}
-          {order.payment_status === "cancelled" && <Button size="sm" variant="default" onClick={() => togglePaymentStatus(order.id, order.payment_status)} className="font-lusail flex items-center gap-1 text-xs px-2 py-1 h-8 bg-green-600 hover:bg-green-700 text-white">
+          {order.payment_status === "cancelled" && <Button size="sm" onClick={() => togglePaymentStatus(order.id, order.payment_status)} className="font-lusail flex items-center gap-1 text-xs px-2 h-8 bg-green-600 hover:bg-green-700 text-white">
               <CheckCircle className="w-3 h-3" />
               تغيير إلى نجح
             </Button>}
+          {showDeleteButton && <Button size="icon" variant="destructive" onClick={e => {
+            e.stopPropagation();
+            setOrderToDelete(order.id);
+          }} className="h-8 w-8" title="حذف الطلب">
+              <Trash2 className="w-3.5 h-3.5" />
+            </Button>}
         </div>
 
-        {/* Event & Booking Info */}
-        <div className="space-y-2">
-          {order.events && <div className="flex flex-col gap-2">
-              <div className="flex items-center gap-2">
-                <span className="text-xs text-muted-foreground">تغيير التاريخ:</span>
-                <Select value={order.event_id} onValueChange={newEventId => changeOrderEvent(order.id, newEventId)}>
-                  <SelectTrigger className="w-[280px] h-8 text-xs font-lusail">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {availableEvents.map(event => <SelectItem key={event.id} value={event.id} className="font-lusail text-xs">
-                        {format(new Date(event.event_date), 'dd/MM/yyyy')} - {event.title}
-                      </SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>}
-        </div>
-        
-        {/* Sadad Verification Row */}
-        <div className="flex flex-wrap items-center gap-2 pt-2">
-          <Badge variant={order.sadad_manually_verified ? "default" : "secondary"} onClick={async e => {
+        {/* Change event date */}
+        {order.events && <div className="flex items-center gap-2">
+            <span className="text-[11px] text-muted-foreground shrink-0">تغيير التاريخ:</span>
+            <Select value={order.event_id} onValueChange={newEventId => changeOrderEvent(order.id, newEventId)}>
+              <SelectTrigger className="h-8 text-xs font-lusail flex-1">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {availableEvents.map(event => <SelectItem key={event.id} value={event.id} className="font-lusail text-xs">
+                    {format(new Date(event.event_date), 'dd/MM/yyyy')} - {event.title}
+                  </SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>}
+      </div>
+
+      {/* Footer */}
+      <div className="pr-5 pl-4 py-2 border-t bg-muted/40 flex items-center justify-between gap-2">
+        <span className="text-[11px] text-muted-foreground flex items-center gap-1">
+          <Calendar className="w-3 h-3" />
+          {bookedLabel}
+        </span>
+        <Badge variant={order.sadad_manually_verified ? "default" : "secondary"} onClick={async e => {
           e.stopPropagation();
           try {
-            const {
-              error
-            } = await supabase.from("orders").update({
+            const { error } = await supabase.from("orders").update({
               sadad_manually_verified: !order.sadad_manually_verified
             }).eq("id", order.id);
             if (error) throw error;
@@ -743,34 +736,13 @@ export const OrdersTab = () => {
             console.error("Error updating verification status:", error);
             toast.error("فشل في تحديث حالة التأكد");
           }
-        }} className={`font-lusail text-sm px-3 py-2 cursor-pointer hover:opacity-80 transition-opacity ${order.sadad_manually_verified ? "bg-green-600 hover:bg-green-700 text-white border-green-600" : "bg-muted text-muted-foreground hover:bg-muted/80"}`} title={order.sadad_manually_verified ? "اضغط لإلغاء التأكد" : "اضغط للتأكد من الدفع"}>
-            {order.sadad_manually_verified ? <>
-                <CheckCircle className="w-4 h-4 mr-1 inline" />
-                تم التأكد من الدفع في سداد ✓
-              </> : <>
-                <XCircle className="w-4 h-4 mr-1 inline" />
-                إضغط هنا لتاكيد سداد
-              </>}
-          </Badge>
-          {showDeleteButton && <Button size="icon" variant="destructive" onClick={e => {
-          e.stopPropagation();
-          console.log("Delete button clicked for order:", order.id);
-          setOrderToDelete(order.id);
-        }} className="h-9 w-9" title="حذف الطلب">
-              <Trash2 className="w-4 h-4" />
-            </Button>}
-        </div>
-      </div>
-      
-      {/* Footer - Booking Date Banner */}
-      <div className="text-center py-2 bg-muted/50 border-t">
-        <p className="text-sm text-muted-foreground flex items-center justify-center gap-2">
-          <Calendar className="w-4 h-4" />
-          تاريخ الحجز: {format(new Date(order.created_at), 'dd/MM/yyyy - HH:mm')}
-        </p>
+        }} className={`font-lusail text-[11px] px-2.5 py-1 cursor-pointer transition-opacity hover:opacity-80 ${order.sadad_manually_verified ? "bg-green-600 hover:bg-green-700 text-white border-green-600" : "bg-muted text-muted-foreground hover:bg-muted/80"}`} title={order.sadad_manually_verified ? "اضغط لإلغاء التأكد" : "اضغط للتأكد من الدفع"}>
+          {order.sadad_manually_verified ? <><CheckCircle className="w-3 h-3 ml-1 inline" />تم تأكيد سداد</> : <><XCircle className="w-3 h-3 ml-1 inline" />تأكيد سداد</>}
+        </Badge>
       </div>
       </Card>;
   };
+
   // Orders are already filtered, sorted and paginated server-side
   const filteredOrders = orders;
 
