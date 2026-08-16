@@ -30,6 +30,15 @@ const formatDate = (value?: string | null) =>
       })
     : "-";
 
+const TICKET_TYPE_LABELS: Record<string, string> = {
+  normal: "عادي",
+  vip: "VIP",
+  parking: "مواقف",
+};
+
+const ticketLabel = (type?: string | null) =>
+  (type && TICKET_TYPE_LABELS[type.toLowerCase()]) || type || "-";
+
 const Row = ({ label, value }: { label: string; value: React.ReactNode }) => (
   <div className="flex flex-col gap-1">
     <span className="text-xs text-muted-foreground">{label}</span>
@@ -96,7 +105,7 @@ export const InvoiceCard = ({ data }: InvoiceCardProps) => {
           <Row label="الجنسية" value={data.nationality || "-"} />
           <Row label="الفعالية" value={data.event_title} />
           <Row label="التاريخ" value={formatDate(data.event_date)} />
-          <Row label="نوع التذكرة" value={data.ticket_type} />
+          <Row label="نوع التذكرة" value={ticketLabel(data.ticket_type)} />
         </div>
 
         <div className="mt-6 grid grid-cols-2 gap-4 rounded-xl border border-secondary/30 bg-muted/50 p-5">
@@ -129,7 +138,7 @@ export const InvoiceCard = ({ data }: InvoiceCardProps) => {
                 <div key={url + i} className="rounded-lg border border-border bg-background p-2 text-center">
                   <img src={url} alt="QR" className="mx-auto h-28 w-28 object-contain" crossOrigin="anonymous" />
                   <span className="mt-1 block text-xs text-muted-foreground">
-                    {data.ticket_types[i] || data.ticket_type}
+                    {ticketLabel(data.ticket_types[i] || data.ticket_type)}
                   </span>
                 </div>
               ))}
