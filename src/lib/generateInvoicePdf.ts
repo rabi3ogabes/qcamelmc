@@ -110,7 +110,7 @@ export const generateInvoicePdf = (data: InvoiceData) => {
       <table>
         <thead><tr><th>نوع التذكرة</th><th>الكمية</th><th>اليوم</th><th>إجمالي المبلغ</th><th>حالة الدفع</th></tr></thead>
         <tbody><tr>
-          <td>${data.ticket_type}</td>
+          <td>${ticketLabel(data.ticket_type)}</td>
           <td>${data.quantity}</td>
           <td>${data.event_title}</td>
           <td>${data.total_amount} ر.ق</td>
