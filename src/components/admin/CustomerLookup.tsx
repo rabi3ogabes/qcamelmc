@@ -75,7 +75,7 @@ export const CustomerLookup = ({ onSelect, eventId }: CustomerLookupProps) => {
     setQuery("");
     setResults([]);
     setSearched(false);
-    setAllowances({});
+    setHistories({});
   };
 
 
