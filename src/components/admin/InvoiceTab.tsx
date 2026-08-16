@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Send, Loader2, CheckCircle, Clock, RotateCcw, CalendarX, PauseCircle, FileDown, Mail, History } from "lucide-react";
+import { Send, Loader2, CheckCircle, Clock, RotateCcw, CalendarX, PauseCircle, FileDown, Mail, History, Archive } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { EmailDeliveryTimeline } from "@/components/admin/EmailDeliveryTimeline";
 import { generateInvoicePdf } from "@/lib/generateInvoicePdf";
@@ -62,6 +62,7 @@ interface Order {
     title: string;
     event_date: string;
     location: string;
+    is_archived?: boolean;
   };
   ticket_holders?: Array<{
     qr_code: string | null;
@@ -94,6 +95,7 @@ export const InvoiceTab = () => {
   const [delayMin, setDelayMin] = useState<number>(300);
   const [delayMax, setDelayMax] = useState<number>(600);
   const [filterTab, setFilterTab] = useState<"all" | "pending" | "sent" | "eventDone" | "onHold">("all");
+  const [view, setView] = useState<"current" | "archived">("current");
   const [sendingIndividual, setSendingIndividual] = useState<string | null>(null);
   const [sendingEmail, setSendingEmail] = useState<string | null>(null);
   const [timelineOrder, setTimelineOrder] = useState<Order | null>(null);
@@ -280,7 +282,7 @@ export const InvoiceTab = () => {
     try {
       const { data, error } = await supabase
         .from("orders")
-        .select("*, customers(name, email, phone, country_code, nationality), events(title, event_date, location), ticket_holders(qr_code, ticket_type)")
+        .select("*, customers(name, email, phone, country_code, nationality), events(title, event_date, location, is_archived), ticket_holders(qr_code, ticket_type)")
         .eq("payment_method", "sadad")
         .eq("payment_status", "confirmed")
         .order("created_at", { ascending: false });
@@ -732,8 +734,13 @@ export const InvoiceTab = () => {
     }
   };
 
+  // Scope orders to the selected view (current season vs archived seasons)
+  const scopedOrders = orders.filter((order) =>
+    view === "archived" ? order.events?.is_archived === true : order.events?.is_archived !== true
+  );
+
   // Filter orders based on selected tab
-  const filteredOrders = orders.filter((order) => {
+  const filteredOrders = scopedOrders.filter((order) => {
     const isPending = isPendingMessage(order.n8n_response_message) || !order.n8n_responded_at;
     const eventDone = isEventDone(order);
     const onHold = isOnHold(order);
@@ -771,6 +778,25 @@ export const InvoiceTab = () => {
             <p className="text-sm md:text-base text-muted-foreground">
               إرسال يدوي للفواتير - قم بتفعيل العد التنازلي للإرسال التلقائي
             </p>
+            <div className="flex rounded-lg border p-1 bg-muted/40 w-fit mt-3">
+              <Button
+                variant={view === "current" ? "default" : "ghost"}
+                size="sm"
+                className="font-lusail"
+                onClick={() => setView("current")}
+              >
+                الحالية
+              </Button>
+              <Button
+                variant={view === "archived" ? "default" : "ghost"}
+                size="sm"
+                className="font-lusail gap-1"
+                onClick={() => setView("archived")}
+              >
+                <Archive className="w-4 h-4" />
+                الأرشيف
+              </Button>
+            </div>
           </div>
           
           {/* Mobile & Tablet Layout */}
