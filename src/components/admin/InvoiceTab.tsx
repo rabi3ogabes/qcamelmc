@@ -217,7 +217,7 @@ export const InvoiceTab = () => {
   const fetchWebhookUrl = async () => {
     const { data, error } = await supabase
       .from("settings")
-      .select("webhook_url, email_webhook_url")
+      .select("webhook_url, email_webhook_url, webhook_enabled, email_webhook_enabled")
       .maybeSingle();
 
     if (error) {
@@ -225,8 +225,9 @@ export const InvoiceTab = () => {
       return;
     }
 
-    setWebhookUrl(data?.webhook_url || null);
-    setEmailWebhookUrl((data as any)?.email_webhook_url || null);
+    const d = data as any;
+    setWebhookUrl(d?.webhook_enabled === false ? null : d?.webhook_url || null);
+    setEmailWebhookUrl(d?.email_webhook_enabled === false ? null : d?.email_webhook_url || null);
   };
 
   const fetchAutoInvoiceInterval = async () => {

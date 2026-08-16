@@ -42,6 +42,10 @@ export const SettingsTab = () => {
   const [emailWebhookUrl, setEmailWebhookUrl] = useState("");
   const [newEmailWebhookUrl, setNewEmailWebhookUrl] = useState("");
   const [savingEmailWebhook, setSavingEmailWebhook] = useState(false);
+  const [webhookEnabled, setWebhookEnabled] = useState(true);
+  const [emailWebhookEnabled, setEmailWebhookEnabled] = useState(true);
+  const [savingWebhookEnabled, setSavingWebhookEnabled] = useState(false);
+  const [savingEmailWebhookEnabled, setSavingEmailWebhookEnabled] = useState(false);
   const [adminPhone, setAdminPhone] = useState("");
   const [newAdminPhone, setNewAdminPhone] = useState("");
   const [sadadMerchantId, setSadadMerchantId] = useState("");
@@ -205,7 +209,7 @@ export const SettingsTab = () => {
   const fetchSettings = async () => {
     const { data, error } = await supabase
       .from("settings")
-      .select("logo_url, hero_image_url, before_footer_image_url, header_bg_color, header_bg_image_url, hero_text, copyright_text, webhook_url, email_webhook_url, admin_phone, sadad_merchant_id, sadad_api_key, sadad_secret, sadad_website_domain, show_delete_customer_button, show_generate_qr_button, show_delete_event_button, auto_invoice_interval_seconds, invoice_batch_min, invoice_batch_max, invoice_send_delay_min, invoice_send_delay_max")
+      .select("logo_url, hero_image_url, before_footer_image_url, header_bg_color, header_bg_image_url, hero_text, copyright_text, webhook_url, email_webhook_url, webhook_enabled, email_webhook_enabled, admin_phone, sadad_merchant_id, sadad_api_key, sadad_secret, sadad_website_domain, show_delete_customer_button, show_generate_qr_button, show_delete_event_button, auto_invoice_interval_seconds, invoice_batch_min, invoice_batch_max, invoice_send_delay_min, invoice_send_delay_max")
       .maybeSingle();
 
     if (error) {
@@ -257,6 +261,9 @@ export const SettingsTab = () => {
       setEmailWebhookUrl(data.email_webhook_url);
       setNewEmailWebhookUrl(data.email_webhook_url);
     }
+
+    if (data?.webhook_enabled !== undefined && data?.webhook_enabled !== null) setWebhookEnabled(data.webhook_enabled);
+    if (data?.email_webhook_enabled !== undefined && data?.email_webhook_enabled !== null) setEmailWebhookEnabled(data.email_webhook_enabled);
 
     if (data?.admin_phone) {
       setAdminPhone(data.admin_phone);
@@ -765,6 +772,48 @@ export const SettingsTab = () => {
       toast.error("فشل في حفظ الإعداد");
     } finally {
       setSavingGenerateQrButton(false);
+    }
+  };
+
+  const handleToggleWebhookEnabled = async (newValue: boolean) => {
+    setSavingWebhookEnabled(true);
+    try {
+      const { data: settings } = await supabase.from("settings").select("id").maybeSingle();
+      if (settings) {
+        const { error } = await supabase.from("settings").update({ webhook_enabled: newValue }).eq("id", settings.id);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.from("settings").insert({ webhook_enabled: newValue });
+        if (error) throw error;
+      }
+      setWebhookEnabled(newValue);
+      toast.success(newValue ? "تم تفعيل ويب هوك واتساب" : "تم تعطيل ويب هوك واتساب");
+    } catch (error) {
+      console.error("Error saving webhook enabled:", error);
+      toast.error("فشل في حفظ الإعداد");
+    } finally {
+      setSavingWebhookEnabled(false);
+    }
+  };
+
+  const handleToggleEmailWebhookEnabled = async (newValue: boolean) => {
+    setSavingEmailWebhookEnabled(true);
+    try {
+      const { data: settings } = await supabase.from("settings").select("id").maybeSingle();
+      if (settings) {
+        const { error } = await supabase.from("settings").update({ email_webhook_enabled: newValue }).eq("id", settings.id);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.from("settings").insert({ email_webhook_enabled: newValue });
+        if (error) throw error;
+      }
+      setEmailWebhookEnabled(newValue);
+      toast.success(newValue ? "تم تفعيل ويب هوك البريد" : "تم تعطيل ويب هوك البريد");
+    } catch (error) {
+      console.error("Error saving email webhook enabled:", error);
+      toast.error("فشل في حفظ الإعداد");
+    } finally {
+      setSavingEmailWebhookEnabled(false);
     }
   };
 
@@ -1435,8 +1484,20 @@ export const SettingsTab = () => {
         <TabsContent value="integrations" className="space-y-6 mt-6">
           {/* n8n Webhook - WhatsApp */}
           <Card className="p-6">
-            <h3 className="text-lg font-semibold mb-4 font-lusail">رابط Webhook واتساب (n8n)</h3>
-            <div className="space-y-4">
+            <div className="flex items-center justify-between gap-4 mb-4">
+              <h3 className="text-lg font-semibold font-lusail">رابط Webhook واتساب (n8n)</h3>
+              <div className="flex items-center gap-2">
+                <span className={`text-xs font-lusail ${webhookEnabled ? "text-primary" : "text-muted-foreground"}`}>
+                  {webhookEnabled ? "مفعّل" : "معطّل"}
+                </span>
+                <Switch
+                  checked={webhookEnabled}
+                  onCheckedChange={handleToggleWebhookEnabled}
+                  disabled={savingWebhookEnabled}
+                />
+              </div>
+            </div>
+            <div className={`space-y-4 ${webhookEnabled ? "" : "opacity-60"}`}>
               <div>
                 <Label htmlFor="webhook-url-integration" className="font-lusail">رابط Webhook واتساب</Label>
                 <div className="mt-2">
@@ -1463,8 +1524,20 @@ export const SettingsTab = () => {
 
           {/* n8n Webhook - Email */}
           <Card className="p-6">
-            <h3 className="text-lg font-semibold mb-4 font-lusail">رابط Webhook البريد الإلكتروني (n8n)</h3>
-            <div className="space-y-4">
+            <div className="flex items-center justify-between gap-4 mb-4">
+              <h3 className="text-lg font-semibold font-lusail">رابط Webhook البريد الإلكتروني (n8n)</h3>
+              <div className="flex items-center gap-2">
+                <span className={`text-xs font-lusail ${emailWebhookEnabled ? "text-primary" : "text-muted-foreground"}`}>
+                  {emailWebhookEnabled ? "مفعّل" : "معطّل"}
+                </span>
+                <Switch
+                  checked={emailWebhookEnabled}
+                  onCheckedChange={handleToggleEmailWebhookEnabled}
+                  disabled={savingEmailWebhookEnabled}
+                />
+              </div>
+            </div>
+            <div className={`space-y-4 ${emailWebhookEnabled ? "" : "opacity-60"}`}>
               <div>
                 <Label htmlFor="email-webhook-url" className="font-lusail">رابط Webhook البريد</Label>
                 <div className="mt-2">

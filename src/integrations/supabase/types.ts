@@ -544,6 +544,7 @@ export type Database = {
           copyright_text: string | null
           created_at: string | null
           current_event_id: string | null
+          email_webhook_enabled: boolean
           email_webhook_url: string | null
           header_bg_color: string | null
           header_bg_image_url: string | null
@@ -564,6 +565,7 @@ export type Database = {
           show_delete_event_button: boolean | null
           show_generate_qr_button: boolean | null
           updated_at: string | null
+          webhook_enabled: boolean
           webhook_url: string | null
         }
         Insert: {
@@ -573,6 +575,7 @@ export type Database = {
           copyright_text?: string | null
           created_at?: string | null
           current_event_id?: string | null
+          email_webhook_enabled?: boolean
           email_webhook_url?: string | null
           header_bg_color?: string | null
           header_bg_image_url?: string | null
@@ -593,6 +596,7 @@ export type Database = {
           show_delete_event_button?: boolean | null
           show_generate_qr_button?: boolean | null
           updated_at?: string | null
+          webhook_enabled?: boolean
           webhook_url?: string | null
         }
         Update: {
@@ -602,6 +606,7 @@ export type Database = {
           copyright_text?: string | null
           created_at?: string | null
           current_event_id?: string | null
+          email_webhook_enabled?: boolean
           email_webhook_url?: string | null
           header_bg_color?: string | null
           header_bg_image_url?: string | null
@@ -622,6 +627,7 @@ export type Database = {
           show_delete_event_button?: boolean | null
           show_generate_qr_button?: boolean | null
           updated_at?: string | null
+          webhook_enabled?: boolean
           webhook_url?: string | null
         }
         Relationships: [
