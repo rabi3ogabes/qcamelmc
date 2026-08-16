@@ -76,6 +76,7 @@ const App = () => (
                     <Route path="/tickets/:eventId" element={<TicketSelection />} />
                     <Route path="/checkout" element={<Checkout />} />
                     <Route path="/confirmation" element={<Confirmation />} />
+                    <Route path="/invoice/:bookingReference" element={<InvoicePage />} />
                     <Route path="/sadad-callback" element={<SadadCallback />} />
                     <Route path="/sadad-redirect" element={<SadadRedirect />} />
                     <Route path="/live-bookings" element={<RequireAdmin><LiveBookings /></RequireAdmin>} />
