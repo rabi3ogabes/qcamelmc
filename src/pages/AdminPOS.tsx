@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { CustomerLookup, type LookupCustomer } from "@/components/admin/CustomerLookup";
+import { searchCustomers, dedupeCustomers } from "@/lib/customerLookup";
 
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -330,23 +331,9 @@ const AdminPOS = () => {
     setPhoneSearching(true);
     const timer = setTimeout(async () => {
       try {
-        const { data, error } = await supabase
-          .from("customers")
-          .select("id, name, email, phone, country_code, nationality, id_number")
-          .ilike("phone", `%${term}%`)
-          .order("created_at", { ascending: false })
-          .limit(6);
-        if (error) throw error;
+        const found = await searchCustomers(term);
         if (!cancelled) {
-          // de-duplicate by phone + id number, keeping the most recent record
-          const seen = new Set<string>();
-          const unique = (data || []).filter((c) => {
-            const key = `${c.phone}|${c.id_number || ""}`;
-            if (seen.has(key)) return false;
-            seen.add(key);
-            return true;
-          });
-          setPhoneMatches(unique as LookupCustomer[]);
+          setPhoneMatches(dedupeCustomers(found) as LookupCustomer[]);
         }
       } catch (err) {
         console.error("Phone lookup failed:", err);
