@@ -56,7 +56,7 @@ Deno.serve(async (req) => {
     const { data, error } = await admin
       .from("customers")
       .select("id, name, email, phone, country_code, nationality, id_number")
-      .or(`phone.ilike.${pattern},id_number.ilike.${pattern},name.ilike.${pattern}`)
+      .ilike("phone", pattern)
       .order("created_at", { ascending: false })
       .limit(8);
 

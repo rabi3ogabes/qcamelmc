@@ -85,7 +85,7 @@ export const CustomerLookup = ({ onSelect, eventId }: CustomerLookupProps) => {
         <Input
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="ابحث بالاسم أو رقم الهاتف أو رقم الهوية"
+          placeholder="ابحث برقم الهاتف"
           className="font-lusail"
         />
         <Button

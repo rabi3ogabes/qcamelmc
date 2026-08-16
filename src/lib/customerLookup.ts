@@ -17,7 +17,7 @@ const hasPasscodeAccess = () =>
   sessionStorage.getItem(PASS_KEY) === "1" || localStorage.getItem(PASS_KEY) === "1";
 
 /**
- * Searches saved customers by phone, ID number or name.
+ * Searches saved customers by phone number only.
  * Works for signed-in admins (direct query) and for staff who unlocked
  * the pages with the passcode (secure edge function).
  */
@@ -32,7 +32,7 @@ export async function searchCustomers(term: string): Promise<LookupCustomerRecor
     const { data, error } = await supabase
       .from("customers")
       .select("id, name, email, phone, country_code, nationality, id_number")
-      .or(`phone.ilike.${pattern},id_number.ilike.${pattern},name.ilike.${pattern}`)
+      .ilike("phone", pattern)
       .order("created_at", { ascending: false })
       .limit(8);
     if (!error && data && data.length > 0) return data as LookupCustomerRecord[];
