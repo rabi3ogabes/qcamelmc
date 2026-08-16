@@ -582,14 +582,18 @@ export const OrdersTab = () => {
       phone: "غير متوفر",
       nationality: undefined,
     };
+    const eventDate = order.events?.event_date
+      ? new Date(order.events.event_date)
+      : null;
+    const eventDateLabel = eventDate && !Number.isNaN(eventDate.getTime())
+      ? format(eventDate, "dd/MM/yyyy", { locale: ar })
+      : "غير متوفر";
 
     return <Card className={`overflow-hidden hover:shadow-lg transition-shadow flex flex-col h-full ${order.sadad_manually_verified ? 'bg-green-50 dark:bg-green-950/20 border-green-200 dark:border-green-800' : ''}`}>
       {/* Event Date - Top Banner */}
       <div className="text-center py-2 bg-primary text-primary-foreground">
         <p className="text-sm font-semibold">
-          تاريخ الفعالية: {format(new Date(order.events.event_date), "dd/MM/yyyy", {
-          locale: ar
-        })}
+          تاريخ الفعالية: {eventDateLabel}
         </p>
       </div>
       

@@ -20,6 +20,13 @@ export interface SadadTransaction {
   websiteRefNo: string | null;
 }
 
+interface SadadTransactionResponse {
+  success?: boolean;
+  code?: "SADAD_API_LOGIN_NOT_CONFIGURED" | "SADAD_API_LOGIN_REJECTED" | string;
+  error?: string;
+  transaction?: SadadTransaction;
+}
+
 const statusStyle = (status: string) => {
   switch (status.toUpperCase()) {
     case "SUCCESS":
@@ -65,18 +72,18 @@ export const SadadTransactionDialog = ({ orderId, bookingReference, onOpenChange
     setError(null);
     setTx(null);
     try {
-      const { data, error: fnError } = await supabase.functions.invoke("sadad-transaction", {
+      const { data, error: fnError } = await supabase.functions.invoke<SadadTransactionResponse>("sadad-transaction", {
         body: { orderId: id },
       });
       if (fnError) {
         // Extract the real message returned by the edge function body
         let message = "";
-        const ctx = (fnError as any)?.context;
+        const ctx = (fnError as { context?: Response | { body?: string } })?.context;
         try {
-          if (ctx && typeof ctx.json === "function") {
+          if (ctx instanceof Response) {
             const body = await ctx.json();
             message = body?.error || "";
-          } else if (typeof ctx?.body === "string") {
+          } else if (ctx && "body" in ctx && typeof ctx.body === "string") {
             message = JSON.parse(ctx.body)?.error || "";
           }
         } catch {
@@ -84,8 +91,10 @@ export const SadadTransactionDialog = ({ orderId, bookingReference, onOpenChange
         }
         throw new Error(message || "تعذر الاتصال بسداد. حاول مرة أخرى لاحقاً.");
       }
-      if (data?.error) throw new Error(data.error);
-      setTx(data.transaction as SadadTransaction);
+      if (!data?.success || data.error || !data.transaction) {
+        throw new Error(data?.error || "لم تُرجع سداد تفاصيل لهذه العملية");
+      }
+      setTx(data.transaction);
     } catch (e) {
       setError((e as Error).message || "تعذر جلب تفاصيل العملية من سداد");
     } finally {
@@ -98,7 +107,10 @@ export const SadadTransactionDialog = ({ orderId, bookingReference, onOpenChange
     if (orderId) load(orderId);
   }, [orderId]);
 
-  const qar = (n: number) => `${n.toFixed(2)} ر.ق`;
+  const qar = (value: unknown) => {
+    const amount = Number(value);
+    return `${(Number.isFinite(amount) ? amount : 0).toFixed(2)} ر.ق`;
+  };
 
   return (
     <Dialog open={!!orderId} onOpenChange={onOpenChange}>
