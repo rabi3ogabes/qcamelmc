@@ -1,8 +1,8 @@
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Search, UserCheck, Loader2 } from "lucide-react";
+import { Search, UserCheck, Loader2, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { getRemainingAllowance, MAX_TICKETS_PER_PERSON } from "@/lib/ticketLimit";
@@ -30,25 +30,27 @@ export const CustomerLookup = ({ onSelect, eventId }: CustomerLookupProps) => {
   const [searching, setSearching] = useState(false);
   const [searched, setSearched] = useState(false);
 
-  const search = async () => {
-    const term = query.trim();
-    if (term.length < 3) {
-      toast.error("أدخل 3 أحرف أو أرقام على الأقل");
+  const performSearch = useCallback(async (term: string) => {
+    const trimmed = term.trim();
+    if (trimmed.length < 3) {
+      setResults([]);
+      setSearched(false);
+      setAllowances({});
       return;
     }
     setSearching(true);
+    setSearched(true);
     try {
       const { data, error } = await supabase
         .from("customers")
         .select("id, name, email, phone, country_code, nationality, id_number")
-        .or(`phone.ilike.%${term}%,id_number.ilike.%${term}%,name.ilike.%${term}%`)
+        .or(`phone.ilike.%${trimmed}%,id_number.ilike.%${trimmed}%,name.ilike.%${trimmed}%`)
         .order("created_at", { ascending: false })
         .limit(8);
 
       if (error) throw error;
       const found = (data || []) as LookupCustomer[];
       setResults(found);
-      setSearched(true);
 
       if (eventId && found.length > 0) {
         const entries = await Promise.all(
@@ -67,7 +69,22 @@ export const CustomerLookup = ({ onSelect, eventId }: CustomerLookupProps) => {
     } finally {
       setSearching(false);
     }
+  }, [eventId]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      performSearch(query);
+    }, 250);
+    return () => clearTimeout(timer);
+  }, [query, performSearch]);
+
+  const clearSearch = () => {
+    setQuery("");
+    setResults([]);
+    setSearched(false);
+    setAllowances({});
   };
+
 
   return (
     <div className="space-y-3" dir="rtl">
