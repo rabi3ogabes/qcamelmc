@@ -378,6 +378,8 @@ const AdminPOS = () => {
     setCustomerNationality(c.nationality || "قطر");
     setCustomerIdNumber(c.id_number || "");
     setPhoneMatches([]);
+    setPhoneHistories({});
+
     toast({ title: "تم", description: `تم تعبئة بيانات ${c.name}` });
   };
 
