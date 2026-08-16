@@ -98,31 +98,21 @@ interface Order {
   } | null;
   ticket_holders?: { ticket_type: string }[];
 }
-interface OrdersTabProps {
-  orders: Order[];
-  onRefresh: () => void;
-  isFullyLoaded?: boolean;
-  showUpcomingOnly?: boolean;
-  onUpcomingOnlyChange?: (value: boolean) => void;
-}
-export const OrdersTab = ({
-  orders,
-  onRefresh,
-  isFullyLoaded = true,
-  showUpcomingOnly: externalShowUpcomingOnly,
-  onUpcomingOnlyChange
-}: OrdersTabProps) => {
+const PAGE_SIZE = 30;
+
+export const OrdersTab = () => {
   const {
     t
   } = useTranslation();
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState("success");
+  const [activeTab, setActiveTab] = useState<"success" | "failed">("success");
   const [paymentMethodFilter, setPaymentMethodFilter] = useState<"all" | "sadad" | "cash_pos">("all");
   const [viewMode, setViewMode] = useState<"grid" | "list">(() => {
     const saved = localStorage.getItem("ordersViewMode");
     return saved === "grid" || saved === "list" ? saved : "list";
   });
   const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [selectedEventFilter, setSelectedEventFilter] = useState<string>("all");
   const [selectedOrder, setSelectedOrder] = useState<string | null>(null);
   const [ticketHolders, setTicketHolders] = useState<TicketHolder[]>([]);
@@ -132,16 +122,45 @@ export const OrdersTab = ({
   const [orderToDelete, setOrderToDelete] = useState<string | null>(null);
   const [showDeleteButton, setShowDeleteButton] = useState(false);
   const [showGenerateQrButton, setShowGenerateQrButton] = useState(false);
-  const [internalShowUpcomingOnly, setInternalShowUpcomingOnly] = useState(true);
-  
-  // Use external state if provided, otherwise use internal state
-  const showUpcomingOnly = externalShowUpcomingOnly !== undefined ? externalShowUpcomingOnly : internalShowUpcomingOnly;
-  const setShowUpcomingOnly = onUpcomingOnlyChange || setInternalShowUpcomingOnly;
+  const [showUpcomingOnly, setShowUpcomingOnly] = useState(true);
+  const [page, setPage] = useState(0);
+
+  // Debounce the search so typing doesn't hammer the database
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedSearch(searchQuery), 400);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  // Reset to first page whenever filters change
+  useEffect(() => {
+    setPage(0);
+  }, [activeTab, paymentMethodFilter, selectedEventFilter, debouncedSearch, showUpcomingOnly]);
+
+  const {
+    orders,
+    totalCount,
+    stats: serverStats,
+    loading,
+    refresh: onRefresh
+  } = useOrdersQuery({
+    status: activeTab,
+    paymentMethod: paymentMethodFilter,
+    eventId: selectedEventFilter,
+    search: debouncedSearch,
+    upcomingOnly: showUpcomingOnly,
+    page,
+    pageSize: PAGE_SIZE
+  });
+
+  const isSearching = debouncedSearch.trim().length > 0;
+  const totalPages = isSearching ? 1 : Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
+
   const [availableEvents, setAvailableEvents] = useState<Array<{
     id: string;
     title: string;
     event_date: string;
   }>>([]);
+
 
   // Generate QR code image when selectedHolder changes
   useEffect(() => {
