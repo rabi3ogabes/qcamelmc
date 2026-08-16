@@ -822,6 +822,15 @@ export type Database = {
           view_count: number
         }[]
       }
+      get_person_event_history: {
+        Args: { p_id_number: string; p_phone: string }
+        Returns: {
+          event_date: string
+          event_id: string
+          ticket_count: number
+          title: string
+        }[]
+      }
       get_person_ticket_count: {
         Args: { p_event_id: string; p_id_number: string; p_phone: string }
         Returns: number
