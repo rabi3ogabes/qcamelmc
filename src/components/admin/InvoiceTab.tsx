@@ -4,7 +4,9 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Send, Loader2, CheckCircle, Clock, RotateCcw, CalendarX, PauseCircle, FileDown, Mail } from "lucide-react";
+import { Send, Loader2, CheckCircle, Clock, RotateCcw, CalendarX, PauseCircle, FileDown, Mail, History } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { EmailDeliveryTimeline } from "@/components/admin/EmailDeliveryTimeline";
 import { generateInvoicePdf } from "@/lib/generateInvoicePdf";
 import { useSettings } from "@/contexts/SettingsContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -94,6 +96,7 @@ export const InvoiceTab = () => {
   const [filterTab, setFilterTab] = useState<"all" | "pending" | "sent" | "eventDone" | "onHold">("all");
   const [sendingIndividual, setSendingIndividual] = useState<string | null>(null);
   const [sendingEmail, setSendingEmail] = useState<string | null>(null);
+  const [timelineOrder, setTimelineOrder] = useState<Order | null>(null);
 
   useEffect(() => {
     fetchOrders();
@@ -1083,6 +1086,16 @@ export const InvoiceTab = () => {
                             إعادة المحاولة
                           </Button>
                         )}
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setTimelineOrder(order)}
+                          className="gap-1 text-xs"
+                          title="سجل حالة إرسال البريد"
+                        >
+                          <History className="w-3 h-3" />
+                          سجل البريد
+                        </Button>
                         {(order.n8n_response_message || sentOrders.has(order.id)) && (
                           <Button
                             variant="outline"
@@ -1106,6 +1119,21 @@ export const InvoiceTab = () => {
           </TabsContent>
         </Tabs>
       </Card>
+
+      <Dialog open={!!timelineOrder} onOpenChange={(open) => !open && setTimelineOrder(null)}>
+        <DialogContent className="max-w-lg" dir="rtl">
+          <DialogHeader className="text-right">
+            <DialogTitle className="flex items-center gap-2">
+              <Mail className="h-4 w-4 text-primary" />
+              سجل إرسال الفاتورة بالبريد
+            </DialogTitle>
+            <DialogDescription>
+              {timelineOrder ? `حجز ${timelineOrder.booking_reference} — ${timelineOrder.customers?.email || "بدون بريد"}` : ""}
+            </DialogDescription>
+          </DialogHeader>
+          {timelineOrder && <EmailDeliveryTimeline orderId={timelineOrder.id} />}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
