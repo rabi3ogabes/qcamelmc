@@ -644,6 +644,7 @@ export type Database = {
         Row: {
           confirmed_at: string | null
           confirmed_by: string | null
+          confirmed_by_name: string | null
           country_code: string | null
           created_at: string | null
           id: string
@@ -659,6 +660,7 @@ export type Database = {
         Insert: {
           confirmed_at?: string | null
           confirmed_by?: string | null
+          confirmed_by_name?: string | null
           country_code?: string | null
           created_at?: string | null
           id?: string
@@ -674,6 +676,7 @@ export type Database = {
         Update: {
           confirmed_at?: string | null
           confirmed_by?: string | null
+          confirmed_by_name?: string | null
           country_code?: string | null
           created_at?: string | null
           id?: string
