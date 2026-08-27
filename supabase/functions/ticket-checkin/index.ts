@@ -98,11 +98,36 @@ serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseKey);
 
     // Parse request body
-    const { booking_reference, admin_id }: CheckInRequest = await req.json();
+    const { booking_reference, admin_id, staff_name, mode }: CheckInRequest = await req.json();
+
+    // History mode: return the most recent successful check-ins
+    if (mode === 'history') {
+      const { data: history, error: historyError } = await supabase
+        .from('ticket_holders')
+        .select('id, name, ticket_type, qr_code, confirmed_at, confirmed_by_name, orders(booking_reference, events(title))')
+        .eq('is_present', true)
+        .not('confirmed_at', 'is', null)
+        .order('confirmed_at', { ascending: false })
+        .limit(30);
+
+      if (historyError) {
+        console.error('[Ticket Check-in] History failed:', historyError);
+        return new Response(
+          JSON.stringify({ success: false, message: 'تعذر جلب سجل المسح', history: [] }),
+          { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      return new Response(
+        JSON.stringify({ success: true, message: 'ok', history: history ?? [] }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
 
     console.log(`[Ticket Check-in] Processing: ${booking_reference}`);
 
     if (!booking_reference) {
+
       console.error('[Ticket Check-in] Missing reference');
       return new Response(
         JSON.stringify({
