@@ -338,6 +338,10 @@ serve(async (req) => {
         updateData.confirmed_by = admin_id;
       }
 
+      if (staff_name) {
+        updateData.confirmed_by_name = staff_name;
+      }
+
       const { error: updateError } = await supabase
         .from('ticket_holders')
         .update(updateData)
