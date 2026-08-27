@@ -62,6 +62,8 @@ async function isQRCodeExpired(supabaseClient: any, qrCode: string): Promise<boo
 interface CheckInRequest {
   booking_reference: string;
   admin_id?: string;
+  staff_name?: string;
+  mode?: 'checkin' | 'history';
 }
 
 interface CheckInResponse {
