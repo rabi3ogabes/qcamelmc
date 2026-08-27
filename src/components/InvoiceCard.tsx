@@ -134,14 +134,38 @@ export const InvoiceCard = ({ data }: InvoiceCardProps) => {
           <div className="mt-6 border-t border-border pt-5">
             <p className="mb-3 text-sm font-semibold">رموز التذاكر (QR)</p>
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-              {qrUrls.map((url, i) => (
-                <div key={url + i} className="rounded-lg border border-border bg-background p-2 text-center">
-                  <img src={url} alt="QR" className="mx-auto h-28 w-28 object-contain" crossOrigin="anonymous" />
-                  <span className="mt-1 block text-xs text-muted-foreground">
-                    {ticketLabel(data.ticket_types[i] || data.ticket_type)}
-                  </span>
-                </div>
-              ))}
+              {qrUrls.map((url, i) => {
+                const state = data.ticket_states?.[i];
+                const used = Boolean(state?.is_present);
+                return (
+                  <div
+                    key={url + i}
+                    className={`rounded-lg border p-2 text-center ${
+                      used ? "border-destructive/40 bg-destructive/5" : "border-border bg-background"
+                    }`}
+                  >
+                    {used ? (
+                      <div className="flex h-28 flex-col items-center justify-center gap-1 px-1">
+                        <CheckCircle2 className="h-6 w-6 text-destructive" />
+                        <span className="text-xs font-bold text-destructive">تم استخدام هذه التذكرة</span>
+                        <span className="text-[10px] text-muted-foreground">
+                          {formatDateTime(state?.confirmed_at)}
+                        </span>
+                        {state?.confirmed_by_name && (
+                          <span className="text-[10px] text-muted-foreground">
+                            بواسطة: {state.confirmed_by_name}
+                          </span>
+                        )}
+                      </div>
+                    ) : (
+                      <img src={url} alt="QR" className="mx-auto h-28 w-28 object-contain" crossOrigin="anonymous" />
+                    )}
+                    <span className="mt-1 block text-xs text-muted-foreground">
+                      {ticketLabel(data.ticket_types[i] || data.ticket_type)}
+                    </span>
+                  </div>
+                );
+              })}
             </div>
           </div>
         )}

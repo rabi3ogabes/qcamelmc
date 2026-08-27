@@ -35,7 +35,14 @@ const InvoicePage = () => {
           return;
         }
 
-        const holders = (order.ticket_holders || []) as Array<{ qr_code: string | null; ticket_type: string }>;
+        const holders = (order.ticket_holders || []) as Array<{
+          qr_code: string | null;
+          ticket_type: string;
+          is_present?: boolean | null;
+          confirmed_at?: string | null;
+          confirmed_by_name?: string | null;
+        }>;
+        const withQr = holders.filter((h) => h.qr_code);
         setInvoice({
           booking_reference: order.booking_reference,
           customer_name: order.customers?.name || "-",
@@ -47,8 +54,9 @@ const InvoicePage = () => {
           payment_status: order.payment_status,
           event_title: order.events?.title || "-",
           event_date: order.events?.event_date || "",
-          qr_codes: holders.map((h) => h.qr_code).filter(Boolean) as string[],
-          ticket_types: holders.map((h) => h.ticket_type),
+          qr_codes: withQr.map((h) => h.qr_code) as string[],
+          ticket_types: withQr.map((h) => h.ticket_type),
+          ticket_states: withQr,
           logo_url: settings?.logo_url ?? null,
           payment_id: order.payment_id ?? null,
           payment_method: order.payment_method ?? null,
@@ -63,8 +71,14 @@ const InvoicePage = () => {
     };
 
     load();
+    // Refresh so a scanned ticket switches to "مستخدمة" without a manual reload
+    const interval = window.setInterval(load, 15000);
+    const onFocus = () => load();
+    window.addEventListener("focus", onFocus);
     return () => {
       active = false;
+      window.clearInterval(interval);
+      window.removeEventListener("focus", onFocus);
     };
   }, [bookingReference, settings?.logo_url]);
 
