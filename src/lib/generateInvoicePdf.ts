@@ -11,6 +11,13 @@ export interface InvoiceData {
   event_date: string;
   qr_codes: string[];
   ticket_types: string[];
+  ticket_states?: Array<{
+    qr_code: string | null;
+    ticket_type: string;
+    is_present?: boolean | null;
+    confirmed_at?: string | null;
+    confirmed_by_name?: string | null;
+  }>;
   logo_url?: string | null;
   payment_id?: string | null;
   payment_method?: string | null;
