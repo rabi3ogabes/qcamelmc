@@ -80,6 +80,38 @@ const QRScanner = () => {
   const [successData, setSuccessData] = useState<SuccessData | null>(null);
   const [collapsedDates, setCollapsedDates] = useState<Record<string, boolean>>({});
   const [errorDialogMessage, setErrorDialogMessage] = useState<string | null>(null);
+  const [staffUsers, setStaffUsers] = useState<{ id: string; name: string; icon: string | null }[]>([]);
+  const [staffName, setStaffName] = useState<string>(() => localStorage.getItem("scanner_staff_name") || "");
+  const [scanHistory, setScanHistory] = useState<
+    { id: string; name: string; ticket_type: string; confirmed_at: string | null; confirmed_by_name: string | null; orders?: { booking_reference: string; events?: { title: string } | null } | null }[]
+  >([]);
+
+  useEffect(() => {
+    localStorage.setItem("scanner_staff_name", staffName);
+  }, [staffName]);
+
+  const loadStaffUsers = async () => {
+    const { data } = await supabase
+      .from("pos_users")
+      .select("id, name, icon")
+      .eq("is_active", true)
+      .order("name");
+    setStaffUsers(data ?? []);
+  };
+
+  const loadScanHistory = async () => {
+    try {
+      const { data } = await supabase.functions.invoke("ticket-checkin", { body: { mode: "history" } });
+      if (data?.history) setScanHistory(data.history);
+    } catch (e) {
+      console.error("Failed to load scan history:", e);
+    }
+  };
+
+  useEffect(() => {
+    loadStaffUsers();
+    loadScanHistory();
+  }, []);
 
   useEffect(() => {
     if (errorDialogMessage) playErrorSound();
