@@ -748,7 +748,8 @@ const QRScanner = () => {
           const response = await supabase.functions.invoke('ticket-checkin', {
             body: {
               booking_reference: ticket.qr_code,
-              admin_id: user?.id
+              admin_id: user?.id,
+              staff_name: staffName || undefined
             }
           });
 
