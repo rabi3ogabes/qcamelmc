@@ -19,6 +19,7 @@ import {
   UserCog,
   Menu,
   X,
+  ArrowLeftRight,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { CapacityAlert } from "@/components/admin/CapacityAlert";
@@ -75,6 +76,7 @@ const AdminDashboard = () => {
   const mainNav = [
     { to: "/admin/dashboard/orders", label: t("orders"), icon: ShoppingCart },
     { to: "/admin/dashboard/customers", label: "العملاء", icon: Users },
+    { to: "/admin/dashboard/transactions", label: "المعاملات", icon: ArrowLeftRight },
     { to: "/admin/dashboard/events", label: t("events"), icon: Calendar },
     { to: "/admin/dashboard/tickets", label: t("tickets"), icon: Ticket },
     { to: "/admin/dashboard/invoices", label: "إرسال الفواتير", icon: FileText },

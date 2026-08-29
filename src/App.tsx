@@ -41,6 +41,7 @@ const NotFound = lazy(() => import("./pages/NotFound"));
 // Admin dashboard sub-pages
 const OrdersPage = lazy(() => import("./pages/admin/OrdersPage"));
 const CustomersPage = lazy(() => import("./pages/admin/CustomersPage"));
+const TransactionsPage = lazy(() => import("./pages/admin/TransactionsPage"));
 const EventsPage = lazy(() => import("./pages/admin/EventsPage"));
 const TicketsPage = lazy(() => import("./pages/admin/TicketsPage"));
 const InvoicesPage = lazy(() => import("./pages/admin/InvoicesPage"));
@@ -89,6 +90,7 @@ const App = () => (
                       <Route index element={<Navigate to="orders" replace />} />
                       <Route path="orders" element={<OrdersPage />} />
                       <Route path="customers" element={<CustomersPage />} />
+                      <Route path="transactions" element={<TransactionsPage />} />
                       <Route path="events" element={<EventsPage />} />
                       <Route path="tickets" element={<TicketsPage />} />
                       <Route path="invoices" element={<InvoicesPage />} />
