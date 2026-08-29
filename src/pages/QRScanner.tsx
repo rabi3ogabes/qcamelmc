@@ -80,6 +80,38 @@ const QRScanner = () => {
   const [successData, setSuccessData] = useState<SuccessData | null>(null);
   const [collapsedDates, setCollapsedDates] = useState<Record<string, boolean>>({});
   const [errorDialogMessage, setErrorDialogMessage] = useState<string | null>(null);
+  const [staffUsers, setStaffUsers] = useState<{ id: string; name: string; icon: string | null }[]>([]);
+  const [staffName, setStaffName] = useState<string>(() => localStorage.getItem("scanner_staff_name") || "");
+  const [scanHistory, setScanHistory] = useState<
+    { id: string; name: string; ticket_type: string; confirmed_at: string | null; confirmed_by_name: string | null; orders?: { booking_reference: string; events?: { title: string } | null } | null }[]
+  >([]);
+
+  useEffect(() => {
+    localStorage.setItem("scanner_staff_name", staffName);
+  }, [staffName]);
+
+  const loadStaffUsers = async () => {
+    const { data } = await supabase
+      .from("pos_users")
+      .select("id, name, icon")
+      .eq("is_active", true)
+      .order("name");
+    setStaffUsers(data ?? []);
+  };
+
+  const loadScanHistory = async () => {
+    try {
+      const { data } = await supabase.functions.invoke("ticket-checkin", { body: { mode: "history" } });
+      if (data?.history) setScanHistory(data.history);
+    } catch (e) {
+      console.error("Failed to load scan history:", e);
+    }
+  };
+
+  useEffect(() => {
+    loadStaffUsers();
+    loadScanHistory();
+  }, []);
 
   useEffect(() => {
     if (errorDialogMessage) playErrorSound();
@@ -748,7 +780,8 @@ const QRScanner = () => {
           const response = await supabase.functions.invoke('ticket-checkin', {
             body: {
               booking_reference: ticket.qr_code,
-              admin_id: user?.id
+              admin_id: user?.id,
+              staff_name: staffName || undefined
             }
           });
 
@@ -810,6 +843,7 @@ const QRScanner = () => {
         });
         setShowSuccessDialog(true);
         toast.success(`✅ تم تأكيد حضور ${successCount} تذكرة`);
+        loadScanHistory();
       }
       
       if (errorCount > 0 && successCount === 0) {
@@ -1110,6 +1144,29 @@ const QRScanner = () => {
       </header>
 
       <div className="max-w-4xl mx-auto py-3 sm:py-6 lg:py-8 px-3 sm:px-4 lg:px-6">
+        {/* Staff selector */}
+        <Card className="mb-4 border-primary/20 bg-gradient-to-l from-primary/5 to-transparent">
+          <CardContent className="flex flex-wrap items-center gap-2 p-3 sm:p-4">
+            <span className="text-sm font-semibold">اسم الموظف:</span>
+            {staffUsers.length === 0 ? (
+              <span className="text-xs text-muted-foreground">لا يوجد موظفون مفعّلون</span>
+            ) : (
+              staffUsers.map((u) => (
+                <Button
+                  key={u.id}
+                  size="sm"
+                  variant={staffName === u.name ? "default" : "outline"}
+                  onClick={() => setStaffName(u.name)}
+                  className="text-xs"
+                >
+                  <span className="ml-1">{u.icon || "⭐"}</span>
+                  {u.name}
+                </Button>
+              ))
+            )}
+          </CardContent>
+        </Card>
+
         {/* Mode Toggle Buttons */}
         <div className="flex justify-center gap-2 sm:gap-3 lg:gap-4 mb-4 sm:mb-6">
           <Button
@@ -1771,7 +1828,53 @@ const QRScanner = () => {
           </Card>
         )}
 
+        {/* Scan history */}
+        <Card className="mt-6">
+          <CardHeader className="flex-row items-center justify-between space-y-0">
+            <CardTitle className="text-base sm:text-lg">سجل عمليات المسح الناجحة</CardTitle>
+            <Button variant="outline" size="sm" onClick={loadScanHistory} className="text-xs">
+              تحديث
+            </Button>
+          </CardHeader>
+          <CardContent>
+            {scanHistory.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-4">لا يوجد سجل بعد</p>
+            ) : (
+              <div className="space-y-2 max-h-80 overflow-y-auto">
+                {scanHistory.map((h) => (
+                  <div
+                    key={h.id}
+                    className="flex items-center justify-between gap-3 rounded-lg border bg-card px-3 py-2"
+                  >
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold truncate">{h.name}</p>
+                      <p className="text-[11px] text-muted-foreground truncate">
+                        {h.orders?.booking_reference} · {h.ticket_type?.toUpperCase()}
+                        {h.orders?.events?.title ? ` · ${h.orders.events.title}` : ""}
+                      </p>
+                    </div>
+                    <div className="text-end shrink-0">
+                      <p className="text-[11px] text-muted-foreground">
+                        {h.confirmed_at
+                          ? new Date(h.confirmed_at).toLocaleString("ar-u-nu-latn", {
+                              timeZone: "Asia/Qatar",
+                              dateStyle: "short",
+                              timeStyle: "short",
+                            })
+                          : "-"}
+                      </p>
+                      {h.confirmed_by_name && (
+                        <p className="text-[11px] font-medium text-primary">{h.confirmed_by_name}</p>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
       </div>
+
 
       {/* Success Dialog */}
       <Dialog open={showSuccessDialog} onOpenChange={setShowSuccessDialog}>
