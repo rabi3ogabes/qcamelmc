@@ -90,7 +90,7 @@ const Confirmation = () => {
 
 
   const toInvoiceData = (order: Order): InvoiceData => {
-    const holders = order.ticket_holders || [];
+    const holders = (order.ticket_holders || []).filter((h) => h.qr_code);
     return {
       booking_reference: order.booking_reference,
       customer_name: order.customers?.name || "-",
@@ -102,8 +102,9 @@ const Confirmation = () => {
       payment_status: order.payment_status,
       event_title: order.events?.title || "-",
       event_date: order.events?.event_date || "",
-      qr_codes: holders.map((h) => h.qr_code).filter(Boolean) as string[],
-      ticket_types: holders.filter((h) => h.qr_code).map((h) => h.ticket_type),
+      qr_codes: holders.map((h) => h.qr_code) as string[],
+      ticket_types: holders.map((h) => h.ticket_type),
+      ticket_states: holders,
       logo_url: logoUrl,
       payment_id: order.payment_id,
       payment_method: order.payment_method,
