@@ -21,7 +21,15 @@ interface Order {
   total_amount: number;
   customers: { name: string; phone: string; country_code: string | null; nationality: string | null } | null;
   events: { title: string; event_date: string } | null;
-  ticket_holders: { qr_code: string | null; ticket_type: string }[] | null;
+  ticket_holders:
+    | {
+        qr_code: string | null;
+        ticket_type: string;
+        is_present?: boolean | null;
+        confirmed_at?: string | null;
+        confirmed_by_name?: string | null;
+      }[]
+    | null;
 }
 
 const Confirmation = () => {
