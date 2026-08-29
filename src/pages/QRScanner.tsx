@@ -1828,7 +1828,53 @@ const QRScanner = () => {
           </Card>
         )}
 
+        {/* Scan history */}
+        <Card className="mt-6">
+          <CardHeader className="flex-row items-center justify-between space-y-0">
+            <CardTitle className="text-base sm:text-lg">سجل عمليات المسح الناجحة</CardTitle>
+            <Button variant="outline" size="sm" onClick={loadScanHistory} className="text-xs">
+              تحديث
+            </Button>
+          </CardHeader>
+          <CardContent>
+            {scanHistory.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-4">لا يوجد سجل بعد</p>
+            ) : (
+              <div className="space-y-2 max-h-80 overflow-y-auto">
+                {scanHistory.map((h) => (
+                  <div
+                    key={h.id}
+                    className="flex items-center justify-between gap-3 rounded-lg border bg-card px-3 py-2"
+                  >
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold truncate">{h.name}</p>
+                      <p className="text-[11px] text-muted-foreground truncate">
+                        {h.orders?.booking_reference} · {h.ticket_type?.toUpperCase()}
+                        {h.orders?.events?.title ? ` · ${h.orders.events.title}` : ""}
+                      </p>
+                    </div>
+                    <div className="text-end shrink-0">
+                      <p className="text-[11px] text-muted-foreground">
+                        {h.confirmed_at
+                          ? new Date(h.confirmed_at).toLocaleString("ar-u-nu-latn", {
+                              timeZone: "Asia/Qatar",
+                              dateStyle: "short",
+                              timeStyle: "short",
+                            })
+                          : "-"}
+                      </p>
+                      {h.confirmed_by_name && (
+                        <p className="text-[11px] font-medium text-primary">{h.confirmed_by_name}</p>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
       </div>
+
 
       {/* Success Dialog */}
       <Dialog open={showSuccessDialog} onOpenChange={setShowSuccessDialog}>
