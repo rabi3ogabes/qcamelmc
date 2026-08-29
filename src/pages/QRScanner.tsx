@@ -843,6 +843,7 @@ const QRScanner = () => {
         });
         setShowSuccessDialog(true);
         toast.success(`✅ تم تأكيد حضور ${successCount} تذكرة`);
+        loadScanHistory();
       }
       
       if (errorCount > 0 && successCount === 0) {
