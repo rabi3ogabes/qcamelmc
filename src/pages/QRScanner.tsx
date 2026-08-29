@@ -1144,6 +1144,29 @@ const QRScanner = () => {
       </header>
 
       <div className="max-w-4xl mx-auto py-3 sm:py-6 lg:py-8 px-3 sm:px-4 lg:px-6">
+        {/* Staff selector */}
+        <Card className="mb-4 border-primary/20 bg-gradient-to-l from-primary/5 to-transparent">
+          <CardContent className="flex flex-wrap items-center gap-2 p-3 sm:p-4">
+            <span className="text-sm font-semibold">اسم الموظف:</span>
+            {staffUsers.length === 0 ? (
+              <span className="text-xs text-muted-foreground">لا يوجد موظفون مفعّلون</span>
+            ) : (
+              staffUsers.map((u) => (
+                <Button
+                  key={u.id}
+                  size="sm"
+                  variant={staffName === u.name ? "default" : "outline"}
+                  onClick={() => setStaffName(u.name)}
+                  className="text-xs"
+                >
+                  <span className="ml-1">{u.icon || "⭐"}</span>
+                  {u.name}
+                </Button>
+              ))
+            )}
+          </CardContent>
+        </Card>
+
         {/* Mode Toggle Buttons */}
         <div className="flex justify-center gap-2 sm:gap-3 lg:gap-4 mb-4 sm:mb-6">
           <Button
