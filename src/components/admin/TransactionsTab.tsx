@@ -298,6 +298,114 @@ export const TransactionsTab = () => {
     }
   }, []);
 
+  /** Fetch one order's live Sadad transaction (status, fees, net). */
+  const fetchSadadInfo = useCallback(async (orderId: string) => {
+    setSadadInfo((prev) => ({ ...prev, [orderId]: { loading: true } }));
+    try {
+      const { data, error } = await supabase.functions.invoke("sadad-transaction", {
+        body: { orderId },
+      });
+      const payload = data as { success?: boolean; error?: string; transaction?: SadadTx } | null;
+      if (error || !payload?.success || !payload.transaction) {
+        throw new Error(payload?.error || "تعذر جلب بيانات سداد");
+      }
+      setSadadInfo((prev) => ({ ...prev, [orderId]: { loading: false, tx: payload.transaction } }));
+    } catch (e) {
+      setSadadInfo((prev) => ({
+        ...prev,
+        [orderId]: { loading: false, error: (e as Error).message || "خطأ" },
+      }));
+    }
+  }, []);
+
+  /** Fetch Sadad details for every row on the current page, 3 at a time. */
+  const syncSadadPage = useCallback(async () => {
+    const ids = transactions
+      .filter((t) => t.payment_method === "sadad" && t.payment_id)
+      .map((t) => t.id);
+    if (ids.length === 0) return;
+    setSadadSyncing(true);
+    try {
+      for (let i = 0; i < ids.length; i += 3) {
+        await Promise.all(ids.slice(i, i + 3).map((id) => fetchSadadInfo(id)));
+      }
+    } finally {
+      setSadadSyncing(false);
+    }
+  }, [transactions, fetchSadadInfo]);
+
+  const SadadCells = ({ tx }: { tx: TransactionRow }) => {
+    const info = sadadInfo[tx.id];
+    if (!tx.payment_id) {
+      return (
+        <>
+          <TableCell className="text-xs text-muted-foreground">—</TableCell>
+          <TableCell className="text-xs text-muted-foreground">—</TableCell>
+          <TableCell className="text-xs text-muted-foreground">—</TableCell>
+        </>
+      );
+    }
+    if (info?.loading) {
+      return (
+        <TableCell colSpan={3}>
+          <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+        </TableCell>
+      );
+    }
+    if (info?.error) {
+      return (
+        <TableCell colSpan={3}>
+          <button
+            type="button"
+            className="text-[11px] text-destructive underline"
+            onClick={(e) => {
+              e.stopPropagation();
+              fetchSadadInfo(tx.id);
+            }}
+          >
+            {info.error} — إعادة المحاولة
+          </button>
+        </TableCell>
+      );
+    }
+    if (!info?.tx) {
+      return (
+        <TableCell colSpan={3}>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-7 text-xs"
+            onClick={(e) => {
+              e.stopPropagation();
+              fetchSadadInfo(tx.id);
+            }}
+          >
+            <RefreshCw className="ms-1 h-3 w-3" />
+            جلب من سداد
+          </Button>
+        </TableCell>
+      );
+    }
+    const s = info.tx;
+    return (
+      <>
+        <TableCell>
+          <Badge variant="outline" className={cn("font-medium", SADAD_STATUS_CLASS(s.status))}>
+            {s.statusAr}
+          </Badge>
+        </TableCell>
+        <TableCell className="whitespace-nowrap text-xs tabular-nums text-amber-600">
+          {qar(s.commission + s.refundCharge)}
+        </TableCell>
+        <TableCell className="whitespace-nowrap text-xs font-semibold tabular-nums text-emerald-600">
+          {qar(s.netAmount)}
+        </TableCell>
+      </>
+    );
+  };
+
+
+
   const StatusBadge = ({ status }: { status: string }) => {
     const meta = STATUS_META[status] ?? STATUS_META.pending;
     const Icon = meta.icon;
