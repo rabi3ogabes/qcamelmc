@@ -408,16 +408,8 @@ export const TransactionsTab = () => {
             </SelectContent>
           </Select>
 
-          <Select value={methodFilter} onValueChange={(v) => setMethodFilter(v as typeof methodFilter)}>
-            <SelectTrigger className="w-[160px]">
-              <SelectValue placeholder="طريقة الدفع" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">كل الطرق</SelectItem>
-              <SelectItem value="sadad">سداد</SelectItem>
-              <SelectItem value="cash_pos">نقدي / POS</SelectItem>
-            </SelectContent>
-          </Select>
+
+
 
           <div className="relative min-w-[200px] flex-1">
             <Search className="absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
