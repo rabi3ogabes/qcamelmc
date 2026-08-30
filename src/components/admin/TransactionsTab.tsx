@@ -571,6 +571,133 @@ export const TransactionsTab = () => {
           )}
         </CardContent>
       </Card>
+
+      {/* Transaction details */}
+      <Dialog open={!!selected} onOpenChange={(o) => !o && setSelected(null)}>
+        <DialogContent className="max-h-[85vh] max-w-2xl overflow-y-auto" dir="rtl">
+          <DialogHeader className="text-start">
+            <DialogTitle className="flex items-center gap-2">
+              <ReceiptText className="h-5 w-5 text-primary" />
+              تفاصيل المعاملة
+            </DialogTitle>
+            <DialogDescription>
+              كل بيانات الدفع والحجز المرتبطة بهذه المعاملة
+            </DialogDescription>
+          </DialogHeader>
+
+          {selected && (
+            <div className="space-y-5">
+              <div className="flex flex-wrap items-center gap-2">
+                <StatusBadge status={selected.payment_status} />
+                <Badge variant="outline" className="gap-1">
+                  {selected.payment_method === "sadad" ? (
+                    <><CreditCard className="h-3 w-3 text-primary" /> سداد</>
+                  ) : (
+                    <><Banknote className="h-3 w-3 text-amber-600" /> نقدي / POS</>
+                  )}
+                </Badge>
+              </div>
+
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                {[
+                  ["رقم المعاملة", selected.payment_id || "—", true],
+                  ["رقم الحجز", selected.booking_reference, true],
+                  ["العميل", selected.customers?.name ?? "عميل غير معروف", false],
+                  ["الهاتف", selected.customers?.phone ?? "—", true],
+                  ["البريد الإلكتروني", selected.customers?.email ?? "—", true],
+                  ["الفعالية", selected.events?.title ?? "—", false],
+                  [
+                    "التذاكر",
+                    `${selected.quantity} × ${
+                      selected.ticket_type === "vip"
+                        ? "VIP"
+                        : selected.ticket_type === "parking"
+                        ? "مواقف"
+                        : "عادي"
+                    }`,
+                    false,
+                  ],
+                  ["المبلغ", `${Number(selected.total_amount).toLocaleString("en-US")} ر.ق`, false],
+                  ["تاريخ الإنشاء (قطر)", formatQatarDateTime(selected.created_at), true],
+                  ["تاريخ التأكيد (قطر)", formatQatarDateTime(selected.confirmed_at), true],
+                ].map(([label, value, ltr]) => (
+                  <div key={label as string} className="rounded-lg border bg-muted/30 p-3">
+                    <p className="text-xs text-muted-foreground">{label as string}</p>
+                    <p
+                      className="mt-0.5 break-all text-sm font-medium"
+                      dir={ltr ? "ltr" : undefined}
+                    >
+                      {value as string}
+                    </p>
+                  </div>
+                ))}
+              </div>
+
+              {selected.payment_error_reason && (
+                <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">
+                  {selected.payment_error_reason}
+                </div>
+              )}
+
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() =>
+                    window.open(`/invoice/${selected.booking_reference}`, "_blank", "noopener")
+                  }
+                >
+                  <ExternalLink className="ms-2 h-4 w-4" />
+                  فتح صفحة الفاتورة
+                </Button>
+              </div>
+
+              <div>
+                <h4 className="mb-2 text-sm font-semibold">طلبات أخرى لنفس العميل</h4>
+                {relatedLoading ? (
+                  <div className="flex justify-center py-4">
+                    <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                  </div>
+                ) : related.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">لا توجد طلبات أخرى مرتبطة</p>
+                ) : (
+                  <div className="space-y-2">
+                    {related.map((r) => (
+                      <div
+                        key={r.id}
+                        className="flex flex-wrap items-center justify-between gap-2 rounded-lg border p-3"
+                      >
+                        <div>
+                          <p className="font-mono text-xs" dir="ltr">{r.booking_reference}</p>
+                          <p className="text-xs text-muted-foreground" dir="ltr">
+                            {formatQatarDateTime(r.created_at)}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-semibold tabular-nums">
+                            {Number(r.total_amount).toLocaleString("en-US")} ر.ق
+                          </span>
+                          <StatusBadge status={r.payment_status} />
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() =>
+                              window.open(`/invoice/${r.booking_reference}`, "_blank", "noopener")
+                            }
+                          >
+                            <ExternalLink className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
+
