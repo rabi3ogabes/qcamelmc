@@ -435,10 +435,18 @@ export const TransactionsTab = () => {
             </p>
           </div>
         </div>
-        <Button variant="outline" size="sm" onClick={fetchTransactions} disabled={loading}>
-          <RefreshCw className={cn("ms-2 h-4 w-4", loading && "animate-spin")} />
-          تحديث
-        </Button>
+        <div className="flex gap-2">
+          {methodFilter === "sadad" && (
+            <Button variant="outline" size="sm" onClick={syncSadadPage} disabled={sadadSyncing || loading}>
+              <CreditCard className={cn("ms-2 h-4 w-4", sadadSyncing && "animate-pulse")} />
+              {sadadSyncing ? "جارٍ الجلب من سداد…" : "جلب حالة سداد للصفحة"}
+            </Button>
+          )}
+          <Button variant="outline" size="sm" onClick={fetchTransactions} disabled={loading}>
+            <RefreshCw className={cn("ms-2 h-4 w-4", loading && "animate-spin")} />
+            تحديث
+          </Button>
+        </div>
       </div>
 
       {/* Channel switcher — POS is hidden until selected */}
