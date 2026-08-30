@@ -80,6 +80,50 @@ interface RelatedOrder {
   created_at: string;
 }
 
+/** Fields returned by Sadad's Get-Single-Transaction API (normalised by the edge function). */
+interface SadadTx {
+  transactionno: string;
+  status: string;
+  statusAr: string;
+  isRefund: boolean;
+  amount: number;
+  commission: number;
+  refundCharge: number;
+  netAmount: number;
+  mode: string | null;
+  transactiondate: string | null;
+}
+
+interface SadadInfoState {
+  loading: boolean;
+  error?: string;
+  tx?: SadadTx;
+}
+
+const SADAD_STATUS_CLASS = (status: string) => {
+  switch (status.toUpperCase()) {
+    case "SUCCESS":
+      return "bg-emerald-500/10 text-emerald-600 border-emerald-500/30";
+    case "FAILED":
+    case "REJECTED":
+      return "bg-destructive/10 text-destructive border-destructive/30";
+    case "REFUND":
+    case "REFUNDED":
+      return "bg-sky-500/10 text-sky-600 border-sky-500/30";
+    case "PENDING":
+    case "INPROGRESS":
+    case "IN PROGRESS":
+      return "bg-amber-500/10 text-amber-600 border-amber-500/30";
+    default:
+      return "bg-muted text-muted-foreground";
+  }
+};
+
+const qar = (v: unknown) => {
+  const n = Number(v);
+  return `${(Number.isFinite(n) ? n : 0).toFixed(2)} ر.ق`;
+};
+
 
 const STATUS_META: Record<string, { label: string; className: string; icon: typeof CheckCircle2 }> = {
   confirmed: {
