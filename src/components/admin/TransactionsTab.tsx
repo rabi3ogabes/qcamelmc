@@ -190,7 +190,7 @@ export const TransactionsTab = () => {
           const { start, end } = qatarDayRange(dayFilter);
           sumQuery = sumQuery.gte("created_at", start).lte("created_at", end);
         }
-        if (methodFilter !== "all") sumQuery = sumQuery.eq("payment_method", methodFilter);
+        sumQuery = sumQuery.eq("payment_method", methodFilter);
         const term = search.trim();
         if (term) {
           const like = `%${term}%`;
