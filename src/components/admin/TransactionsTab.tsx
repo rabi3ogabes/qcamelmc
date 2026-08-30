@@ -671,6 +671,7 @@ export const TransactionsTab = () => {
                           </p>
                         )}
                       </TableCell>
+                      {methodFilter === "sadad" && <SadadCells tx={tx} />}
                       <TableCell className="whitespace-nowrap text-xs text-muted-foreground" dir="ltr">
                         {formatQatarDateTime(tx.created_at)}
                       </TableCell>
