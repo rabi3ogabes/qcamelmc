@@ -91,7 +91,9 @@ interface SadadTx {
   refundCharge: number;
   netAmount: number;
   mode: string | null;
+  entity: string | null;
   transactiondate: string | null;
+  websiteRefNo: string | null;
 }
 
 interface SadadInfoState {
