@@ -520,7 +520,21 @@ export const TransactionsTab = () => {
                       <TableCell className="whitespace-nowrap text-xs text-muted-foreground" dir="ltr">
                         {formatQatarDateTime(tx.created_at)}
                       </TableCell>
+                      <TableCell>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            openDetails(tx);
+                          }}
+                        >
+                          <Eye className="ms-1 h-4 w-4" />
+                          عرض
+                        </Button>
+                      </TableCell>
                     </TableRow>
+
                   ))}
                 </TableBody>
               </Table>
