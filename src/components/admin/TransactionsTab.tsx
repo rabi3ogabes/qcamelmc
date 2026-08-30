@@ -362,6 +362,16 @@ export const TransactionsTab = () => {
     }
   }, [transactions, fetchSadadInfo]);
 
+  // When a Sadad status filter is chosen, make sure the page has Sadad data to filter on.
+  useEffect(() => {
+    if (sadadStatusFilter !== "all" && methodFilter === "sadad" && !loading && !sadadSyncing) {
+      const missing = transactions.some(
+        (t) => t.payment_method === "sadad" && t.payment_id && !sadadInfo[t.id]
+      );
+      if (missing) syncSadadPage();
+    }
+  }, [sadadStatusFilter, methodFilter, loading, sadadSyncing, transactions, sadadInfo, syncSadadPage]);
+
   const SadadCells = ({ tx }: { tx: TransactionRow }) => {
     const info = sadadInfo[tx.id];
     if (!tx.payment_id) {
