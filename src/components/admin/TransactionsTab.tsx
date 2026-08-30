@@ -462,11 +462,17 @@ export const TransactionsTab = () => {
                     <TableHead className="text-start">الطريقة</TableHead>
                     <TableHead className="text-start">الحالة</TableHead>
                     <TableHead className="text-start">التاريخ (قطر)</TableHead>
+                    <TableHead className="text-start">تفاصيل</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {transactions.map((tx) => (
-                    <TableRow key={tx.id} className="hover:bg-muted/40">
+                    <TableRow
+                      key={tx.id}
+                      className="cursor-pointer hover:bg-muted/40"
+                      onClick={() => openDetails(tx)}
+                    >
+
                       <TableCell className="font-mono text-xs" dir="ltr">
                         {tx.payment_id || <span className="text-muted-foreground">—</span>}
                       </TableCell>
