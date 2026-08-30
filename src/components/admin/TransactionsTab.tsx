@@ -39,10 +39,19 @@ import {
 } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
+import { ExternalLink, Eye, ReceiptText } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const QATAR_TZ = "Asia/Qatar";
 const PAGE_SIZE = 30;
+
 
 interface TransactionRow {
   id: string;
