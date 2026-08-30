@@ -125,13 +125,17 @@ export const TransactionsTab = () => {
 
   const [dayFilter, setDayFilter] = useState<"all" | Date>("all");
   const [statusFilter, setStatusFilter] = useState<"all" | "confirmed" | "pending" | "cancelled">("all");
-  const [methodFilter, setMethodFilter] = useState<"all" | "sadad" | "cash_pos">("all");
+  // POS is hidden by default — Sadad and POS are shown as separate channels.
+  const [methodFilter, setMethodFilter] = useState<"sadad" | "cash_pos">("sadad");
   const [search, setSearch] = useState("");
   const [dayTotals, setDayTotals] = useState<{ confirmed: number; amount: number; count: number }>({
     confirmed: 0,
     amount: 0,
     count: 0,
   });
+  const [selected, setSelected] = useState<TransactionRow | null>(null);
+  const [related, setRelated] = useState<RelatedOrder[]>([]);
+  const [relatedLoading, setRelatedLoading] = useState(false);
 
   const requestIdRef = useRef(0);
   const searchTimer = useRef<ReturnType<typeof setTimeout>>();
@@ -141,7 +145,7 @@ export const TransactionsTab = () => {
       let q = supabase
         .from("orders")
         .select(
-          "id, booking_reference, payment_id, payment_status, payment_method, ticket_type, quantity, total_amount, created_at, confirmed_at, payment_error_reason, customers(name, phone, email), events(title, event_date)",
+          "id, customer_id, booking_reference, payment_id, payment_status, payment_method, ticket_type, quantity, total_amount, created_at, confirmed_at, payment_error_reason, customers(name, phone, email), events(title, event_date)",
           withCount ? { count: "exact" } : undefined
         )
         .order("created_at", { ascending: false });
@@ -151,7 +155,8 @@ export const TransactionsTab = () => {
         q = q.gte("created_at", start).lte("created_at", end);
       }
       if (statusFilter !== "all") q = q.eq("payment_status", statusFilter);
-      if (methodFilter !== "all") q = q.eq("payment_method", methodFilter);
+      q = q.eq("payment_method", methodFilter);
+
 
       const term = search.trim();
       if (term) {
