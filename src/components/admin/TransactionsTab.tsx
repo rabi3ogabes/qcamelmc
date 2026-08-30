@@ -136,6 +136,8 @@ export const TransactionsTab = () => {
   const [selected, setSelected] = useState<TransactionRow | null>(null);
   const [related, setRelated] = useState<RelatedOrder[]>([]);
   const [relatedLoading, setRelatedLoading] = useState(false);
+  const [sadadInfo, setSadadInfo] = useState<Record<string, SadadInfoState>>({});
+  const [sadadSyncing, setSadadSyncing] = useState(false);
 
   const requestIdRef = useRef(0);
   const searchTimer = useRef<ReturnType<typeof setTimeout>>();
