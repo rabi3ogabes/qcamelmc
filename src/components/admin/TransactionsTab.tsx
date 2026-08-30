@@ -306,7 +306,6 @@ export const TransactionsTab = () => {
     setRelated([]);
     // Preload live Sadad data for the dialog so all API fields are visible.
     if (tx.payment_method === "sadad" && tx.payment_id) {
-      setSadadInfo((prev) => (prev[tx.id]?.tx || prev[tx.id]?.loading ? prev : prev));
       fetchSadadInfo(tx.id);
     }
     if (!tx.customer_id) return;
@@ -325,27 +324,7 @@ export const TransactionsTab = () => {
     } finally {
       setRelatedLoading(false);
     }
-  }, []);
-
-  /** Fetch one order's live Sadad transaction (status, fees, net). */
-  const fetchSadadInfo = useCallback(async (orderId: string) => {
-    setSadadInfo((prev) => ({ ...prev, [orderId]: { loading: true } }));
-    try {
-      const { data, error } = await supabase.functions.invoke("sadad-transaction", {
-        body: { orderId },
-      });
-      const payload = data as { success?: boolean; error?: string; transaction?: SadadTx } | null;
-      if (error || !payload?.success || !payload.transaction) {
-        throw new Error(payload?.error || "تعذر جلب بيانات سداد");
-      }
-      setSadadInfo((prev) => ({ ...prev, [orderId]: { loading: false, tx: payload.transaction } }));
-    } catch (e) {
-      setSadadInfo((prev) => ({
-        ...prev,
-        [orderId]: { loading: false, error: (e as Error).message || "خطأ" },
-      }));
-    }
-  }, []);
+  }, [fetchSadadInfo]);
 
   /** Fetch Sadad details for every row on the current page, 3 at a time. */
   const syncSadadPage = useCallback(async () => {
