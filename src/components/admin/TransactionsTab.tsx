@@ -174,6 +174,8 @@ export const TransactionsTab = () => {
   // POS is hidden by default — Sadad and POS are shown as separate channels.
   const [methodFilter, setMethodFilter] = useState<"sadad" | "cash_pos">("sadad");
   const [search, setSearch] = useState("");
+  // Live Sadad status filter — applied client-side after fetching Sadad data for the page.
+  const [sadadStatusFilter, setSadadStatusFilter] = useState<"all" | "SUCCESS" | "REJECTED" | "INPROGRESS">("all");
   const [dayTotals, setDayTotals] = useState<{ confirmed: number; amount: number; count: number }>({
     confirmed: 0,
     amount: 0,
