@@ -231,6 +231,27 @@ export const TransactionsTab = () => {
 
   const totalPages = useMemo(() => Math.max(1, Math.ceil(totalCount / PAGE_SIZE)), [totalCount]);
 
+  const openDetails = useCallback(async (tx: TransactionRow) => {
+    setSelected(tx);
+    setRelated([]);
+    if (!tx.customer_id) return;
+    setRelatedLoading(true);
+    try {
+      const { data } = await supabase
+        .from("orders")
+        .select("id, booking_reference, payment_status, payment_method, total_amount, quantity, created_at")
+        .eq("customer_id", tx.customer_id)
+        .neq("id", tx.id)
+        .order("created_at", { ascending: false })
+        .limit(10);
+      setRelated((data ?? []) as RelatedOrder[]);
+    } catch (e) {
+      console.error("Error fetching related orders:", e);
+    } finally {
+      setRelatedLoading(false);
+    }
+  }, []);
+
   const StatusBadge = ({ status }: { status: string }) => {
     const meta = STATUS_META[status] ?? STATUS_META.pending;
     const Icon = meta.icon;
@@ -241,6 +262,7 @@ export const TransactionsTab = () => {
       </Badge>
     );
   };
+
 
   return (
     <div className="space-y-6" dir="rtl">
