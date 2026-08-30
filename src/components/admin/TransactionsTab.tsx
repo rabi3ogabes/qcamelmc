@@ -279,7 +279,27 @@ export const TransactionsTab = () => {
     setPage(0);
   }, [dayFilter, statusFilter, methodFilter, search]);
 
+  // Sadad status filter only applies to the Sadad channel — reset it when leaving.
+  useEffect(() => {
+    if (methodFilter !== "sadad") setSadadStatusFilter("all");
+  }, [methodFilter]);
+
   const totalPages = useMemo(() => Math.max(1, Math.ceil(totalCount / PAGE_SIZE)), [totalCount]);
+
+  /** Rows after applying the live Sadad status filter (needs Sadad data fetched). */
+  const visibleTransactions = useMemo(() => {
+    if (sadadStatusFilter === "all") return transactions;
+    return transactions.filter((t) => {
+      const s = sadadInfo[t.id]?.tx;
+      if (!s) return false;
+      const st = s.status.toUpperCase();
+      if (sadadStatusFilter === "REJECTED") return st === "REJECTED" || st === "FAILED";
+      if (sadadStatusFilter === "INPROGRESS") return st === "INPROGRESS" || st === "IN PROGRESS" || st === "PENDING";
+      return st === sadadStatusFilter;
+    });
+  }, [transactions, sadadInfo, sadadStatusFilter]);
+
+  const sadadFilterActive = sadadStatusFilter !== "all";
 
   /** Fetch one order's live Sadad transaction (status, fees, net). */
   const fetchSadadInfo = useCallback(async (orderId: string) => {
