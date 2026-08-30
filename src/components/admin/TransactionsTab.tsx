@@ -153,29 +153,37 @@ export const TransactionsTab = () => {
       setTransactions((data ?? []) as unknown as TransactionRow[]);
       setTotalCount(count ?? 0);
 
-      // Totals for the current filter scope (confirmed only, capped sample for sums)
-      let sumQuery = supabase
-        .from("orders")
-        .select("total_amount")
-        .eq("payment_status", "confirmed");
-      if (dayFilter !== "all") {
-        const { start, end } = qatarDayRange(dayFilter);
-        sumQuery = sumQuery.gte("created_at", start).lte("created_at", end);
+      // Totals for the current filter scope (confirmed only). Paged in chunks of
+      // 1000 to bypass the backend's default row cap so sums stay accurate.
+      const buildSumQuery = () => {
+        let sumQuery = supabase
+          .from("orders")
+          .select("total_amount")
+          .eq("payment_status", "confirmed");
+        if (dayFilter !== "all") {
+          const { start, end } = qatarDayRange(dayFilter);
+          sumQuery = sumQuery.gte("created_at", start).lte("created_at", end);
+        }
+        if (methodFilter !== "all") sumQuery = sumQuery.eq("payment_method", methodFilter);
+        const term = search.trim();
+        if (term) {
+          const like = `%${term}%`;
+          sumQuery = sumQuery.or(`booking_reference.ilike.${like},payment_id.ilike.${like}`);
+        }
+        return sumQuery;
+      };
+
+      let confirmed = 0;
+      let amount = 0;
+      for (let startRow = 0; startRow < 20000; startRow += 1000) {
+        const { data: sums } = await buildSumQuery().range(startRow, startRow + 999);
+        if (requestId !== requestIdRef.current) return;
+        const rows = (sums ?? []) as { total_amount: number }[];
+        confirmed += rows.length;
+        amount += rows.reduce((acc, r) => acc + Number(r.total_amount || 0), 0);
+        if (rows.length < 1000) break;
       }
-      if (methodFilter !== "all") sumQuery = sumQuery.eq("payment_method", methodFilter);
-      const term = search.trim();
-      if (term) {
-        const like = `%${term}%`;
-        sumQuery = sumQuery.or(`booking_reference.ilike.${like},payment_id.ilike.${like}`);
-      }
-      const { data: sums } = await sumQuery.range(0, 9999);
-      if (requestId !== requestIdRef.current) return;
-      const rows = (sums ?? []) as { total_amount: number }[];
-      setDayTotals({
-        confirmed: rows.length,
-        amount: rows.reduce((acc, r) => acc + Number(r.total_amount || 0), 0),
-        count: count ?? 0,
-      });
+      setDayTotals({ confirmed, amount, count: count ?? 0 });
     } catch (e) {
       console.error("Error fetching transactions:", e);
       if (requestId === requestIdRef.current) {
