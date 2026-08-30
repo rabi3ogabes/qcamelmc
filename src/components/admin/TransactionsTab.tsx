@@ -39,13 +39,23 @@ import {
 } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
+import { ExternalLink, Eye, ReceiptText } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const QATAR_TZ = "Asia/Qatar";
 const PAGE_SIZE = 30;
 
+
 interface TransactionRow {
   id: string;
+  customer_id: string;
   booking_reference: string;
   payment_id: string | null;
   payment_status: string;
@@ -59,6 +69,17 @@ interface TransactionRow {
   customers: { name: string; phone: string; email: string } | null;
   events: { title: string; event_date: string } | null;
 }
+
+interface RelatedOrder {
+  id: string;
+  booking_reference: string;
+  payment_status: string;
+  payment_method: string;
+  total_amount: number;
+  quantity: number;
+  created_at: string;
+}
+
 
 const STATUS_META: Record<string, { label: string; className: string; icon: typeof CheckCircle2 }> = {
   confirmed: {
@@ -104,13 +125,17 @@ export const TransactionsTab = () => {
 
   const [dayFilter, setDayFilter] = useState<"all" | Date>("all");
   const [statusFilter, setStatusFilter] = useState<"all" | "confirmed" | "pending" | "cancelled">("all");
-  const [methodFilter, setMethodFilter] = useState<"all" | "sadad" | "cash_pos">("all");
+  // POS is hidden by default — Sadad and POS are shown as separate channels.
+  const [methodFilter, setMethodFilter] = useState<"sadad" | "cash_pos">("sadad");
   const [search, setSearch] = useState("");
   const [dayTotals, setDayTotals] = useState<{ confirmed: number; amount: number; count: number }>({
     confirmed: 0,
     amount: 0,
     count: 0,
   });
+  const [selected, setSelected] = useState<TransactionRow | null>(null);
+  const [related, setRelated] = useState<RelatedOrder[]>([]);
+  const [relatedLoading, setRelatedLoading] = useState(false);
 
   const requestIdRef = useRef(0);
   const searchTimer = useRef<ReturnType<typeof setTimeout>>();
@@ -120,7 +145,7 @@ export const TransactionsTab = () => {
       let q = supabase
         .from("orders")
         .select(
-          "id, booking_reference, payment_id, payment_status, payment_method, ticket_type, quantity, total_amount, created_at, confirmed_at, payment_error_reason, customers(name, phone, email), events(title, event_date)",
+          "id, customer_id, booking_reference, payment_id, payment_status, payment_method, ticket_type, quantity, total_amount, created_at, confirmed_at, payment_error_reason, customers(name, phone, email), events(title, event_date)",
           withCount ? { count: "exact" } : undefined
         )
         .order("created_at", { ascending: false });
@@ -130,7 +155,8 @@ export const TransactionsTab = () => {
         q = q.gte("created_at", start).lte("created_at", end);
       }
       if (statusFilter !== "all") q = q.eq("payment_status", statusFilter);
-      if (methodFilter !== "all") q = q.eq("payment_method", methodFilter);
+      q = q.eq("payment_method", methodFilter);
+
 
       const term = search.trim();
       if (term) {
@@ -164,7 +190,7 @@ export const TransactionsTab = () => {
           const { start, end } = qatarDayRange(dayFilter);
           sumQuery = sumQuery.gte("created_at", start).lte("created_at", end);
         }
-        if (methodFilter !== "all") sumQuery = sumQuery.eq("payment_method", methodFilter);
+        sumQuery = sumQuery.eq("payment_method", methodFilter);
         const term = search.trim();
         if (term) {
           const like = `%${term}%`;
@@ -205,6 +231,27 @@ export const TransactionsTab = () => {
 
   const totalPages = useMemo(() => Math.max(1, Math.ceil(totalCount / PAGE_SIZE)), [totalCount]);
 
+  const openDetails = useCallback(async (tx: TransactionRow) => {
+    setSelected(tx);
+    setRelated([]);
+    if (!tx.customer_id) return;
+    setRelatedLoading(true);
+    try {
+      const { data } = await supabase
+        .from("orders")
+        .select("id, booking_reference, payment_status, payment_method, total_amount, quantity, created_at")
+        .eq("customer_id", tx.customer_id)
+        .neq("id", tx.id)
+        .order("created_at", { ascending: false })
+        .limit(10);
+      setRelated((data ?? []) as RelatedOrder[]);
+    } catch (e) {
+      console.error("Error fetching related orders:", e);
+    } finally {
+      setRelatedLoading(false);
+    }
+  }, []);
+
   const StatusBadge = ({ status }: { status: string }) => {
     const meta = STATUS_META[status] ?? STATUS_META.pending;
     const Icon = meta.icon;
@@ -215,6 +262,7 @@ export const TransactionsTab = () => {
       </Badge>
     );
   };
+
 
   return (
     <div className="space-y-6" dir="rtl">
@@ -227,7 +275,9 @@ export const TransactionsTab = () => {
           <div>
             <h2 className="text-xl font-bold sm:text-2xl">المعاملات</h2>
             <p className="text-sm text-muted-foreground">
-              جميع معاملات الدفع عبر سداد ونقاط البيع
+              {methodFilter === "sadad"
+                ? "معاملات الدفع الإلكتروني عبر سداد"
+                : "معاملات نقاط البيع (نقدي / POS)"}
             </p>
           </div>
         </div>
@@ -236,6 +286,37 @@ export const TransactionsTab = () => {
           تحديث
         </Button>
       </div>
+
+      {/* Channel switcher — POS is hidden until selected */}
+      <div className="inline-flex rounded-xl border bg-muted/40 p-1">
+        <button
+          type="button"
+          onClick={() => setMethodFilter("sadad")}
+          className={cn(
+            "inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors",
+            methodFilter === "sadad"
+              ? "bg-background text-foreground shadow-sm"
+              : "text-muted-foreground hover:text-foreground"
+          )}
+        >
+          <CreditCard className="h-4 w-4 text-primary" />
+          سداد
+        </button>
+        <button
+          type="button"
+          onClick={() => setMethodFilter("cash_pos")}
+          className={cn(
+            "inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors",
+            methodFilter === "cash_pos"
+              ? "bg-background text-foreground shadow-sm"
+              : "text-muted-foreground hover:text-foreground"
+          )}
+        >
+          <Banknote className="h-4 w-4 text-amber-600" />
+          نقدي / POS
+        </button>
+      </div>
+
 
       {/* Summary cards */}
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
@@ -327,16 +408,8 @@ export const TransactionsTab = () => {
             </SelectContent>
           </Select>
 
-          <Select value={methodFilter} onValueChange={(v) => setMethodFilter(v as typeof methodFilter)}>
-            <SelectTrigger className="w-[160px]">
-              <SelectValue placeholder="طريقة الدفع" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">كل الطرق</SelectItem>
-              <SelectItem value="sadad">سداد</SelectItem>
-              <SelectItem value="cash_pos">نقدي / POS</SelectItem>
-            </SelectContent>
-          </Select>
+
+
 
           <div className="relative min-w-[200px] flex-1">
             <Search className="absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -389,11 +462,17 @@ export const TransactionsTab = () => {
                     <TableHead className="text-start">الطريقة</TableHead>
                     <TableHead className="text-start">الحالة</TableHead>
                     <TableHead className="text-start">التاريخ (قطر)</TableHead>
+                    <TableHead className="text-start">تفاصيل</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {transactions.map((tx) => (
-                    <TableRow key={tx.id} className="hover:bg-muted/40">
+                    <TableRow
+                      key={tx.id}
+                      className="cursor-pointer hover:bg-muted/40"
+                      onClick={() => openDetails(tx)}
+                    >
+
                       <TableCell className="font-mono text-xs" dir="ltr">
                         {tx.payment_id || <span className="text-muted-foreground">—</span>}
                       </TableCell>
@@ -441,7 +520,21 @@ export const TransactionsTab = () => {
                       <TableCell className="whitespace-nowrap text-xs text-muted-foreground" dir="ltr">
                         {formatQatarDateTime(tx.created_at)}
                       </TableCell>
+                      <TableCell>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            openDetails(tx);
+                          }}
+                        >
+                          <Eye className="ms-1 h-4 w-4" />
+                          عرض
+                        </Button>
+                      </TableCell>
                     </TableRow>
+
                   ))}
                 </TableBody>
               </Table>
@@ -478,6 +571,133 @@ export const TransactionsTab = () => {
           )}
         </CardContent>
       </Card>
+
+      {/* Transaction details */}
+      <Dialog open={!!selected} onOpenChange={(o) => !o && setSelected(null)}>
+        <DialogContent className="max-h-[85vh] max-w-2xl overflow-y-auto" dir="rtl">
+          <DialogHeader className="text-start">
+            <DialogTitle className="flex items-center gap-2">
+              <ReceiptText className="h-5 w-5 text-primary" />
+              تفاصيل المعاملة
+            </DialogTitle>
+            <DialogDescription>
+              كل بيانات الدفع والحجز المرتبطة بهذه المعاملة
+            </DialogDescription>
+          </DialogHeader>
+
+          {selected && (
+            <div className="space-y-5">
+              <div className="flex flex-wrap items-center gap-2">
+                <StatusBadge status={selected.payment_status} />
+                <Badge variant="outline" className="gap-1">
+                  {selected.payment_method === "sadad" ? (
+                    <><CreditCard className="h-3 w-3 text-primary" /> سداد</>
+                  ) : (
+                    <><Banknote className="h-3 w-3 text-amber-600" /> نقدي / POS</>
+                  )}
+                </Badge>
+              </div>
+
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                {[
+                  ["رقم المعاملة", selected.payment_id || "—", true],
+                  ["رقم الحجز", selected.booking_reference, true],
+                  ["العميل", selected.customers?.name ?? "عميل غير معروف", false],
+                  ["الهاتف", selected.customers?.phone ?? "—", true],
+                  ["البريد الإلكتروني", selected.customers?.email ?? "—", true],
+                  ["الفعالية", selected.events?.title ?? "—", false],
+                  [
+                    "التذاكر",
+                    `${selected.quantity} × ${
+                      selected.ticket_type === "vip"
+                        ? "VIP"
+                        : selected.ticket_type === "parking"
+                        ? "مواقف"
+                        : "عادي"
+                    }`,
+                    false,
+                  ],
+                  ["المبلغ", `${Number(selected.total_amount).toLocaleString("en-US")} ر.ق`, false],
+                  ["تاريخ الإنشاء (قطر)", formatQatarDateTime(selected.created_at), true],
+                  ["تاريخ التأكيد (قطر)", formatQatarDateTime(selected.confirmed_at), true],
+                ].map(([label, value, ltr]) => (
+                  <div key={label as string} className="rounded-lg border bg-muted/30 p-3">
+                    <p className="text-xs text-muted-foreground">{label as string}</p>
+                    <p
+                      className="mt-0.5 break-all text-sm font-medium"
+                      dir={ltr ? "ltr" : undefined}
+                    >
+                      {value as string}
+                    </p>
+                  </div>
+                ))}
+              </div>
+
+              {selected.payment_error_reason && (
+                <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">
+                  {selected.payment_error_reason}
+                </div>
+              )}
+
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() =>
+                    window.open(`/invoice/${selected.booking_reference}`, "_blank", "noopener")
+                  }
+                >
+                  <ExternalLink className="ms-2 h-4 w-4" />
+                  فتح صفحة الفاتورة
+                </Button>
+              </div>
+
+              <div>
+                <h4 className="mb-2 text-sm font-semibold">طلبات أخرى لنفس العميل</h4>
+                {relatedLoading ? (
+                  <div className="flex justify-center py-4">
+                    <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                  </div>
+                ) : related.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">لا توجد طلبات أخرى مرتبطة</p>
+                ) : (
+                  <div className="space-y-2">
+                    {related.map((r) => (
+                      <div
+                        key={r.id}
+                        className="flex flex-wrap items-center justify-between gap-2 rounded-lg border p-3"
+                      >
+                        <div>
+                          <p className="font-mono text-xs" dir="ltr">{r.booking_reference}</p>
+                          <p className="text-xs text-muted-foreground" dir="ltr">
+                            {formatQatarDateTime(r.created_at)}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-semibold tabular-nums">
+                            {Number(r.total_amount).toLocaleString("en-US")} ر.ق
+                          </span>
+                          <StatusBadge status={r.payment_status} />
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() =>
+                              window.open(`/invoice/${r.booking_reference}`, "_blank", "noopener")
+                            }
+                          >
+                            <ExternalLink className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
+
