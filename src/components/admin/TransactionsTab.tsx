@@ -275,7 +275,9 @@ export const TransactionsTab = () => {
           <div>
             <h2 className="text-xl font-bold sm:text-2xl">المعاملات</h2>
             <p className="text-sm text-muted-foreground">
-              جميع معاملات الدفع عبر سداد ونقاط البيع
+              {methodFilter === "sadad"
+                ? "معاملات الدفع الإلكتروني عبر سداد"
+                : "معاملات نقاط البيع (نقدي / POS)"}
             </p>
           </div>
         </div>
@@ -284,6 +286,37 @@ export const TransactionsTab = () => {
           تحديث
         </Button>
       </div>
+
+      {/* Channel switcher — POS is hidden until selected */}
+      <div className="inline-flex rounded-xl border bg-muted/40 p-1">
+        <button
+          type="button"
+          onClick={() => setMethodFilter("sadad")}
+          className={cn(
+            "inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors",
+            methodFilter === "sadad"
+              ? "bg-background text-foreground shadow-sm"
+              : "text-muted-foreground hover:text-foreground"
+          )}
+        >
+          <CreditCard className="h-4 w-4 text-primary" />
+          سداد
+        </button>
+        <button
+          type="button"
+          onClick={() => setMethodFilter("cash_pos")}
+          className={cn(
+            "inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors",
+            methodFilter === "cash_pos"
+              ? "bg-background text-foreground shadow-sm"
+              : "text-muted-foreground hover:text-foreground"
+          )}
+        >
+          <Banknote className="h-4 w-4 text-amber-600" />
+          نقدي / POS
+        </button>
+      </div>
+
 
       {/* Summary cards */}
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
