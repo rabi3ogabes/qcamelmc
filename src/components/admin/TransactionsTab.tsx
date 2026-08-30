@@ -80,6 +80,50 @@ interface RelatedOrder {
   created_at: string;
 }
 
+/** Fields returned by Sadad's Get-Single-Transaction API (normalised by the edge function). */
+interface SadadTx {
+  transactionno: string;
+  status: string;
+  statusAr: string;
+  isRefund: boolean;
+  amount: number;
+  commission: number;
+  refundCharge: number;
+  netAmount: number;
+  mode: string | null;
+  transactiondate: string | null;
+}
+
+interface SadadInfoState {
+  loading: boolean;
+  error?: string;
+  tx?: SadadTx;
+}
+
+const SADAD_STATUS_CLASS = (status: string) => {
+  switch (status.toUpperCase()) {
+    case "SUCCESS":
+      return "bg-emerald-500/10 text-emerald-600 border-emerald-500/30";
+    case "FAILED":
+    case "REJECTED":
+      return "bg-destructive/10 text-destructive border-destructive/30";
+    case "REFUND":
+    case "REFUNDED":
+      return "bg-sky-500/10 text-sky-600 border-sky-500/30";
+    case "PENDING":
+    case "INPROGRESS":
+    case "IN PROGRESS":
+      return "bg-amber-500/10 text-amber-600 border-amber-500/30";
+    default:
+      return "bg-muted text-muted-foreground";
+  }
+};
+
+const qar = (v: unknown) => {
+  const n = Number(v);
+  return `${(Number.isFinite(n) ? n : 0).toFixed(2)} ر.ق`;
+};
+
 
 const STATUS_META: Record<string, { label: string; className: string; icon: typeof CheckCircle2 }> = {
   confirmed: {
@@ -136,6 +180,8 @@ export const TransactionsTab = () => {
   const [selected, setSelected] = useState<TransactionRow | null>(null);
   const [related, setRelated] = useState<RelatedOrder[]>([]);
   const [relatedLoading, setRelatedLoading] = useState(false);
+  const [sadadInfo, setSadadInfo] = useState<Record<string, SadadInfoState>>({});
+  const [sadadSyncing, setSadadSyncing] = useState(false);
 
   const requestIdRef = useRef(0);
   const searchTimer = useRef<ReturnType<typeof setTimeout>>();
@@ -252,6 +298,114 @@ export const TransactionsTab = () => {
     }
   }, []);
 
+  /** Fetch one order's live Sadad transaction (status, fees, net). */
+  const fetchSadadInfo = useCallback(async (orderId: string) => {
+    setSadadInfo((prev) => ({ ...prev, [orderId]: { loading: true } }));
+    try {
+      const { data, error } = await supabase.functions.invoke("sadad-transaction", {
+        body: { orderId },
+      });
+      const payload = data as { success?: boolean; error?: string; transaction?: SadadTx } | null;
+      if (error || !payload?.success || !payload.transaction) {
+        throw new Error(payload?.error || "تعذر جلب بيانات سداد");
+      }
+      setSadadInfo((prev) => ({ ...prev, [orderId]: { loading: false, tx: payload.transaction } }));
+    } catch (e) {
+      setSadadInfo((prev) => ({
+        ...prev,
+        [orderId]: { loading: false, error: (e as Error).message || "خطأ" },
+      }));
+    }
+  }, []);
+
+  /** Fetch Sadad details for every row on the current page, 3 at a time. */
+  const syncSadadPage = useCallback(async () => {
+    const ids = transactions
+      .filter((t) => t.payment_method === "sadad" && t.payment_id)
+      .map((t) => t.id);
+    if (ids.length === 0) return;
+    setSadadSyncing(true);
+    try {
+      for (let i = 0; i < ids.length; i += 3) {
+        await Promise.all(ids.slice(i, i + 3).map((id) => fetchSadadInfo(id)));
+      }
+    } finally {
+      setSadadSyncing(false);
+    }
+  }, [transactions, fetchSadadInfo]);
+
+  const SadadCells = ({ tx }: { tx: TransactionRow }) => {
+    const info = sadadInfo[tx.id];
+    if (!tx.payment_id) {
+      return (
+        <>
+          <TableCell className="text-xs text-muted-foreground">—</TableCell>
+          <TableCell className="text-xs text-muted-foreground">—</TableCell>
+          <TableCell className="text-xs text-muted-foreground">—</TableCell>
+        </>
+      );
+    }
+    if (info?.loading) {
+      return (
+        <TableCell colSpan={3}>
+          <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+        </TableCell>
+      );
+    }
+    if (info?.error) {
+      return (
+        <TableCell colSpan={3}>
+          <button
+            type="button"
+            className="text-[11px] text-destructive underline"
+            onClick={(e) => {
+              e.stopPropagation();
+              fetchSadadInfo(tx.id);
+            }}
+          >
+            {info.error} — إعادة المحاولة
+          </button>
+        </TableCell>
+      );
+    }
+    if (!info?.tx) {
+      return (
+        <TableCell colSpan={3}>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-7 text-xs"
+            onClick={(e) => {
+              e.stopPropagation();
+              fetchSadadInfo(tx.id);
+            }}
+          >
+            <RefreshCw className="ms-1 h-3 w-3" />
+            جلب من سداد
+          </Button>
+        </TableCell>
+      );
+    }
+    const s = info.tx;
+    return (
+      <>
+        <TableCell>
+          <Badge variant="outline" className={cn("font-medium", SADAD_STATUS_CLASS(s.status))}>
+            {s.statusAr}
+          </Badge>
+        </TableCell>
+        <TableCell className="whitespace-nowrap text-xs tabular-nums text-amber-600">
+          {qar(s.commission + s.refundCharge)}
+        </TableCell>
+        <TableCell className="whitespace-nowrap text-xs font-semibold tabular-nums text-emerald-600">
+          {qar(s.netAmount)}
+        </TableCell>
+      </>
+    );
+  };
+
+
+
   const StatusBadge = ({ status }: { status: string }) => {
     const meta = STATUS_META[status] ?? STATUS_META.pending;
     const Icon = meta.icon;
@@ -281,10 +435,18 @@ export const TransactionsTab = () => {
             </p>
           </div>
         </div>
-        <Button variant="outline" size="sm" onClick={fetchTransactions} disabled={loading}>
-          <RefreshCw className={cn("ms-2 h-4 w-4", loading && "animate-spin")} />
-          تحديث
-        </Button>
+        <div className="flex gap-2">
+          {methodFilter === "sadad" && (
+            <Button variant="outline" size="sm" onClick={syncSadadPage} disabled={sadadSyncing || loading}>
+              <CreditCard className={cn("ms-2 h-4 w-4", sadadSyncing && "animate-pulse")} />
+              {sadadSyncing ? "جارٍ الجلب من سداد…" : "جلب حالة سداد للصفحة"}
+            </Button>
+          )}
+          <Button variant="outline" size="sm" onClick={fetchTransactions} disabled={loading}>
+            <RefreshCw className={cn("ms-2 h-4 w-4", loading && "animate-spin")} />
+            تحديث
+          </Button>
+        </div>
       </div>
 
       {/* Channel switcher — POS is hidden until selected */}
@@ -461,6 +623,13 @@ export const TransactionsTab = () => {
                     <TableHead className="text-start">المبلغ</TableHead>
                     <TableHead className="text-start">الطريقة</TableHead>
                     <TableHead className="text-start">الحالة</TableHead>
+                    {methodFilter === "sadad" && (
+                      <>
+                        <TableHead className="text-start">حالة سداد</TableHead>
+                        <TableHead className="text-start">عمولة سداد</TableHead>
+                        <TableHead className="text-start">الصافي بعد الخصم</TableHead>
+                      </>
+                    )}
                     <TableHead className="text-start">التاريخ (قطر)</TableHead>
                     <TableHead className="text-start">تفاصيل</TableHead>
                   </TableRow>
@@ -517,6 +686,7 @@ export const TransactionsTab = () => {
                           </p>
                         )}
                       </TableCell>
+                      {methodFilter === "sadad" && <SadadCells tx={tx} />}
                       <TableCell className="whitespace-nowrap text-xs text-muted-foreground" dir="ltr">
                         {formatQatarDateTime(tx.created_at)}
                       </TableCell>
