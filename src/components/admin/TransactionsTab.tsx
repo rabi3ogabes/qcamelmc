@@ -873,8 +873,105 @@ export const TransactionsTab = () => {
               </div>
 
               {selected.payment_error_reason && (
-                <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">
-                  {selected.payment_error_reason}
+                <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-3">
+                  <p className="mb-1 text-xs font-semibold text-destructive">سبب الفشل (من نظامنا)</p>
+                  <p className="text-sm text-destructive">{selected.payment_error_reason}</p>
+                </div>
+              )}
+
+              {/* Full live data from Sadad's Get-Single-Transaction API */}
+              {selected.payment_method === "sadad" && selected.payment_id && (
+                <div className="rounded-xl border border-primary/20 bg-primary/5 p-4">
+                  <div className="mb-3 flex items-center justify-between gap-2">
+                    <h4 className="flex items-center gap-2 text-sm font-semibold text-primary">
+                      <CreditCard className="h-4 w-4" />
+                      بيانات سداد المباشرة (Get Single Transaction)
+                    </h4>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 text-xs"
+                      onClick={() => fetchSadadInfo(selected.id)}
+                      disabled={sadadInfo[selected.id]?.loading}
+                    >
+                      <RefreshCw
+                        className={cn("ms-1 h-3 w-3", sadadInfo[selected.id]?.loading && "animate-spin")}
+                      />
+                      تحديث من سداد
+                    </Button>
+                  </div>
+
+                  {(() => {
+                    const info = sadadInfo[selected.id];
+                    if (info?.loading) {
+                      return (
+                        <div className="flex items-center justify-center gap-2 py-6 text-sm text-muted-foreground">
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                          جارٍ الاتصال بمنصة سداد…
+                        </div>
+                      );
+                    }
+                    if (info?.error) {
+                      return (
+                        <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-3">
+                          <p className="mb-1 text-xs font-semibold text-destructive">سبب فشل جلب البيانات من سداد</p>
+                          <p className="text-sm text-destructive">{info.error}</p>
+                        </div>
+                      );
+                    }
+                    if (!info?.tx) {
+                      return (
+                        <p className="py-2 text-center text-sm text-muted-foreground">
+                          اضغط «تحديث من سداد» لجلب كل تفاصيل العملية
+                        </p>
+                      );
+                    }
+                    const s = info.tx;
+                    return (
+                      <div className="space-y-3">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <Badge variant="outline" className={cn("font-medium", SADAD_STATUS_CLASS(s.status))}>
+                            {s.statusAr}
+                          </Badge>
+                          <span className="text-xs text-muted-foreground" dir="ltr">
+                            {s.status}
+                          </span>
+                          {s.isRefund && (
+                            <Badge variant="outline" className="border-sky-500/30 bg-sky-500/10 text-sky-600">
+                              تم استردادها
+                            </Badge>
+                          )}
+                        </div>
+                        {(s.status === "FAILED" || s.status === "REJECTED") && (
+                          <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">
+                            {selected.payment_error_reason
+                              ? `سبب الفشل: ${selected.payment_error_reason}`
+                              : "العملية غير ناجحة لدى سداد — لم يُرجع سداد سبباً تفصيلياً لهذه العملية."}
+                          </div>
+                        )}
+                        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                          {[
+                            ["مرجع العملية (رقم الفاتورة)", s.transactionno, true],
+                            ["المرجع في الموقع (website_ref_no)", s.websiteRefNo || "—", true],
+                            ["المبلغ الإجمالي", qar(s.amount), false],
+                            ["عمولة سداد (servicecharge)", qar(s.commission), false],
+                            ["رسوم الاسترداد (refundcharge)", qar(s.refundCharge), false],
+                            ["الصافي بعد الخصم", qar(s.netAmount), false],
+                            ["وسيلة الدفع (transactionmode)", s.mode || "—", true],
+                            ["جهة العملية (transactionentity)", s.entity || "—", true],
+                            ["تاريخ العملية في سداد", s.transactiondate || "—", true],
+                          ].map(([label, value, ltr]) => (
+                            <div key={label as string} className="rounded-lg border bg-background/60 p-2.5">
+                              <p className="text-[11px] text-muted-foreground">{label as string}</p>
+                              <p className="mt-0.5 break-all text-sm font-medium tabular-nums" dir={ltr ? "ltr" : undefined}>
+                                {value as string}
+                              </p>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })()}
                 </div>
               )}
 
