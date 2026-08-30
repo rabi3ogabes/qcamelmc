@@ -661,14 +661,28 @@ export const TransactionsTab = () => {
             <div className="flex items-center justify-center py-16">
               <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
             </div>
-          ) : transactions.length === 0 ? (
+          ) : visibleTransactions.length === 0 ? (
             <div className="py-16 text-center text-muted-foreground">
-              لا توجد معاملات مطابقة للفلاتر الحالية
+              {sadadFilterActive
+                ? "لا توجد معاملات بهذه الحالة في سداد ضمن الصفحة الحالية"
+                : "لا توجد معاملات مطابقة للفلاتر الحالية"}
             </div>
           ) : (
             <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
+                  {methodFilter === "sadad" && (
+                    <TableRow className="border-b-0 hover:bg-transparent">
+                      <TableHead colSpan={8} className="h-7" />
+                      <TableHead colSpan={3} className="h-7 text-center">
+                        <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2.5 py-0.5 text-[10px] font-medium text-primary">
+                          <CreditCard className="h-3 w-3" />
+                          بيانات مباشرة من منصة سداد (Get Single Transaction API)
+                        </span>
+                      </TableHead>
+                      <TableHead colSpan={2} className="h-7" />
+                    </TableRow>
+                  )}
                   <TableRow>
                     <TableHead className="text-start">رقم المعاملة</TableHead>
                     <TableHead className="text-start">رقم الحجز</TableHead>
@@ -680,9 +694,9 @@ export const TransactionsTab = () => {
                     <TableHead className="text-start">الحالة</TableHead>
                     {methodFilter === "sadad" && (
                       <>
-                        <TableHead className="text-start">حالة سداد</TableHead>
-                        <TableHead className="text-start">عمولة سداد</TableHead>
-                        <TableHead className="text-start">الصافي بعد الخصم</TableHead>
+                        <TableHead className="bg-primary/5 text-start text-primary">حالة سداد</TableHead>
+                        <TableHead className="bg-primary/5 text-start text-primary">عمولة سداد</TableHead>
+                        <TableHead className="bg-primary/5 text-start text-primary">الصافي بعد الخصم</TableHead>
                       </>
                     )}
                     <TableHead className="text-start">التاريخ (قطر)</TableHead>
@@ -690,7 +704,7 @@ export const TransactionsTab = () => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {transactions.map((tx) => (
+                  {visibleTransactions.map((tx) => (
                     <TableRow
                       key={tx.id}
                       className="cursor-pointer hover:bg-muted/40"
