@@ -615,6 +615,13 @@ export const TransactionsTab = () => {
                     <TableHead className="text-start">المبلغ</TableHead>
                     <TableHead className="text-start">الطريقة</TableHead>
                     <TableHead className="text-start">الحالة</TableHead>
+                    {methodFilter === "sadad" && (
+                      <>
+                        <TableHead className="text-start">حالة سداد</TableHead>
+                        <TableHead className="text-start">عمولة سداد</TableHead>
+                        <TableHead className="text-start">الصافي بعد الخصم</TableHead>
+                      </>
+                    )}
                     <TableHead className="text-start">التاريخ (قطر)</TableHead>
                     <TableHead className="text-start">تفاصيل</TableHead>
                   </TableRow>
