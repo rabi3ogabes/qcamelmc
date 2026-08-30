@@ -91,7 +91,9 @@ interface SadadTx {
   refundCharge: number;
   netAmount: number;
   mode: string | null;
+  entity: string | null;
   transactiondate: string | null;
+  websiteRefNo: string | null;
 }
 
 interface SadadInfoState {
@@ -172,6 +174,8 @@ export const TransactionsTab = () => {
   // POS is hidden by default — Sadad and POS are shown as separate channels.
   const [methodFilter, setMethodFilter] = useState<"sadad" | "cash_pos">("sadad");
   const [search, setSearch] = useState("");
+  // Live Sadad status filter — applied client-side after fetching Sadad data for the page.
+  const [sadadStatusFilter, setSadadStatusFilter] = useState<"all" | "SUCCESS" | "REJECTED" | "INPROGRESS">("all");
   const [dayTotals, setDayTotals] = useState<{ confirmed: number; amount: number; count: number }>({
     confirmed: 0,
     amount: 0,
@@ -275,28 +279,27 @@ export const TransactionsTab = () => {
     setPage(0);
   }, [dayFilter, statusFilter, methodFilter, search]);
 
+  // Sadad status filter only applies to the Sadad channel — reset it when leaving.
+  useEffect(() => {
+    if (methodFilter !== "sadad") setSadadStatusFilter("all");
+  }, [methodFilter]);
+
   const totalPages = useMemo(() => Math.max(1, Math.ceil(totalCount / PAGE_SIZE)), [totalCount]);
 
-  const openDetails = useCallback(async (tx: TransactionRow) => {
-    setSelected(tx);
-    setRelated([]);
-    if (!tx.customer_id) return;
-    setRelatedLoading(true);
-    try {
-      const { data } = await supabase
-        .from("orders")
-        .select("id, booking_reference, payment_status, payment_method, total_amount, quantity, created_at")
-        .eq("customer_id", tx.customer_id)
-        .neq("id", tx.id)
-        .order("created_at", { ascending: false })
-        .limit(10);
-      setRelated((data ?? []) as RelatedOrder[]);
-    } catch (e) {
-      console.error("Error fetching related orders:", e);
-    } finally {
-      setRelatedLoading(false);
-    }
-  }, []);
+  /** Rows after applying the live Sadad status filter (needs Sadad data fetched). */
+  const visibleTransactions = useMemo(() => {
+    if (sadadStatusFilter === "all") return transactions;
+    return transactions.filter((t) => {
+      const s = sadadInfo[t.id]?.tx;
+      if (!s) return false;
+      const st = s.status.toUpperCase();
+      if (sadadStatusFilter === "REJECTED") return st === "REJECTED" || st === "FAILED";
+      if (sadadStatusFilter === "INPROGRESS") return st === "INPROGRESS" || st === "IN PROGRESS" || st === "PENDING";
+      return st === sadadStatusFilter;
+    });
+  }, [transactions, sadadInfo, sadadStatusFilter]);
+
+  const sadadFilterActive = sadadStatusFilter !== "all";
 
   /** Fetch one order's live Sadad transaction (status, fees, net). */
   const fetchSadadInfo = useCallback(async (orderId: string) => {
@@ -318,6 +321,31 @@ export const TransactionsTab = () => {
     }
   }, []);
 
+  const openDetails = useCallback(async (tx: TransactionRow) => {
+    setSelected(tx);
+    setRelated([]);
+    // Preload live Sadad data for the dialog so all API fields are visible.
+    if (tx.payment_method === "sadad" && tx.payment_id) {
+      fetchSadadInfo(tx.id);
+    }
+    if (!tx.customer_id) return;
+    setRelatedLoading(true);
+    try {
+      const { data } = await supabase
+        .from("orders")
+        .select("id, booking_reference, payment_status, payment_method, total_amount, quantity, created_at")
+        .eq("customer_id", tx.customer_id)
+        .neq("id", tx.id)
+        .order("created_at", { ascending: false })
+        .limit(10);
+      setRelated((data ?? []) as RelatedOrder[]);
+    } catch (e) {
+      console.error("Error fetching related orders:", e);
+    } finally {
+      setRelatedLoading(false);
+    }
+  }, [fetchSadadInfo]);
+
   /** Fetch Sadad details for every row on the current page, 3 at a time. */
   const syncSadadPage = useCallback(async () => {
     const ids = transactions
@@ -333,6 +361,16 @@ export const TransactionsTab = () => {
       setSadadSyncing(false);
     }
   }, [transactions, fetchSadadInfo]);
+
+  // When a Sadad status filter is chosen, make sure the page has Sadad data to filter on.
+  useEffect(() => {
+    if (sadadStatusFilter !== "all" && methodFilter === "sadad" && !loading && !sadadSyncing) {
+      const missing = transactions.some(
+        (t) => t.payment_method === "sadad" && t.payment_id && !sadadInfo[t.id]
+      );
+      if (missing) syncSadadPage();
+    }
+  }, [sadadStatusFilter, methodFilter, loading, sadadSyncing, transactions, sadadInfo, syncSadadPage]);
 
   const SadadCells = ({ tx }: { tx: TransactionRow }) => {
     const info = sadadInfo[tx.id];
@@ -570,6 +608,23 @@ export const TransactionsTab = () => {
             </SelectContent>
           </Select>
 
+          {methodFilter === "sadad" && (
+            <Select
+              value={sadadStatusFilter}
+              onValueChange={(v) => setSadadStatusFilter(v as typeof sadadStatusFilter)}
+            >
+              <SelectTrigger className="w-[190px]">
+                <SelectValue placeholder="حالة سداد" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">كل حالات سداد</SelectItem>
+                <SelectItem value="SUCCESS">سداد: ناجحة</SelectItem>
+                <SelectItem value="REJECTED">سداد: مرفوضة / فاشلة</SelectItem>
+                <SelectItem value="INPROGRESS">سداد: قيد المعالجة</SelectItem>
+              </SelectContent>
+            </Select>
+          )}
+
 
 
 
@@ -606,14 +661,28 @@ export const TransactionsTab = () => {
             <div className="flex items-center justify-center py-16">
               <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
             </div>
-          ) : transactions.length === 0 ? (
+          ) : visibleTransactions.length === 0 ? (
             <div className="py-16 text-center text-muted-foreground">
-              لا توجد معاملات مطابقة للفلاتر الحالية
+              {sadadFilterActive
+                ? "لا توجد معاملات بهذه الحالة في سداد ضمن الصفحة الحالية"
+                : "لا توجد معاملات مطابقة للفلاتر الحالية"}
             </div>
           ) : (
             <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
+                  {methodFilter === "sadad" && (
+                    <TableRow className="border-b-0 hover:bg-transparent">
+                      <TableHead colSpan={8} className="h-7" />
+                      <TableHead colSpan={3} className="h-7 text-center">
+                        <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2.5 py-0.5 text-[10px] font-medium text-primary">
+                          <CreditCard className="h-3 w-3" />
+                          بيانات مباشرة من منصة سداد (Get Single Transaction API)
+                        </span>
+                      </TableHead>
+                      <TableHead colSpan={2} className="h-7" />
+                    </TableRow>
+                  )}
                   <TableRow>
                     <TableHead className="text-start">رقم المعاملة</TableHead>
                     <TableHead className="text-start">رقم الحجز</TableHead>
@@ -625,9 +694,9 @@ export const TransactionsTab = () => {
                     <TableHead className="text-start">الحالة</TableHead>
                     {methodFilter === "sadad" && (
                       <>
-                        <TableHead className="text-start">حالة سداد</TableHead>
-                        <TableHead className="text-start">عمولة سداد</TableHead>
-                        <TableHead className="text-start">الصافي بعد الخصم</TableHead>
+                        <TableHead className="bg-primary/5 text-start text-primary">حالة سداد</TableHead>
+                        <TableHead className="bg-primary/5 text-start text-primary">عمولة سداد</TableHead>
+                        <TableHead className="bg-primary/5 text-start text-primary">الصافي بعد الخصم</TableHead>
                       </>
                     )}
                     <TableHead className="text-start">التاريخ (قطر)</TableHead>
@@ -635,7 +704,7 @@ export const TransactionsTab = () => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {transactions.map((tx) => (
+                  {visibleTransactions.map((tx) => (
                     <TableRow
                       key={tx.id}
                       className="cursor-pointer hover:bg-muted/40"
@@ -804,8 +873,105 @@ export const TransactionsTab = () => {
               </div>
 
               {selected.payment_error_reason && (
-                <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">
-                  {selected.payment_error_reason}
+                <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-3">
+                  <p className="mb-1 text-xs font-semibold text-destructive">سبب الفشل (من نظامنا)</p>
+                  <p className="text-sm text-destructive">{selected.payment_error_reason}</p>
+                </div>
+              )}
+
+              {/* Full live data from Sadad's Get-Single-Transaction API */}
+              {selected.payment_method === "sadad" && selected.payment_id && (
+                <div className="rounded-xl border border-primary/20 bg-primary/5 p-4">
+                  <div className="mb-3 flex items-center justify-between gap-2">
+                    <h4 className="flex items-center gap-2 text-sm font-semibold text-primary">
+                      <CreditCard className="h-4 w-4" />
+                      بيانات سداد المباشرة (Get Single Transaction)
+                    </h4>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 text-xs"
+                      onClick={() => fetchSadadInfo(selected.id)}
+                      disabled={sadadInfo[selected.id]?.loading}
+                    >
+                      <RefreshCw
+                        className={cn("ms-1 h-3 w-3", sadadInfo[selected.id]?.loading && "animate-spin")}
+                      />
+                      تحديث من سداد
+                    </Button>
+                  </div>
+
+                  {(() => {
+                    const info = sadadInfo[selected.id];
+                    if (info?.loading) {
+                      return (
+                        <div className="flex items-center justify-center gap-2 py-6 text-sm text-muted-foreground">
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                          جارٍ الاتصال بمنصة سداد…
+                        </div>
+                      );
+                    }
+                    if (info?.error) {
+                      return (
+                        <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-3">
+                          <p className="mb-1 text-xs font-semibold text-destructive">سبب فشل جلب البيانات من سداد</p>
+                          <p className="text-sm text-destructive">{info.error}</p>
+                        </div>
+                      );
+                    }
+                    if (!info?.tx) {
+                      return (
+                        <p className="py-2 text-center text-sm text-muted-foreground">
+                          اضغط «تحديث من سداد» لجلب كل تفاصيل العملية
+                        </p>
+                      );
+                    }
+                    const s = info.tx;
+                    return (
+                      <div className="space-y-3">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <Badge variant="outline" className={cn("font-medium", SADAD_STATUS_CLASS(s.status))}>
+                            {s.statusAr}
+                          </Badge>
+                          <span className="text-xs text-muted-foreground" dir="ltr">
+                            {s.status}
+                          </span>
+                          {s.isRefund && (
+                            <Badge variant="outline" className="border-sky-500/30 bg-sky-500/10 text-sky-600">
+                              تم استردادها
+                            </Badge>
+                          )}
+                        </div>
+                        {(s.status === "FAILED" || s.status === "REJECTED") && (
+                          <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">
+                            {selected.payment_error_reason
+                              ? `سبب الفشل: ${selected.payment_error_reason}`
+                              : "العملية غير ناجحة لدى سداد — لم يُرجع سداد سبباً تفصيلياً لهذه العملية."}
+                          </div>
+                        )}
+                        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                          {[
+                            ["مرجع العملية (رقم الفاتورة)", s.transactionno, true],
+                            ["المرجع في الموقع (website_ref_no)", s.websiteRefNo || "—", true],
+                            ["المبلغ الإجمالي", qar(s.amount), false],
+                            ["عمولة سداد (servicecharge)", qar(s.commission), false],
+                            ["رسوم الاسترداد (refundcharge)", qar(s.refundCharge), false],
+                            ["الصافي بعد الخصم", qar(s.netAmount), false],
+                            ["وسيلة الدفع (transactionmode)", s.mode || "—", true],
+                            ["جهة العملية (transactionentity)", s.entity || "—", true],
+                            ["تاريخ العملية في سداد", s.transactiondate || "—", true],
+                          ].map(([label, value, ltr]) => (
+                            <div key={label as string} className="rounded-lg border bg-background/60 p-2.5">
+                              <p className="text-[11px] text-muted-foreground">{label as string}</p>
+                              <p className="mt-0.5 break-all text-sm font-medium tabular-nums" dir={ltr ? "ltr" : undefined}>
+                                {value as string}
+                              </p>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })()}
                 </div>
               )}
 
