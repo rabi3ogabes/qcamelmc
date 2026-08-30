@@ -608,6 +608,23 @@ export const TransactionsTab = () => {
             </SelectContent>
           </Select>
 
+          {methodFilter === "sadad" && (
+            <Select
+              value={sadadStatusFilter}
+              onValueChange={(v) => setSadadStatusFilter(v as typeof sadadStatusFilter)}
+            >
+              <SelectTrigger className="w-[190px]">
+                <SelectValue placeholder="حالة سداد" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">كل حالات سداد</SelectItem>
+                <SelectItem value="SUCCESS">سداد: ناجحة</SelectItem>
+                <SelectItem value="REJECTED">سداد: مرفوضة / فاشلة</SelectItem>
+                <SelectItem value="INPROGRESS">سداد: قيد المعالجة</SelectItem>
+              </SelectContent>
+            </Select>
+          )}
+
 
 
 
