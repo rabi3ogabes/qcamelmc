@@ -55,6 +55,7 @@ const PAGE_SIZE = 30;
 
 interface TransactionRow {
   id: string;
+  customer_id: string;
   booking_reference: string;
   payment_id: string | null;
   payment_status: string;
@@ -68,6 +69,17 @@ interface TransactionRow {
   customers: { name: string; phone: string; email: string } | null;
   events: { title: string; event_date: string } | null;
 }
+
+interface RelatedOrder {
+  id: string;
+  booking_reference: string;
+  payment_status: string;
+  payment_method: string;
+  total_amount: number;
+  quantity: number;
+  created_at: string;
+}
+
 
 const STATUS_META: Record<string, { label: string; className: string; icon: typeof CheckCircle2 }> = {
   confirmed: {
