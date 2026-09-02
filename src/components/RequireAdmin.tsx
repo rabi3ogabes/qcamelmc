@@ -9,7 +9,6 @@ import { Lock } from "lucide-react";
 import { toast } from "sonner";
 import { grantStaffAccess, hasStaffAccess } from "@/lib/staffAccess";
 
-const STAFF_PASSCODE = "@@@Qatar123";
 
 
 /**
