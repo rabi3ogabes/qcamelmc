@@ -1097,7 +1097,7 @@ const AdminPOS = () => {
         title: isTicketLimitError(error) ? "تجاوز الحد الأقصى للتذاكر" : "خطأ",
         description: isTicketLimitError(error)
           ? ticketLimitErrorMessage(error)
-          : "فشل إنشاء الطلبات",
+          : bookingGuardMessage(error) || "فشل إنشاء الطلبات",
         variant: "destructive",
       });
     } finally {
