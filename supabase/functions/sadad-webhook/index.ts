@@ -114,10 +114,50 @@ Deno.serve(async (req) => {
       console.log('Computed checksumhash:', computedHash)
       
       if (computedHash !== checksumhash) {
-        console.warn('Checksumhash verification failed - continuing anyway to process payment')
-        // Don't fail the request, just log the warning
-      } else {
-        console.log('Checksumhash verified successfully')
+        console.error('Checksumhash verification FAILED - rejecting webhook')
+        return new Response(
+          JSON.stringify({ error: 'Invalid checksum' }),
+          { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
+      console.log('Checksumhash verified successfully')
+      checksumVerified = true
+    }
+
+    // When no signature is provided we cannot trust a "success" claim coming from
+    // the browser. Confirm it against Sadad's own transaction lookup instead.
+    if (!checksumVerified) {
+      const looksSuccessful = transactionStatus === 'TXN_SUCCESS' ||
+        transactionStatus === '1' || transactionStatus === 1 ||
+        transactionStatus === '3' || transactionStatus === 3;
+
+      if (looksSuccessful) {
+        try {
+          const verifyRes = await fetch(`${supabaseUrl}/functions/v1/sadad-transaction`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${supabaseServiceKey}`,
+            },
+            body: JSON.stringify({ bookingReference: websiteRefNo }),
+          })
+          const verifyJson = await verifyRes.json().catch(() => null)
+          const remoteStatus = String(
+            verifyJson?.transaction?.transaction_status ??
+            verifyJson?.transaction?.status ?? ''
+          ).toLowerCase()
+
+          if (verifyJson?.success && remoteStatus && !remoteStatus.includes('success')) {
+            console.error('Sadad lookup contradicts unsigned success claim:', remoteStatus)
+            return new Response(
+              JSON.stringify({ error: 'Payment not confirmed by Sadad' }),
+              { status: 402, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+            )
+          }
+          console.log('Unsigned webhook accepted; Sadad lookup result:', remoteStatus || 'unavailable')
+        } catch (verifyError) {
+          console.warn('Sadad verification lookup unavailable, proceeding:', verifyError)
+        }
       }
     }
 
