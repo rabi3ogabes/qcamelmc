@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.58.0";
+import { isStaffAuthorized, unauthorizedResponse } from "../_shared/staffAuth.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -19,7 +20,7 @@ serve(async (req) => {
   }
 
   try {
-    const { order_id, new_event_id } = await req.json();
+    const { order_id, new_event_id, passcode } = await req.json();
 
     if (!order_id || !new_event_id) {
       return new Response(
@@ -31,6 +32,10 @@ serve(async (req) => {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+    if (!(await isStaffAuthorized(req, supabase, passcode))) {
+      return unauthorizedResponse(corsHeaders);
+    }
 
     console.log(`[Change Event] Processing order: ${order_id}`);
 

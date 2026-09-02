@@ -1,11 +1,11 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.58.0";
+import { isStaffAuthorized } from "../_shared/staffAuth.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const STAFF_PASSCODE = Deno.env.get("STAFF_PASSCODE") || "@@@Qatar123";
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -25,8 +25,7 @@ Deno.serve(async (req) => {
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const admin = createClient(supabaseUrl, serviceKey);
 
-    // Authorize: either a signed-in admin, or the staff passcode.
-    let authorized = passcode === STAFF_PASSCODE;
+    const authorized = await isStaffAuthorized(req, admin, passcode);
 
     if (!authorized) {
       const authHeader = req.headers.get("Authorization") || "";
