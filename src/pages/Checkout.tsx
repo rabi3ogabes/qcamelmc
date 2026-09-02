@@ -13,7 +13,7 @@ import { CreditCard, Banknote, Loader2, Plus, Minus, X, AlertTriangle } from "lu
 import { Checkbox } from "@/components/ui/checkbox";
 import { Footer } from "@/components/Footer";
 import { useSettings } from "@/contexts/SettingsContext";
-import { checkTicketLimits, formatLimitViolation, isTicketLimitError, ticketLimitErrorMessage } from "@/lib/ticketLimit";
+import { bookingGuardMessage, checkTicketLimits, formatLimitViolation, isTicketLimitError, ticketLimitErrorMessage } from "@/lib/ticketLimit";
 import { useReserveTickets } from "@/hooks/useReserveTickets";
 
 // Convert Arabic numerals to English numerals
@@ -619,8 +619,11 @@ const Checkout = () => {
       navigate("/confirmation");
     } catch (error) {
       console.error("Error creating booking:", error);
+      const guardMessage = bookingGuardMessage(error);
       if (isTicketLimitError(error)) {
         toast.error(ticketLimitErrorMessage(error));
+      } else if (guardMessage) {
+        toast.error(guardMessage);
       } else {
         toast.error("Failed to create booking. Please try again.");
       }

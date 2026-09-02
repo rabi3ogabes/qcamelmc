@@ -79,7 +79,8 @@ Deno.serve(async (req) => {
       )
     }
 
-    // Verify checksumhash - temporarily log but don't fail
+    // Verify checksumhash — a mismatch is rejected outright
+    let checksumVerified = false
     const { data: settings } = await supabase
       .from('settings')
       .select('sadad_secret')
@@ -114,10 +115,51 @@ Deno.serve(async (req) => {
       console.log('Computed checksumhash:', computedHash)
       
       if (computedHash !== checksumhash) {
-        console.warn('Checksumhash verification failed - continuing anyway to process payment')
-        // Don't fail the request, just log the warning
-      } else {
-        console.log('Checksumhash verified successfully')
+        console.error('Checksumhash verification FAILED - rejecting webhook')
+        return new Response(
+          JSON.stringify({ error: 'Invalid checksum' }),
+          { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
+      console.log('Checksumhash verified successfully')
+      checksumVerified = true
+    }
+
+    // When no signature is provided we cannot fully trust a "success" claim coming
+    // from the browser, so require a plausible, matching payment payload:
+    // a real transaction number and an amount that matches the stored order total.
+    if (!checksumVerified) {
+      const looksSuccessful = transactionStatus === 'TXN_SUCCESS' ||
+        transactionStatus === '1' || transactionStatus === 1 ||
+        transactionStatus === '3' || transactionStatus === 3;
+
+      if (looksSuccessful) {
+        if (!transactionNumber) {
+          console.error('Unsigned success claim without transaction number - rejected')
+          return new Response(
+            JSON.stringify({ error: 'Missing transaction number' }),
+            { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          )
+        }
+
+        const { data: orderForAmount } = await supabase
+          .from('orders')
+          .select('total_amount')
+          .eq('booking_reference', websiteRefNo)
+          .maybeSingle()
+
+        const claimed = Number(txnAmount)
+        const expected = Number(orderForAmount?.total_amount)
+        if (orderForAmount && Number.isFinite(claimed) && Number.isFinite(expected)) {
+          if (Math.abs(claimed - expected) > 0.01) {
+            console.error(`Unsigned success amount mismatch: claimed ${claimed}, expected ${expected}`)
+            return new Response(
+              JSON.stringify({ error: 'Amount mismatch' }),
+              { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+            )
+          }
+        }
+        console.warn(`Unsigned Sadad confirmation accepted for ${websiteRefNo} (txn ${transactionNumber})`)
       }
     }
 
