@@ -7,9 +7,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Lock } from "lucide-react";
 import { toast } from "sonner";
-import { grantStaffAccess, hasStaffAccess } from "@/lib/staffAccess";
+import { getStaffPasscode, grantStaffAccess, hasStaffAccess } from "@/lib/staffAccess";
 
-const STAFF_PASSCODE = "@@@Qatar123";
 
 
 /**
@@ -25,10 +24,13 @@ const RequireAdmin = ({ children }: { children: React.ReactNode }) => {
     let active = true;
 
     const check = async () => {
-      if (hasStaffAccess()) {
+      // Staff access counts only when the accepted passcode is stored,
+      // so staff-only edge functions can still authorize the request.
+      if (hasStaffAccess() && getStaffPasscode()) {
         if (active) setStatus("allowed");
         return;
       }
+
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.user) {
         if (active) setStatus("denied");
@@ -51,17 +53,30 @@ const RequireAdmin = ({ children }: { children: React.ReactNode }) => {
     };
   }, [location.pathname]);
 
-  const handleUnlock = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (passcode === STAFF_PASSCODE) {
-      grantStaffAccess();
+  const [verifying, setVerifying] = useState(false);
 
-      setStatus("allowed");
-      toast.success("تم فتح الصفحة");
-    } else {
-      toast.error("كلمة المرور غير صحيحة");
+  const handleUnlock = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setVerifying(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("staff-auth", {
+        body: { passcode },
+      });
+      if (error) throw error;
+      if (data?.ok) {
+        grantStaffAccess(passcode);
+        setStatus("allowed");
+        toast.success("تم فتح الصفحة");
+      } else {
+        toast.error("كلمة المرور غير صحيحة");
+      }
+    } catch {
+      toast.error("تعذر التحقق من كلمة المرور");
+    } finally {
+      setVerifying(false);
     }
   };
+
 
   if (status === "checking") {
     return (

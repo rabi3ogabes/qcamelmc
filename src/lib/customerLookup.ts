@@ -1,5 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
-import { hasStaffAccess } from "@/lib/staffAccess";
+import { getStaffPasscode, hasStaffAccess } from "@/lib/staffAccess";
 
 export interface LookupCustomerRecord {
   id: string;
@@ -11,9 +11,8 @@ export interface LookupCustomerRecord {
   id_number: string | null;
 }
 
-const STAFF_PASSCODE = "@@@Qatar123";
-
 const hasPasscodeAccess = () => hasStaffAccess();
+
 
 
 /**
@@ -42,8 +41,9 @@ export async function searchCustomers(term: string): Promise<LookupCustomerRecor
   if (!hasPasscodeAccess()) return [];
 
   const { data, error } = await supabase.functions.invoke("staff-customer-lookup", {
-    body: { term: cleaned, passcode: STAFF_PASSCODE },
+    body: { term: cleaned, passcode: getStaffPasscode() },
   });
+
   if (error) throw error;
   return (data?.customers || []) as LookupCustomerRecord[];
 }

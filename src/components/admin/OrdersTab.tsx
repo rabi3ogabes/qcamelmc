@@ -16,6 +16,7 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { useTranslation } from "react-i18next";
 import { supabase } from "@/integrations/supabase/client";
+import { getStaffPasscode } from "@/lib/staffAccess";
 import { toast } from "sonner";
 import QRCodeLib from "qrcode";
 import { format } from "date-fns";
@@ -233,7 +234,8 @@ export const OrdersTab = () => {
       } = await supabase.functions.invoke('change-order-event', {
         body: {
           order_id: orderId,
-          new_event_id: newEventId
+          new_event_id: newEventId,
+          passcode: getStaffPasscode()
         }
       });
       if (error) throw error;

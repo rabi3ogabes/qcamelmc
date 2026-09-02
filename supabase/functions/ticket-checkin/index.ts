@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.58.0";
 import { toZonedTime } from "https://esm.sh/date-fns-tz@3.2.0";
+import { isStaffAuthorized, unauthorizedResponse } from "../_shared/staffAuth.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -64,6 +65,7 @@ interface CheckInRequest {
   admin_id?: string;
   staff_name?: string;
   mode?: 'checkin' | 'history';
+  passcode?: string;
 }
 
 interface CheckInResponse {
@@ -98,7 +100,11 @@ serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseKey);
 
     // Parse request body
-    const { booking_reference, admin_id, staff_name, mode }: CheckInRequest = await req.json();
+    const { booking_reference, admin_id, staff_name, mode, passcode }: CheckInRequest = await req.json();
+
+    if (!(await isStaffAuthorized(req, supabase, passcode))) {
+      return unauthorizedResponse(corsHeaders);
+    }
 
     // History mode: return the most recent successful check-ins
     if (mode === 'history') {

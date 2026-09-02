@@ -1,10 +1,11 @@
 /**
  * Remembers that a staff member unlocked the private pages with the passcode.
- * Stored in localStorage AND a long-lived cookie so the passcode is asked only once
- * per browser (survives tab close, new tabs and restarts).
+ * The passcode itself is verified server-side (edge function `staff-auth`) and the
+ * accepted value is kept in the browser only so admin-only edge functions can be called.
  */
 
 const PASS_KEY = "staff_passcode_ok";
+const CODE_KEY = "staff_passcode_value";
 const COOKIE_MAX_AGE = 60 * 60 * 24 * 365; // 1 year
 
 const readCookie = (): boolean => {
@@ -27,10 +28,23 @@ export const hasStaffAccess = (): boolean => {
   return readCookie();
 };
 
-export const grantStaffAccess = () => {
+/** The passcode the staff member entered (used to authorize staff-only edge functions). */
+export const getStaffPasscode = (): string | undefined => {
+  try {
+    return localStorage.getItem(CODE_KEY) || sessionStorage.getItem(CODE_KEY) || undefined;
+  } catch {
+    return undefined;
+  }
+};
+
+export const grantStaffAccess = (passcode?: string) => {
   try {
     localStorage.setItem(PASS_KEY, "1");
     sessionStorage.setItem(PASS_KEY, "1");
+    if (passcode) {
+      localStorage.setItem(CODE_KEY, passcode);
+      sessionStorage.setItem(CODE_KEY, passcode);
+    }
   } catch {
     // ignore storage access errors
   }
@@ -44,7 +58,9 @@ export const grantStaffAccess = () => {
 export const revokeStaffAccess = () => {
   try {
     localStorage.removeItem(PASS_KEY);
+    localStorage.removeItem(CODE_KEY);
     sessionStorage.removeItem(PASS_KEY);
+    sessionStorage.removeItem(CODE_KEY);
   } catch {
     // ignore
   }
