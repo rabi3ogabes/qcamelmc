@@ -619,8 +619,11 @@ const Checkout = () => {
       navigate("/confirmation");
     } catch (error) {
       console.error("Error creating booking:", error);
+      const guardMessage = bookingGuardMessage(error);
       if (isTicketLimitError(error)) {
         toast.error(ticketLimitErrorMessage(error));
+      } else if (guardMessage) {
+        toast.error(guardMessage);
       } else {
         toast.error("Failed to create booking. Please try again.");
       }
