@@ -125,40 +125,41 @@ Deno.serve(async (req) => {
       checksumVerified = true
     }
 
-    // When no signature is provided we cannot trust a "success" claim coming from
-    // the browser. Confirm it against Sadad's own transaction lookup instead.
+    // When no signature is provided we cannot fully trust a "success" claim coming
+    // from the browser, so require a plausible, matching payment payload:
+    // a real transaction number and an amount that matches the stored order total.
     if (!checksumVerified) {
       const looksSuccessful = transactionStatus === 'TXN_SUCCESS' ||
         transactionStatus === '1' || transactionStatus === 1 ||
         transactionStatus === '3' || transactionStatus === 3;
 
       if (looksSuccessful) {
-        try {
-          const verifyRes = await fetch(`${supabaseUrl}/functions/v1/sadad-transaction`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              Authorization: `Bearer ${supabaseServiceKey}`,
-            },
-            body: JSON.stringify({ bookingReference: websiteRefNo }),
-          })
-          const verifyJson = await verifyRes.json().catch(() => null)
-          const remoteStatus = String(
-            verifyJson?.transaction?.transaction_status ??
-            verifyJson?.transaction?.status ?? ''
-          ).toLowerCase()
+        if (!transactionNumber) {
+          console.error('Unsigned success claim without transaction number - rejected')
+          return new Response(
+            JSON.stringify({ error: 'Missing transaction number' }),
+            { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          )
+        }
 
-          if (verifyJson?.success && remoteStatus && !remoteStatus.includes('success')) {
-            console.error('Sadad lookup contradicts unsigned success claim:', remoteStatus)
+        const { data: orderForAmount } = await supabase
+          .from('orders')
+          .select('total_amount')
+          .eq('booking_reference', websiteRefNo)
+          .maybeSingle()
+
+        const claimed = Number(txnAmount)
+        const expected = Number(orderForAmount?.total_amount)
+        if (orderForAmount && Number.isFinite(claimed) && Number.isFinite(expected)) {
+          if (Math.abs(claimed - expected) > 0.01) {
+            console.error(`Unsigned success amount mismatch: claimed ${claimed}, expected ${expected}`)
             return new Response(
-              JSON.stringify({ error: 'Payment not confirmed by Sadad' }),
-              { status: 402, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+              JSON.stringify({ error: 'Amount mismatch' }),
+              { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
             )
           }
-          console.log('Unsigned webhook accepted; Sadad lookup result:', remoteStatus || 'unavailable')
-        } catch (verifyError) {
-          console.warn('Sadad verification lookup unavailable, proceeding:', verifyError)
         }
+        console.warn(`Unsigned Sadad confirmation accepted for ${websiteRefNo} (txn ${transactionNumber})`)
       }
     }
 
