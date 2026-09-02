@@ -26,3 +26,12 @@ verify_jwt = false
 
 [functions.staff-customer-lookup]
 verify_jwt = false
+
+[functions.staff-auth]
+verify_jwt = false
+
+[functions.ticket-checkin]
+verify_jwt = false
+
+[functions.change-order-event]
+verify_jwt = false

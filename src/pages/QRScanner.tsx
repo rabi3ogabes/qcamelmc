@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Html5Qrcode } from "html5-qrcode";
 import { supabase } from "@/integrations/supabase/client";
+import { getStaffPasscode } from "@/lib/staffAccess";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -101,7 +102,7 @@ const QRScanner = () => {
 
   const loadScanHistory = async () => {
     try {
-      const { data } = await supabase.functions.invoke("ticket-checkin", { body: { mode: "history" } });
+      const { data } = await supabase.functions.invoke("ticket-checkin", { body: { mode: "history", passcode: getStaffPasscode() } });
       if (data?.history) setScanHistory(data.history);
     } catch (e) {
       console.error("Failed to load scan history:", e);
@@ -781,7 +782,8 @@ const QRScanner = () => {
             body: {
               booking_reference: ticket.qr_code,
               admin_id: user?.id,
-              staff_name: staffName || undefined
+              staff_name: staffName || undefined,
+              passcode: getStaffPasscode()
             }
           });
 
