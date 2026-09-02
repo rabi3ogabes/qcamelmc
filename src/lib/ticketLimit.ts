@@ -100,6 +100,24 @@ export const ticketLimitErrorMessage = (error: unknown) =>
     .replace(/^.*TICKET_LIMIT_EXCEEDED:\s*/, "")
     .trim() || `الحد الأقصى هو ${MAX_TICKETS_PER_PERSON} تذاكر لكل شخص`;
 
+/**
+ * Server-side booking guards (price integrity + capacity) raise tagged errors.
+ * Turn them into a clear Arabic message for the customer.
+ */
+export const bookingGuardMessage = (error: unknown): string | null => {
+  const message = String((error as { message?: string })?.message || "");
+  if (message.includes("CAPACITY_EXCEEDED")) {
+    return "نفدت التذاكر من هذا النوع. يرجى اختيار نوع آخر أو المحاولة لاحقاً.";
+  }
+  if (message.includes("AMOUNT_MISMATCH")) {
+    return "تغيّر سعر التذاكر. يرجى تحديث الصفحة وإعادة المحاولة.";
+  }
+  if (message.includes("INVALID_QUANTITY")) {
+    return "عدد التذاكر غير صالح. يرجى تعديل الطلب.";
+  }
+  return null;
+};
+
 /** Remaining allowance for one person, used for badges. */
 export const getRemainingAllowance = async (
   idNumber: string | null | undefined,
