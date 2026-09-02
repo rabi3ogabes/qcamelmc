@@ -79,7 +79,8 @@ Deno.serve(async (req) => {
       )
     }
 
-    // Verify checksumhash - temporarily log but don't fail
+    // Verify checksumhash — a mismatch is rejected outright
+    let checksumVerified = false
     const { data: settings } = await supabase
       .from('settings')
       .select('sadad_secret')
