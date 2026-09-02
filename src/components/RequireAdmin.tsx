@@ -24,10 +24,13 @@ const RequireAdmin = ({ children }: { children: React.ReactNode }) => {
     let active = true;
 
     const check = async () => {
-      if (hasStaffAccess()) {
+      // Staff access counts only when the accepted passcode is stored,
+      // so staff-only edge functions can still authorize the request.
+      if (hasStaffAccess() && getStaffPasscode()) {
         if (active) setStatus("allowed");
         return;
       }
+
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.user) {
         if (active) setStatus("denied");
