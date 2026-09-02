@@ -13,7 +13,7 @@ import { CreditCard, Banknote, Loader2, Plus, Minus, X, AlertTriangle } from "lu
 import { Checkbox } from "@/components/ui/checkbox";
 import { Footer } from "@/components/Footer";
 import { useSettings } from "@/contexts/SettingsContext";
-import { checkTicketLimits, formatLimitViolation, isTicketLimitError, ticketLimitErrorMessage } from "@/lib/ticketLimit";
+import { bookingGuardMessage, checkTicketLimits, formatLimitViolation, isTicketLimitError, ticketLimitErrorMessage } from "@/lib/ticketLimit";
 import { useReserveTickets } from "@/hooks/useReserveTickets";
 
 // Convert Arabic numerals to English numerals
