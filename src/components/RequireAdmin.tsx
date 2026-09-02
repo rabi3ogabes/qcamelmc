@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Lock } from "lucide-react";
 import { toast } from "sonner";
-import { grantStaffAccess, hasStaffAccess } from "@/lib/staffAccess";
+import { getStaffPasscode, grantStaffAccess, hasStaffAccess } from "@/lib/staffAccess";
 
 
 
