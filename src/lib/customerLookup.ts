@@ -41,8 +41,9 @@ export async function searchCustomers(term: string): Promise<LookupCustomerRecor
   if (!hasPasscodeAccess()) return [];
 
   const { data, error } = await supabase.functions.invoke("staff-customer-lookup", {
-    body: { term: cleaned, passcode: STAFF_PASSCODE },
+    body: { term: cleaned, passcode: getStaffPasscode() },
   });
+
   if (error) throw error;
   return (data?.customers || []) as LookupCustomerRecord[];
 }
