@@ -50,17 +50,30 @@ const RequireAdmin = ({ children }: { children: React.ReactNode }) => {
     };
   }, [location.pathname]);
 
-  const handleUnlock = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (passcode === STAFF_PASSCODE) {
-      grantStaffAccess();
+  const [verifying, setVerifying] = useState(false);
 
-      setStatus("allowed");
-      toast.success("تم فتح الصفحة");
-    } else {
-      toast.error("كلمة المرور غير صحيحة");
+  const handleUnlock = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setVerifying(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("staff-auth", {
+        body: { passcode },
+      });
+      if (error) throw error;
+      if (data?.ok) {
+        grantStaffAccess(passcode);
+        setStatus("allowed");
+        toast.success("تم فتح الصفحة");
+      } else {
+        toast.error("كلمة المرور غير صحيحة");
+      }
+    } catch {
+      toast.error("تعذر التحقق من كلمة المرور");
+    } finally {
+      setVerifying(false);
     }
   };
+
 
   if (status === "checking") {
     return (
