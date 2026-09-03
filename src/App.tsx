@@ -84,9 +84,10 @@ const App = () => (
                     <Route path="/sadad-callback" element={<SadadCallback />} />
                     <Route path="/sadad-redirect" element={<SadadRedirect />} />
                     <Route path="/live-bookings" element={<RequireAdmin><LiveBookings /></RequireAdmin>} />
-                    <Route path="/live-visitors" element={<RequireAdmin><LiveVisitors /></RequireAdmin>} />
+                    <Route path="/live-visitors" element={<RequireAdmin adminOnly><LiveVisitors /></RequireAdmin>} />
+                    <Route path="/staff" element={<RequireAdmin><StaffHub /></RequireAdmin>} />
                     <Route path="/admin/login" element={<AdminLogin />} />
-                    <Route path="/admin/dashboard" element={<RequireAdmin><AdminDashboard /></RequireAdmin>}>
+                    <Route path="/admin/dashboard" element={<RequireAdmin adminOnly><AdminDashboard /></RequireAdmin>}>
                       <Route index element={<Navigate to="orders" replace />} />
                       <Route path="orders" element={<OrdersPage />} />
                       <Route path="customers" element={<CustomersPage />} />
