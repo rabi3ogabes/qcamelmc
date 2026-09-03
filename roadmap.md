@@ -5,3 +5,4 @@
 3. ⏳ Change booking reference format to include event date:
    - Online: `QTR-3-9-2026-xxxxxx`
    - POS: `POS-3-9-2026-xxxxxxxxxx`
+4. ⏳ Ensure admin notifications page loads updates in real-time without page refresh
