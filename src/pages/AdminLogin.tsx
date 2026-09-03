@@ -15,6 +15,8 @@ const AdminLogin = () => {
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
   const [headerBgColor, setHeaderBgColor] = useState<string>("hsl(var(--card) / 0.5)");
   const navigate = useNavigate();
+  const location = useLocation();
+  const intendedPath = (location.state as { from?: string } | null)?.from;
 
   useEffect(() => {
     fetchSettings();
