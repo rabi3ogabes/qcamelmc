@@ -26,7 +26,17 @@ export async function isStaffAuthorized(
       .select("id")
       .eq("id", userId)
       .maybeSingle();
-    return !!adminRow;
+    if (adminRow) return true;
+
+    // Moderators may also use the staff tools (POS, scanner, lookup).
+    const { data: roleRow } = await admin
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", userId)
+      .in("role", ["admin", "moderator"])
+      .maybeSingle();
+    return !!roleRow;
+
   } catch (_e) {
     return false;
   }
