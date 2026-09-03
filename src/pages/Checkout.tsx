@@ -149,9 +149,10 @@ const Checkout = () => {
     });
     setTicketHolders(holders);
 
-    // Fetch logo and availability
+    // Fetch logo, availability and event date
     fetchSettings();
     fetchTicketAvailability();
+    fetchEventDate();
   }, [navigate]);
 
   const fetchTicketAvailability = async () => {
