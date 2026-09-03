@@ -11,6 +11,8 @@ import {
   CheckCheck,
   CreditCard,
   Globe,
+  LayoutGrid,
+  LayoutList,
   RefreshCw,
   Store,
   Ticket,
