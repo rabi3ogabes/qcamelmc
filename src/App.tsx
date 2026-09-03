@@ -36,6 +36,7 @@ const QRScanner = lazy(() => import("./pages/QRScanner"));
 const AdminPOS = lazy(() => import("./pages/AdminPOS"));
 const POSReceiptPage = lazy(() => import("./pages/POSReceiptPage"));
 const TicketViewer = lazy(() => import("./pages/TicketViewer"));
+const StaffHub = lazy(() => import("./pages/StaffHub"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 // Admin dashboard sub-pages
