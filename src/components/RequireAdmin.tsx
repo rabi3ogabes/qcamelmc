@@ -81,7 +81,8 @@ const RequireAdmin = ({
       active = false;
       sub.subscription.unsubscribe();
     };
-  }, [location.pathname]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.pathname, adminOnly]);
 
   const [verifying, setVerifying] = useState(false);
 
