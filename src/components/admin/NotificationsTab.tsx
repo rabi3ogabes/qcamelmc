@@ -38,6 +38,7 @@ type NotificationRow = {
 };
 
 type SourceFilter = "all" | "sadad" | "cash_pos";
+type ViewMode = "list" | "grid";
 
 const qatarTime = (iso: string) =>
   new Date(iso).toLocaleString("ar-u-nu-latn", {
