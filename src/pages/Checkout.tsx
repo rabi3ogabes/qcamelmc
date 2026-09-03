@@ -122,6 +122,7 @@ const Checkout = () => {
   const [headerBgColor, setHeaderBgColor] = useState<string>("hsl(var(--card) / 0.5)");
   const [ticketAvailability, setTicketAvailability] = useState<TicketAvailability[]>([]);
   const [availabilityLoading, setAvailabilityLoading] = useState(true);
+  const [eventDate, setEventDate] = useState<string | null>(null);
   const navigate = useNavigate();
   useEffect(() => {
     const stored = localStorage.getItem("ticketSelection");
