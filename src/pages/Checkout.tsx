@@ -486,7 +486,10 @@ const Checkout = () => {
         throw new Error("No event selected");
       }
 
-      const bookingRef = `QTR-${Math.random().toString(36).substring(2, 10).toUpperCase()}`;
+      const eventDatePart = eventDate
+        ? new Date(eventDate).toLocaleDateString("en-GB", { day: "numeric", month: "numeric", year: "numeric" }).replace(/\//g, "-")
+        : new Date().toLocaleDateString("en-GB", { day: "numeric", month: "numeric", year: "numeric" }).replace(/\//g, "-");
+      const bookingRef = `QTR-${eventDatePart}-${Math.random().toString(36).substring(2, 10).toUpperCase()}`;
       const totalQuantity = selections.reduce((sum, s) => sum + s.quantity, 0);
 
       const holdersPayload = ticketHolders.map((holder) => {
