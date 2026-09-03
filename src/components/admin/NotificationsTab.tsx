@@ -59,6 +59,7 @@ const NotificationsTab = () => {
   const [rows, setRows] = useState<NotificationRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [source, setSource] = useState<SourceFilter>("all");
+  const [viewMode, setViewMode] = useState<ViewMode>("list");
   const [lastSeen, setLastSeen] = useState<string>(
     () => localStorage.getItem(SEEN_KEY) || new Date(0).toISOString()
   );
