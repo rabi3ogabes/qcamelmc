@@ -194,18 +194,99 @@ const NotificationsTab = () => {
         </div>
       </div>
 
-      {/* List */}
+      {/* Content */}
       {loading ? (
-        <div className="space-y-3">
-          {Array.from({ length: 5 }).map((_, i) => (
-            <Skeleton key={i} className="h-24 w-full rounded-xl" />
-          ))}
-        </div>
+        viewMode === "grid" ? (
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <Skeleton key={i} className="h-48 w-full rounded-xl" />
+            ))}
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <Skeleton key={i} className="h-24 w-full rounded-xl" />
+            ))}
+          </div>
+        )
       ) : filtered.length === 0 ? (
         <Card className="flex flex-col items-center justify-center gap-2 p-12 text-center">
           <Bell className="h-8 w-8 text-muted-foreground/50" />
           <p className="text-sm text-muted-foreground">لا توجد إشعارات حتى الآن</p>
         </Card>
+      ) : viewMode === "grid" ? (
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {filtered.map((row) => {
+            const isNew = row.created_at > lastSeen;
+            const isPos = row.payment_method === "cash_pos";
+            const status = statusMeta[row.payment_status || "pending"];
+            return (
+              <Card
+                key={row.id}
+                className={cn(
+                  "relative flex flex-col overflow-hidden border-border/60 p-4 transition-colors",
+                  isNew && "bg-primary/[0.04] ring-1 ring-primary/20"
+                )}
+              >
+                <span
+                  className={cn(
+                    "absolute inset-y-0 right-0 w-1",
+                    isPos ? "bg-amber-500" : "bg-primary"
+                  )}
+                />
+                <div className="flex flex-1 flex-col gap-3 pr-3">
+                  <div className="flex items-start justify-between gap-2">
+                    <div
+                      className={cn(
+                        "flex h-10 w-10 shrink-0 items-center justify-center rounded-lg",
+                        isPos ? "bg-amber-500/10 text-amber-500" : "bg-primary/10 text-primary"
+                      )}
+                    >
+                      {isPos ? <Store className="h-5 w-5" /> : <CreditCard className="h-5 w-5" />}
+                    </div>
+                    {isNew && (
+                      <Badge className="bg-destructive text-destructive-foreground">جديد</Badge>
+                    )}
+                  </div>
+
+                  <div className="space-y-1">
+                    <p className="font-semibold">
+                      {isPos ? "حجز نقاط بيع" : "دفع إلكتروني (سداد)"}
+                    </p>
+                    {status && (
+                      <Badge variant="outline" className={status.className}>
+                        {status.label}
+                      </Badge>
+                    )}
+                  </div>
+
+                  <div className="mt-auto space-y-2 border-t border-border/40 pt-3">
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <User className="h-3.5 w-3.5" />
+                      <span className="truncate">{row.customers?.name || "عميل غير معروف"}</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Ticket className="h-3.5 w-3.5" />
+                      {row.quantity} تذكرة
+                    </div>
+                    {row.events?.title && (
+                      <p className="truncate text-xs text-muted-foreground/80">{row.events.title}</p>
+                    )}
+                    <div className="flex items-center justify-between pt-1">
+                      <span className="text-lg font-bold text-primary">
+                        {Number(row.total_amount || 0).toLocaleString("ar-u-nu-latn")} ر.ق
+                      </span>
+                      <span dir="ltr" className="font-mono text-[11px] text-muted-foreground">
+                        {row.booking_reference}
+                      </span>
+                    </div>
+                    <p className="text-xs text-muted-foreground">{qatarTime(row.created_at)}</p>
+                  </div>
+                </div>
+              </Card>
+            );
+          })}
+        </div>
       ) : (
         <div className="space-y-3">
           {filtered.map((row) => {
