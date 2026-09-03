@@ -227,6 +227,23 @@ const Checkout = () => {
       setHeaderBgColor(data.header_bg_color);
     }
   };
+
+  const fetchEventDate = async () => {
+    const selectedEventId = localStorage.getItem("selectedEventId");
+    if (!selectedEventId) return;
+    const { data, error } = await supabase
+      .from("events")
+      .select("event_date")
+      .eq("id", selectedEventId)
+      .maybeSingle();
+    if (error) {
+      console.error("Error fetching event date:", error);
+      return;
+    }
+    if (data?.event_date) {
+      setEventDate(data.event_date);
+    }
+  };
   const calculateTotal = () => {
     return selections.reduce((total, item) => {
       return total + item.price * item.quantity;
