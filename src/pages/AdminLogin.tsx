@@ -3,7 +3,6 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { Users } from "lucide-react";
 import UnifiedLoginCard from "@/components/auth/UnifiedLoginCard";
 
 const AdminLogin = () => {
@@ -80,10 +79,6 @@ const AdminLogin = () => {
         <UnifiedLoginCard intendedPath={intendedPath} showHomeLink />
 
         <div className="mt-6 grid w-full max-w-md gap-3">
-          <Button variant="outline" className="w-full text-sm" onClick={() => navigate("/staff")}>
-            <Users className="ms-2 h-4 w-4" />
-            الدخول كفريق / روابط سريعة
-          </Button>
           <Button
             variant="ghost"
             className="w-full text-sm text-muted-foreground"
