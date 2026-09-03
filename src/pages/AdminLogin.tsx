@@ -3,7 +3,6 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { Users } from "lucide-react";
 import UnifiedLoginCard from "@/components/auth/UnifiedLoginCard";
 
 const AdminLogin = () => {
