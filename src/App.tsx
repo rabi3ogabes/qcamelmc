@@ -40,6 +40,7 @@ const StaffHub = lazy(() => import("./pages/StaffHub"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 // Admin dashboard sub-pages
+const NotificationsPage = lazy(() => import("./pages/admin/NotificationsPage"));
 const OrdersPage = lazy(() => import("./pages/admin/OrdersPage"));
 const CustomersPage = lazy(() => import("./pages/admin/CustomersPage"));
 const TransactionsPage = lazy(() => import("./pages/admin/TransactionsPage"));
@@ -90,6 +91,7 @@ const App = () => (
                     <Route path="/admin/login" element={<AdminLogin />} />
                     <Route path="/admin/dashboard" element={<RequireAdmin adminOnly><AdminDashboard /></RequireAdmin>}>
                       <Route index element={<Navigate to="orders" replace />} />
+                      <Route path="notifications" element={<NotificationsPage />} />
                       <Route path="orders" element={<OrdersPage />} />
                       <Route path="customers" element={<CustomersPage />} />
                       <Route path="transactions" element={<TransactionsPage />} />
