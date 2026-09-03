@@ -1,13 +1,8 @@
 import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Lock } from "lucide-react";
-import { toast } from "sonner";
-import { getStaffPasscode, grantStaffAccess, hasStaffAccess } from "@/lib/staffAccess";
+import { getStaffPasscode, hasStaffAccess } from "@/lib/staffAccess";
+import UnifiedLoginCard from "@/components/auth/UnifiedLoginCard";
 
 
 
@@ -23,7 +18,6 @@ const RequireAdmin = ({
   adminOnly?: boolean;
 }) => {
   const [status, setStatus] = useState<"checking" | "allowed" | "denied">("checking");
-  const [passcode, setPasscode] = useState("");
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -83,31 +77,6 @@ const RequireAdmin = ({
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location.pathname, adminOnly]);
-
-  const [verifying, setVerifying] = useState(false);
-
-  const handleUnlock = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setVerifying(true);
-    try {
-      const { data, error } = await supabase.functions.invoke("staff-auth", {
-        body: { passcode },
-      });
-      if (error) throw error;
-      if (data?.ok) {
-        grantStaffAccess(passcode);
-        setStatus("allowed");
-        toast.success("تم فتح الصفحة");
-      } else {
-        toast.error("كلمة المرور غير صحيحة");
-      }
-    } catch {
-      toast.error("تعذر التحقق من كلمة المرور");
-    } finally {
-      setVerifying(false);
-    }
-  };
-
 
   if (status === "checking") {
     return (
