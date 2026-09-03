@@ -146,13 +146,22 @@ const RequireAdmin = ({
             </Button>
           </form>
 
-          <div className="mt-4 text-center">
-            <Button
-              variant="ghost"
-              onClick={() => navigate("/admin/login", { state: { from: location.pathname } })}
-            >
-              تسجيل دخول المشرف ←
-            </Button>
+          <div className="mt-6 pt-4 border-t border-border/60">
+            <p className="text-xs text-muted-foreground text-center mb-3">أو سجّل الدخول بحسابك</p>
+            <div className="grid grid-cols-2 gap-3">
+              <Button
+                variant="outline"
+                onClick={() => navigate("/admin/login", { state: { from: "/staff" } })}
+              >
+                الدخول للمشرف
+              </Button>
+              <Button
+                variant="default"
+                onClick={() => navigate("/admin/login", { state: { from: location.pathname } })}
+              >
+                الدخول للأدمن
+              </Button>
+            </div>
           </div>
         </Card>
       </div>

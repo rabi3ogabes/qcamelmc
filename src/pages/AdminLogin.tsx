@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -15,6 +15,8 @@ const AdminLogin = () => {
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
   const [headerBgColor, setHeaderBgColor] = useState<string>("hsl(var(--card) / 0.5)");
   const navigate = useNavigate();
+  const location = useLocation();
+  const intendedPath = (location.state as { from?: string } | null)?.from;
 
   useEffect(() => {
     fetchSettings();
@@ -57,9 +59,10 @@ const AdminLogin = () => {
         .eq("user_id", data.user.id);
       const roles = (roleRows || []).map((r: { role: string }) => r.role);
 
+      // Moderators only ever get the quick-links page — never the dashboard.
       if (roles.includes("moderator") && !roles.includes("admin")) {
         toast.success("تم تسجيل الدخول");
-        navigate("/staff");
+        navigate("/staff", { replace: true });
         return;
       }
 
@@ -74,8 +77,10 @@ const AdminLogin = () => {
         throw new Error("Unauthorized: Admin access only");
       }
 
-      toast.success("Logged in successfully!");
-      navigate("/admin/dashboard");
+      toast.success("تم تسجيل الدخول");
+      // Admins keep full privileges; honor the page they originally wanted.
+      const target = intendedPath && intendedPath.startsWith("/admin") ? intendedPath : "/admin/dashboard";
+      navigate(target, { replace: true });
     } catch (error: any) {
       toast.error(error.message || "Failed to log in");
     } finally {
