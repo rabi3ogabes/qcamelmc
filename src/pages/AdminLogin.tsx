@@ -2,186 +2,97 @@ import { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { Lock, Users } from "lucide-react";
+import { Users } from "lucide-react";
+import UnifiedLoginCard from "@/components/auth/UnifiedLoginCard";
 
 const AdminLogin = () => {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [loading, setLoading] = useState(false);
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
   const [headerBgColor, setHeaderBgColor] = useState<string>("hsl(var(--card) / 0.5)");
+  const [demoLoading, setDemoLoading] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
   const intendedPath = (location.state as { from?: string } | null)?.from;
 
   useEffect(() => {
+    const fetchSettings = async () => {
+      const { data, error } = await supabase
+        .from("public_settings")
+        .select("logo_url, header_bg_color")
+        .maybeSingle();
+
+      if (error) {
+        console.error("Error fetching settings:", error);
+        return;
+      }
+      if (data?.logo_url) setLogoUrl(data.logo_url);
+      if (data?.header_bg_color) setHeaderBgColor(data.header_bg_color);
+    };
     fetchSettings();
   }, []);
 
-  const fetchSettings = async () => {
-    const { data, error } = await supabase
-      .from("public_settings")
-      .select("logo_url, header_bg_color")
-      .maybeSingle();
-
-    if (error) {
-      console.error("Error fetching settings:", error);
-      return;
-    }
-
-    if (data?.logo_url) {
-      setLogoUrl(data.logo_url);
-    }
-    
-    if (data?.header_bg_color) {
-      setHeaderBgColor(data.header_bg_color);
-    }
-  };
-
-  /** Signs in and routes the user by role: admins to the dashboard, moderators to the short links page. */
-  const signInAndRoute = async (loginEmail: string, loginPassword: string) => {
-    setLoading(true);
+  const demoLogin = async () => {
+    setDemoLoading(true);
     try {
       const { data, error } = await supabase.auth.signInWithPassword({
-        email: loginEmail,
-        password: loginPassword,
+        email: "rabii.souai@gmail.com",
+        password: "@@@Qatar123",
       });
-
       if (error) throw error;
-
       const { data: roleRows } = await supabase
         .from("user_roles")
         .select("role")
         .eq("user_id", data.user.id);
       const roles = (roleRows || []).map((r: { role: string }) => r.role);
-
-      // Moderators only ever get the quick-links page — never the dashboard.
-      if (roles.includes("moderator") && !roles.includes("admin")) {
-        toast.success("تم تسجيل الدخول");
-        navigate("/staff", { replace: true });
-        return;
-      }
-
-      const { data: adminUser } = await supabase
-        .from("admin_users")
-        .select("id")
-        .eq("id", data.user.id)
-        .maybeSingle();
-
-      if (!adminUser && !roles.includes("admin")) {
-        await supabase.auth.signOut();
-        throw new Error("Unauthorized: Admin access only");
-      }
-
       toast.success("تم تسجيل الدخول");
-      // Admins keep full privileges; honor the page they originally wanted.
-      const target = intendedPath && intendedPath.startsWith("/admin") ? intendedPath : "/admin/dashboard";
-      navigate(target, { replace: true });
+      navigate(
+        roles.includes("moderator") && !roles.includes("admin") ? "/staff" : "/admin/dashboard",
+        { replace: true }
+      );
     } catch (error: any) {
-      toast.error(error.message || "Failed to log in");
+      toast.error(error.message || "تعذر تسجيل الدخول");
     } finally {
-      setLoading(false);
+      setDemoLoading(false);
     }
   };
 
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    await signInAndRoute(email, password);
-  };
-
-
-
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="border-b backdrop-blur-sm sticky top-0 z-10" style={{ backgroundColor: headerBgColor }}>
-        <div className="container mx-auto px-4 py-4 flex justify-center items-center">
-          <button onClick={() => navigate("/")} className="focus:outline-none hover:opacity-80 transition-opacity">
+    <div className="min-h-screen bg-background font-lusail" dir="rtl">
+      <header
+        className="sticky top-0 z-10 border-b backdrop-blur-sm"
+        style={{ backgroundColor: headerBgColor }}
+      >
+        <div className="container mx-auto flex items-center justify-center px-4 py-4">
+          <button
+            onClick={() => navigate("/")}
+            className="transition-opacity hover:opacity-80 focus:outline-none"
+          >
             {logoUrl ? (
               <img src={logoUrl} alt="Logo" className="h-[53px] object-contain" />
             ) : (
-              <h1 className="text-2xl font-bold">Admin Login</h1>
+              <h1 className="text-2xl font-bold">تسجيل الدخول</h1>
             )}
           </button>
         </div>
       </header>
 
-      <div className="flex items-center justify-center px-4 py-16">
-        <Card className="w-full max-w-md p-8">
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-primary/10 rounded-full mb-4">
-            <Lock className="w-8 h-8 text-primary" />
-          </div>
-          <h1 className="text-3xl font-bold mb-2">Admin Login</h1>
-          <p className="text-muted-foreground">Access the admin dashboard</p>
-        </div>
+      <div className="flex flex-col items-center justify-center px-4 py-14">
+        <UnifiedLoginCard intendedPath={intendedPath} showHomeLink />
 
-        <form onSubmit={handleLogin} className="space-y-4">
-          <div>
-            <Label htmlFor="email">Email</Label>
-            <Input
-              id="email"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              placeholder="admin@example.com"
-            />
-          </div>
-          <div>
-            <Label htmlFor="password">Password</Label>
-            <Input
-              id="password"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              placeholder="••••••••"
-            />
-          </div>
-          <Button type="submit" className="w-full" size="lg" disabled={loading}>
-            {loading ? "Logging in..." : "Login"}
+        <div className="mt-6 grid w-full max-w-md gap-3">
+          <Button variant="outline" className="w-full text-sm" onClick={() => navigate("/staff")}>
+            <Users className="ms-2 h-4 w-4" />
+            الدخول كفريق / روابط سريعة
           </Button>
-        </form>
-
-        <div className="mt-6 p-4 bg-muted/50 rounded-lg border border-border">
-          <p className="text-sm text-muted-foreground mb-2 text-center hidden">Demo Credentials</p>
           <Button
-            variant="outline"
-            className="w-full text-sm"
-            onClick={async () => {
-              const demoEmail = "rabii.souai@gmail.com";
-              const demoPassword = "@@@Qatar123";
-              setEmail(demoEmail);
-              setPassword(demoPassword);
-              await signInAndRoute(demoEmail, demoPassword);
-            }}
-
-            disabled={loading}
+            variant="ghost"
+            className="w-full text-sm text-muted-foreground"
+            onClick={demoLogin}
+            disabled={demoLoading}
           >
-            {loading ? "Logging in..." : "(-_-)"}
+            {demoLoading ? "..." : "(-_-)"}
           </Button>
         </div>
-
-          <div className="mt-4 grid gap-3">
-            <Button
-              variant="outline"
-              className="w-full text-sm"
-              onClick={() => navigate("/staff")}
-              disabled={loading}
-            >
-              <Users className="ms-2 h-4 w-4" />
-              الدخول كفريق / روابط سريعة
-            </Button>
-            <Button variant="ghost" onClick={() => navigate("/")}>
-              ← Back to Home
-            </Button>
-          </div>
-        </Card>
       </div>
     </div>
   );
