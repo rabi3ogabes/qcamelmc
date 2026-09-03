@@ -82,7 +82,7 @@ const StaffHub = () => {
           {LINKS.map(({ label, hint, icon: Icon, to }) => (
             <Card
               key={to}
-              onClick={() => navigate(to)}
+              onClick={() => window.open(to, "_blank", "noopener,noreferrer")}
               className="group relative cursor-pointer overflow-hidden border-border/70 p-5 transition-all duration-300 hover:-translate-y-0.5 hover:border-primary/50 hover:shadow-[var(--shadow-elegant)]"
             >
               <span className="absolute inset-y-0 right-0 w-1 bg-primary/70 opacity-70 transition-opacity group-hover:opacity-100" />
@@ -94,7 +94,7 @@ const StaffHub = () => {
                   <p className="truncate text-base font-semibold">{label}</p>
                   <p className="truncate text-xs text-muted-foreground">{hint}</p>
                 </div>
-                <ArrowLeft className="h-4 w-4 text-muted-foreground transition-transform group-hover:-translate-x-1" />
+                <ExternalLink className="h-4 w-4 text-muted-foreground transition-transform group-hover:-translate-x-1" />
               </div>
             </Card>
           ))}
