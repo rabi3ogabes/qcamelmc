@@ -12,7 +12,7 @@ serve(async (req) => {
   }
 
   try {
-    const { text, filename } = await req.json();
+    const { text, filename, holderId } = await req.json();
     
     if (!text || !filename) {
       return new Response(
@@ -61,10 +61,20 @@ serve(async (req) => {
       .from('qr-codes')
       .getPublicUrl(`${filename}.png`);
 
+    // Persist the QR image URL on the ticket holder (clients cannot update this table)
+    if (holderId) {
+      const { error: updateError } = await supabase
+        .from('ticket_holders')
+        .update({ qr_code: publicUrl })
+        .eq('id', holderId);
+      if (updateError) console.error('Holder QR update error:', updateError);
+    }
+
     return new Response(
       JSON.stringify({ url: publicUrl }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
+
 
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);

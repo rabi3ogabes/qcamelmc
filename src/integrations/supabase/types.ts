@@ -801,6 +801,17 @@ export type Database = {
     }
     Functions: {
       cleanup_stale_visitors: { Args: never; Returns: undefined }
+      create_public_booking: {
+        Args: {
+          p_booking_reference: string
+          p_customer: Json
+          p_event_id: string
+          p_holders: Json
+          p_payment_method: Database["public"]["Enums"]["payment_method"]
+          p_total_amount: number
+        }
+        Returns: Json
+      }
       generate_booking_reference: { Args: never; Returns: string }
       generate_ticket_holder_reference: { Args: never; Returns: string }
       get_event_ticket_counts: {

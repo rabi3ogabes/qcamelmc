@@ -461,30 +461,39 @@ const Checkout = () => {
         cleanPhone = cleanPhone.substring(cleanCountryCode.length);
       }
       
-      const {
-        data: customer,
-        error: customerError
-      } = await supabase.from("customers").insert({
-        name: customerInfo.name,
-        email: customerInfo.email,
-        phone: cleanPhone,
-        country_code: customerInfo.countryCode,
-        nationality: customerInfo.nationality,
-        id_number: customerInfo.idNumber
-      }).select().single();
-      if (customerError) throw customerError;
-
       // Get event ID from localStorage (stored during ticket selection)
       const selectedEventId = localStorage.getItem("selectedEventId");
       if (!selectedEventId) {
         throw new Error("No event selected");
       }
 
-      // Create order
       const bookingRef = `QTR-${Math.random().toString(36).substring(2, 10).toUpperCase()}`;
       const totalQuantity = selections.reduce((sum, s) => sum + s.quantity, 0);
+
+      const holdersPayload = ticketHolders.map((holder) => {
+        // Extract country code and clean phone number
+        let holderPhone = holder.phone;
+        let holderCountryCode = '+974';
+        const phoneMatch = holderPhone.match(/^(\+?\d{2,4})[\s-]?(.+)$/);
+        if (phoneMatch) {
+          holderCountryCode = phoneMatch[1].startsWith('+') ? phoneMatch[1] : `+${phoneMatch[1]}`;
+          holderPhone = phoneMatch[2].replace(/[\s-]/g, '');
+        } else {
+          holderPhone = holderPhone.replace(/[\s+]/g, '');
+        }
+
+        return {
+          name: holder.name,
+          phone: holderPhone,
+          country_code: holderCountryCode,
+          nationality: holder.nationality,
+          ticket_type: holder.ticketType,
+          id_number: holder.idNumber,
+        };
+      });
+
       const orderData = {
-        customer_id: customer.id,
+        customer_id: null as string | null,
         event_id: selectedEventId,
         ticket_type: selections[0].type as "vip" | "normal" | "parking",
         quantity: totalQuantity,
@@ -492,71 +501,58 @@ const Checkout = () => {
         payment_method: paymentMethod,
         booking_reference: bookingRef
       };
-      const {
-        data: order,
-        error: orderError
-      } = await supabase.from("orders").insert(orderData).select().single();
-      if (orderError) throw orderError;
 
-      // Create ticket holders first without QR codes for faster processing
-      const holdersToInsert = ticketHolders.map((holder, index) => {
-        const ticketRef = `${bookingRef}-TKT${(index + 1).toString().padStart(2, '0')}`;
-        
-        // Extract country code and clean phone number
-        let holderPhone = holder.phone;
-        let holderCountryCode = '+974';
-        
-        // Check if phone contains country code pattern (e.g., "+974 123", "974123", etc.)
-        const phoneMatch = holderPhone.match(/^(\+?\d{2,4})[\s-]?(.+)$/);
-        if (phoneMatch) {
-          holderCountryCode = phoneMatch[1].startsWith('+') ? phoneMatch[1] : `+${phoneMatch[1]}`;
-          holderPhone = phoneMatch[2].replace(/[\s-]/g, '');
-        } else {
-          // Clean any spaces/special chars
-          holderPhone = holderPhone.replace(/[\s+]/g, '');
-        }
-        
-        return {
-          order_id: order.id,
-          name: holder.name,
-          phone: holderPhone,
-          country_code: holderCountryCode,
-          nationality: holder.nationality,
-          ticket_type: holder.ticketType,
-          qr_code: ticketRef,
-          // Temporary placeholder
-          id_number: holder.idNumber
-        };
+      // Create customer + order + ticket holders in one secure server-side step.
+      const { data: bookingData, error: bookingError } = await supabase.rpc("create_public_booking", {
+        p_customer: {
+          name: customerInfo.name,
+          email: customerInfo.email,
+          phone: cleanPhone,
+          country_code: customerInfo.countryCode,
+          nationality: customerInfo.nationality,
+          id_number: customerInfo.idNumber,
+        },
+        p_event_id: selectedEventId,
+        p_payment_method: paymentMethod,
+        p_total_amount: calculateTotal(),
+        p_booking_reference: bookingRef,
+        p_holders: holdersPayload,
       });
-      const {
-        data: insertedHolders,
-        error: holdersError
-      } = await supabase.from("ticket_holders").insert(holdersToInsert).select();
-      if (holdersError) throw holdersError;
+      if (bookingError) throw bookingError;
+
+      const booking = bookingData as unknown as {
+        order_id: string;
+        customer_id: string;
+        booking_reference: string;
+        holders: { id: string; qr_code: string }[];
+      };
+      const order = { id: booking.order_id, booking_reference: booking.booking_reference };
+      orderData.customer_id = booking.customer_id;
+      const insertedHolders = booking.holders || [];
 
       // Generate QR codes asynchronously in the background (non-blocking)
-      if (insertedHolders) {
-        Promise.all(insertedHolders.map(async (holder, index) => {
+      if (insertedHolders.length > 0) {
+        Promise.all(insertedHolders.map(async (holder) => {
           try {
-            const ticketRef = `${bookingRef}-TKT${(index + 1).toString().padStart(2, '0')}`;
+            const ticketRef = holder.qr_code;
             const {
               data: qrData
             } = await supabase.functions.invoke('generate-qr-code', {
               body: {
                 text: ticketRef,
-                filename: ticketRef
+                filename: ticketRef,
+                holderId: holder.id
               }
             });
-            if (qrData?.url) {
-              await supabase.from("ticket_holders").update({
-                qr_code: qrData.url
-              }).eq('id', holder.id);
+            if (!qrData?.url) {
+              console.warn('QR generation returned no url for', ticketRef);
             }
           } catch (error) {
             console.error('Background QR generation failed for ticket:', error);
           }
         })).catch(err => console.error('QR batch generation error:', err));
       }
+
 
       // Handle Sadad payment - redirect to Sadad payment page
       if (paymentMethod === "sadad") {
