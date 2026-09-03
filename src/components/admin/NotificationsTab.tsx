@@ -149,19 +149,50 @@ const NotificationsTab = () => {
       </div>
 
       {/* Filters */}
-      <Tabs value={source} onValueChange={(v) => setSource(v as SourceFilter)}>
-        <TabsList className="grid w-full max-w-md grid-cols-3">
-          <TabsTrigger value="all" className="gap-2">
-            <Bell className="h-4 w-4" /> الكل
-          </TabsTrigger>
-          <TabsTrigger value="sadad" className="gap-2">
-            <Globe className="h-4 w-4" /> دفع إلكتروني
-          </TabsTrigger>
-          <TabsTrigger value="cash_pos" className="gap-2">
-            <Store className="h-4 w-4" /> نقاط البيع
-          </TabsTrigger>
-        </TabsList>
-      </Tabs>
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <Tabs value={source} onValueChange={(v) => setSource(v as SourceFilter)}>
+          <TabsList className="grid w-full max-w-md grid-cols-3">
+            <TabsTrigger value="all" className="gap-2">
+              <Bell className="h-4 w-4" /> الكل
+            </TabsTrigger>
+            <TabsTrigger value="sadad" className="gap-2">
+              <Globe className="h-4 w-4" /> دفع إلكتروني
+            </TabsTrigger>
+            <TabsTrigger value="cash_pos" className="gap-2">
+              <Store className="h-4 w-4" /> نقاط البيع
+            </TabsTrigger>
+          </TabsList>
+        </Tabs>
+
+        <div className="flex items-center gap-1 rounded-lg border border-border/60 bg-muted/40 p-1">
+          <button
+            type="button"
+            onClick={() => setViewMode("list")}
+            className={cn(
+              "flex h-8 w-8 items-center justify-center rounded-md transition-colors",
+              viewMode === "list"
+                ? "bg-background text-primary shadow-sm"
+                : "text-muted-foreground hover:text-foreground"
+            )}
+            aria-label="عرض قائمة"
+          >
+            <LayoutList className="h-4 w-4" />
+          </button>
+          <button
+            type="button"
+            onClick={() => setViewMode("grid")}
+            className={cn(
+              "flex h-8 w-8 items-center justify-center rounded-md transition-colors",
+              viewMode === "grid"
+                ? "bg-background text-primary shadow-sm"
+                : "text-muted-foreground hover:text-foreground"
+            )}
+            aria-label="عرض شبكة"
+          >
+            <LayoutGrid className="h-4 w-4" />
+          </button>
+        </div>
+      </div>
 
       {/* List */}
       {loading ? (
