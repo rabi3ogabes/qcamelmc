@@ -955,7 +955,10 @@ const AdminPOS = () => {
 
       // Create a single order with all tickets
       const totalAmount = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
-      const bookingRef = `POS-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+      const eventDatePart = selectedDate
+        ? selectedDate.toLocaleDateString("en-GB", { day: "numeric", month: "numeric", year: "numeric" }).replace(/\//g, "-")
+        : new Date().toLocaleDateString("en-GB", { day: "numeric", month: "numeric", year: "numeric" }).replace(/\//g, "-");
+      const bookingRef = `POS-${eventDatePart}-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
       
       const { data: orderData, error: orderError } = await supabase
         .from("orders")

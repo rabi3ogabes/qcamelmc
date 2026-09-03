@@ -122,6 +122,7 @@ const Checkout = () => {
   const [headerBgColor, setHeaderBgColor] = useState<string>("hsl(var(--card) / 0.5)");
   const [ticketAvailability, setTicketAvailability] = useState<TicketAvailability[]>([]);
   const [availabilityLoading, setAvailabilityLoading] = useState(true);
+  const [eventDate, setEventDate] = useState<string | null>(null);
   const navigate = useNavigate();
   useEffect(() => {
     const stored = localStorage.getItem("ticketSelection");
@@ -148,9 +149,10 @@ const Checkout = () => {
     });
     setTicketHolders(holders);
 
-    // Fetch logo and availability
+    // Fetch logo, availability and event date
     fetchSettings();
     fetchTicketAvailability();
+    fetchEventDate();
   }, [navigate]);
 
   const fetchTicketAvailability = async () => {
@@ -223,6 +225,23 @@ const Checkout = () => {
     }
     if (data?.header_bg_color) {
       setHeaderBgColor(data.header_bg_color);
+    }
+  };
+
+  const fetchEventDate = async () => {
+    const selectedEventId = localStorage.getItem("selectedEventId");
+    if (!selectedEventId) return;
+    const { data, error } = await supabase
+      .from("events")
+      .select("event_date")
+      .eq("id", selectedEventId)
+      .maybeSingle();
+    if (error) {
+      console.error("Error fetching event date:", error);
+      return;
+    }
+    if (data?.event_date) {
+      setEventDate(data.event_date);
     }
   };
   const calculateTotal = () => {
@@ -467,7 +486,10 @@ const Checkout = () => {
         throw new Error("No event selected");
       }
 
-      const bookingRef = `QTR-${Math.random().toString(36).substring(2, 10).toUpperCase()}`;
+      const eventDatePart = eventDate
+        ? new Date(eventDate).toLocaleDateString("en-GB", { day: "numeric", month: "numeric", year: "numeric" }).replace(/\//g, "-")
+        : new Date().toLocaleDateString("en-GB", { day: "numeric", month: "numeric", year: "numeric" }).replace(/\//g, "-");
+      const bookingRef = `QTR-${eventDatePart}-${Math.random().toString(36).substring(2, 10).toUpperCase()}`;
       const totalQuantity = selections.reduce((sum, s) => sum + s.quantity, 0);
 
       const holdersPayload = ticketHolders.map((holder) => {

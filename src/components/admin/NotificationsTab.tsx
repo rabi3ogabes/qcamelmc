@@ -11,6 +11,8 @@ import {
   CheckCheck,
   CreditCard,
   Globe,
+  LayoutGrid,
+  LayoutList,
   RefreshCw,
   Store,
   Ticket,
@@ -36,6 +38,7 @@ type NotificationRow = {
 };
 
 type SourceFilter = "all" | "sadad" | "cash_pos";
+type ViewMode = "list" | "grid";
 
 const qatarTime = (iso: string) =>
   new Date(iso).toLocaleString("ar-u-nu-latn", {
@@ -56,6 +59,7 @@ const NotificationsTab = () => {
   const [rows, setRows] = useState<NotificationRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [source, setSource] = useState<SourceFilter>("all");
+  const [viewMode, setViewMode] = useState<ViewMode>("list");
   const [lastSeen, setLastSeen] = useState<string>(
     () => localStorage.getItem(SEEN_KEY) || new Date(0).toISOString()
   );
@@ -145,32 +149,144 @@ const NotificationsTab = () => {
       </div>
 
       {/* Filters */}
-      <Tabs value={source} onValueChange={(v) => setSource(v as SourceFilter)}>
-        <TabsList className="grid w-full max-w-md grid-cols-3">
-          <TabsTrigger value="all" className="gap-2">
-            <Bell className="h-4 w-4" /> الكل
-          </TabsTrigger>
-          <TabsTrigger value="sadad" className="gap-2">
-            <Globe className="h-4 w-4" /> دفع إلكتروني
-          </TabsTrigger>
-          <TabsTrigger value="cash_pos" className="gap-2">
-            <Store className="h-4 w-4" /> نقاط البيع
-          </TabsTrigger>
-        </TabsList>
-      </Tabs>
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <Tabs value={source} onValueChange={(v) => setSource(v as SourceFilter)}>
+          <TabsList className="grid w-full max-w-md grid-cols-3">
+            <TabsTrigger value="all" className="gap-2">
+              <Bell className="h-4 w-4" /> الكل
+            </TabsTrigger>
+            <TabsTrigger value="sadad" className="gap-2">
+              <Globe className="h-4 w-4" /> دفع إلكتروني
+            </TabsTrigger>
+            <TabsTrigger value="cash_pos" className="gap-2">
+              <Store className="h-4 w-4" /> نقاط البيع
+            </TabsTrigger>
+          </TabsList>
+        </Tabs>
 
-      {/* List */}
-      {loading ? (
-        <div className="space-y-3">
-          {Array.from({ length: 5 }).map((_, i) => (
-            <Skeleton key={i} className="h-24 w-full rounded-xl" />
-          ))}
+        <div className="flex items-center gap-1 rounded-lg border border-border/60 bg-muted/40 p-1">
+          <button
+            type="button"
+            onClick={() => setViewMode("list")}
+            className={cn(
+              "flex h-8 w-8 items-center justify-center rounded-md transition-colors",
+              viewMode === "list"
+                ? "bg-background text-primary shadow-sm"
+                : "text-muted-foreground hover:text-foreground"
+            )}
+            aria-label="عرض قائمة"
+          >
+            <LayoutList className="h-4 w-4" />
+          </button>
+          <button
+            type="button"
+            onClick={() => setViewMode("grid")}
+            className={cn(
+              "flex h-8 w-8 items-center justify-center rounded-md transition-colors",
+              viewMode === "grid"
+                ? "bg-background text-primary shadow-sm"
+                : "text-muted-foreground hover:text-foreground"
+            )}
+            aria-label="عرض شبكة"
+          >
+            <LayoutGrid className="h-4 w-4" />
+          </button>
         </div>
+      </div>
+
+      {/* Content */}
+      {loading ? (
+        viewMode === "grid" ? (
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <Skeleton key={i} className="h-48 w-full rounded-xl" />
+            ))}
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <Skeleton key={i} className="h-24 w-full rounded-xl" />
+            ))}
+          </div>
+        )
       ) : filtered.length === 0 ? (
         <Card className="flex flex-col items-center justify-center gap-2 p-12 text-center">
           <Bell className="h-8 w-8 text-muted-foreground/50" />
           <p className="text-sm text-muted-foreground">لا توجد إشعارات حتى الآن</p>
         </Card>
+      ) : viewMode === "grid" ? (
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {filtered.map((row) => {
+            const isNew = row.created_at > lastSeen;
+            const isPos = row.payment_method === "cash_pos";
+            const status = statusMeta[row.payment_status || "pending"];
+            return (
+              <Card
+                key={row.id}
+                className={cn(
+                  "relative flex flex-col overflow-hidden border-border/60 p-4 transition-colors",
+                  isNew && "bg-primary/[0.04] ring-1 ring-primary/20"
+                )}
+              >
+                <span
+                  className={cn(
+                    "absolute inset-y-0 right-0 w-1",
+                    isPos ? "bg-amber-500" : "bg-primary"
+                  )}
+                />
+                <div className="flex flex-1 flex-col gap-3 pr-3">
+                  <div className="flex items-start justify-between gap-2">
+                    <div
+                      className={cn(
+                        "flex h-10 w-10 shrink-0 items-center justify-center rounded-lg",
+                        isPos ? "bg-amber-500/10 text-amber-500" : "bg-primary/10 text-primary"
+                      )}
+                    >
+                      {isPos ? <Store className="h-5 w-5" /> : <CreditCard className="h-5 w-5" />}
+                    </div>
+                    {isNew && (
+                      <Badge className="bg-destructive text-destructive-foreground">جديد</Badge>
+                    )}
+                  </div>
+
+                  <div className="space-y-1">
+                    <p className="font-semibold">
+                      {isPos ? "حجز نقاط بيع" : "دفع إلكتروني (سداد)"}
+                    </p>
+                    {status && (
+                      <Badge variant="outline" className={status.className}>
+                        {status.label}
+                      </Badge>
+                    )}
+                  </div>
+
+                  <div className="mt-auto space-y-2 border-t border-border/40 pt-3">
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <User className="h-3.5 w-3.5" />
+                      <span className="truncate">{row.customers?.name || "عميل غير معروف"}</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Ticket className="h-3.5 w-3.5" />
+                      {row.quantity} تذكرة
+                    </div>
+                    {row.events?.title && (
+                      <p className="truncate text-xs text-muted-foreground/80">{row.events.title}</p>
+                    )}
+                    <div className="flex items-center justify-between pt-1">
+                      <span className="text-lg font-bold text-primary">
+                        {Number(row.total_amount || 0).toLocaleString("ar-u-nu-latn")} ر.ق
+                      </span>
+                      <span dir="ltr" className="font-mono text-[11px] text-muted-foreground">
+                        {row.booking_reference}
+                      </span>
+                    </div>
+                    <p className="text-xs text-muted-foreground">{qatarTime(row.created_at)}</p>
+                  </div>
+                </div>
+              </Card>
+            );
+          })}
+        </div>
       ) : (
         <div className="space-y-3">
           {filtered.map((row) => {
