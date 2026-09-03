@@ -1,13 +1,8 @@
 import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Lock } from "lucide-react";
-import { toast } from "sonner";
-import { getStaffPasscode, grantStaffAccess, hasStaffAccess } from "@/lib/staffAccess";
+import { getStaffPasscode, hasStaffAccess } from "@/lib/staffAccess";
+import UnifiedLoginCard from "@/components/auth/UnifiedLoginCard";
 
 
 
@@ -23,7 +18,6 @@ const RequireAdmin = ({
   adminOnly?: boolean;
 }) => {
   const [status, setStatus] = useState<"checking" | "allowed" | "denied">("checking");
-  const [passcode, setPasscode] = useState("");
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -84,31 +78,6 @@ const RequireAdmin = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location.pathname, adminOnly]);
 
-  const [verifying, setVerifying] = useState(false);
-
-  const handleUnlock = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setVerifying(true);
-    try {
-      const { data, error } = await supabase.functions.invoke("staff-auth", {
-        body: { passcode },
-      });
-      if (error) throw error;
-      if (data?.ok) {
-        grantStaffAccess(passcode);
-        setStatus("allowed");
-        toast.success("تم فتح الصفحة");
-      } else {
-        toast.error("كلمة المرور غير صحيحة");
-      }
-    } catch {
-      toast.error("تعذر التحقق من كلمة المرور");
-    } finally {
-      setVerifying(false);
-    }
-  };
-
-
   if (status === "checking") {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -119,51 +88,11 @@ const RequireAdmin = ({
 
   if (status === "denied") {
     return (
-      <div className="min-h-screen flex items-center justify-center px-4 bg-background" dir="rtl">
-        <Card className="w-full max-w-md p-8">
-          <div className="text-center mb-8">
-            <div className="inline-flex items-center justify-center w-16 h-16 bg-primary/10 rounded-full mb-4">
-              <Lock className="w-8 h-8 text-primary" />
-            </div>
-            <h1 className="text-2xl font-bold mb-2">صفحة خاصة بالفريق</h1>
-            <p className="text-muted-foreground text-sm">أدخل كلمة المرور للدخول، أو سجّل الدخول كمشرف</p>
-          </div>
-
-          <form onSubmit={handleUnlock} className="space-y-4">
-            <div>
-              <Label htmlFor="staff-pass">كلمة المرور</Label>
-              <Input
-                id="staff-pass"
-                type="password"
-                value={passcode}
-                onChange={(e) => setPasscode(e.target.value)}
-                placeholder="••••••••"
-                autoFocus
-              />
-            </div>
-            <Button type="submit" className="w-full" size="lg">
-              فتح الصفحة
-            </Button>
-          </form>
-
-          <div className="mt-6 pt-4 border-t border-border/60">
-            <p className="text-xs text-muted-foreground text-center mb-3">أو سجّل الدخول بحسابك</p>
-            <div className="grid grid-cols-2 gap-3">
-              <Button
-                variant="outline"
-                onClick={() => navigate("/admin/login", { state: { from: "/staff" } })}
-              >
-                الدخول للمشرف
-              </Button>
-              <Button
-                variant="default"
-                onClick={() => navigate("/admin/login", { state: { from: location.pathname } })}
-              >
-                الدخول للأدمن
-              </Button>
-            </div>
-          </div>
-        </Card>
+      <div className="min-h-screen flex items-center justify-center px-4 py-10 bg-background" dir="rtl">
+        <UnifiedLoginCard
+          intendedPath={location.pathname}
+          onPasscodeSuccess={() => setStatus("allowed")}
+        />
       </div>
     );
   }
