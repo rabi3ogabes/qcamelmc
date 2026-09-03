@@ -119,51 +119,11 @@ const RequireAdmin = ({
 
   if (status === "denied") {
     return (
-      <div className="min-h-screen flex items-center justify-center px-4 bg-background" dir="rtl">
-        <Card className="w-full max-w-md p-8">
-          <div className="text-center mb-8">
-            <div className="inline-flex items-center justify-center w-16 h-16 bg-primary/10 rounded-full mb-4">
-              <Lock className="w-8 h-8 text-primary" />
-            </div>
-            <h1 className="text-2xl font-bold mb-2">صفحة خاصة بالفريق</h1>
-            <p className="text-muted-foreground text-sm">أدخل كلمة المرور للدخول، أو سجّل الدخول كمشرف</p>
-          </div>
-
-          <form onSubmit={handleUnlock} className="space-y-4">
-            <div>
-              <Label htmlFor="staff-pass">كلمة المرور</Label>
-              <Input
-                id="staff-pass"
-                type="password"
-                value={passcode}
-                onChange={(e) => setPasscode(e.target.value)}
-                placeholder="••••••••"
-                autoFocus
-              />
-            </div>
-            <Button type="submit" className="w-full" size="lg">
-              فتح الصفحة
-            </Button>
-          </form>
-
-          <div className="mt-6 pt-4 border-t border-border/60">
-            <p className="text-xs text-muted-foreground text-center mb-3">أو سجّل الدخول بحسابك</p>
-            <div className="grid grid-cols-2 gap-3">
-              <Button
-                variant="outline"
-                onClick={() => navigate("/admin/login", { state: { from: "/staff" } })}
-              >
-                الدخول للمشرف
-              </Button>
-              <Button
-                variant="default"
-                onClick={() => navigate("/admin/login", { state: { from: location.pathname } })}
-              >
-                الدخول للأدمن
-              </Button>
-            </div>
-          </div>
-        </Card>
+      <div className="min-h-screen flex items-center justify-center px-4 py-10 bg-background" dir="rtl">
+        <UnifiedLoginCard
+          intendedPath={location.pathname}
+          onPasscodeSuccess={() => setStatus("allowed")}
+        />
       </div>
     );
   }
