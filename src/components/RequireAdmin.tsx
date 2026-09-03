@@ -13,8 +13,15 @@ import { getStaffPasscode, grantStaffAccess, hasStaffAccess } from "@/lib/staffA
 
 /**
  * Guards staff-only routes: allows a signed-in admin, or anyone who enters the staff passcode.
+ * With `adminOnly`, moderators are sent to their short quick-links page instead.
  */
-const RequireAdmin = ({ children }: { children: React.ReactNode }) => {
+const RequireAdmin = ({
+  children,
+  adminOnly = false,
+}: {
+  children: React.ReactNode;
+  adminOnly?: boolean;
+}) => {
   const [status, setStatus] = useState<"checking" | "allowed" | "denied">("checking");
   const [passcode, setPasscode] = useState("");
   const location = useLocation();
@@ -36,6 +43,28 @@ const RequireAdmin = ({ children }: { children: React.ReactNode }) => {
         if (active) setStatus("denied");
         return;
       }
+
+      const { data: roleRows } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", session.user.id);
+      const roles = (roleRows || []).map((r: { role: string }) => r.role);
+
+      if (roles.includes("moderator") && !roles.includes("admin")) {
+        if (!active) return;
+        if (adminOnly) {
+          navigate("/staff", { replace: true });
+          return;
+        }
+        setStatus("allowed");
+        return;
+      }
+
+      if (roles.includes("admin")) {
+        if (active) setStatus("allowed");
+        return;
+      }
+
       const { data } = await supabase
         .from("admin_users")
         .select("id")
@@ -44,6 +73,7 @@ const RequireAdmin = ({ children }: { children: React.ReactNode }) => {
       if (active) setStatus(data ? "allowed" : "denied");
     };
 
+
     check();
     const { data: sub } = supabase.auth.onAuthStateChange(() => check());
 
@@ -51,7 +81,8 @@ const RequireAdmin = ({ children }: { children: React.ReactNode }) => {
       active = false;
       sub.subscription.unsubscribe();
     };
-  }, [location.pathname]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.pathname, adminOnly]);
 
   const [verifying, setVerifying] = useState(false);
 

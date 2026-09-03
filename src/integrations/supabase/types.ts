@@ -740,6 +740,27 @@ export type Database = {
           },
         ]
       }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       public_settings: {
@@ -872,6 +893,13 @@ export type Database = {
           visit_date: string
         }[]
       }
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
       is_admin: { Args: { user_id: string }; Returns: boolean }
       reserve_tickets: {
         Args: { p_event_id: string; p_quantity: number; p_ticket_type: string }
@@ -879,6 +907,7 @@ export type Database = {
       }
     }
     Enums: {
+      app_role: "admin" | "moderator"
       payment_method: "sadad" | "cash_pos"
       payment_status: "pending" | "confirmed" | "cancelled"
       ticket_type: "vip" | "normal" | "parking"
@@ -1009,6 +1038,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      app_role: ["admin", "moderator"],
       payment_method: ["sadad", "cash_pos"],
       payment_status: ["pending", "confirmed", "cancelled"],
       ticket_type: ["vip", "normal", "parking"],

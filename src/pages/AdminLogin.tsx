@@ -40,26 +40,36 @@ const AdminLogin = () => {
     }
   };
 
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
+  /** Signs in and routes the user by role: admins to the dashboard, moderators to the short links page. */
+  const signInAndRoute = async (loginEmail: string, loginPassword: string) => {
     setLoading(true);
-
     try {
       const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
+        email: loginEmail,
+        password: loginPassword,
       });
 
       if (error) throw error;
 
-      // Check if user is an admin
-      const { data: adminUser, error: adminError } = await supabase
-        .from("admin_users")
-        .select("*")
-        .eq("id", data.user.id)
-        .single();
+      const { data: roleRows } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", data.user.id);
+      const roles = (roleRows || []).map((r: { role: string }) => r.role);
 
-      if (adminError || !adminUser) {
+      if (roles.includes("moderator") && !roles.includes("admin")) {
+        toast.success("تم تسجيل الدخول");
+        navigate("/staff");
+        return;
+      }
+
+      const { data: adminUser } = await supabase
+        .from("admin_users")
+        .select("id")
+        .eq("id", data.user.id)
+        .maybeSingle();
+
+      if (!adminUser && !roles.includes("admin")) {
         await supabase.auth.signOut();
         throw new Error("Unauthorized: Admin access only");
       }
@@ -72,6 +82,12 @@ const AdminLogin = () => {
       setLoading(false);
     }
   };
+
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    await signInAndRoute(email, password);
+  };
+
 
 
   return (
@@ -137,35 +153,9 @@ const AdminLogin = () => {
               const demoPassword = "@@@Qatar123";
               setEmail(demoEmail);
               setPassword(demoPassword);
-              setLoading(true);
-
-              try {
-                const { data, error } = await supabase.auth.signInWithPassword({
-                  email: demoEmail,
-                  password: demoPassword,
-                });
-
-                if (error) throw error;
-
-                const { data: adminUser, error: adminError } = await supabase
-                  .from("admin_users")
-                  .select("*")
-                  .eq("id", data.user.id)
-                  .single();
-
-                if (adminError || !adminUser) {
-                  await supabase.auth.signOut();
-                  throw new Error("Unauthorized: Admin access only");
-                }
-
-                toast.success("Logged in successfully!");
-                navigate("/admin/dashboard");
-              } catch (error: any) {
-                toast.error(error.message || "Failed to log in");
-              } finally {
-                setLoading(false);
-              }
+              await signInAndRoute(demoEmail, demoPassword);
             }}
+
             disabled={loading}
           >
             {loading ? "Logging in..." : "(-_-)"}
