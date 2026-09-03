@@ -167,7 +167,16 @@ const AdminLogin = () => {
           </Button>
         </div>
 
-          <div className="mt-4 text-center">
+          <div className="mt-4 grid gap-3">
+            <Button
+              variant="outline"
+              className="w-full text-sm"
+              onClick={() => navigate("/staff")}
+              disabled={loading}
+            >
+              <Users className="ms-2 h-4 w-4" />
+              الدخول كفريق / روابط سريعة
+            </Button>
             <Button variant="ghost" onClick={() => navigate("/")}>
               ← Back to Home
             </Button>
