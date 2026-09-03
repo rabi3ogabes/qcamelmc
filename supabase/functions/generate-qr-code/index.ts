@@ -12,7 +12,7 @@ serve(async (req) => {
   }
 
   try {
-    const { text, filename } = await req.json();
+    const { text, filename, holderId } = await req.json();
     
     if (!text || !filename) {
       return new Response(
