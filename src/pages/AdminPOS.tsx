@@ -1000,7 +1000,7 @@ const AdminPOS = () => {
       const holdersToInsert = allHoldersData.map((holder, index) => {
         const ticketRef = `${bookingRef}-TKT${(index + 1).toString().padStart(2, '0')}`;
         return {
-          order_id: orderData.id,
+          order_id: orderId,
           name: holder.name,
           phone: holder.phone || customerPhone,
           country_code: holder.countryCode || customerCountryCode,
@@ -1012,27 +1012,14 @@ const AdminPOS = () => {
         };
       });
 
-      const { data: insertedHolders, error: holdersError } = await supabase
+      const { error: holdersError } = await supabase
         .from("ticket_holders")
-        .insert(holdersToInsert)
-        .select('id, qr_code');
+        .insert(holdersToInsert);
 
       if (holdersError) throw holdersError;
 
-      // Update ticket sold quantities
-      for (const item of cart) {
-        const ticket = tickets.find(t => t.id === item.ticketId);
-        if (ticket) {
-          const { error: updateError } = await supabase
-            .from("tickets")
-            .update({
-              sold_quantity: (ticket.sold_quantity || 0) + item.quantity,
-            })
-            .eq("id", item.ticketId);
+      // Sold quantities are maintained automatically by database triggers.
 
-          if (updateError) throw updateError;
-        }
-      }
 
       // POS orders don't need QR codes - ticket reference is sufficient
 
