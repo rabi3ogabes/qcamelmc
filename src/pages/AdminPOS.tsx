@@ -385,13 +385,9 @@ const AdminPOS = () => {
 
 
 
-  // Auto-populate name, phone and ID number from the main customer info to all ticket holders
-  useEffect(() => {
-    setTicketHolders(prev => prev.map(holder => ({
-      ...holder,
-      name: customerName,
-    })));
-  }, [customerName, ticketHolders.length]);
+  // Attendee names stay independent: new attendee slots are pre-filled with the
+  // buyer's name when they are created, and the cashier can rename each one.
+
 
   // Auto-populate phone number from main customer to all ticket holders
   useEffect(() => {
@@ -548,6 +544,56 @@ const AdminPOS = () => {
     return true;
   };
 
+  /**
+   * Single source of truth for the attendee forms: the cart decides how many
+   * attendees are needed (the buyer always takes the first ticket of the first
+   * line), and existing filled-in attendees are preserved whenever possible.
+   */
+  const reconcileHolders = (
+    nextCart: CartItem[],
+    existing: TicketHolderInput[]
+  ): TicketHolderInput[] => {
+    const needed = new Map<string, number>();
+    nextCart.forEach((item, index) => {
+      const required = index === 0 ? item.quantity - 1 : item.quantity;
+      needed.set(item.ticketType, (needed.get(item.ticketType) || 0) + Math.max(0, required));
+    });
+
+    const kept: TicketHolderInput[] = [];
+    const used = new Map<string, number>();
+    for (const holder of existing) {
+      const limit = needed.get(holder.ticketType) || 0;
+      const count = used.get(holder.ticketType) || 0;
+      if (count < limit) {
+        kept.push(holder);
+        used.set(holder.ticketType, count + 1);
+      }
+    }
+
+    needed.forEach((limit, ticketType) => {
+      let count = used.get(ticketType) || 0;
+      while (count < limit) {
+        kept.push({
+          name: customerName,
+          nationality: customerNationality || "قطر",
+          idNumber: customerIdNumber,
+          phone: customerPhone,
+          countryCode: customerCountryCode,
+          ticketType,
+        });
+        count += 1;
+      }
+    });
+
+    return kept;
+  };
+
+  /** Applies a new cart and keeps the attendee forms perfectly in sync with it. */
+  const applyCart = (nextCart: CartItem[]) => {
+    setCart(nextCart);
+    setTicketHolders(prev => reconcileHolders(nextCart, prev));
+  };
+
   const addToCart = (ticket: Ticket, quantity: number) => {
     console.log("addToCart called with:", { ticket, quantity });
     console.log("Current cart:", cart);
@@ -577,40 +623,21 @@ const AdminPOS = () => {
       return;
     }
 
-    if (existingItem) {
-      console.log("Updating existing item");
-      setCart(cart.map(item =>
-        item.ticketId === ticket.id
-          ? { ...item, quantity: item.quantity + quantity }
-          : item
-      ));
-    } else {
-      console.log("Adding new item to cart");
-      setCart([...cart, {
-        ticketId: ticket.id,
-        ticketType: ticket.type,
-        quantity: quantity,
-        price: ticket.price,
-        eventId: ticket.event_id,
-      }]);
-    }
+    const nextCart = existingItem
+      ? cart.map(item =>
+          item.ticketId === ticket.id
+            ? { ...item, quantity: item.quantity + quantity }
+            : item
+        )
+      : [...cart, {
+          ticketId: ticket.id,
+          ticketType: ticket.type,
+          quantity: quantity,
+          price: ticket.price,
+          eventId: ticket.event_id,
+        }];
 
-    // Add ticket holder slots for the new tickets with default nationality "قطر"
-    // We create (quantity - 1) holders for the FIRST addition only (customer takes first ticket)
-    // For subsequent additions, we create full quantity of holders
-    const isFirstAddition = cart.length === 0;
-    const holdersToAdd = isFirstAddition ? Math.max(0, quantity - 1) : quantity;
-    
-    const newHolders = Array(holdersToAdd).fill(null).map((_, index) => ({
-      name: "",
-      nationality: "قطر",
-      idNumber: "",
-      phone: "",
-      countryCode: "+974",
-      ticketType: ticket.type
-    }));
-    console.log("Adding ticket holders:", newHolders, "isFirstAddition:", isFirstAddition);
-    setTicketHolders([...ticketHolders, ...newHolders]);
+    applyCart(nextCart);
 
     toast({
       title: "تمت الإضافة",
@@ -622,9 +649,7 @@ const AdminPOS = () => {
     const item = cart.find((item) => item.ticketId === ticketId);
     if (!item) return;
 
-    setCart(cart.filter(cartItem => cartItem.ticketId !== ticketId));
-    // Remove all ticket holders of this type
-    setTicketHolders(ticketHolders.filter(h => h.ticketType !== item.ticketType));
+    applyCart(cart.filter(cartItem => cartItem.ticketId !== ticketId));
   };
 
   const updateCartItemQuantity = (ticketId: string, newQuantity: number) => {
@@ -667,40 +692,11 @@ const AdminPOS = () => {
       return;
     }
 
-    const currentQuantity = item.quantity;
-    const difference = newQuantity - currentQuantity;
-
-    setCart(cart.map(cartItem =>
+    applyCart(cart.map(cartItem =>
       cartItem.ticketId === ticketId
         ? { ...cartItem, quantity: newQuantity }
         : cartItem
     ));
-
-    // Adjust ticket holders
-    if (difference > 0) {
-      // Add more holders with default nationality "قطر"
-      // We add (difference) holders since customer already counts as one
-      const newHolders = Array(difference).fill(null).map(() => ({
-        name: "",
-        nationality: "قطر",
-        idNumber: "",
-        phone: "",
-        countryCode: "+974",
-        ticketType: item.ticketType
-      }));
-      setTicketHolders([...ticketHolders, ...newHolders]);
-    } else if (difference < 0) {
-      // Remove holders
-      const holdersOfType = ticketHolders
-        .map((h, i) => ({ ...h, index: i }))
-        .filter(h => h.ticketType === item.ticketType);
-      
-      const indicesToRemove = holdersOfType
-        .slice(difference)
-        .map(h => h.index);
-      
-      setTicketHolders(ticketHolders.filter((_, i) => !indicesToRemove.includes(i)));
-    }
   };
 
   const updateTicketHolder = (index: number, field: keyof TicketHolderInput, value: string) => {
@@ -730,25 +726,24 @@ const AdminPOS = () => {
 
   const deleteTicketHolder = (index: number) => {
     const holder = ticketHolders[index];
-    
-    // Remove the holder from the array
-    const updatedHolders = ticketHolders.filter((_, i) => i !== index);
-    setTicketHolders(updatedHolders);
+    if (!holder) return;
 
-    // Update the cart - decrease quantity for this ticket type
+    const remainingHolders = ticketHolders.filter((_, i) => i !== index);
+
+    // Decrease the matching cart line, then rebuild the attendee list from it
     const cartItem = cart.find(item => item.ticketType === holder.ticketType);
-    if (cartItem) {
-      const newQuantity = cartItem.quantity - 1;
-      if (newQuantity <= 0) {
-        setCart(cart.filter(item => item.ticketId !== cartItem.ticketId));
-      } else {
-        setCart(cart.map(item =>
-          item.ticketId === cartItem.ticketId
-            ? { ...item, quantity: newQuantity }
-            : item
-        ));
-      }
-    }
+    const nextCart = cartItem
+      ? cart
+          .map(item =>
+            item.ticketId === cartItem.ticketId
+              ? { ...item, quantity: item.quantity - 1 }
+              : item
+          )
+          .filter(item => item.quantity > 0)
+      : cart;
+
+    setCart(nextCart);
+    setTicketHolders(reconcileHolders(nextCart, remainingHolders));
 
     toast({
       title: "تم الحذف",
@@ -938,51 +933,14 @@ const AdminPOS = () => {
       }
 
 
-      // Create customer (ids generated client-side so no read-back is needed,
-      // staff without an admin session cannot SELECT these tables)
-      const customerId = crypto.randomUUID();
-      const { error: customerError } = await supabase
-        .from("customers")
-        .insert({
-          id: customerId,
-          name: customerName,
-          email: customerEmail,
-          phone: customerPhone,
-          nationality: customerNationality,
-          id_number: customerIdNumber,
-        });
-
-      if (customerError) throw customerError;
-
-      // Create a single order with all tickets
+      // The whole sale (customer + order + every ticket) is saved in ONE database
+      // operation: if any ticket is refused, nothing at all is recorded.
       const totalAmount = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
       const eventDatePart = selectedDate
         ? selectedDate.toLocaleDateString("en-GB", { day: "numeric", month: "numeric", year: "numeric" }).replace(/\//g, "-")
         : new Date().toLocaleDateString("en-GB", { day: "numeric", month: "numeric", year: "numeric" }).replace(/\//g, "-");
       const bookingRef = `POS-${eventDatePart}-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
 
-      const orderId = crypto.randomUUID();
-      const { error: orderError } = await supabase
-        .from("orders")
-        .insert({
-          id: orderId,
-          customer_id: customerId,
-          event_id: cart[0].eventId,
-          ticket_type: cart[0].ticketType as "vip" | "normal" | "parking",
-          quantity: cart.reduce((sum, item) => sum + item.quantity, 0),
-          total_amount: totalAmount,
-          payment_method: "cash_pos" as const,
-          payment_status: "confirmed" as const,
-          booking_reference: bookingRef,
-          n8n_response_message: "طلب من نقطة البيع - POS",
-          n8n_responded_at: new Date().toISOString(),
-          pos_user_id: selectedPosUserId,
-        });
-
-
-      if (orderError) throw orderError;
-
-      // Create ticket holders with QR codes
       // First ticket holder is the customer
       const allHoldersData = [
         {
@@ -996,27 +954,30 @@ const AdminPOS = () => {
         ...ticketHolders
       ];
 
-      // Prepare holders with ticket references (QR codes will be generated in background)
-      const holdersToInsert = allHoldersData.map((holder, index) => {
-        const ticketRef = `${bookingRef}-TKT${(index + 1).toString().padStart(2, '0')}`;
-        return {
-          order_id: orderId,
+      const { error: bookingError } = await supabase.rpc("create_pos_booking", {
+        p_customer: {
+          name: customerName,
+          email: customerEmail,
+          phone: customerPhone,
+          country_code: customerCountryCode,
+          nationality: customerNationality,
+          id_number: customerIdNumber,
+        },
+        p_event_id: cart[0].eventId,
+        p_total_amount: totalAmount,
+        p_booking_reference: bookingRef,
+        p_holders: allHoldersData.map(holder => ({
           name: holder.name,
           phone: holder.phone || customerPhone,
           country_code: holder.countryCode || customerCountryCode,
           nationality: holder.nationality,
           ticket_type: holder.ticketType,
-          qr_code: ticketRef, // Use ticket reference initially, QR will be generated in background
           id_number: holder.idNumber,
-          is_present: true
-        };
+        })),
+        p_pos_user_id: selectedPosUserId,
       });
 
-      const { error: holdersError } = await supabase
-        .from("ticket_holders")
-        .insert(holdersToInsert);
-
-      if (holdersError) throw holdersError;
+      if (bookingError) throw bookingError;
 
       // Sold quantities are maintained automatically by database triggers.
 
