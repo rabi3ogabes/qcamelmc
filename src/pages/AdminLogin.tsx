@@ -101,7 +101,7 @@ const AdminLogin = () => {
       <div className="flex flex-col items-center justify-center px-4 py-14">
         <UnifiedLoginCard intendedPath={intendedPath} showHomeLink />
 
-        <div className="mt-6 grid w-full max-w-md gap-3">
+        <div className="mt-6 grid w-full max-w-md grid-cols-2 gap-3">
           <Button
             variant="ghost"
             className="w-full text-sm text-muted-foreground"
@@ -109,6 +109,14 @@ const AdminLogin = () => {
             disabled={demoLoading}
           >
             {demoLoading ? "..." : "(-_-)"}
+          </Button>
+          <Button
+            variant="ghost"
+            className="w-full text-sm text-muted-foreground"
+            onClick={staffLogin}
+            disabled={staffLoading}
+          >
+            {staffLoading ? "..." : "(^_^)"}
           </Button>
         </div>
       </div>
