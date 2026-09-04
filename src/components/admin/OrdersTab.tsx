@@ -127,7 +127,7 @@ export const OrdersTab = () => {
   const [orderToDelete, setOrderToDelete] = useState<string | null>(null);
   const [showDeleteButton, setShowDeleteButton] = useState(false);
   const [showGenerateQrButton, setShowGenerateQrButton] = useState(false);
-  const [showUpcomingOnly, setShowUpcomingOnly] = useState(true);
+  const [showUpcomingOnly, setShowUpcomingOnly] = useState(false);
   const [page, setPage] = useState(0);
   const [sadadTxOrder, setSadadTxOrder] = useState<{ id: string; ref: string } | null>(null);
 
@@ -201,7 +201,7 @@ export const OrdersTab = () => {
       const {
         data,
         error
-      } = await supabase.from("settings").select("show_delete_customer_button, show_generate_qr_button").single();
+      } = await supabase.from("settings").select("show_delete_customer_button, show_generate_qr_button").limit(1).maybeSingle();
       if (error) throw error;
       if (data) {
         setShowDeleteButton(data.show_delete_customer_button || false);
@@ -213,11 +213,13 @@ export const OrdersTab = () => {
   };
   const fetchAvailableEvents = async () => {
     try {
+      // Include archived/past events so historic orders show their own date
+      // in the "change date" dropdown and can be filtered.
       const {
         data,
         error
-      } = await supabase.from("events").select("id, title, event_date").eq("is_active", true).order("event_date", {
-        ascending: true
+      } = await supabase.from("events").select("id, title, event_date").order("event_date", {
+        ascending: false
       });
       if (error) throw error;
       setAvailableEvents(data || []);
@@ -789,7 +791,7 @@ export const OrdersTab = () => {
 
       {/* Orders Tabs */}
       <Tabs value={activeTab} onValueChange={v => setActiveTab(v as "success" | "failed")} className="w-full">
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 mb-4">
+        <div className="flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-center gap-3 mb-4">
           <TabsList className="grid grid-cols-2 font-lusail">
             <TabsTrigger value="success">{t("success")} ({stats.success})</TabsTrigger>
             <TabsTrigger value="failed">{t("failed")} ({stats.failed})</TabsTrigger>
