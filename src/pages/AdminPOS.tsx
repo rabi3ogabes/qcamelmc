@@ -696,40 +696,11 @@ const AdminPOS = () => {
       return;
     }
 
-    const currentQuantity = item.quantity;
-    const difference = newQuantity - currentQuantity;
-
-    setCart(cart.map(cartItem =>
+    applyCart(cart.map(cartItem =>
       cartItem.ticketId === ticketId
         ? { ...cartItem, quantity: newQuantity }
         : cartItem
     ));
-
-    // Adjust ticket holders
-    if (difference > 0) {
-      // Add more holders with default nationality "قطر"
-      // We add (difference) holders since customer already counts as one
-      const newHolders = Array(difference).fill(null).map(() => ({
-        name: "",
-        nationality: "قطر",
-        idNumber: "",
-        phone: "",
-        countryCode: "+974",
-        ticketType: item.ticketType
-      }));
-      setTicketHolders([...ticketHolders, ...newHolders]);
-    } else if (difference < 0) {
-      // Remove holders
-      const holdersOfType = ticketHolders
-        .map((h, i) => ({ ...h, index: i }))
-        .filter(h => h.ticketType === item.ticketType);
-      
-      const indicesToRemove = holdersOfType
-        .slice(difference)
-        .map(h => h.index);
-      
-      setTicketHolders(ticketHolders.filter((_, i) => !indicesToRemove.includes(i)));
-    }
   };
 
   const updateTicketHolder = (index: number, field: keyof TicketHolderInput, value: string) => {
