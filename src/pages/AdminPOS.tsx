@@ -548,6 +548,56 @@ const AdminPOS = () => {
     return true;
   };
 
+  /**
+   * Single source of truth for the attendee forms: the cart decides how many
+   * attendees are needed (the buyer always takes the first ticket of the first
+   * line), and existing filled-in attendees are preserved whenever possible.
+   */
+  const reconcileHolders = (
+    nextCart: CartItem[],
+    existing: TicketHolderInput[]
+  ): TicketHolderInput[] => {
+    const needed = new Map<string, number>();
+    nextCart.forEach((item, index) => {
+      const required = index === 0 ? item.quantity - 1 : item.quantity;
+      needed.set(item.ticketType, (needed.get(item.ticketType) || 0) + Math.max(0, required));
+    });
+
+    const kept: TicketHolderInput[] = [];
+    const used = new Map<string, number>();
+    for (const holder of existing) {
+      const limit = needed.get(holder.ticketType) || 0;
+      const count = used.get(holder.ticketType) || 0;
+      if (count < limit) {
+        kept.push(holder);
+        used.set(holder.ticketType, count + 1);
+      }
+    }
+
+    needed.forEach((limit, ticketType) => {
+      let count = used.get(ticketType) || 0;
+      while (count < limit) {
+        kept.push({
+          name: customerName,
+          nationality: customerNationality || "قطر",
+          idNumber: customerIdNumber,
+          phone: customerPhone,
+          countryCode: customerCountryCode,
+          ticketType,
+        });
+        count += 1;
+      }
+    });
+
+    return kept;
+  };
+
+  /** Applies a new cart and keeps the attendee forms perfectly in sync with it. */
+  const applyCart = (nextCart: CartItem[]) => {
+    setCart(nextCart);
+    setTicketHolders(prev => reconcileHolders(nextCart, prev));
+  };
+
   const addToCart = (ticket: Ticket, quantity: number) => {
     console.log("addToCart called with:", { ticket, quantity });
     console.log("Current cart:", cart);
