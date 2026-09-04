@@ -933,51 +933,14 @@ const AdminPOS = () => {
       }
 
 
-      // Create customer (ids generated client-side so no read-back is needed,
-      // staff without an admin session cannot SELECT these tables)
-      const customerId = crypto.randomUUID();
-      const { error: customerError } = await supabase
-        .from("customers")
-        .insert({
-          id: customerId,
-          name: customerName,
-          email: customerEmail,
-          phone: customerPhone,
-          nationality: customerNationality,
-          id_number: customerIdNumber,
-        });
-
-      if (customerError) throw customerError;
-
-      // Create a single order with all tickets
+      // The whole sale (customer + order + every ticket) is saved in ONE database
+      // operation: if any ticket is refused, nothing at all is recorded.
       const totalAmount = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
       const eventDatePart = selectedDate
         ? selectedDate.toLocaleDateString("en-GB", { day: "numeric", month: "numeric", year: "numeric" }).replace(/\//g, "-")
         : new Date().toLocaleDateString("en-GB", { day: "numeric", month: "numeric", year: "numeric" }).replace(/\//g, "-");
       const bookingRef = `POS-${eventDatePart}-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
 
-      const orderId = crypto.randomUUID();
-      const { error: orderError } = await supabase
-        .from("orders")
-        .insert({
-          id: orderId,
-          customer_id: customerId,
-          event_id: cart[0].eventId,
-          ticket_type: cart[0].ticketType as "vip" | "normal" | "parking",
-          quantity: cart.reduce((sum, item) => sum + item.quantity, 0),
-          total_amount: totalAmount,
-          payment_method: "cash_pos" as const,
-          payment_status: "confirmed" as const,
-          booking_reference: bookingRef,
-          n8n_response_message: "طلب من نقطة البيع - POS",
-          n8n_responded_at: new Date().toISOString(),
-          pos_user_id: selectedPosUserId,
-        });
-
-
-      if (orderError) throw orderError;
-
-      // Create ticket holders with QR codes
       // First ticket holder is the customer
       const allHoldersData = [
         {
@@ -991,27 +954,30 @@ const AdminPOS = () => {
         ...ticketHolders
       ];
 
-      // Prepare holders with ticket references (QR codes will be generated in background)
-      const holdersToInsert = allHoldersData.map((holder, index) => {
-        const ticketRef = `${bookingRef}-TKT${(index + 1).toString().padStart(2, '0')}`;
-        return {
-          order_id: orderId,
+      const { error: bookingError } = await supabase.rpc("create_pos_booking", {
+        p_customer: {
+          name: customerName,
+          email: customerEmail,
+          phone: customerPhone,
+          country_code: customerCountryCode,
+          nationality: customerNationality,
+          id_number: customerIdNumber,
+        },
+        p_event_id: cart[0].eventId,
+        p_total_amount: totalAmount,
+        p_booking_reference: bookingRef,
+        p_holders: allHoldersData.map(holder => ({
           name: holder.name,
           phone: holder.phone || customerPhone,
           country_code: holder.countryCode || customerCountryCode,
           nationality: holder.nationality,
           ticket_type: holder.ticketType,
-          qr_code: ticketRef, // Use ticket reference initially, QR will be generated in background
           id_number: holder.idNumber,
-          is_present: true
-        };
+        })),
+        p_pos_user_id: selectedPosUserId,
       });
 
-      const { error: holdersError } = await supabase
-        .from("ticket_holders")
-        .insert(holdersToInsert);
-
-      if (holdersError) throw holdersError;
+      if (bookingError) throw bookingError;
 
       // Sold quantities are maintained automatically by database triggers.
 
