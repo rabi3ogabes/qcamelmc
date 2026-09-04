@@ -822,6 +822,17 @@ export type Database = {
     }
     Functions: {
       cleanup_stale_visitors: { Args: never; Returns: undefined }
+      create_pos_booking: {
+        Args: {
+          p_booking_reference: string
+          p_customer: Json
+          p_event_id: string
+          p_holders: Json
+          p_pos_user_id?: string
+          p_total_amount: number
+        }
+        Returns: Json
+      }
       create_public_booking: {
         Args: {
           p_booking_reference: string
