@@ -387,9 +387,10 @@ export const TicketsTab = () => {
                     <td className="text-center p-3 font-lusail">{summary.parking_price ? summary.parking_price.toFixed(2) : '-'}</td>
                     <td className="text-center p-3 font-lusail font-bold text-destructive border-l">{summary.parking_amount > 0 ? summary.parking_amount.toFixed(2) : '-'}</td>
                     {/* Daily Total */}
-                    <td className="text-center p-3 font-lusail font-bold text-lg text-primary">
+                    <td className="text-center p-3 font-lusail font-bold text-lg text-primary whitespace-nowrap">
                       {summary.daily_total.toFixed(2)} <span className="text-sm">ريال قطري</span>
                     </td>
+
                   </tr>
                 ))}
                 {/* Grand Total Row */}
