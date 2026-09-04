@@ -577,40 +577,21 @@ const AdminPOS = () => {
       return;
     }
 
-    if (existingItem) {
-      console.log("Updating existing item");
-      setCart(cart.map(item =>
-        item.ticketId === ticket.id
-          ? { ...item, quantity: item.quantity + quantity }
-          : item
-      ));
-    } else {
-      console.log("Adding new item to cart");
-      setCart([...cart, {
-        ticketId: ticket.id,
-        ticketType: ticket.type,
-        quantity: quantity,
-        price: ticket.price,
-        eventId: ticket.event_id,
-      }]);
-    }
+    const nextCart = existingItem
+      ? cart.map(item =>
+          item.ticketId === ticket.id
+            ? { ...item, quantity: item.quantity + quantity }
+            : item
+        )
+      : [...cart, {
+          ticketId: ticket.id,
+          ticketType: ticket.type,
+          quantity: quantity,
+          price: ticket.price,
+          eventId: ticket.event_id,
+        }];
 
-    // Add ticket holder slots for the new tickets with default nationality "قطر"
-    // We create (quantity - 1) holders for the FIRST addition only (customer takes first ticket)
-    // For subsequent additions, we create full quantity of holders
-    const isFirstAddition = cart.length === 0;
-    const holdersToAdd = isFirstAddition ? Math.max(0, quantity - 1) : quantity;
-    
-    const newHolders = Array(holdersToAdd).fill(null).map((_, index) => ({
-      name: "",
-      nationality: "قطر",
-      idNumber: "",
-      phone: "",
-      countryCode: "+974",
-      ticketType: ticket.type
-    }));
-    console.log("Adding ticket holders:", newHolders, "isFirstAddition:", isFirstAddition);
-    setTicketHolders([...ticketHolders, ...newHolders]);
+    applyCart(nextCart);
 
     toast({
       title: "تمت الإضافة",
@@ -622,9 +603,7 @@ const AdminPOS = () => {
     const item = cart.find((item) => item.ticketId === ticketId);
     if (!item) return;
 
-    setCart(cart.filter(cartItem => cartItem.ticketId !== ticketId));
-    // Remove all ticket holders of this type
-    setTicketHolders(ticketHolders.filter(h => h.ticketType !== item.ticketType));
+    applyCart(cart.filter(cartItem => cartItem.ticketId !== ticketId));
   };
 
   const updateCartItemQuantity = (ticketId: string, newQuantity: number) => {
