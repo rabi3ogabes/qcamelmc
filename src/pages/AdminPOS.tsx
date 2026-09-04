@@ -938,18 +938,19 @@ const AdminPOS = () => {
       }
 
 
-      // Create customer
-      const { data: customerData, error: customerError } = await supabase
+      // Create customer (ids generated client-side so no read-back is needed,
+      // staff without an admin session cannot SELECT these tables)
+      const customerId = crypto.randomUUID();
+      const { error: customerError } = await supabase
         .from("customers")
         .insert({
+          id: customerId,
           name: customerName,
           email: customerEmail,
           phone: customerPhone,
           nationality: customerNationality,
           id_number: customerIdNumber,
-        })
-        .select()
-        .single();
+        });
 
       if (customerError) throw customerError;
 
@@ -959,11 +960,13 @@ const AdminPOS = () => {
         ? selectedDate.toLocaleDateString("en-GB", { day: "numeric", month: "numeric", year: "numeric" }).replace(/\//g, "-")
         : new Date().toLocaleDateString("en-GB", { day: "numeric", month: "numeric", year: "numeric" }).replace(/\//g, "-");
       const bookingRef = `POS-${eventDatePart}-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
-      
-      const { data: orderData, error: orderError } = await supabase
+
+      const orderId = crypto.randomUUID();
+      const { error: orderError } = await supabase
         .from("orders")
         .insert({
-          customer_id: customerData.id,
+          id: orderId,
+          customer_id: customerId,
           event_id: cart[0].eventId,
           ticket_type: cart[0].ticketType as "vip" | "normal" | "parking",
           quantity: cart.reduce((sum, item) => sum + item.quantity, 0),
@@ -974,9 +977,8 @@ const AdminPOS = () => {
           n8n_response_message: "طلب من نقطة البيع - POS",
           n8n_responded_at: new Date().toISOString(),
           pos_user_id: selectedPosUserId,
-        })
-        .select()
-        .single();
+        });
+
 
       if (orderError) throw orderError;
 
