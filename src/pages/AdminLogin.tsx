@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import UnifiedLoginCard from "@/components/auth/UnifiedLoginCard";
+import { grantStaffAccess } from "@/lib/staffAccess";
 
 const AdminLogin = () => {
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
