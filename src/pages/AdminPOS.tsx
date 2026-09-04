@@ -385,13 +385,9 @@ const AdminPOS = () => {
 
 
 
-  // Auto-populate name, phone and ID number from the main customer info to all ticket holders
-  useEffect(() => {
-    setTicketHolders(prev => prev.map(holder => ({
-      ...holder,
-      name: customerName,
-    })));
-  }, [customerName, ticketHolders.length]);
+  // Attendee names stay independent: new attendee slots are pre-filled with the
+  // buyer's name when they are created, and the cashier can rename each one.
+
 
   // Auto-populate phone number from main customer to all ticket holders
   useEffect(() => {
