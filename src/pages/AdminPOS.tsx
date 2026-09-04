@@ -730,25 +730,24 @@ const AdminPOS = () => {
 
   const deleteTicketHolder = (index: number) => {
     const holder = ticketHolders[index];
-    
-    // Remove the holder from the array
-    const updatedHolders = ticketHolders.filter((_, i) => i !== index);
-    setTicketHolders(updatedHolders);
+    if (!holder) return;
 
-    // Update the cart - decrease quantity for this ticket type
+    const remainingHolders = ticketHolders.filter((_, i) => i !== index);
+
+    // Decrease the matching cart line, then rebuild the attendee list from it
     const cartItem = cart.find(item => item.ticketType === holder.ticketType);
-    if (cartItem) {
-      const newQuantity = cartItem.quantity - 1;
-      if (newQuantity <= 0) {
-        setCart(cart.filter(item => item.ticketId !== cartItem.ticketId));
-      } else {
-        setCart(cart.map(item =>
-          item.ticketId === cartItem.ticketId
-            ? { ...item, quantity: newQuantity }
-            : item
-        ));
-      }
-    }
+    const nextCart = cartItem
+      ? cart
+          .map(item =>
+            item.ticketId === cartItem.ticketId
+              ? { ...item, quantity: item.quantity - 1 }
+              : item
+          )
+          .filter(item => item.quantity > 0)
+      : cart;
+
+    setCart(nextCart);
+    setTicketHolders(reconcileHolders(nextCart, remainingHolders));
 
     toast({
       title: "تم الحذف",
