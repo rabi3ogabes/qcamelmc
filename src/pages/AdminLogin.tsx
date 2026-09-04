@@ -10,6 +10,7 @@ const AdminLogin = () => {
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
   const [headerBgColor, setHeaderBgColor] = useState<string>("hsl(var(--card) / 0.5)");
   const [demoLoading, setDemoLoading] = useState(false);
+  const [staffLoading, setStaffLoading] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
   const intendedPath = (location.state as { from?: string } | null)?.from;
@@ -53,6 +54,27 @@ const AdminLogin = () => {
       toast.error(error.message || "تعذر تسجيل الدخول");
     } finally {
       setDemoLoading(false);
+    }
+  };
+
+  const staffLogin = async () => {
+    setStaffLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("staff-auth", {
+        body: { passcode: "@@@Qatar123" },
+      });
+      if (error) throw error;
+      if (data?.ok) {
+        grantStaffAccess("@@@Qatar123");
+        toast.success("تم فتح صفحة الفريق");
+        navigate("/staff", { replace: true });
+      } else {
+        toast.error("تعذر فتح صفحة الفريق");
+      }
+    } catch {
+      toast.error("تعذر فتح صفحة الفريق");
+    } finally {
+      setStaffLoading(false);
     }
   };
 
