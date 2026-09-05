@@ -187,7 +187,7 @@ const UnifiedLoginCard = ({
                 {verifying ? "جاري التحقق..." : "فتح الصفحة"}
               </Button>
               <p className="text-center text-xs text-muted-foreground">
-                تبقى الصلاحية فعّالة لمدة ٢٤ ساعة في هذا المتصفح، ثم تُطلب كلمة المرور من جديد.
+                تبقى الصلاحية فعّالة لمدة ١٠ أيام في هذا المتصفح، ثم تُطلب كلمة المرور من جديد.
               </p>
 
             </form>
