@@ -194,6 +194,8 @@ const QRScanner = () => {
   };
 
   const checkAuth = async () => {
+    // The team passcode (verified by the route guard) is enough — no account needed.
+    if (getStaffPasscode()) return;
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) {
       navigate("/admin/login");
