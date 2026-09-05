@@ -3,14 +3,14 @@
  * The passcode itself is verified server-side (edge function `staff-auth`) and the
  * accepted value is kept in the browser only so admin-only edge functions can be called.
  *
- * Access expires automatically 24 hours after it was granted.
+ * Access expires automatically 10 days after it was granted.
  */
 
 const PASS_KEY = "staff_passcode_ok";
 const CODE_KEY = "staff_passcode_value";
 const EXP_KEY = "staff_passcode_exp";
-const ACCESS_TTL_MS = 24 * 60 * 60 * 1000; // 1 day
-const COOKIE_MAX_AGE = 60 * 60 * 24; // 1 day
+const ACCESS_TTL_MS = 10 * 24 * 60 * 60 * 1000; // 10 days
+const COOKIE_MAX_AGE = 60 * 60 * 24 * 10; // 10 days
 
 const readCookie = (): boolean => {
   try {
