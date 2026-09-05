@@ -6,6 +6,7 @@ import { Card } from "@/components/ui/card";
 import { CreditCard, ScanLine, Receipt, ExternalLink, LogOut, ArrowLeft } from "lucide-react";
 import { useStaffRole } from "@/hooks/useStaffRole";
 import { getStaffPasscode, grantStaffAccess, revokeStaffAccess } from "@/lib/staffAccess";
+import { buildStaffUrl } from "@/lib/staffHandoff";
 
 
 const LINKS = [
