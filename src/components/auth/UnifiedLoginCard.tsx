@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -34,6 +34,14 @@ const UnifiedLoginCard = ({
   const [passcode, setPasscode] = useState("");
   const [loading, setLoading] = useState(false);
   const [verifying, setVerifying] = useState(false);
+
+  // Warm up the passcode check function in the background so the real
+  // verification responds instantly (the first call otherwise waits on a cold start).
+  useEffect(() => {
+    supabase.functions
+      .invoke("staff-auth", { body: { passcode: "__warmup__" } })
+      .catch(() => {});
+  }, []);
 
   const signInAndRoute = async (loginEmail: string, loginPassword: string) => {
     setLoading(true);
