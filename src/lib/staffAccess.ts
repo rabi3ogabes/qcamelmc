@@ -2,11 +2,15 @@
  * Remembers that a staff member unlocked the private pages with the passcode.
  * The passcode itself is verified server-side (edge function `staff-auth`) and the
  * accepted value is kept in the browser only so admin-only edge functions can be called.
+ *
+ * Access expires automatically 24 hours after it was granted.
  */
 
 const PASS_KEY = "staff_passcode_ok";
 const CODE_KEY = "staff_passcode_value";
-const COOKIE_MAX_AGE = 60 * 60 * 24 * 365; // 1 year
+const EXP_KEY = "staff_passcode_exp";
+const ACCESS_TTL_MS = 24 * 60 * 60 * 1000; // 1 day
+const COOKIE_MAX_AGE = 60 * 60 * 24; // 1 day
 
 const readCookie = (): boolean => {
   try {
@@ -18,18 +22,49 @@ const readCookie = (): boolean => {
   }
 };
 
-export const hasStaffAccess = (): boolean => {
+const readExpiry = (): number | null => {
   try {
-    if (localStorage.getItem(PASS_KEY) === "1") return true;
-    if (sessionStorage.getItem(PASS_KEY) === "1") return true;
+    const raw = localStorage.getItem(EXP_KEY) || sessionStorage.getItem(EXP_KEY);
+    if (!raw) return null;
+    const value = Number(raw);
+    return Number.isFinite(value) ? value : null;
+  } catch {
+    return null;
+  }
+};
+
+/** True when the stored access is older than one day. */
+const isExpired = (): boolean => {
+  const exp = readExpiry();
+  // No stored expiry (older sessions) is treated as expired so everyone re-enters once.
+  if (exp === null) return true;
+  return Date.now() > exp;
+};
+
+export const hasStaffAccess = (): boolean => {
+  let flagged = false;
+  try {
+    flagged =
+      localStorage.getItem(PASS_KEY) === "1" || sessionStorage.getItem(PASS_KEY) === "1";
   } catch {
     // storage might be blocked; fall back to the cookie
   }
-  return readCookie();
+  if (!flagged) flagged = readCookie();
+  if (!flagged) return false;
+
+  if (isExpired()) {
+    revokeStaffAccess();
+    return false;
+  }
+  return true;
 };
 
 /** The passcode the staff member entered (used to authorize staff-only edge functions). */
 export const getStaffPasscode = (): string | undefined => {
+  if (isExpired()) {
+    revokeStaffAccess();
+    return undefined;
+  }
   try {
     return localStorage.getItem(CODE_KEY) || sessionStorage.getItem(CODE_KEY) || undefined;
   } catch {
@@ -37,10 +72,20 @@ export const getStaffPasscode = (): string | undefined => {
   }
 };
 
+/** Remaining access time in milliseconds (0 when expired). */
+export const staffAccessRemainingMs = (): number => {
+  const exp = readExpiry();
+  if (exp === null) return 0;
+  return Math.max(0, exp - Date.now());
+};
+
 export const grantStaffAccess = (passcode?: string) => {
+  const expiresAt = Date.now() + ACCESS_TTL_MS;
   try {
     localStorage.setItem(PASS_KEY, "1");
     sessionStorage.setItem(PASS_KEY, "1");
+    localStorage.setItem(EXP_KEY, String(expiresAt));
+    sessionStorage.setItem(EXP_KEY, String(expiresAt));
     if (passcode) {
       localStorage.setItem(CODE_KEY, passcode);
       sessionStorage.setItem(CODE_KEY, passcode);
@@ -59,8 +104,10 @@ export const revokeStaffAccess = () => {
   try {
     localStorage.removeItem(PASS_KEY);
     localStorage.removeItem(CODE_KEY);
+    localStorage.removeItem(EXP_KEY);
     sessionStorage.removeItem(PASS_KEY);
     sessionStorage.removeItem(CODE_KEY);
+    sessionStorage.removeItem(EXP_KEY);
   } catch {
     // ignore
   }

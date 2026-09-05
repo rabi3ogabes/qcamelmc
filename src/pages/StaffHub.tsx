@@ -5,6 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { CreditCard, ScanLine, Receipt, ExternalLink, LogOut, ArrowLeft } from "lucide-react";
 import { useStaffRole } from "@/hooks/useStaffRole";
+import { revokeStaffAccess } from "@/lib/staffAccess";
+
 
 const LINKS = [
   {
@@ -47,9 +49,11 @@ const StaffHub = () => {
   }, []);
 
   const handleLogout = async () => {
+    revokeStaffAccess();
     await supabase.auth.signOut();
     navigate("/admin/login");
   };
+
 
   return (
     <div className="min-h-screen bg-background font-lusail" dir="rtl">
