@@ -91,7 +91,7 @@ const StaffHub = () => {
                 // Refresh the stored access so the new tab never re-asks for the passcode mid-shift.
                 const code = getStaffPasscode();
                 if (code) grantStaffAccess(code);
-                window.open(to, "_blank", "noopener,noreferrer");
+                window.open(buildStaffUrl(to), "_blank", "noopener,noreferrer");
               }}
               className="group relative cursor-pointer overflow-hidden border-border/70 p-5 transition-all duration-300 hover:-translate-y-0.5 hover:border-primary/50 hover:shadow-[var(--shadow-elegant)]"
             >
