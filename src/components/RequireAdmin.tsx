@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { getStaffPasscode, hasStaffAccess } from "@/lib/staffAccess";
+import { tryConsumeStaffHandoff } from "@/lib/staffHandoff";
 import UnifiedLoginCard from "@/components/auth/UnifiedLoginCard";
 
 
@@ -31,6 +32,14 @@ const RequireAdmin = ({
         if (active) setStatus("allowed");
         return;
       }
+
+      // A link opened from the team hub can carry a one-time token so the
+      // new tab inherits access instead of asking for the password again.
+      if (await tryConsumeStaffHandoff()) {
+        if (active) setStatus("allowed");
+        return;
+      }
+
 
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.user) {
