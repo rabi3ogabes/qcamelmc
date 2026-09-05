@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { CreditCard, ScanLine, Receipt, ExternalLink, LogOut, ArrowLeft } from "lucide-react";
 import { useStaffRole } from "@/hooks/useStaffRole";
-import { revokeStaffAccess } from "@/lib/staffAccess";
+import { getStaffPasscode, grantStaffAccess, revokeStaffAccess } from "@/lib/staffAccess";
 
 
 const LINKS = [
@@ -86,7 +86,12 @@ const StaffHub = () => {
           {LINKS.map(({ label, hint, icon: Icon, to }) => (
             <Card
               key={to}
-              onClick={() => window.open(to, "_blank", "noopener,noreferrer")}
+              onClick={() => {
+                // Refresh the stored access so the new tab never re-asks for the passcode mid-shift.
+                const code = getStaffPasscode();
+                if (code) grantStaffAccess(code);
+                window.open(to, "_blank", "noopener,noreferrer");
+              }}
               className="group relative cursor-pointer overflow-hidden border-border/70 p-5 transition-all duration-300 hover:-translate-y-0.5 hover:border-primary/50 hover:shadow-[var(--shadow-elegant)]"
             >
               <span className="absolute inset-y-0 right-0 w-1 bg-primary/70 opacity-70 transition-opacity group-hover:opacity-100" />

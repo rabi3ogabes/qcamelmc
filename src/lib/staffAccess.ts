@@ -33,11 +33,21 @@ const readExpiry = (): number | null => {
   }
 };
 
-/** True when the stored access is older than one day. */
+/** True when the stored access has passed its expiry time. */
 const isExpired = (): boolean => {
   const exp = readExpiry();
-  // No stored expiry (older sessions) is treated as expired so everyone re-enters once.
-  if (exp === null) return true;
+  if (exp === null) {
+    // Access granted before expirations existed: stamp a fresh 10-day expiry
+    // instead of locking the team out when they open a page in a new tab.
+    const fresh = Date.now() + ACCESS_TTL_MS;
+    try {
+      localStorage.setItem(EXP_KEY, String(fresh));
+      sessionStorage.setItem(EXP_KEY, String(fresh));
+    } catch {
+      // ignore storage access errors
+    }
+    return false;
+  }
   return Date.now() > exp;
 };
 
