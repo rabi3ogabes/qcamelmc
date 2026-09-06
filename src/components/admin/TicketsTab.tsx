@@ -21,6 +21,7 @@ interface TicketType {
     title: string;
     event_date: string;
     location: string;
+    is_archived: boolean;
   };
 }
 
@@ -99,7 +100,7 @@ export const TicketsTab = () => {
     try {
       const { data, error } = await supabase
         .from("tickets")
-        .select("*, events(title, event_date, location)")
+        .select("*, events(title, event_date, location, is_archived)")
         .order("price", { ascending: false });
 
       if (error) throw error;
@@ -221,8 +222,11 @@ export const TicketsTab = () => {
     fetchTickets();
   };
 
-  // Group tickets by event date
-  const ticketsByDate = tickets.reduce((acc, ticket) => {
+  // Group tickets by event date (filtered by current/archived view)
+  const visibleTickets = tickets.filter((ticket) =>
+    view === "archived" ? ticket.events?.is_archived === true : ticket.events?.is_archived !== true
+  );
+  const ticketsByDate = visibleTickets.reduce((acc, ticket) => {
     if (!ticket.events) return acc;
     const date = ticket.events.event_date;
     if (!acc[date]) {
@@ -334,7 +338,28 @@ export const TicketsTab = () => {
 
   return (
     <div className="space-y-8">
-      <h2 className="text-2xl font-bold font-lusail">{t("ticketManagement")}</h2>
+      <div className="flex flex-wrap justify-between items-center gap-3">
+        <h2 className="text-2xl font-bold font-lusail">{t("ticketManagement")}</h2>
+        <div className="flex rounded-lg border p-1 bg-muted/40">
+          <Button
+            variant={view === "current" ? "default" : "ghost"}
+            size="sm"
+            className="font-lusail"
+            onClick={() => setView("current")}
+          >
+            الحالية
+          </Button>
+          <Button
+            variant={view === "archived" ? "default" : "ghost"}
+            size="sm"
+            className="font-lusail gap-1"
+            onClick={() => setView("archived")}
+          >
+            <Archive className="w-4 h-4" />
+            الأرشيف
+          </Button>
+        </div>
+      </div>
 
       {/* Daily Sales Statistics Table */}
       {dailySummaries.length > 0 && (
