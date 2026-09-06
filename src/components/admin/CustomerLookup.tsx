@@ -150,23 +150,13 @@ export const CustomerLookup = ({ onSelect, eventId }: CustomerLookupProps) => {
                   </div>
                 )}
               </div>
-              <Button
-                type="button"
-                size="sm"
-                className="font-lusail gap-1 shrink-0"
-                onClick={() => {
-                  onSelect(customer);
-                  setResults([]);
-                  setQuery("");
-                  setSearched(false);
-                  toast.success(`تم تعبئة بيانات ${customer.name}`);
-                }}
-              >
+              <span className="font-lusail text-xs text-primary shrink-0 inline-flex items-center gap-1">
                 <UserCheck className="w-4 h-4" />
-                استخدام
-              </Button>
+                اختيار
+              </span>
             </Card>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>
