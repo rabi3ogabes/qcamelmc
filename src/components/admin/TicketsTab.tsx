@@ -81,7 +81,7 @@ export const TicketsTab = () => {
 
   type HolderRow = {
     ticket_type: string;
-    orders: { event_id: string; events: { title: string | null; event_date: string } };
+    orders: { event_id: string; events: { title: string | null; event_date: string; is_archived: boolean } };
   };
 
   const fetchConfirmedHolders = () =>
@@ -89,7 +89,7 @@ export const TicketsTab = () => {
       supabase
         .from("ticket_holders")
         .select(
-          `ticket_type, orders!inner(event_id, payment_status, events!inner(title, event_date))`
+          `ticket_type, orders!inner(event_id, payment_status, events!inner(title, event_date, is_archived))`
         )
         .eq("orders.payment_status", "confirmed")
         .order("id", { ascending: true })
