@@ -364,8 +364,6 @@ const AdminPOS = () => {
     return () => {
       cancelled = true;
       clearTimeout(timer);
-      setPhoneSearching(false);
-      clearTimeout(timer);
     };
   }, [customerPhone]);
 

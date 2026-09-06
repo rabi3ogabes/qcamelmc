@@ -42,15 +42,31 @@ export const EditTicketDialog = ({ ticket, open, onOpenChange, onTicketUpdated }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!ticket) return;
+    if (!ticket || loading) return;
+
+    const parsedPrice = parseFloat(price);
+    const parsedQuantity = parseInt(availableQuantity, 10);
+
+    if (!Number.isFinite(parsedPrice) || parsedPrice < 0) {
+      toast.error("يرجى إدخال سعر صحيح (رقم أكبر من أو يساوي صفر)");
+      return;
+    }
+    if (!Number.isInteger(parsedQuantity) || parsedQuantity < 0) {
+      toast.error("يرجى إدخال عدد تذاكر صحيح");
+      return;
+    }
+    if (parsedQuantity < (ticket.sold_quantity || 0)) {
+      toast.error(`لا يمكن أن يقل العدد عن التذاكر المباعة (${ticket.sold_quantity})`);
+      return;
+    }
 
     setLoading(true);
     try {
       const { error } = await supabase
         .from("tickets")
         .update({
-          price: parseFloat(price),
-          available_quantity: parseInt(availableQuantity),
+          price: parsedPrice,
+          available_quantity: parsedQuantity,
           description: description.trim() || null
         })
         .eq("id", ticket.id);

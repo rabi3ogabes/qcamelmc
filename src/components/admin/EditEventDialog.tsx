@@ -87,9 +87,32 @@ export const EditEventDialog = ({ event, open, onOpenChange, onEventUpdated }: E
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!event || !eventDate) return;
-    
+    if (!event || !eventDate || loading) return;
+
+    if (!formData.title.trim() || !formData.location.trim()) {
+      toast.error("يرجى إدخال اسم الفعالية والموقع");
+      return;
+    }
+    if (formData.start_time && formData.end_time && formData.end_time <= formData.start_time) {
+      toast.error("وقت النهاية يجب أن يكون بعد وقت البداية");
+      return;
+    }
+    for (const [label, qty, price] of [
+      ["VIP", formData.vip_quantity, formData.vip_price],
+      ["عادي", formData.normal_quantity, formData.normal_price],
+      ["مواقف", formData.parking_quantity, formData.parking_price],
+    ] as const) {
+      if (!qty && !price) continue;
+      const q = parseInt(qty, 10);
+      const p = parseFloat(price);
+      if (!Number.isInteger(q) || q < 0 || !Number.isFinite(p) || p < 0) {
+        toast.error(`قيم غير صحيحة لتذاكر ${label} — يرجى إدخال عدد وسعر صالحين`);
+        return;
+      }
+    }
+
     setLoading(true);
+
 
     try {
       const { error } = await supabase
@@ -109,10 +132,12 @@ export const EditEventDialog = ({ event, open, onOpenChange, onEventUpdated }: E
       if (error) throw error;
 
       // Get existing tickets
-      const { data: existingTickets } = await supabase
+      const { data: existingTickets, error: existingError } = await supabase
         .from("tickets")
         .select("*")
         .eq("event_id", event.id);
+
+      if (existingError) throw existingError;
 
       const ticketTypes: Array<{ type: "vip" | "normal" | "parking"; quantity: string; price: string }> = [
         { type: "vip", quantity: formData.vip_quantity, price: formData.vip_price },
@@ -122,44 +147,57 @@ export const EditEventDialog = ({ event, open, onOpenChange, onEventUpdated }: E
 
       for (const ticket of ticketTypes) {
         const existing = existingTickets?.find(t => t.type === ticket.type);
-        
+
         if (ticket.quantity && ticket.price) {
+          const quantity = parseInt(ticket.quantity, 10);
+          const price = parseFloat(ticket.price);
+
           if (existing) {
+            if (quantity < (existing.sold_quantity || 0)) {
+              throw new Error(
+                `لا يمكن خفض عدد تذاكر ${ticket.type} إلى ${quantity} — تم بيع ${existing.sold_quantity} تذكرة بالفعل`
+              );
+            }
             // Update existing ticket
-            await supabase
+            const { error: updateError } = await supabase
               .from("tickets")
-              .update({
-                available_quantity: parseInt(ticket.quantity),
-                price: parseFloat(ticket.price),
-              })
+              .update({ available_quantity: quantity, price })
               .eq("id", existing.id);
+            if (updateError) throw updateError;
           } else {
             // Insert new ticket
-            await supabase
+            const { error: insertError } = await supabase
               .from("tickets")
               .insert({
                 event_id: event.id,
                 type: ticket.type,
-                available_quantity: parseInt(ticket.quantity),
-                price: parseFloat(ticket.price),
+                available_quantity: quantity,
+                price,
                 sold_quantity: 0,
               });
+            if (insertError) throw insertError;
           }
         } else if (existing) {
+          if ((existing.sold_quantity || 0) > 0) {
+            throw new Error(`لا يمكن حذف تذاكر ${ticket.type} لأنه تم بيع ${existing.sold_quantity} تذكرة`);
+          }
           // Delete ticket if both quantity and price are empty
-          await supabase
+          const { error: deleteError } = await supabase
             .from("tickets")
             .delete()
             .eq("id", existing.id);
+          if (deleteError) throw deleteError;
         }
       }
+
 
       toast.success(t("savedSuccessfully"));
       onOpenChange(false);
       onEventUpdated();
     } catch (error) {
       console.error("Error updating event:", error);
-      toast.error(t("failedToLoad"));
+      const message = (error as { message?: string })?.message;
+      toast.error(message && /[\u0600-\u06FF]/.test(message) ? message : "تعذّر حفظ التعديلات، يرجى المحاولة مرة أخرى");
     } finally {
       setLoading(false);
     }
