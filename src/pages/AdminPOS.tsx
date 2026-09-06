@@ -574,9 +574,9 @@ const AdminPOS = () => {
       let count = used.get(ticketType) || 0;
       while (count < limit) {
         kept.push({
-          name: customerName,
+          name: "",
           nationality: customerNationality || "قطر",
-          idNumber: customerIdNumber,
+          idNumber: "",
           phone: customerPhone,
           countryCode: customerCountryCode,
           ticketType,
