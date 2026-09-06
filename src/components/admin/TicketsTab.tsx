@@ -3,7 +3,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Ticket, Edit } from "lucide-react";
+import { Ticket, Edit, Archive } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -54,6 +54,7 @@ export const TicketsTab = () => {
   const [loading, setLoading] = useState(true);
   const [editingTicket, setEditingTicket] = useState<TicketType | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [view, setView] = useState<"current" | "archived">("current");
 
   useEffect(() => {
     fetchTickets();

@@ -1087,7 +1087,7 @@ export const CustomersTab = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-row-reverse justify-between items-center">
+      <div className="flex flex-wrap justify-between items-center gap-3">
         <h2 className="text-2xl font-bold font-lusail">العملاء والحجوزات</h2>
         <div className="flex items-center gap-2">
           <div className="flex rounded-lg border p-1 bg-muted/40">
