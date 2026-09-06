@@ -46,7 +46,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
-import { ExternalLink, Eye, ReceiptText } from "lucide-react";
+import { ExternalLink, Eye, ReceiptText, Archive } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const QATAR_TZ = "Asia/Qatar";
@@ -186,6 +186,7 @@ export const TransactionsTab = () => {
   const [relatedLoading, setRelatedLoading] = useState(false);
   const [sadadInfo, setSadadInfo] = useState<Record<string, SadadInfoState>>({});
   const [sadadSyncing, setSadadSyncing] = useState(false);
+  const [view, setView] = useState<"current" | "archived">("current");
 
   const requestIdRef = useRef(0);
   const searchTimer = useRef<ReturnType<typeof setTimeout>>();
@@ -195,9 +196,10 @@ export const TransactionsTab = () => {
       let q = supabase
         .from("orders")
         .select(
-          "id, customer_id, booking_reference, payment_id, payment_status, payment_method, ticket_type, quantity, total_amount, created_at, confirmed_at, payment_error_reason, customers(name, phone, email), events(title, event_date)",
+          "id, customer_id, booking_reference, payment_id, payment_status, payment_method, ticket_type, quantity, total_amount, created_at, confirmed_at, payment_error_reason, customers(name, phone, email), events!inner(title, event_date, is_archived)",
           withCount ? { count: "exact" } : undefined
         )
+        .eq("events.is_archived", view === "archived")
         .order("created_at", { ascending: false });
 
       if (dayFilter !== "all") {
@@ -215,7 +217,7 @@ export const TransactionsTab = () => {
       }
       return q;
     },
-    [dayFilter, statusFilter, methodFilter, search]
+    [dayFilter, statusFilter, methodFilter, search, view]
   );
 
   const fetchTransactions = useCallback(async () => {
@@ -234,7 +236,8 @@ export const TransactionsTab = () => {
       const buildSumQuery = () => {
         let sumQuery = supabase
           .from("orders")
-          .select("total_amount")
+          .select("total_amount, events!inner(is_archived)")
+          .eq("events.is_archived", view === "archived")
           .eq("payment_status", "confirmed");
         if (dayFilter !== "all") {
           const { start, end } = qatarDayRange(dayFilter);
@@ -277,7 +280,7 @@ export const TransactionsTab = () => {
 
   useEffect(() => {
     setPage(0);
-  }, [dayFilter, statusFilter, methodFilter, search]);
+  }, [dayFilter, statusFilter, methodFilter, search, view]);
 
   // Sadad status filter only applies to the Sadad channel — reset it when leaving.
   useEffect(() => {
