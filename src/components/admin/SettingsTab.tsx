@@ -292,10 +292,12 @@ export const SettingsTab = () => {
 
     setLoading(true);
     try {
-      const { data: settings } = await supabase
+      const { data: settings, error: settingsError } = await supabase
         .from("settings")
         .select("id")
-        .single();
+        .limit(1)
+        .maybeSingle();
+      if (settingsError) throw settingsError;
 
       if (settings) {
         const { error } = await supabase
@@ -380,10 +382,12 @@ export const SettingsTab = () => {
         .getPublicUrl(filePath);
 
       // Update settings with new logo URL
-      const { data: settings } = await supabase
+      const { data: settings, error: settingsError } = await supabase
         .from("settings")
         .select("id")
-        .single();
+        .limit(1)
+        .maybeSingle();
+      if (settingsError) throw settingsError;
 
       if (settings) {
         const { error } = await supabase
@@ -453,10 +457,12 @@ export const SettingsTab = () => {
         .getPublicUrl(filePath);
 
       // Update settings with new hero image URL
-      const { data: settings } = await supabase
+      const { data: settings, error: settingsError } = await supabase
         .from("settings")
         .select("id")
-        .single();
+        .limit(1)
+        .maybeSingle();
+      if (settingsError) throw settingsError;
 
       if (settings) {
         const { error } = await supabase
@@ -525,10 +531,12 @@ export const SettingsTab = () => {
         .getPublicUrl(filePath);
 
       // Update settings with new before footer image URL
-      const { data: settings } = await supabase
+      const { data: settings, error: settingsError } = await supabase
         .from("settings")
         .select("id")
-        .single();
+        .limit(1)
+        .maybeSingle();
+      if (settingsError) throw settingsError;
 
       if (settings) {
         const { error } = await supabase
@@ -598,10 +606,12 @@ export const SettingsTab = () => {
         .getPublicUrl(filePath);
 
       // Update settings with new header background image URL
-      const { data: settings } = await supabase
+      const { data: settings, error: settingsError } = await supabase
         .from("settings")
         .select("id")
-        .single();
+        .limit(1)
+        .maybeSingle();
+      if (settingsError) throw settingsError;
 
       if (settings) {
         const { error } = await supabase
@@ -635,10 +645,12 @@ export const SettingsTab = () => {
   const handleSaveAdminPhone = async () => {
     setSavingPhone(true);
     try {
-      const { data: settings } = await supabase
+      const { data: settings, error: settingsError } = await supabase
         .from("settings")
         .select("id")
-        .single();
+        .limit(1)
+        .maybeSingle();
+      if (settingsError) throw settingsError;
 
       if (settings) {
         const { error } = await supabase
