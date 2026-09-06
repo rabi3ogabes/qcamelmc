@@ -127,7 +127,7 @@ export const OrdersTab = () => {
   const [orderToDelete, setOrderToDelete] = useState<string | null>(null);
   const [showDeleteButton, setShowDeleteButton] = useState(false);
   const [showGenerateQrButton, setShowGenerateQrButton] = useState(false);
-  const [showUpcomingOnly, setShowUpcomingOnly] = useState(false);
+  const [showUpcomingOnly, setShowUpcomingOnly] = useState(true);
   const [page, setPage] = useState(0);
   const [sadadTxOrder, setSadadTxOrder] = useState<{ id: string; ref: string } | null>(null);
 
