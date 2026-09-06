@@ -432,13 +432,13 @@ export const TicketsTab = () => {
                 <tr className="bg-muted/50 font-bold border-t-2">
                   <td className="p-3 font-lusail text-lg">الإجمالي الكلي</td>
                   <td className="text-center p-3 font-lusail text-lg">{grandTotals.vip_count}</td>
-                  <td className="text-center p-3 font-lusail">{visibleSummaries[0]?.vip_price ? dailySummaries[0].vip_price.toFixed(2) : '-'}</td>
+                  <td className="text-center p-3 font-lusail">{visibleSummaries[0]?.vip_price ? visibleSummaries[0].vip_price.toFixed(2) : '-'}</td>
                   <td className="text-center p-3 font-lusail text-lg text-destructive border-l">{grandTotals.vip_amount.toFixed(2)}</td>
                   <td className="text-center p-3 font-lusail text-lg">{grandTotals.normal_count}</td>
-                  <td className="text-center p-3 font-lusail">{visibleSummaries[0]?.normal_price ? dailySummaries[0].normal_price.toFixed(2) : '-'}</td>
+                  <td className="text-center p-3 font-lusail">{visibleSummaries[0]?.normal_price ? visibleSummaries[0].normal_price.toFixed(2) : '-'}</td>
                   <td className="text-center p-3 font-lusail text-lg text-destructive border-l">{grandTotals.normal_amount.toFixed(2)}</td>
                   <td className="text-center p-3 font-lusail text-lg">{grandTotals.parking_count}</td>
-                  <td className="text-center p-3 font-lusail">{visibleSummaries[0]?.parking_price ? dailySummaries[0].parking_price.toFixed(2) : '-'}</td>
+                  <td className="text-center p-3 font-lusail">{visibleSummaries[0]?.parking_price ? visibleSummaries[0].parking_price.toFixed(2) : '-'}</td>
                   <td className="text-center p-3 font-lusail text-lg text-destructive border-l">{grandTotals.parking_amount.toFixed(2)}</td>
                   <td className="text-center p-3 font-lusail text-xl text-primary">
                     {grandTotals.daily_total.toFixed(2)} <span className="text-sm">ريال قطري</span>
@@ -470,7 +470,7 @@ export const TicketsTab = () => {
           </TabsList>
 
           {sortedEventDates.map((event) => {
-            const eventSummary = dailySummaries.find(s => s.date === new Date(event.date).toLocaleDateString('en-CA'));
+            const eventSummary = visibleSummaries.find(s => s.date === new Date(event.date).toLocaleDateString('en-CA'));
             const { vip, normal, parking } = groupTicketsByType(event.tickets);
 
             return (
