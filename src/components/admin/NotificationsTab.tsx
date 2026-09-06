@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
+  Archive,
   Bell,
   BellRing,
   CheckCheck,
@@ -34,7 +35,7 @@ type NotificationRow = {
   quantity: number;
   ticket_type: string;
   customers: { name: string | null; phone: string | null } | null;
-  events: { title: string | null } | null;
+  events: { title: string | null; is_archived: boolean | null } | null;
 };
 
 type SourceFilter = "all" | "sadad" | "cash_pos";
@@ -60,6 +61,7 @@ const NotificationsTab = () => {
   const [loading, setLoading] = useState(true);
   const [source, setSource] = useState<SourceFilter>("all");
   const [viewMode, setViewMode] = useState<ViewMode>("list");
+  const [view, setView] = useState<"current" | "archived">("current");
   const [lastSeen, setLastSeen] = useState<string>(
     () => localStorage.getItem(SEEN_KEY) || new Date(0).toISOString()
   );
@@ -70,8 +72,9 @@ const NotificationsTab = () => {
     const { data, error } = await supabase
       .from("orders")
       .select(
-        "id, created_at, booking_reference, payment_method, payment_status, total_amount, quantity, ticket_type, customers(name, phone), events(title)"
+        "id, created_at, booking_reference, payment_method, payment_status, total_amount, quantity, ticket_type, customers(name, phone), events!inner(title, is_archived)"
       )
+      .eq("events.is_archived", view === "archived")
       .order("created_at", { ascending: false })
       .limit(PAGE_SIZE);
 
@@ -81,7 +84,7 @@ const NotificationsTab = () => {
       return;
     }
     setRows((data || []) as unknown as NotificationRow[]);
-  }, []);
+  }, [view]);
 
   useEffect(() => {
     fetchRows().finally(() => setLoading(false));
@@ -136,7 +139,26 @@ const NotificationsTab = () => {
             </p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="flex rounded-lg border p-1 bg-muted/40">
+            <Button
+              variant={view === "current" ? "default" : "ghost"}
+              size="sm"
+              className="font-lusail"
+              onClick={() => setView("current")}
+            >
+              الحالية
+            </Button>
+            <Button
+              variant={view === "archived" ? "default" : "ghost"}
+              size="sm"
+              className="font-lusail gap-1"
+              onClick={() => setView("archived")}
+            >
+              <Archive className="w-4 h-4" />
+              الأرشيف
+            </Button>
+          </div>
           <Button variant="outline" size="sm" onClick={() => fetchRows()}>
             <RefreshCw className="ms-2 h-4 w-4" />
             تحديث
