@@ -106,10 +106,27 @@ export const CustomerLookup = ({ onSelect, eventId }: CustomerLookupProps) => {
 
       {results.length > 0 && (
         <div className="space-y-2 max-h-64 overflow-y-auto">
-          {results.map((customer) => (
+          {results.map((customer) => {
+            const selectCustomer = () => {
+              onSelect(customer);
+              setResults([]);
+              setQuery("");
+              setSearched(false);
+              toast.success(`تم تعبئة بيانات ${customer.name}`);
+            };
+            return (
             <Card
               key={customer.id}
-              className="p-3 flex items-center justify-between gap-3 hover:border-primary transition-colors"
+              role="button"
+              tabIndex={0}
+              onClick={selectCustomer}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  selectCustomer();
+                }
+              }}
+              className="p-3 flex items-center justify-between gap-3 cursor-pointer hover:border-primary hover:bg-accent/50 transition-colors"
             >
               <div className="min-w-0">
                 <p className="font-lusail font-bold truncate">{customer.name}</p>
@@ -133,23 +150,13 @@ export const CustomerLookup = ({ onSelect, eventId }: CustomerLookupProps) => {
                   </div>
                 )}
               </div>
-              <Button
-                type="button"
-                size="sm"
-                className="font-lusail gap-1 shrink-0"
-                onClick={() => {
-                  onSelect(customer);
-                  setResults([]);
-                  setQuery("");
-                  setSearched(false);
-                  toast.success(`تم تعبئة بيانات ${customer.name}`);
-                }}
-              >
+              <span className="font-lusail text-xs text-primary shrink-0 inline-flex items-center gap-1">
                 <UserCheck className="w-4 h-4" />
-                استخدام
-              </Button>
+                اختيار
+              </span>
             </Card>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>
