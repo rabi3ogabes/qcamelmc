@@ -1159,16 +1159,18 @@ const AdminPOS = () => {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  {tickets.map((ticket) => (
-                    <TicketAddItem
-                      key={ticket.id}
-                      ticket={ticket}
-                      onAddToCart={addToCart}
-                      getTicketTypeName={getTicketTypeName}
-                      actualSoldCount={holderCounts[ticket.type]}
-                    />
-                  ))}
-                  
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    {tickets.map((ticket) => (
+                      <TicketAddItem
+                        key={ticket.id}
+                        ticket={ticket}
+                        onAddToCart={addToCart}
+                        getTicketTypeName={getTicketTypeName}
+                        actualSoldCount={holderCounts[ticket.type]}
+                      />
+                    ))}
+                  </div>
+
                   {getTotalVipNormalInCart() > 0 && (
                     <div className="text-sm text-muted-foreground">
                       تذاكر VIP والعادي في السلة: {getTotalVipNormalInCart()} / 5
