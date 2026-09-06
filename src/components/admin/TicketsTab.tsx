@@ -35,6 +35,7 @@ interface DailyBooking {
 interface DailySummary {
   date: string;
   event_title: string;
+  is_archived: boolean;
   vip_count: number;
   vip_amount: number;
   vip_price?: number;
@@ -81,7 +82,7 @@ export const TicketsTab = () => {
 
   type HolderRow = {
     ticket_type: string;
-    orders: { event_id: string; events: { title: string | null; event_date: string } };
+    orders: { event_id: string; events: { title: string | null; event_date: string; is_archived: boolean } };
   };
 
   const fetchConfirmedHolders = () =>
@@ -89,7 +90,7 @@ export const TicketsTab = () => {
       supabase
         .from("ticket_holders")
         .select(
-          `ticket_type, orders!inner(event_id, payment_status, events!inner(title, event_date))`
+          `ticket_type, orders!inner(event_id, payment_status, events!inner(title, event_date, is_archived))`
         )
         .eq("orders.payment_status", "confirmed")
         .order("id", { ascending: true })
@@ -144,13 +145,16 @@ export const TicketsTab = () => {
 
       holders.forEach(holder => {
         const date = new Date(holder.orders.events.event_date).toLocaleDateString("en-CA");
+        const isArchived = holder.orders.events.is_archived === true;
+        const key = `${date}|${isArchived ? "archived" : "current"}`;
         const eventId = holder.orders.event_id;
         const ticketType = holder.ticket_type;
         const price = priceMap[`${eventId}-${ticketType}`] || 0;
 
-        if (!grouped[date]) {
-          grouped[date] = {
+        if (!grouped[key]) {
+          grouped[key] = {
             date,
+            is_archived: isArchived,
             event_title: holder.orders.events.title || "",
             vip_count: 0,
             vip_amount: 0,
@@ -161,24 +165,24 @@ export const TicketsTab = () => {
             daily_total: 0
           };
         }
-        if (!grouped[date].event_title) {
-          grouped[date].event_title = holder.orders.events.title || "";
+        if (!grouped[key].event_title) {
+          grouped[key].event_title = holder.orders.events.title || "";
         }
 
         if (ticketType === "vip") {
-          grouped[date].vip_count += 1;
-          grouped[date].vip_amount += price;
-          grouped[date].vip_price = price || grouped[date].vip_price;
+          grouped[key].vip_count += 1;
+          grouped[key].vip_amount += price;
+          grouped[key].vip_price = price || grouped[key].vip_price;
         } else if (ticketType === "normal") {
-          grouped[date].normal_count += 1;
-          grouped[date].normal_amount += price;
-          grouped[date].normal_price = price || grouped[date].normal_price;
+          grouped[key].normal_count += 1;
+          grouped[key].normal_amount += price;
+          grouped[key].normal_price = price || grouped[key].normal_price;
         } else if (ticketType === "parking") {
-          grouped[date].parking_count += 1;
-          grouped[date].parking_amount += price;
-          grouped[date].parking_price = price || grouped[date].parking_price;
+          grouped[key].parking_count += 1;
+          grouped[key].parking_amount += price;
+          grouped[key].parking_price = price || grouped[key].parking_price;
         }
-        grouped[date].daily_total += price;
+        grouped[key].daily_total += price;
       });
 
       const summariesArray = Object.values(grouped).sort(
@@ -325,8 +329,13 @@ export const TicketsTab = () => {
     );
   };
 
+  // Daily stats follow the current/archived toggle — no archived events in "الحالية"
+  const visibleSummaries = dailySummaries.filter((s) =>
+    view === "archived" ? s.is_archived : !s.is_archived
+  );
+
   // Calculate totals across all dates
-  const grandTotals = dailySummaries.reduce((acc, summary) => ({
+  const grandTotals = visibleSummaries.reduce((acc, summary) => ({
     vip_count: acc.vip_count + summary.vip_count,
     vip_amount: acc.vip_amount + summary.vip_amount,
     normal_count: acc.normal_count + summary.normal_count,
@@ -362,7 +371,7 @@ export const TicketsTab = () => {
       </div>
 
       {/* Daily Sales Statistics Table */}
-      {dailySummaries.length > 0 && (
+      {visibleSummaries.length > 0 && (
         <Card className="p-6">
           <h3 className="text-xl font-bold font-lusail mb-4">إحصائيات المبيعات اليومية</h3>
           <div className="overflow-x-auto">
@@ -390,7 +399,7 @@ export const TicketsTab = () => {
                 </tr>
               </thead>
               <tbody>
-                {dailySummaries.map((summary) => (
+                {visibleSummaries.map((summary) => (
                   <tr key={summary.date} className="border-b hover:bg-muted/20">
                     <td className="p-3 font-lusail">
                       {new Date(summary.date).toLocaleDateString('en-US', { 
@@ -423,13 +432,13 @@ export const TicketsTab = () => {
                 <tr className="bg-muted/50 font-bold border-t-2">
                   <td className="p-3 font-lusail text-lg">الإجمالي الكلي</td>
                   <td className="text-center p-3 font-lusail text-lg">{grandTotals.vip_count}</td>
-                  <td className="text-center p-3 font-lusail">{dailySummaries[0]?.vip_price ? dailySummaries[0].vip_price.toFixed(2) : '-'}</td>
+                  <td className="text-center p-3 font-lusail">{visibleSummaries[0]?.vip_price ? dailySummaries[0].vip_price.toFixed(2) : '-'}</td>
                   <td className="text-center p-3 font-lusail text-lg text-destructive border-l">{grandTotals.vip_amount.toFixed(2)}</td>
                   <td className="text-center p-3 font-lusail text-lg">{grandTotals.normal_count}</td>
-                  <td className="text-center p-3 font-lusail">{dailySummaries[0]?.normal_price ? dailySummaries[0].normal_price.toFixed(2) : '-'}</td>
+                  <td className="text-center p-3 font-lusail">{visibleSummaries[0]?.normal_price ? dailySummaries[0].normal_price.toFixed(2) : '-'}</td>
                   <td className="text-center p-3 font-lusail text-lg text-destructive border-l">{grandTotals.normal_amount.toFixed(2)}</td>
                   <td className="text-center p-3 font-lusail text-lg">{grandTotals.parking_count}</td>
-                  <td className="text-center p-3 font-lusail">{dailySummaries[0]?.parking_price ? dailySummaries[0].parking_price.toFixed(2) : '-'}</td>
+                  <td className="text-center p-3 font-lusail">{visibleSummaries[0]?.parking_price ? dailySummaries[0].parking_price.toFixed(2) : '-'}</td>
                   <td className="text-center p-3 font-lusail text-lg text-destructive border-l">{grandTotals.parking_amount.toFixed(2)}</td>
                   <td className="text-center p-3 font-lusail text-xl text-primary">
                     {grandTotals.daily_total.toFixed(2)} <span className="text-sm">ريال قطري</span>
