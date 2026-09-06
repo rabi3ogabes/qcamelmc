@@ -186,7 +186,7 @@ export const StartNewEventDialog = ({ onEventCreated }: StartNewEventDialogProps
   };
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={handleClose}>
       <DialogTrigger asChild>
         <Button className="font-lusail gap-2 bg-gradient-to-l from-primary to-primary/70 shadow-lg">
           <Sparkles className="w-4 h-4" />
