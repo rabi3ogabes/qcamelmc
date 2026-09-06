@@ -385,9 +385,18 @@ const AdminPOS = () => {
 
 
 
-  // Attendee names stay independent: new attendee slots are pre-filled with the
-  // buyer's name when they are created, and the cashier can rename each one.
+  // When a customer is selected, copy their name into any empty attendee
+  // name fields so the cashier doesn't have to re-type it for each ticket.
 
+  // Auto-populate name from main customer to empty ticket holder names
+  useEffect(() => {
+    if (customerName && ticketHolders.length > 0) {
+      setTicketHolders(prev => prev.map(holder => ({
+        ...holder,
+        name: holder.name.trim() || customerName
+      })));
+    }
+  }, [customerName]);
 
   // Auto-populate phone number from main customer to all ticket holders
   useEffect(() => {
@@ -574,9 +583,9 @@ const AdminPOS = () => {
       let count = used.get(ticketType) || 0;
       while (count < limit) {
         kept.push({
-          name: "",
+          name: customerName || "",
           nationality: customerNationality || "قطر",
-          idNumber: "",
+          idNumber: customerIdNumber || "",
           phone: customerPhone,
           countryCode: customerCountryCode,
           ticketType,
