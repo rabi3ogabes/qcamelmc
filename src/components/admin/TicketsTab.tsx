@@ -35,6 +35,7 @@ interface DailyBooking {
 interface DailySummary {
   date: string;
   event_title: string;
+  is_archived: boolean;
   vip_count: number;
   vip_amount: number;
   vip_price?: number;
@@ -144,13 +145,16 @@ export const TicketsTab = () => {
 
       holders.forEach(holder => {
         const date = new Date(holder.orders.events.event_date).toLocaleDateString("en-CA");
+        const isArchived = holder.orders.events.is_archived === true;
+        const key = `${date}|${isArchived ? "archived" : "current"}`;
         const eventId = holder.orders.event_id;
         const ticketType = holder.ticket_type;
         const price = priceMap[`${eventId}-${ticketType}`] || 0;
 
-        if (!grouped[date]) {
-          grouped[date] = {
+        if (!grouped[key]) {
+          grouped[key] = {
             date,
+            is_archived: isArchived,
             event_title: holder.orders.events.title || "",
             vip_count: 0,
             vip_amount: 0,
