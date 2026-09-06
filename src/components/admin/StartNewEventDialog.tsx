@@ -39,11 +39,35 @@ export const StartNewEventDialog = ({ onEventCreated }: StartNewEventDialogProps
   const set = (key: keyof typeof emptyForm, value: string) =>
     setFormData((prev) => ({ ...prev, [key]: value }));
 
+  const handleClose = (next: boolean) => {
+    if (loading) return;
+    setOpen(next);
+    if (!next) {
+      setFormData(emptyForm);
+      setArchiveOld(true);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (loading) return;
 
-    if (new Date(formData.end_day) < new Date(formData.start_day)) {
+    if (!formData.title.trim() || !formData.location.trim()) {
+      toast.error("يرجى إدخال اسم الفعالية والموقع");
+      return;
+    }
+    const start = new Date(formData.start_day);
+    const end = new Date(formData.end_day);
+    if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
+      toast.error("يرجى اختيار تاريخ بداية وتاريخ نهاية صالحين");
+      return;
+    }
+    if (end < start) {
       toast.error("تاريخ النهاية يجب أن يكون بعد تاريخ البداية");
+      return;
+    }
+    if (formData.start_time && formData.end_time && formData.end_time <= formData.start_time) {
+      toast.error("وقت النهاية يجب أن يكون بعد وقت البداية");
       return;
     }
     if (
@@ -54,6 +78,19 @@ export const StartNewEventDialog = ({ onEventCreated }: StartNewEventDialogProps
       toast.error("يرجى إدخال عدد وسعر جميع أنواع التذاكر");
       return;
     }
+    for (const [label, qty, price] of [
+      ["VIP", formData.vip_quantity, formData.vip_price],
+      ["عادي", formData.normal_quantity, formData.normal_price],
+      ["مواقف", formData.parking_quantity, formData.parking_price],
+    ] as const) {
+      const q = parseInt(qty, 10);
+      const p = parseFloat(price);
+      if (!Number.isInteger(q) || q < 0 || !Number.isFinite(p) || p < 0) {
+        toast.error(`قيم غير صحيحة لتذاكر ${label} — يرجى إدخال عدد وسعر صالحين`);
+        return;
+      }
+    }
+
 
     setLoading(true);
     try {
