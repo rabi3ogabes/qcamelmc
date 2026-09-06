@@ -196,7 +196,8 @@ export const EditEventDialog = ({ event, open, onOpenChange, onEventUpdated }: E
       onEventUpdated();
     } catch (error) {
       console.error("Error updating event:", error);
-      toast.error(t("failedToLoad"));
+      const message = (error as { message?: string })?.message;
+      toast.error(message && /[\u0600-\u06FF]/.test(message) ? message : "تعذّر حفظ التعديلات، يرجى المحاولة مرة أخرى");
     } finally {
       setLoading(false);
     }
