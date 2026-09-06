@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowRight, ShoppingCart, Trash2, Plus, Minus, Maximize, Minimize, CalendarIcon, CheckCircle2, User } from "lucide-react";
+import { ArrowRight, ShoppingCart, Trash2, Plus, Minus, Maximize, Minimize, CalendarIcon, CheckCircle2, User, Crown, Ticket, Car, X } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { useToast } from "@/hooks/use-toast";
@@ -654,11 +654,24 @@ const AdminPOS = () => {
     });
   };
 
+  const cartTypeMeta: Record<string, { icon: typeof Crown; colorVar: string }> = {
+    vip: { icon: Crown, colorVar: "--ticket-vip" },
+    normal: { icon: Ticket, colorVar: "--ticket-normal" },
+    parking: { icon: Car, colorVar: "--ticket-parking" },
+  };
+
   const removeFromCart = (ticketId: string) => {
     const item = cart.find((item) => item.ticketId === ticketId);
     if (!item) return;
 
     applyCart(cart.filter(cartItem => cartItem.ticketId !== ticketId));
+  };
+
+  /** Removes a single ticket unit from a cart line (used by the per-ticket icons). */
+  const removeOneFromCart = (ticketId: string) => {
+    const item = cart.find((i) => i.ticketId === ticketId);
+    if (!item) return;
+    updateCartItemQuantity(ticketId, item.quantity - 1);
   };
 
   const updateCartItemQuantity = (ticketId: string, newQuantity: number) => {
@@ -1150,7 +1163,8 @@ const AdminPOS = () => {
           <div className="text-center py-12">جاري التحميل...</div>
         ) : (
           <form onSubmit={handleSubmit}>
-            <div className="grid gap-4 sm:gap-6">
+            <div className="grid gap-4 sm:gap-6 lg:grid-cols-[minmax(0,1fr)_360px] lg:items-start">
+              <div className="grid gap-4 sm:gap-6">
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
@@ -1179,66 +1193,6 @@ const AdminPOS = () => {
                 </CardContent>
               </Card>
 
-              {cart.length > 0 && (
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center justify-between">
-                      <span>السلة</span>
-                      <span className="text-base font-normal">{cart.length} نوع</span>
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                    {cart.map((item) => (
-                      <div key={item.ticketId} className="flex flex-col sm:flex-row justify-between items-start sm:items-center p-3 border rounded-lg gap-3">
-                        <div className="flex-1">
-                          <h4 className="font-bold text-base sm:text-lg">{getTicketTypeName(item.ticketType)}</h4>
-                          <p className="text-sm text-muted-foreground">{item.price} ريال × {item.quantity}</p>
-                        </div>
-                        <div className="flex items-center gap-2 sm:gap-3 w-full sm:w-auto justify-between sm:justify-end">
-                          <div className="flex items-center gap-1">
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="icon"
-                              className="h-8 w-8"
-                              onClick={() => updateCartItemQuantity(item.ticketId, item.quantity - 1)}
-                            >
-                              <Minus className="w-3 h-3" />
-                            </Button>
-                            <span className="w-8 text-center font-bold">{item.quantity}</span>
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="icon"
-                              className="h-8 w-8"
-                              onClick={() => updateCartItemQuantity(item.ticketId, item.quantity + 1)}
-                            >
-                              <Plus className="w-3 h-3" />
-                            </Button>
-                          </div>
-                          <span className="font-bold min-w-[70px] sm:min-w-[80px] text-right">{item.price * item.quantity} ريال</span>
-                          <Button
-                            type="button"
-                            variant="destructive"
-                            size="icon"
-                            className="h-8 w-8"
-                            onClick={() => removeFromCart(item.ticketId)}
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        </div>
-                      </div>
-                    ))}
-                    
-                    <div className="pt-3 border-t">
-                      <div className="flex justify-between text-lg font-bold">
-                        <span>الإجمالي الكلي:</span>
-                        <span>{totalAmount} ريال</span>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
 
               {cart.length > 0 && (
                 <Card>
@@ -1525,6 +1479,91 @@ const AdminPOS = () => {
                 {processing ? "جاري المعالجة..." : "إتمام الشراء وإرسال الفاتورة"}
                 <ArrowRight className="w-4 h-4" />
               </Button>
+              </div>
+
+              {/* ===== السلة الجانبية الثابتة ===== */}
+              <aside className="lg:sticky lg:top-24">
+                <Card className="overflow-hidden border-primary/15 shadow-elegant">
+                  <CardHeader className="bg-muted/40 border-b border-border/60 py-4">
+                    <CardTitle className="flex items-center justify-between text-lg">
+                      <span className="flex items-center gap-2">
+                        <ShoppingCart className="w-5 h-5 text-primary" />
+                        السلة
+                      </span>
+                      <span className="text-sm font-semibold text-muted-foreground">
+                        {cart.reduce((sum, item) => sum + item.quantity, 0)} تذكرة
+                      </span>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="p-4">
+                    {cart.length === 0 ? (
+                      <div className="py-10 text-center text-muted-foreground">
+                        <ShoppingCart className="w-10 h-10 mx-auto mb-3 opacity-30" />
+                        <p className="text-sm">السلة فارغة</p>
+                        <p className="text-xs mt-1 opacity-70">أضف تذاكر من الأعلى لتظهر هنا</p>
+                      </div>
+                    ) : (
+                      <div className="space-y-5">
+                        {cart.map((item) => {
+                          const meta = cartTypeMeta[item.ticketType] || cartTypeMeta.normal;
+                          const Icon = meta.icon;
+                          const color = `hsl(var(${meta.colorVar}))`;
+                          return (
+                            <div key={item.ticketId} className="space-y-2">
+                              <div className="flex items-center justify-between">
+                                <span className="flex items-center gap-2 text-sm font-bold">
+                                  <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: color }} />
+                                  {getTicketTypeName(item.ticketType)}
+                                </span>
+                                <span className="text-xs text-muted-foreground" dir="ltr">
+                                  {item.quantity} × {item.price} ريال
+                                </span>
+                              </div>
+                              <div className="flex flex-wrap gap-2">
+                                {Array.from({ length: item.quantity }).map((_, idx) => (
+                                  <button
+                                    key={`${item.ticketId}-${idx}`}
+                                    type="button"
+                                    onClick={() => removeOneFromCart(item.ticketId)}
+                                    title="حذف هذه التذكرة"
+                                    aria-label={`حذف تذكرة ${getTicketTypeName(item.ticketType)} رقم ${idx + 1}`}
+                                    className="group relative flex h-12 w-12 items-center justify-center rounded-xl border bg-card shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md hover:border-destructive/50"
+                                    style={{ borderColor: `hsl(var(${meta.colorVar}) / 0.45)` }}
+                                  >
+                                    <Icon className="h-5 w-5" style={{ color }} />
+                                    <span className="absolute -top-1.5 -left-1.5 flex h-4.5 w-4.5 h-[18px] w-[18px] items-center justify-center rounded-full bg-destructive text-destructive-foreground opacity-0 transition-opacity duration-150 group-hover:opacity-100">
+                                      <X className="h-3 w-3" />
+                                    </span>
+                                    <span className="absolute bottom-0.5 left-1 text-[9px] font-bold text-muted-foreground" dir="ltr">
+                                      {idx + 1}
+                                    </span>
+                                  </button>
+                                ))}
+                              </div>
+                              <div className="flex justify-between text-xs text-muted-foreground">
+                                <span>المجموع</span>
+                                <span className="font-bold text-foreground">{item.price * item.quantity} ريال</span>
+                              </div>
+                            </div>
+                          );
+                        })}
+
+                        <div className="rounded-xl bg-primary/5 border border-primary/15 p-3">
+                          <div className="flex justify-between items-center">
+                            <span className="font-bold">الإجمالي الكلي</span>
+                            <span className="text-xl font-extrabold text-primary" dir="ltr">{totalAmount} ريال</span>
+                          </div>
+                          {getTotalVipNormalInCart() > 0 && (
+                            <p className="mt-1 text-[11px] text-muted-foreground">
+                              تذاكر VIP والعادي: {getTotalVipNormalInCart()} / 5
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </aside>
             </div>
           </form>
         )}
