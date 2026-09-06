@@ -316,7 +316,8 @@ const QRScanner = () => {
       
       if (isPhoneNumber) {
         // Search by phone number in ticket_holders
-        const cleanPhone = scannedCode.replace(/[\s\-()]/g, ''); // Remove spaces, hyphens, parentheses
+        // Keep only digits/plus so the filter below cannot be broken by stray characters
+        const cleanPhone = scannedCode.replace(/[^\d+]/g, '');
         
         const { data: ticketsData, error: ticketsError } = await supabase
           .from('ticket_holders')
@@ -341,7 +342,7 @@ const QRScanner = () => {
               events!inner (title, event_date)
             )
           `)
-          .or(`phone.ilike.%${cleanPhone}%,phone.ilike.%${scannedCode}%`)
+          .ilike('phone', `%${cleanPhone}%`)
           .order('created_at', { ascending: false });
         
         // Filter to show only successful payments
