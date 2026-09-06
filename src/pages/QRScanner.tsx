@@ -64,6 +64,10 @@ const QRScanner = () => {
   const [scanning, setScanning] = useState(false);
   const [processing, setProcessing] = useState(false);
   const processingRef = useRef(false);
+  const updateProcessing = (value: boolean) => {
+    processingRef.current = value;
+    setProcessing(value);
+  };
   const [ticketInfo, setTicketInfo] = useState<TicketInfo | null>(null);
   const [scanResult, setScanResult] = useState<'success' | 'error' | null>(null);
   const [manualSearch, setManualSearch] = useState("");
@@ -282,7 +286,9 @@ const QRScanner = () => {
   };
 
   const processTicket = async (scannedCode: string) => {
-    setProcessing(true);
+    // Ignore overlapping scans so a slow earlier lookup cannot overwrite a newer one
+    if (processingRef.current) return;
+    updateProcessing(true);
     setScanning(false);
     setAvailableTickets([]);
     setSelectedTicketIds([]);
@@ -356,7 +362,7 @@ const QRScanner = () => {
             is_present: false,
           });
           toast.error('لا توجد تذاكر لهذا الرقم');
-          setProcessing(false);
+          updateProcessing(false);
           return;
         }
 
@@ -392,7 +398,7 @@ const QRScanner = () => {
               is_present: false,
             });
             toast.error('⚠️ حالة الدفع: قيد الانتظار - لا يمكن عرض التذاكر');
-            setProcessing(false);
+            updateProcessing(false);
             return;
           }
           
@@ -428,7 +434,7 @@ const QRScanner = () => {
               is_present: false,
             });
             toast.error('⚠️ حالة الدفع: قيد الانتظار - لا يمكن عرض التذاكر');
-            setProcessing(false);
+            updateProcessing(false);
             return;
           }
           
@@ -747,7 +753,7 @@ const QRScanner = () => {
       });
       toast.error(t('validationError') || "خطأ في التحقق من التذكرة");
     } finally {
-      setProcessing(false);
+      updateProcessing(false);
     }
   };
 
@@ -760,7 +766,7 @@ const QRScanner = () => {
       return;
     }
     
-    setProcessing(true);
+    updateProcessing(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
       
@@ -853,7 +859,7 @@ const QRScanner = () => {
       
       if (errorCount > 0 && successCount === 0) {
         // All tickets failed - keep the UI as is for retry
-        setProcessing(false);
+        updateProcessing(false);
         return;
       }
 
@@ -869,7 +875,7 @@ const QRScanner = () => {
       console.error('Confirmation error:', err);
       toast.error(err.message || 'حدث خطأ أثناء تأكيد الحضور');
     } finally {
-      setProcessing(false);
+      updateProcessing(false);
     }
   };
 
@@ -882,7 +888,7 @@ const QRScanner = () => {
       return;
     }
     
-    setProcessing(true);
+    updateProcessing(true);
     try {
       // Get QR codes for selected tickets
       const qrCodes = selectedTicketIds.length > 0
@@ -937,7 +943,7 @@ const QRScanner = () => {
       console.error('Unconfirmation error:', err);
       toast.error(err.message || 'حدث خطأ أثناء إلغاء تأكيد الحضور');
     } finally {
-      setProcessing(false);
+      updateProcessing(false);
     }
   };
 
@@ -960,7 +966,7 @@ const QRScanner = () => {
   const resetScanner = async () => {
     setTicketInfo(null);
     setScanResult(null);
-    setProcessing(false);
+    updateProcessing(false);
     setManualSearch("");
     setCameraError(null);
     setAvailableTickets([]);
