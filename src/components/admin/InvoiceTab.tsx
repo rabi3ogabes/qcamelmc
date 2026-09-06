@@ -163,21 +163,26 @@ export const InvoiceTab = () => {
     return attemptCount >= 2 && isPending;
   };
 
+  // Scope orders to the selected view (current season vs archived seasons)
+  const scopedOrders = orders.filter((order) =>
+    view === "archived" ? order.events?.is_archived === true : order.events?.is_archived !== true
+  );
+
   // Calculate pending orders count - orders that are truly pending AND event not done AND not on hold
-  const pendingOrdersCount = orders.filter(o => 
+  const pendingOrdersCount = scopedOrders.filter(o => 
     (isPendingMessage(o.n8n_response_message) || !o.n8n_responded_at) && !isEventDone(o) && !isOnHold(o)
   ).length;
   
   // Calculate sent orders count - orders that have actual success response
-  const sentOrdersCount = orders.filter(o => !isPendingMessage(o.n8n_response_message) && !!o.n8n_responded_at).length;
+  const sentOrdersCount = scopedOrders.filter(o => !isPendingMessage(o.n8n_response_message) && !!o.n8n_responded_at).length;
 
   // Calculate event done orders count - orders where event has passed but invoice wasn't sent
-  const eventDoneOrdersCount = orders.filter(o => 
+  const eventDoneOrdersCount = scopedOrders.filter(o => 
     isEventDone(o) && (isPendingMessage(o.n8n_response_message) || !o.n8n_responded_at)
   ).length;
 
   // Calculate on hold orders count - orders with 2+ failed attempts
-  const onHoldOrdersCount = orders.filter(o => isOnHold(o) && !isEventDone(o)).length;
+  const onHoldOrdersCount = scopedOrders.filter(o => isOnHold(o) && !isEventDone(o)).length;
 
   // Auto-start countdown when page loads if there are pending orders and countdown was previously active
   useEffect(() => {
