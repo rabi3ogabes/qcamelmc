@@ -329,8 +329,13 @@ export const TicketsTab = () => {
     );
   };
 
+  // Daily stats follow the current/archived toggle — no archived events in "الحالية"
+  const visibleSummaries = dailySummaries.filter((s) =>
+    view === "archived" ? s.is_archived : !s.is_archived
+  );
+
   // Calculate totals across all dates
-  const grandTotals = dailySummaries.reduce((acc, summary) => ({
+  const grandTotals = visibleSummaries.reduce((acc, summary) => ({
     vip_count: acc.vip_count + summary.vip_count,
     vip_amount: acc.vip_amount + summary.vip_amount,
     normal_count: acc.normal_count + summary.normal_count,
