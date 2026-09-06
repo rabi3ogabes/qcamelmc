@@ -139,7 +139,26 @@ const NotificationsTab = () => {
             </p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="flex rounded-lg border p-1 bg-muted/40">
+            <Button
+              variant={view === "current" ? "default" : "ghost"}
+              size="sm"
+              className="font-lusail"
+              onClick={() => setView("current")}
+            >
+              الحالية
+            </Button>
+            <Button
+              variant={view === "archived" ? "default" : "ghost"}
+              size="sm"
+              className="font-lusail gap-1"
+              onClick={() => setView("archived")}
+            >
+              <Archive className="w-4 h-4" />
+              الأرشيف
+            </Button>
+          </div>
           <Button variant="outline" size="sm" onClick={() => fetchRows()}>
             <RefreshCw className="ms-2 h-4 w-4" />
             تحديث
