@@ -63,6 +63,7 @@ const QRScanner = () => {
   const { logActivity } = useActivityLog();
   const [scanning, setScanning] = useState(false);
   const [processing, setProcessing] = useState(false);
+  const processingRef = useRef(false);
   const [ticketInfo, setTicketInfo] = useState<TicketInfo | null>(null);
   const [scanResult, setScanResult] = useState<'success' | 'error' | null>(null);
   const [manualSearch, setManualSearch] = useState("");
