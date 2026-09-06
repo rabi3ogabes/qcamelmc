@@ -165,24 +165,24 @@ export const TicketsTab = () => {
             daily_total: 0
           };
         }
-        if (!grouped[date].event_title) {
-          grouped[date].event_title = holder.orders.events.title || "";
+        if (!grouped[key].event_title) {
+          grouped[key].event_title = holder.orders.events.title || "";
         }
 
         if (ticketType === "vip") {
-          grouped[date].vip_count += 1;
-          grouped[date].vip_amount += price;
-          grouped[date].vip_price = price || grouped[date].vip_price;
+          grouped[key].vip_count += 1;
+          grouped[key].vip_amount += price;
+          grouped[key].vip_price = price || grouped[key].vip_price;
         } else if (ticketType === "normal") {
-          grouped[date].normal_count += 1;
-          grouped[date].normal_amount += price;
-          grouped[date].normal_price = price || grouped[date].normal_price;
+          grouped[key].normal_count += 1;
+          grouped[key].normal_amount += price;
+          grouped[key].normal_price = price || grouped[key].normal_price;
         } else if (ticketType === "parking") {
-          grouped[date].parking_count += 1;
-          grouped[date].parking_amount += price;
-          grouped[date].parking_price = price || grouped[date].parking_price;
+          grouped[key].parking_count += 1;
+          grouped[key].parking_amount += price;
+          grouped[key].parking_price = price || grouped[key].parking_price;
         }
-        grouped[date].daily_total += price;
+        grouped[key].daily_total += price;
       });
 
       const summariesArray = Object.values(grouped).sort(
