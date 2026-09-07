@@ -386,14 +386,20 @@ const AdminPOS = () => {
   // When a customer is selected, copy their name into any empty attendee
   // name fields so the cashier doesn't have to re-type it for each ticket.
 
-  // Auto-populate name from main customer to empty ticket holder names
+  // Auto-populate name from main customer to ticket holder names.
+  // Keeps syncing while the holder name is still empty or still matches the
+  // previous auto-filled value (e.g. the first typed letter), so typing the
+  // buyer's name updates all attendees live. A manually edited attendee name
+  // is never overwritten.
+  const prevAutoNameRef = useRef("");
   useEffect(() => {
-    if (customerName && ticketHolders.length > 0) {
-      setTicketHolders(prev => prev.map(holder => ({
-        ...holder,
-        name: holder.name.trim() || customerName
-      })));
-    }
+    const prevAuto = prevAutoNameRef.current.trim();
+    setTicketHolders(prev => prev.map(holder => {
+      const current = holder.name.trim();
+      const wasAutoFilled = current === "" || current === prevAuto;
+      return wasAutoFilled ? { ...holder, name: customerName } : holder;
+    }));
+    prevAutoNameRef.current = customerName;
   }, [customerName]);
 
   // Auto-populate phone number from main customer to all ticket holders
