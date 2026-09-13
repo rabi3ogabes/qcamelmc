@@ -1,0 +1,2 @@
+REVOKE SELECT ON public.settings FROM anon;
+GRANT SELECT (id, logo_url, hero_image_url, hero_text, header_bg_color, header_bg_image_url, before_footer_image_url, copyright_text, current_event_id, show_delete_customer_button, show_generate_qr_button, show_delete_event_button) ON public.settings TO anon;

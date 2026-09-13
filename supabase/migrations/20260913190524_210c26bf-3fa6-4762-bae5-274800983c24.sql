@@ -1,0 +1,1 @@
+GRANT SELECT (admin_phone) ON public.settings TO anon;
