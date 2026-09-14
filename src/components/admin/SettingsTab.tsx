@@ -282,6 +282,11 @@ export const SettingsTab = () => {
       setPaymentFailedEmailEnabled(data.payment_failed_email_enabled);
     }
 
+    if (data?.clarity_project_id) setClarityProjectId(data.clarity_project_id);
+    if (data?.clarity_enabled !== undefined && data?.clarity_enabled !== null) {
+      setClarityEnabled(data.clarity_enabled);
+    }
+
     if (data?.sadad_merchant_id) setSadadMerchantId(data.sadad_merchant_id);
     if (data?.sadad_api_key) setSadadApiKey(data.sadad_api_key);
     if (data?.sadad_secret) setSadadSecret(data.sadad_secret);
