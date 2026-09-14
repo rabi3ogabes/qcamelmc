@@ -109,7 +109,7 @@ export const TicketsTab = () => {
         .range(from, to) as unknown as PromiseLike<{ data: HolderRow[] | null; error: unknown }>;
     });
 
-  const fetchConfirmedHolders = () => fetchHolders(["confirmed"]);
+  const fetchConfirmedHolders = () => fetchHolders("confirmed");
 
   const fetchTickets = async () => {
     try {
