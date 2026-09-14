@@ -438,6 +438,17 @@ const Checkout = () => {
         { duration: 6000 }
       );
       
+      void logPaymentError({
+        eventId: selectedEventId,
+        customerName: customerInfo.name,
+        customerPhone: `${customerInfo.countryCode}${customerInfo.phone}`,
+        quantity: selections.reduce((sum, s) => sum + s.quantity, 0),
+        amount: totalAmount,
+        errorSource: "site",
+        errorCode: "TICKETS_UNAVAILABLE",
+        errorMessage: `عدد التذاكر المطلوبة غير متاح (${getTicketTypeName(failedType || '')}): ${result?.message || 'غير متوفر'}`,
+      });
+
       // Refresh availability display
       await fetchTicketAvailability();
       return;
@@ -467,6 +478,16 @@ const Checkout = () => {
       );
       if (violations.length > 0) {
         violations.forEach(v => toast.error(formatLimitViolation(v)));
+        void logPaymentError({
+          eventId: eventIdForLimit,
+          customerName: customerInfo.name,
+          customerPhone: `${customerInfo.countryCode}${customerInfo.phone}`,
+          quantity: selections.reduce((sum, s) => sum + s.quantity, 0),
+          amount: totalAmount,
+          errorSource: "site",
+          errorCode: "TICKET_LIMIT",
+          errorMessage: violations.map(formatLimitViolation).join(" | "),
+        });
         return;
       }
     }
@@ -638,13 +659,30 @@ const Checkout = () => {
     } catch (error) {
       console.error("Error creating booking:", error);
       const guardMessage = bookingGuardMessage(error);
+      let shownMessage: string;
       if (isTicketLimitError(error)) {
-        toast.error(ticketLimitErrorMessage(error));
+        shownMessage = ticketLimitErrorMessage(error);
+        toast.error(shownMessage);
       } else if (guardMessage) {
+        shownMessage = guardMessage;
         toast.error(guardMessage);
       } else {
-        toast.error("Failed to create booking. Please try again.");
+        shownMessage = "Failed to create booking. Please try again.";
+        toast.error(shownMessage);
       }
+      void logPaymentError({
+        eventId: localStorage.getItem("selectedEventId"),
+        customerName: customerInfo.name,
+        customerPhone: `${customerInfo.countryCode}${customerInfo.phone}`,
+        quantity: selections.reduce((sum, s) => sum + s.quantity, 0),
+        amount: calculateTotal(),
+        errorSource: classifyPaymentError(
+          error instanceof Error ? error.message : String(error),
+        ),
+        errorCode: "CHECKOUT_FAILED",
+        errorMessage: `${shownMessage} — ${error instanceof Error ? error.message : String(error)}`,
+        raw: { paymentMethod },
+      });
     } finally {
       setLoading(false);
     }
