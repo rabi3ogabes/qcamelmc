@@ -168,6 +168,7 @@ const SadadCallback = () => {
         if (data && data.payment_status === 'cancelled') {
           setStatus('failed');
           setMessage(data.payment_error_reason || 'لم يتم تأكيد الدفع. يرجى التواصل مع الدعم إذا تم خصم المبلغ.');
+          void logOrderFailure(data, data.payment_error_reason, 'PAYMENT_CANCELLED');
           return;
         }
 
