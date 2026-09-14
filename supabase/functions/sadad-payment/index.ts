@@ -39,6 +39,8 @@ serve(async (req) => {
     return new Response('ok', { headers: corsHeaders });
   }
 
+  let failureContext: { orderId?: string; orderData?: any; client?: any } | null = null;
+
   try {
     // Settings holds Sadad credentials which are not readable by the anon role.
     // Read them with the service-role client (server-side only, never returned to the client).
