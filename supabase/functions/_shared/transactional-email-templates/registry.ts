@@ -23,4 +23,5 @@ export interface TemplateEntry {
 export const TEMPLATES: Record<string, TemplateEntry> = {
   'booking-invoice': bookingInvoiceTemplate,
   'payment-failed': paymentFailedTemplate,
+  'admin-sale-alert': adminSaleAlertTemplate,
 }
