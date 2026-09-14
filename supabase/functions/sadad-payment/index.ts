@@ -48,7 +48,9 @@ serve(async (req) => {
       { auth: { persistSession: false } }
     );
 
-    const { orderId, orderData } = await req.json();
+    const parsedBody = await req.json();
+    const { orderId, orderData } = parsedBody;
+    failureContext = { orderId, orderData, client: supabaseClient };
 
     // Fetch Sadad settings
     const { data: settings, error: settingsError } = await supabaseClient
@@ -167,6 +169,29 @@ serve(async (req) => {
     );
   } catch (error) {
     console.error('Error in sadad-payment function:', error);
+
+    // Record the failure so admins can track it from the dashboard
+    try {
+      if (failureContext?.client) {
+        const od = failureContext.orderData ?? {};
+        await failureContext.client.from('payment_errors').insert({
+          booking_reference: failureContext.orderId ?? null,
+          customer_name: od.customer_name ?? null,
+          customer_phone: od.customer_phone ?? null,
+          quantity: Array.isArray(od.items)
+            ? od.items.reduce((sum: number, i: any) => sum + (Number(i.quantity) || 0), 0)
+            : od.quantity ?? null,
+          amount: od.total_amount ?? null,
+          error_source: 'sadad',
+          error_code: 'SADAD_INIT_FAILED',
+          error_message: error instanceof Error ? error.message : 'Unknown error',
+          raw: { source: 'sadad-payment' },
+        });
+      }
+    } catch (logError) {
+      console.error('Failed to record payment error:', logError);
+    }
+
     return new Response(
       JSON.stringify({ 
         success: false,
