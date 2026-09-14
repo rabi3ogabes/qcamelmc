@@ -287,6 +287,7 @@ export const TicketsTab = () => {
   const renderTicketCard = (ticket: TicketType) => {
     const remaining = ticket.available_quantity - ticket.sold_quantity;
     const soldPercentage = ((ticket.sold_quantity / ticket.available_quantity) * 100).toFixed(0);
+    const payments = ticket.payments || { paid: ticket.sold_quantity, pending: 0, failed: 0 };
     
     return (
       <Card key={ticket.id} className="p-6 hover:shadow-lg transition-shadow">
