@@ -686,7 +686,7 @@ export const SettingsTab = () => {
     }
   };
 
-  const updateSettingsRow = async (patch: Record<string, unknown>) => {
+  const updateSettingsRow = async (patch: { admin_email?: string | null; payment_failed_email_enabled?: boolean }) => {
     const { data: settings, error: settingsError } = await supabase
       .from("settings")
       .select("id")
