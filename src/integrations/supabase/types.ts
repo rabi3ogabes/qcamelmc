@@ -608,6 +608,8 @@ export type Database = {
           admin_phone: string | null
           auto_invoice_interval_seconds: number | null
           before_footer_image_url: string | null
+          clarity_enabled: boolean
+          clarity_project_id: string | null
           copyright_text: string | null
           created_at: string | null
           current_event_id: string | null
@@ -641,6 +643,8 @@ export type Database = {
           admin_phone?: string | null
           auto_invoice_interval_seconds?: number | null
           before_footer_image_url?: string | null
+          clarity_enabled?: boolean
+          clarity_project_id?: string | null
           copyright_text?: string | null
           created_at?: string | null
           current_event_id?: string | null
@@ -674,6 +678,8 @@ export type Database = {
           admin_phone?: string | null
           auto_invoice_interval_seconds?: number | null
           before_footer_image_url?: string | null
+          clarity_enabled?: boolean
+          clarity_project_id?: string | null
           copyright_text?: string | null
           created_at?: string | null
           current_event_id?: string | null
@@ -839,6 +845,8 @@ export type Database = {
         Row: {
           admin_phone: string | null
           before_footer_image_url: string | null
+          clarity_enabled: boolean | null
+          clarity_project_id: string | null
           copyright_text: string | null
           current_event_id: string | null
           header_bg_color: string | null
@@ -854,6 +862,8 @@ export type Database = {
         Insert: {
           admin_phone?: string | null
           before_footer_image_url?: string | null
+          clarity_enabled?: boolean | null
+          clarity_project_id?: string | null
           copyright_text?: string | null
           current_event_id?: string | null
           header_bg_color?: string | null
@@ -869,6 +879,8 @@ export type Database = {
         Update: {
           admin_phone?: string | null
           before_footer_image_url?: string | null
+          clarity_enabled?: boolean | null
+          clarity_project_id?: string | null
           copyright_text?: string | null
           current_event_id?: string | null
           header_bg_color?: string | null
