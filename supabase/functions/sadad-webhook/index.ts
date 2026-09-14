@@ -271,6 +271,30 @@ Deno.serve(async (req) => {
       }
     }
 
+    // Notify the customer by email about the payment outcome (non-blocking failures)
+    try {
+      const { data: emailOrder } = await supabase
+        .from('orders')
+        .select('id')
+        .eq('booking_reference', websiteRefNo)
+        .maybeSingle()
+
+      if (emailOrder?.id) {
+        const fnName = paymentStatus === 'confirmed' ? 'send-invoice-email' : 'send-payment-failed-email'
+        const res = await fetch(`${supabaseUrl}/functions/v1/${fnName}`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${supabaseServiceKey}`,
+          },
+          body: JSON.stringify({ order_id: emailOrder.id }),
+        })
+        console.log(`Status email (${fnName}) responded ${res.status}`)
+      }
+    } catch (emailError) {
+      console.error('Failed to send payment status email:', emailError)
+    }
+
     // Get webhook URL to call n8n if configured
     const { data: webhookSettings } = await supabase
       .from('settings')
