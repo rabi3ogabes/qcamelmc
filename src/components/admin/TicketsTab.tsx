@@ -326,7 +326,25 @@ export const TicketsTab = () => {
             <span className="text-sm text-muted-foreground font-lusail">{t("sold")}</span>
             <span className="font-bold font-lusail">{ticket.sold_quantity}</span>
           </div>
-          
+
+          <div className="pt-3 border-t">
+            <p className="text-sm text-muted-foreground font-lusail mb-2">حالة الدفع</p>
+            <div className="grid grid-cols-3 gap-2">
+              <div className="rounded-lg bg-emerald-500/10 border border-emerald-500/20 p-2 text-center">
+                <p className="text-lg font-bold font-lusail text-emerald-600">{payments.paid}</p>
+                <p className="text-xs font-lusail text-emerald-700/80">مدفوعة</p>
+              </div>
+              <div className="rounded-lg bg-amber-500/10 border border-amber-500/20 p-2 text-center">
+                <p className="text-lg font-bold font-lusail text-amber-600">{payments.pending}</p>
+                <p className="text-xs font-lusail text-amber-700/80">قيد الانتظار</p>
+              </div>
+              <div className="rounded-lg bg-destructive/10 border border-destructive/20 p-2 text-center">
+                <p className="text-lg font-bold font-lusail text-destructive">{payments.failed}</p>
+                <p className="text-xs font-lusail text-destructive/80">فاشلة</p>
+              </div>
+            </div>
+          </div>
+
           <div className="pt-3 border-t">
             <div className="flex justify-between items-center mb-2">
               <span className="text-sm text-muted-foreground font-lusail">المباع</span>
