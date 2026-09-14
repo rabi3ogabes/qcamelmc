@@ -52,6 +52,9 @@ export const SettingsTab = () => {
   const [savingPaymentFailedEmail, setSavingPaymentFailedEmail] = useState(false);
   const [newAdminEmail, setNewAdminEmail] = useState("");
   const [savingAdminEmail, setSavingAdminEmail] = useState(false);
+  const [clarityEnabled, setClarityEnabled] = useState(false);
+  const [clarityProjectId, setClarityProjectId] = useState("");
+  const [savingClarity, setSavingClarity] = useState(false);
   const [sadadMerchantId, setSadadMerchantId] = useState("");
   const [sadadApiKey, setSadadApiKey] = useState("");
   const [sadadSecret, setSadadSecret] = useState("");
@@ -686,7 +689,12 @@ export const SettingsTab = () => {
     }
   };
 
-  const updateSettingsRow = async (patch: { admin_email?: string | null; payment_failed_email_enabled?: boolean }) => {
+  const updateSettingsRow = async (patch: {
+    admin_email?: string | null;
+    payment_failed_email_enabled?: boolean;
+    clarity_project_id?: string | null;
+    clarity_enabled?: boolean;
+  }) => {
     const { data: settings, error: settingsError } = await supabase
       .from("settings")
       .select("id")
