@@ -686,6 +686,55 @@ export const SettingsTab = () => {
     }
   };
 
+  const updateSettingsRow = async (patch: Record<string, unknown>) => {
+    const { data: settings, error: settingsError } = await supabase
+      .from("settings")
+      .select("id")
+      .limit(1)
+      .maybeSingle();
+    if (settingsError) throw settingsError;
+
+    if (settings) {
+      const { error } = await supabase.from("settings").update(patch).eq("id", settings.id);
+      if (error) throw error;
+    } else {
+      const { error } = await supabase.from("settings").insert(patch);
+      if (error) throw error;
+    }
+  };
+
+  const handleTogglePaymentFailedEmail = async (checked: boolean) => {
+    setSavingPaymentFailedEmail(true);
+    try {
+      await updateSettingsRow({ payment_failed_email_enabled: checked });
+      setPaymentFailedEmailEnabled(checked);
+      toast.success(checked ? "تم تفعيل إشعار فشل الدفع للعميل" : "تم إيقاف إشعار فشل الدفع للعميل");
+    } catch (error) {
+      console.error("Error toggling payment failed email:", error);
+      toast.error("فشل في تحديث الإعداد");
+    } finally {
+      setSavingPaymentFailedEmail(false);
+    }
+  };
+
+  const handleSaveAdminEmail = async () => {
+    const value = newAdminEmail.trim();
+    if (value && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(value)) {
+      toast.error("البريد الإلكتروني غير صالح");
+      return;
+    }
+    setSavingAdminEmail(true);
+    try {
+      await updateSettingsRow({ admin_email: value || null });
+      toast.success(t("savedSuccessfully"));
+    } catch (error) {
+      console.error("Error saving admin email:", error);
+      toast.error("فشل في حفظ بريد الإدارة");
+    } finally {
+      setSavingAdminEmail(false);
+    }
+  };
+
   const handleSaveSadad = async () => {
     setSavingSadad(true);
     try {
