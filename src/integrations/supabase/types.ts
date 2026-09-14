@@ -604,6 +604,7 @@ export type Database = {
       }
       settings: {
         Row: {
+          admin_email: string | null
           admin_phone: string | null
           auto_invoice_interval_seconds: number | null
           before_footer_image_url: string | null
@@ -623,6 +624,7 @@ export type Database = {
           invoice_send_delay_min: number | null
           last_invoice_sent_at: string | null
           logo_url: string | null
+          payment_failed_email_enabled: boolean
           sadad_api_key: string | null
           sadad_merchant_id: string | null
           sadad_secret: string | null
@@ -635,6 +637,7 @@ export type Database = {
           webhook_url: string | null
         }
         Insert: {
+          admin_email?: string | null
           admin_phone?: string | null
           auto_invoice_interval_seconds?: number | null
           before_footer_image_url?: string | null
@@ -654,6 +657,7 @@ export type Database = {
           invoice_send_delay_min?: number | null
           last_invoice_sent_at?: string | null
           logo_url?: string | null
+          payment_failed_email_enabled?: boolean
           sadad_api_key?: string | null
           sadad_merchant_id?: string | null
           sadad_secret?: string | null
@@ -666,6 +670,7 @@ export type Database = {
           webhook_url?: string | null
         }
         Update: {
+          admin_email?: string | null
           admin_phone?: string | null
           auto_invoice_interval_seconds?: number | null
           before_footer_image_url?: string | null
@@ -685,6 +690,7 @@ export type Database = {
           invoice_send_delay_min?: number | null
           last_invoice_sent_at?: string | null
           logo_url?: string | null
+          payment_failed_email_enabled?: boolean
           sadad_api_key?: string | null
           sadad_merchant_id?: string | null
           sadad_secret?: string | null
