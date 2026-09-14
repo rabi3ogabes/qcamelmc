@@ -52,6 +52,9 @@ export const SettingsTab = () => {
   const [savingPaymentFailedEmail, setSavingPaymentFailedEmail] = useState(false);
   const [newAdminEmail, setNewAdminEmail] = useState("");
   const [savingAdminEmail, setSavingAdminEmail] = useState(false);
+  const [clarityEnabled, setClarityEnabled] = useState(false);
+  const [clarityProjectId, setClarityProjectId] = useState("");
+  const [savingClarity, setSavingClarity] = useState(false);
   const [sadadMerchantId, setSadadMerchantId] = useState("");
   const [sadadApiKey, setSadadApiKey] = useState("");
   const [sadadSecret, setSadadSecret] = useState("");
@@ -213,7 +216,7 @@ export const SettingsTab = () => {
   const fetchSettings = async () => {
     const { data, error } = await supabase
       .from("settings")
-      .select("logo_url, hero_image_url, before_footer_image_url, header_bg_color, header_bg_image_url, hero_text, copyright_text, webhook_url, email_webhook_url, webhook_enabled, email_webhook_enabled, admin_phone, admin_email, payment_failed_email_enabled, sadad_merchant_id, sadad_api_key, sadad_secret, sadad_website_domain, show_delete_customer_button, show_generate_qr_button, show_delete_event_button, auto_invoice_interval_seconds, invoice_batch_min, invoice_batch_max, invoice_send_delay_min, invoice_send_delay_max")
+      .select("logo_url, hero_image_url, before_footer_image_url, header_bg_color, header_bg_image_url, hero_text, copyright_text, webhook_url, email_webhook_url, webhook_enabled, email_webhook_enabled, admin_phone, admin_email, payment_failed_email_enabled, clarity_project_id, clarity_enabled, sadad_merchant_id, sadad_api_key, sadad_secret, sadad_website_domain, show_delete_customer_button, show_generate_qr_button, show_delete_event_button, auto_invoice_interval_seconds, invoice_batch_min, invoice_batch_max, invoice_send_delay_min, invoice_send_delay_max")
       .maybeSingle();
 
     if (error) {
@@ -277,6 +280,11 @@ export const SettingsTab = () => {
     if (data?.admin_email) setNewAdminEmail(data.admin_email);
     if (data?.payment_failed_email_enabled !== undefined && data?.payment_failed_email_enabled !== null) {
       setPaymentFailedEmailEnabled(data.payment_failed_email_enabled);
+    }
+
+    if (data?.clarity_project_id) setClarityProjectId(data.clarity_project_id);
+    if (data?.clarity_enabled !== undefined && data?.clarity_enabled !== null) {
+      setClarityEnabled(data.clarity_enabled);
     }
 
     if (data?.sadad_merchant_id) setSadadMerchantId(data.sadad_merchant_id);
@@ -686,7 +694,12 @@ export const SettingsTab = () => {
     }
   };
 
-  const updateSettingsRow = async (patch: { admin_email?: string | null; payment_failed_email_enabled?: boolean }) => {
+  const updateSettingsRow = async (patch: {
+    admin_email?: string | null;
+    payment_failed_email_enabled?: boolean;
+    clarity_project_id?: string | null;
+    clarity_enabled?: boolean;
+  }) => {
     const { data: settings, error: settingsError } = await supabase
       .from("settings")
       .select("id")
@@ -732,6 +745,46 @@ export const SettingsTab = () => {
       toast.error("فشل في حفظ بريد الإدارة");
     } finally {
       setSavingAdminEmail(false);
+    }
+  };
+
+  const handleToggleClarity = async (checked: boolean) => {
+    if (checked && !/^[a-z0-9]{4,20}$/i.test(clarityProjectId.trim())) {
+      toast.error("أدخل معرّف مشروع Clarity أولاً ثم فعّل التتبّع");
+      return;
+    }
+    setSavingClarity(true);
+    try {
+      await updateSettingsRow({ clarity_enabled: checked });
+      setClarityEnabled(checked);
+      toast.success(checked ? "تم تفعيل تتبّع Microsoft Clarity" : "تم إيقاف تتبّع Microsoft Clarity");
+    } catch (error) {
+      console.error("Error toggling clarity:", error);
+      toast.error("فشل في تحديث الإعداد");
+    } finally {
+      setSavingClarity(false);
+    }
+  };
+
+  const handleSaveClarity = async () => {
+    const value = clarityProjectId.trim();
+    if (value && !/^[a-z0-9]{4,20}$/i.test(value)) {
+      toast.error("معرّف المشروع غير صالح (أحرف وأرقام فقط)");
+      return;
+    }
+    setSavingClarity(true);
+    try {
+      await updateSettingsRow({
+        clarity_project_id: value || null,
+        clarity_enabled: value ? clarityEnabled : false,
+      });
+      if (!value) setClarityEnabled(false);
+      toast.success(t("savedSuccessfully"));
+    } catch (error) {
+      console.error("Error saving clarity settings:", error);
+      toast.error("فشل في حفظ إعدادات Clarity");
+    } finally {
+      setSavingClarity(false);
     }
   };
 
@@ -1943,6 +1996,59 @@ export const SettingsTab = () => {
 
           <Button onClick={handleSaveAdminEmail} disabled={savingAdminEmail} className="font-lusail">
             {savingAdminEmail ? t("loading") : t("save")}
+          </Button>
+        </div>
+      </Card>
+
+      {/* Microsoft Clarity heatmaps */}
+      <Card className="p-6 relative overflow-hidden border-primary/20">
+        <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-l from-primary/70 via-primary to-primary/70" />
+        <div className="flex items-center justify-between gap-4 mb-4">
+          <div>
+            <h3 className="text-lg font-semibold font-lusail">تحليلات Microsoft Clarity (خرائط الحرارة)</h3>
+            <p className="text-xs text-muted-foreground font-lusail mt-1">
+              تتبّع زوّار الموقع العام فقط — لا يعمل في نقاط البيع أو صفحات الفريق أو لوحة التحكم.
+            </p>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <span className={`text-xs font-lusail ${clarityEnabled ? "text-primary" : "text-muted-foreground"}`}>
+              {clarityEnabled ? "مفعّل" : "معطّل"}
+            </span>
+            <Switch
+              checked={clarityEnabled}
+              onCheckedChange={handleToggleClarity}
+              disabled={savingClarity}
+            />
+          </div>
+        </div>
+
+        <div className="space-y-4">
+          <div>
+            <Label htmlFor="clarity-project-id" className="font-lusail">معرّف المشروع (Project ID)</Label>
+            <Input
+              id="clarity-project-id"
+              dir="ltr"
+              placeholder="abcd1234ef"
+              value={clarityProjectId}
+              onChange={(e) => setClarityProjectId(e.target.value)}
+              className="mt-2 font-mono text-left"
+            />
+            <p className="text-xs text-muted-foreground mt-2 font-lusail">
+              تجده في clarity.microsoft.com ضمن Settings ← Overview ← Project ID.
+            </p>
+          </div>
+
+          <div className="rounded-lg border bg-muted/40 p-4 space-y-1">
+            <p className="text-xs font-semibold font-lusail">ما الذي يُسجَّل؟</p>
+            <ul className="text-xs text-muted-foreground font-lusail list-disc pr-4 space-y-1">
+              <li>جلسات الزوّار وخرائط الحرارة والنقرات على الصفحة الرئيسية واختيار التذاكر والدفع.</li>
+              <li>حدث «ticket_purchase» عند إتمام الشراء مع رقم الحجز والمبلغ وعدد التذاكر.</li>
+              <li>حدث «payment_failed» عند فشل أو إلغاء الدفع.</li>
+            </ul>
+          </div>
+
+          <Button onClick={handleSaveClarity} disabled={savingClarity} className="font-lusail">
+            {savingClarity ? t("loading") : t("save")}
           </Button>
         </div>
       </Card>

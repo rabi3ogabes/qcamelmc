@@ -10,6 +10,7 @@ import { SettingsProvider } from "./contexts/SettingsContext";
 import ChunkLoadErrorBoundary from "@/components/ChunkLoadErrorBoundary";
 import RequireAdmin from "@/components/RequireAdmin";
 import DevErrorLogger from "@/components/DevErrorLogger";
+import ClarityTracker from "@/components/ClarityTracker";
 
 
 import EventHome from "./pages/EventHome";
@@ -69,6 +70,7 @@ const App = () => (
               gap={12}
             />
           <BrowserRouter>
+            <ClarityTracker />
             <VisitorTracker>
               <ChunkLoadErrorBoundary>
                 <Suspense
