@@ -82,20 +82,29 @@ export const TicketsTab = () => {
 
   type HolderRow = {
     ticket_type: string;
-    orders: { event_id: string; events: { title: string | null; event_date: string; is_archived: boolean } };
+    orders: {
+      event_id: string;
+      payment_status: string | null;
+      events: { title: string | null; event_date: string; is_archived: boolean };
+    };
   };
 
-  const fetchConfirmedHolders = () =>
-    fetchAllRows<HolderRow>((from, to) =>
-      supabase
+  const fetchHolders = (statuses?: string[]) =>
+    fetchAllRows<HolderRow>((from, to) => {
+      let query = supabase
         .from("ticket_holders")
         .select(
           `ticket_type, orders!inner(event_id, payment_status, events!inner(title, event_date, is_archived))`
-        )
-        .eq("orders.payment_status", "confirmed")
+        );
+      if (statuses && statuses.length === 1) {
+        query = query.eq("orders.payment_status", statuses[0]);
+      }
+      return query
         .order("id", { ascending: true })
-        .range(from, to) as unknown as PromiseLike<{ data: HolderRow[] | null; error: unknown }>
-    );
+        .range(from, to) as unknown as PromiseLike<{ data: HolderRow[] | null; error: unknown }>;
+    });
+
+  const fetchConfirmedHolders = () => fetchHolders(["confirmed"]);
 
   const fetchTickets = async () => {
     try {
@@ -106,18 +115,31 @@ export const TicketsTab = () => {
 
       if (error) throw error;
 
-      // Sold quantity = confirmed ticket holders of that type (orders can mix types)
-      const holders = await fetchConfirmedHolders();
-      const soldMap = new Map<string, number>();
+      // Count holders per event + ticket type, split by the order payment status
+      const holders = await fetchHolders();
+      const statusMap = new Map<string, PaymentBreakdown>();
       holders.forEach(h => {
         const key = `${h.orders.event_id}-${h.ticket_type}`;
-        soldMap.set(key, (soldMap.get(key) || 0) + 1);
+        const entry = statusMap.get(key) || { paid: 0, pending: 0, failed: 0 };
+        const status = h.orders.payment_status;
+        if (status === "confirmed") entry.paid += 1;
+        else if (status === "pending") entry.pending += 1;
+        else entry.failed += 1;
+        statusMap.set(key, entry);
       });
 
-      const ticketsWithCorrectSold = (data || []).map(ticket => ({
-        ...ticket,
-        sold_quantity: soldMap.get(`${ticket.event_id}-${ticket.type}`) || 0
-      }));
+      const ticketsWithCorrectSold = (data || []).map(ticket => {
+        const breakdown = statusMap.get(`${ticket.event_id}-${ticket.type}`) || {
+          paid: 0,
+          pending: 0,
+          failed: 0,
+        };
+        return {
+          ...ticket,
+          sold_quantity: breakdown.paid,
+          payments: breakdown,
+        };
+      });
 
       setTickets(ticketsWithCorrectSold);
     } catch (error) {
