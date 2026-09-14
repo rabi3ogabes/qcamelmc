@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Loader2, CheckCircle2, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { classifyPaymentError, logPaymentError } from "@/lib/paymentErrors";
 
 const SadadCallback = () => {
   const [status, setStatus] = useState<'processing' | 'success' | 'failed'>('processing');
@@ -24,6 +25,21 @@ const SadadCallback = () => {
       }
     };
   }, []);
+
+  const logOrderFailure = (order: any, reason?: string | null, code = 'PAYMENT_FAILED') =>
+    logPaymentError({
+      orderId: order?.id ?? null,
+      bookingReference: order?.booking_reference ?? null,
+      customerName: order?.customers?.name ?? null,
+      customerPhone: order?.customers?.phone ?? null,
+      quantity: order?.quantity ?? null,
+      amount: order?.total_amount ?? null,
+      paymentId: order?.payment_id ?? null,
+      errorSource: classifyPaymentError(reason, code),
+      errorCode: code,
+      errorMessage: reason || 'لم يتم تأكيد الدفع',
+      raw: { paymentStatus: order?.payment_status ?? null },
+    });
 
   const handleSuccess = async (orderId: string) => {
     if (hasConfirmedRef.current) return;
