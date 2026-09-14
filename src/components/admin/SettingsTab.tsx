@@ -48,6 +48,10 @@ export const SettingsTab = () => {
   const [savingEmailWebhookEnabled, setSavingEmailWebhookEnabled] = useState(false);
   const [adminPhone, setAdminPhone] = useState("");
   const [newAdminPhone, setNewAdminPhone] = useState("");
+  const [paymentFailedEmailEnabled, setPaymentFailedEmailEnabled] = useState(true);
+  const [savingPaymentFailedEmail, setSavingPaymentFailedEmail] = useState(false);
+  const [newAdminEmail, setNewAdminEmail] = useState("");
+  const [savingAdminEmail, setSavingAdminEmail] = useState(false);
   const [sadadMerchantId, setSadadMerchantId] = useState("");
   const [sadadApiKey, setSadadApiKey] = useState("");
   const [sadadSecret, setSadadSecret] = useState("");
