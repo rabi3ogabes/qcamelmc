@@ -9,6 +9,12 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { EditTicketDialog } from "@/components/admin/EditTicketDialog";
 
+interface PaymentBreakdown {
+  paid: number;
+  pending: number;
+  failed: number;
+}
+
 interface TicketType {
   id: string;
   type: string;
@@ -17,6 +23,7 @@ interface TicketType {
   sold_quantity: number;
   event_id: string;
   description: string | null;
+  payments?: PaymentBreakdown;
   events?: {
     title: string;
     event_date: string;
