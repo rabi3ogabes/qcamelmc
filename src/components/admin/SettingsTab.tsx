@@ -274,6 +274,11 @@ export const SettingsTab = () => {
       setNewAdminPhone(data.admin_phone);
     }
 
+    if (data?.admin_email) setNewAdminEmail(data.admin_email);
+    if (data?.payment_failed_email_enabled !== undefined && data?.payment_failed_email_enabled !== null) {
+      setPaymentFailedEmailEnabled(data.payment_failed_email_enabled);
+    }
+
     if (data?.sadad_merchant_id) setSadadMerchantId(data.sadad_merchant_id);
     if (data?.sadad_api_key) setSadadApiKey(data.sadad_api_key);
     if (data?.sadad_secret) setSadadSecret(data.sadad_secret);
