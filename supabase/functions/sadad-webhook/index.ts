@@ -290,6 +290,18 @@ Deno.serve(async (req) => {
           body: JSON.stringify({ order_id: emailOrder.id }),
         })
         console.log(`Status email (${fnName}) responded ${res.status}`)
+
+        if (paymentStatus === 'confirmed') {
+          const adminRes = await fetch(`${supabaseUrl}/functions/v1/notify-admin-sale`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${supabaseServiceKey}`,
+            },
+            body: JSON.stringify({ order_id: emailOrder.id }),
+          })
+          console.log(`Admin sale alert responded ${adminRes.status}`)
+        }
       }
     } catch (emailError) {
       console.error('Failed to send payment status email:', emailError)
