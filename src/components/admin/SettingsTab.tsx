@@ -216,7 +216,7 @@ export const SettingsTab = () => {
   const fetchSettings = async () => {
     const { data, error } = await supabase
       .from("settings")
-      .select("logo_url, hero_image_url, before_footer_image_url, header_bg_color, header_bg_image_url, hero_text, copyright_text, webhook_url, email_webhook_url, webhook_enabled, email_webhook_enabled, admin_phone, admin_email, payment_failed_email_enabled, sadad_merchant_id, sadad_api_key, sadad_secret, sadad_website_domain, show_delete_customer_button, show_generate_qr_button, show_delete_event_button, auto_invoice_interval_seconds, invoice_batch_min, invoice_batch_max, invoice_send_delay_min, invoice_send_delay_max")
+      .select("logo_url, hero_image_url, before_footer_image_url, header_bg_color, header_bg_image_url, hero_text, copyright_text, webhook_url, email_webhook_url, webhook_enabled, email_webhook_enabled, admin_phone, admin_email, payment_failed_email_enabled, clarity_project_id, clarity_enabled, sadad_merchant_id, sadad_api_key, sadad_secret, sadad_website_domain, show_delete_customer_button, show_generate_qr_button, show_delete_event_button, auto_invoice_interval_seconds, invoice_batch_min, invoice_batch_max, invoice_send_delay_min, invoice_send_delay_max")
       .maybeSingle();
 
     if (error) {
@@ -740,6 +740,46 @@ export const SettingsTab = () => {
       toast.error("فشل في حفظ بريد الإدارة");
     } finally {
       setSavingAdminEmail(false);
+    }
+  };
+
+  const handleToggleClarity = async (checked: boolean) => {
+    if (checked && !/^[a-z0-9]{4,20}$/i.test(clarityProjectId.trim())) {
+      toast.error("أدخل معرّف مشروع Clarity أولاً ثم فعّل التتبّع");
+      return;
+    }
+    setSavingClarity(true);
+    try {
+      await updateSettingsRow({ clarity_enabled: checked });
+      setClarityEnabled(checked);
+      toast.success(checked ? "تم تفعيل تتبّع Microsoft Clarity" : "تم إيقاف تتبّع Microsoft Clarity");
+    } catch (error) {
+      console.error("Error toggling clarity:", error);
+      toast.error("فشل في تحديث الإعداد");
+    } finally {
+      setSavingClarity(false);
+    }
+  };
+
+  const handleSaveClarity = async () => {
+    const value = clarityProjectId.trim();
+    if (value && !/^[a-z0-9]{4,20}$/i.test(value)) {
+      toast.error("معرّف المشروع غير صالح (أحرف وأرقام فقط)");
+      return;
+    }
+    setSavingClarity(true);
+    try {
+      await updateSettingsRow({
+        clarity_project_id: value || null,
+        clarity_enabled: value ? clarityEnabled : false,
+      });
+      if (!value) setClarityEnabled(false);
+      toast.success(t("savedSuccessfully"));
+    } catch (error) {
+      console.error("Error saving clarity settings:", error);
+      toast.error("فشل في حفظ إعدادات Clarity");
+    } finally {
+      setSavingClarity(false);
     }
   };
 
