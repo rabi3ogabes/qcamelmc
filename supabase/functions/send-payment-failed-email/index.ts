@@ -77,70 +77,106 @@ Deno.serve(async (req) => {
       | { name?: string; email?: string; phone?: string; country_code?: string }
       | null
     const email = (customer?.email || '').trim()
-    if (!email || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
-      await logEvent('failed', 'لا يوجد بريد إلكتروني صالح للعميل')
-      return json({ sent: false, reason: 'no_email' })
-    }
-    recipient = email
-
-    // Only one failure notice per order.
-    const { count } = await supabase
-      .from('email_delivery_events')
-      .select('id', { count: 'exact', head: true })
-      .eq('order_id', order.id)
-      .eq('template', 'payment-failed')
-      .eq('status', 'sent')
-    if ((count ?? 0) > 0 && !body?.force) {
-      return json({ sent: false, reason: 'already_sent' })
-    }
-
-    await logEvent('queued', 'تمت جدولة إشعار فشل الدفع')
+    const validEmail = !!email && /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)
 
     const { data: settings } = await supabase
       .from('settings')
-      .select('logo_url')
+      .select('logo_url, payment_failed_email_enabled, admin_email')
       .maybeSingle()
+
+    const customerEnabled = settings?.payment_failed_email_enabled !== false
+    const adminEmail = (settings?.admin_email || '').trim()
+    const validAdminEmail = !!adminEmail && /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(adminEmail)
 
     const event = order.events as { title?: string; event_date?: string } | null
     const reason = (order.payment_error_reason || body?.error_message || '') as string
     const isBank = BANK_HINTS.some((h) => reason.toLowerCase().includes(h))
 
-    let result: { sent: boolean; reason?: string }
-    try {
-      result = await sendTemplateEmail('payment-failed', email, {
-        idempotencyKey: `payment-failed-${order.id}`,
-        templateData: {
-          booking_reference: order.booking_reference,
-          customer_name: customer?.name || '-',
-          customer_phone: `${customer?.country_code || ''}${customer?.phone || ''}`,
-          event_title: event?.title || '-',
-          event_date: event?.event_date || null,
-          quantity: order.quantity,
-          total_amount: order.total_amount,
-          payment_id: order.payment_id,
-          error_message: reason || null,
-          error_source_label: isBank ? 'البنك / البطاقة' : 'بوابة الدفع سداد',
-          logo_url: settings?.logo_url || null,
-          retry_url: SITE_URL,
-          invoice_url: `${SITE_URL}/invoice/${encodeURIComponent(order.booking_reference)}`,
-        },
-      })
-    } catch (sendError) {
-      const message = sendError instanceof Error ? sendError.message : 'unknown_error'
-      await logEvent('failed', message)
-      throw sendError
+    const templateData = {
+      booking_reference: order.booking_reference,
+      customer_name: customer?.name || '-',
+      customer_phone: `${customer?.country_code || ''}${customer?.phone || ''}`,
+      event_title: event?.title || '-',
+      event_date: event?.event_date || null,
+      quantity: order.quantity,
+      total_amount: order.total_amount,
+      payment_id: order.payment_id,
+      error_message: reason || null,
+      error_source_label: isBank ? 'البنك / البطاقة' : 'بوابة الدفع سداد',
+      logo_url: settings?.logo_url || null,
+      retry_url: SITE_URL,
+      invoice_url: `${SITE_URL}/invoice/${encodeURIComponent(order.booking_reference)}`,
     }
 
-    if (result?.sent) {
-      await logEvent('sent', `تم الإرسال إلى ${email}`)
+    // --- Customer notice (can be switched off by the admin) ---
+    let customerResult: { sent: boolean; reason?: string } = { sent: false, reason: 'disabled' }
+
+    if (!customerEnabled) {
+      await logEvent('skipped', 'إشعار فشل الدفع للعميل معطّل من الإعدادات')
+    } else if (!validEmail) {
+      customerResult = { sent: false, reason: 'no_email' }
+      await logEvent('failed', 'لا يوجد بريد إلكتروني صالح للعميل')
     } else {
-      await logEvent(
-        result?.reason === 'recipient_suppressed' ? 'suppressed' : 'failed',
-        result?.reason || 'unknown',
-      )
+      recipient = email
+
+      // Only one failure notice per order.
+      const { count } = await supabase
+        .from('email_delivery_events')
+        .select('id', { count: 'exact', head: true })
+        .eq('order_id', order.id)
+        .eq('template', 'payment-failed')
+        .eq('status', 'sent')
+
+      if ((count ?? 0) > 0 && !body?.force) {
+        customerResult = { sent: false, reason: 'already_sent' }
+      } else {
+        await logEvent('queued', 'تمت جدولة إشعار فشل الدفع')
+        try {
+          customerResult = await sendTemplateEmail('payment-failed', email, {
+            idempotencyKey: `payment-failed-${order.id}`,
+            templateData,
+          })
+        } catch (sendError) {
+          const message = sendError instanceof Error ? sendError.message : 'unknown_error'
+          await logEvent('failed', message)
+          throw sendError
+        }
+
+        if (customerResult?.sent) {
+          await logEvent('sent', `تم الإرسال إلى ${email}`)
+        } else {
+          await logEvent(
+            customerResult?.reason === 'recipient_suppressed' ? 'suppressed' : 'failed',
+            customerResult?.reason || 'unknown',
+          )
+        }
+      }
     }
 
-    return json(result)
+    // --- Admin copy (always sent when an admin email is configured) ---
+    let adminSent = false
+    if (validAdminEmail) {
+      const previous = recipient
+      recipient = adminEmail
+      try {
+        const adminResult = await sendTemplateEmail('payment-failed', adminEmail, {
+          idempotencyKey: `payment-failed-admin-${order.id}`,
+          templateData,
+        })
+        adminSent = !!adminResult?.sent
+        await logEvent(
+          adminSent ? 'sent' : 'failed',
+          adminSent ? `نسخة للأدمن ${adminEmail}` : `نسخة الأدمن: ${adminResult?.reason || 'unknown'}`,
+        )
+      } catch (adminError) {
+        const message = adminError instanceof Error ? adminError.message : 'unknown_error'
+        console.error('admin copy failed:', message)
+        await logEvent('failed', `نسخة الأدمن: ${message}`)
+      }
+      recipient = previous
+    }
+
+    return json({ ...customerResult, admin_sent: adminSent })
   } catch (e) {
     console.error('send-payment-failed-email failed:', e)
     return json({ error: e instanceof Error ? e.message : 'unknown_error' }, 500)

@@ -48,6 +48,10 @@ export const SettingsTab = () => {
   const [savingEmailWebhookEnabled, setSavingEmailWebhookEnabled] = useState(false);
   const [adminPhone, setAdminPhone] = useState("");
   const [newAdminPhone, setNewAdminPhone] = useState("");
+  const [paymentFailedEmailEnabled, setPaymentFailedEmailEnabled] = useState(true);
+  const [savingPaymentFailedEmail, setSavingPaymentFailedEmail] = useState(false);
+  const [newAdminEmail, setNewAdminEmail] = useState("");
+  const [savingAdminEmail, setSavingAdminEmail] = useState(false);
   const [sadadMerchantId, setSadadMerchantId] = useState("");
   const [sadadApiKey, setSadadApiKey] = useState("");
   const [sadadSecret, setSadadSecret] = useState("");
@@ -209,7 +213,7 @@ export const SettingsTab = () => {
   const fetchSettings = async () => {
     const { data, error } = await supabase
       .from("settings")
-      .select("logo_url, hero_image_url, before_footer_image_url, header_bg_color, header_bg_image_url, hero_text, copyright_text, webhook_url, email_webhook_url, webhook_enabled, email_webhook_enabled, admin_phone, sadad_merchant_id, sadad_api_key, sadad_secret, sadad_website_domain, show_delete_customer_button, show_generate_qr_button, show_delete_event_button, auto_invoice_interval_seconds, invoice_batch_min, invoice_batch_max, invoice_send_delay_min, invoice_send_delay_max")
+      .select("logo_url, hero_image_url, before_footer_image_url, header_bg_color, header_bg_image_url, hero_text, copyright_text, webhook_url, email_webhook_url, webhook_enabled, email_webhook_enabled, admin_phone, admin_email, payment_failed_email_enabled, sadad_merchant_id, sadad_api_key, sadad_secret, sadad_website_domain, show_delete_customer_button, show_generate_qr_button, show_delete_event_button, auto_invoice_interval_seconds, invoice_batch_min, invoice_batch_max, invoice_send_delay_min, invoice_send_delay_max")
       .maybeSingle();
 
     if (error) {
@@ -268,6 +272,11 @@ export const SettingsTab = () => {
     if (data?.admin_phone) {
       setAdminPhone(data.admin_phone);
       setNewAdminPhone(data.admin_phone);
+    }
+
+    if (data?.admin_email) setNewAdminEmail(data.admin_email);
+    if (data?.payment_failed_email_enabled !== undefined && data?.payment_failed_email_enabled !== null) {
+      setPaymentFailedEmailEnabled(data.payment_failed_email_enabled);
     }
 
     if (data?.sadad_merchant_id) setSadadMerchantId(data.sadad_merchant_id);
@@ -674,6 +683,55 @@ export const SettingsTab = () => {
       toast.error("فشل في حفظ رقم الهاتف");
     } finally {
       setSavingPhone(false);
+    }
+  };
+
+  const updateSettingsRow = async (patch: { admin_email?: string | null; payment_failed_email_enabled?: boolean }) => {
+    const { data: settings, error: settingsError } = await supabase
+      .from("settings")
+      .select("id")
+      .limit(1)
+      .maybeSingle();
+    if (settingsError) throw settingsError;
+
+    if (settings) {
+      const { error } = await supabase.from("settings").update(patch).eq("id", settings.id);
+      if (error) throw error;
+    } else {
+      const { error } = await supabase.from("settings").insert(patch);
+      if (error) throw error;
+    }
+  };
+
+  const handleTogglePaymentFailedEmail = async (checked: boolean) => {
+    setSavingPaymentFailedEmail(true);
+    try {
+      await updateSettingsRow({ payment_failed_email_enabled: checked });
+      setPaymentFailedEmailEnabled(checked);
+      toast.success(checked ? "تم تفعيل إشعار فشل الدفع للعميل" : "تم إيقاف إشعار فشل الدفع للعميل");
+    } catch (error) {
+      console.error("Error toggling payment failed email:", error);
+      toast.error("فشل في تحديث الإعداد");
+    } finally {
+      setSavingPaymentFailedEmail(false);
+    }
+  };
+
+  const handleSaveAdminEmail = async () => {
+    const value = newAdminEmail.trim();
+    if (value && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(value)) {
+      toast.error("البريد الإلكتروني غير صالح");
+      return;
+    }
+    setSavingAdminEmail(true);
+    try {
+      await updateSettingsRow({ admin_email: value || null });
+      toast.success(t("savedSuccessfully"));
+    } catch (error) {
+      console.error("Error saving admin email:", error);
+      toast.error("فشل في حفظ بريد الإدارة");
+    } finally {
+      setSavingAdminEmail(false);
     }
   };
 
@@ -1843,6 +1901,48 @@ export const SettingsTab = () => {
           
           <Button onClick={handleSaveAdminPhone} disabled={savingPhone} className="font-lusail">
             {savingPhone ? t("loading") : t("save")}
+          </Button>
+        </div>
+      </Card>
+
+      {/* Payment failure email */}
+      <Card className="p-6">
+        <div className="flex items-center justify-between gap-4 mb-4">
+          <h3 className="text-lg font-semibold font-lusail">بريد إشعار فشل الدفع</h3>
+          <div className="flex items-center gap-2">
+            <span className={`text-xs font-lusail ${paymentFailedEmailEnabled ? "text-primary" : "text-muted-foreground"}`}>
+              {paymentFailedEmailEnabled ? "مفعّل" : "معطّل"}
+            </span>
+            <Switch
+              checked={paymentFailedEmailEnabled}
+              onCheckedChange={handleTogglePaymentFailedEmail}
+              disabled={savingPaymentFailedEmail}
+            />
+          </div>
+        </div>
+        <div className="space-y-4">
+          <p className="text-xs text-muted-foreground font-lusail">
+            عند التفعيل يصل العميل بريد بالعربية يوضح المبلغ ورقم الحجز وسبب الرفض (البنك/البطاقة أو بوابة سداد)
+            مع رابط لإعادة المحاولة ورابط متابعة الحجز، ولا يتكرر الإرسال لنفس الطلب.
+          </p>
+
+          <div>
+            <Label htmlFor="admin-email" className="font-lusail">بريد الإدارة (يستلم نسخة دائماً)</Label>
+            <Input
+              id="admin-email"
+              type="email"
+              placeholder="admin@example.com"
+              value={newAdminEmail}
+              onChange={(e) => setNewAdminEmail(e.target.value)}
+              className="mt-2 font-lusail"
+            />
+            <p className="text-xs text-muted-foreground mt-2 font-lusail">
+              تصل نسخة من كل إشعار فشل دفع إلى هذا البريد حتى لو كان الإشعار للعميل معطّلاً.
+            </p>
+          </div>
+
+          <Button onClick={handleSaveAdminEmail} disabled={savingAdminEmail} className="font-lusail">
+            {savingAdminEmail ? t("loading") : t("save")}
           </Button>
         </div>
       </Card>
