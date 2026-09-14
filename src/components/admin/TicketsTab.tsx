@@ -96,16 +96,14 @@ export const TicketsTab = () => {
     };
   };
 
-  const fetchHolders = (statuses?: string[]) =>
+  const fetchHolders = (status?: "confirmed" | "pending" | "cancelled") =>
     fetchAllRows<HolderRow>((from, to) => {
-      let query = supabase
+      const base = supabase
         .from("ticket_holders")
         .select(
           `ticket_type, orders!inner(event_id, payment_status, events!inner(title, event_date, is_archived))`
         );
-      if (statuses && statuses.length === 1) {
-        query = query.eq("orders.payment_status", statuses[0]);
-      }
+      const query = status ? base.eq("orders.payment_status", status) : base;
       return query
         .order("id", { ascending: true })
         .range(from, to) as unknown as PromiseLike<{ data: HolderRow[] | null; error: unknown }>;
