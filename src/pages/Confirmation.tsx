@@ -8,6 +8,7 @@ import { CheckCircle, Clock } from "lucide-react";
 import { Footer } from "@/components/Footer";
 import { InvoiceCard } from "@/components/InvoiceCard";
 import type { InvoiceData } from "@/lib/generateInvoicePdf";
+import { clarityTrackPurchase, clarityTrackPaymentFailure } from "@/lib/clarity";
 
 interface Order {
   id: string;
@@ -79,6 +80,20 @@ const Confirmation = () => {
 
       setOrders(loaded);
       localStorage.removeItem("orderIds");
+
+      // Mark the session in Microsoft Clarity (public analytics only)
+      loaded.forEach((o) => {
+        if (o.payment_status === "confirmed") {
+          clarityTrackPurchase({
+            bookingReference: o.booking_reference,
+            amount: Number(o.total_amount) || 0,
+            quantity: Number(o.quantity) || 0,
+            paymentMethod: o.payment_method,
+          });
+        } else if (o.payment_status === "cancelled") {
+          clarityTrackPaymentFailure("cancelled");
+        }
+      });
 
       // Email the invoice to the customer (fire-and-forget, deduped server-side)
       loaded
