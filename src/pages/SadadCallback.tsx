@@ -207,12 +207,20 @@ const SadadCallback = () => {
         if (finalCheck?.payment_status === 'pending') {
           setStatus('failed');
           setMessage('الدفع قيد المعالجة. إذا تم خصم المبلغ، سيتم تأكيد الطلب تلقائياً. يرجى التحقق من بريدك الإلكتروني أو التواصل مع الدعم.');
+          void logOrderFailure(finalCheck, 'انتهت مهلة انتظار تأكيد الدفع من سداد', 'PAYMENT_TIMEOUT');
         } else if (finalCheck?.payment_status === 'cancelled') {
           setStatus('failed');
           setMessage(finalCheck.payment_error_reason || 'لم يتم تأكيد الدفع. يرجى التواصل مع الدعم إذا تم خصم المبلغ.');
+          void logOrderFailure(finalCheck, finalCheck.payment_error_reason, 'PAYMENT_CANCELLED');
         } else {
           setStatus('failed');
           setMessage('لم يتم العثور على الطلب. يرجى التواصل مع الدعم.');
+          void logPaymentError({
+            bookingReference: orderId,
+            errorSource: 'site',
+            errorCode: 'ORDER_NOT_FOUND',
+            errorMessage: 'لم يتم العثور على الطلب بعد العودة من سداد',
+          });
         }
       }
     } catch (error) {
