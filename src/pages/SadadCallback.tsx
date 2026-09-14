@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Loader2, CheckCircle2, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { classifyPaymentError, logPaymentError } from "@/lib/paymentErrors";
 
 const SadadCallback = () => {
   const [status, setStatus] = useState<'processing' | 'success' | 'failed'>('processing');
@@ -24,6 +25,21 @@ const SadadCallback = () => {
       }
     };
   }, []);
+
+  const logOrderFailure = (order: any, reason?: string | null, code = 'PAYMENT_FAILED') =>
+    logPaymentError({
+      orderId: order?.id ?? null,
+      bookingReference: order?.booking_reference ?? null,
+      customerName: order?.customers?.name ?? null,
+      customerPhone: order?.customers?.phone ?? null,
+      quantity: order?.quantity ?? null,
+      amount: order?.total_amount ?? null,
+      paymentId: order?.payment_id ?? null,
+      errorSource: classifyPaymentError(reason, code),
+      errorCode: code,
+      errorMessage: reason || 'لم يتم تأكيد الدفع',
+      raw: { paymentStatus: order?.payment_status ?? null },
+    });
 
   const handleSuccess = async (orderId: string) => {
     if (hasConfirmedRef.current) return;
@@ -168,6 +184,7 @@ const SadadCallback = () => {
         if (data && data.payment_status === 'cancelled') {
           setStatus('failed');
           setMessage(data.payment_error_reason || 'لم يتم تأكيد الدفع. يرجى التواصل مع الدعم إذا تم خصم المبلغ.');
+          void logOrderFailure(data, data.payment_error_reason, 'PAYMENT_CANCELLED');
           return;
         }
 
@@ -190,12 +207,20 @@ const SadadCallback = () => {
         if (finalCheck?.payment_status === 'pending') {
           setStatus('failed');
           setMessage('الدفع قيد المعالجة. إذا تم خصم المبلغ، سيتم تأكيد الطلب تلقائياً. يرجى التحقق من بريدك الإلكتروني أو التواصل مع الدعم.');
+          void logOrderFailure(finalCheck, 'انتهت مهلة انتظار تأكيد الدفع من سداد', 'PAYMENT_TIMEOUT');
         } else if (finalCheck?.payment_status === 'cancelled') {
           setStatus('failed');
           setMessage(finalCheck.payment_error_reason || 'لم يتم تأكيد الدفع. يرجى التواصل مع الدعم إذا تم خصم المبلغ.');
+          void logOrderFailure(finalCheck, finalCheck.payment_error_reason, 'PAYMENT_CANCELLED');
         } else {
           setStatus('failed');
           setMessage('لم يتم العثور على الطلب. يرجى التواصل مع الدعم.');
+          void logPaymentError({
+            bookingReference: orderId,
+            errorSource: 'site',
+            errorCode: 'ORDER_NOT_FOUND',
+            errorMessage: 'لم يتم العثور على الطلب بعد العودة من سداد',
+          });
         }
       }
     } catch (error) {

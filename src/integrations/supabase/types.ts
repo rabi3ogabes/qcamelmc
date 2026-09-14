@@ -431,6 +431,72 @@ export type Database = {
         }
         Relationships: []
       }
+      payment_errors: {
+        Row: {
+          amount: number | null
+          booking_reference: string | null
+          created_at: string
+          customer_name: string | null
+          customer_phone: string | null
+          error_code: string | null
+          error_message: string | null
+          error_source: string
+          event_id: string | null
+          id: string
+          order_id: string | null
+          payment_id: string | null
+          quantity: number | null
+          raw: Json
+        }
+        Insert: {
+          amount?: number | null
+          booking_reference?: string | null
+          created_at?: string
+          customer_name?: string | null
+          customer_phone?: string | null
+          error_code?: string | null
+          error_message?: string | null
+          error_source?: string
+          event_id?: string | null
+          id?: string
+          order_id?: string | null
+          payment_id?: string | null
+          quantity?: number | null
+          raw?: Json
+        }
+        Update: {
+          amount?: number | null
+          booking_reference?: string | null
+          created_at?: string
+          customer_name?: string | null
+          customer_phone?: string | null
+          error_code?: string | null
+          error_message?: string | null
+          error_source?: string
+          event_id?: string | null
+          id?: string
+          order_id?: string | null
+          payment_id?: string | null
+          quantity?: number | null
+          raw?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payment_errors_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payment_errors_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       popup_banners: {
         Row: {
           created_at: string | null

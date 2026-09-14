@@ -52,6 +52,7 @@ const POSUsersPage = lazy(() => import("./pages/admin/POSUsersPage"));
 const VisitorsPage = lazy(() => import("./pages/admin/VisitorsPage"));
 const ReportsPage = lazy(() => import("./pages/admin/ReportsPage"));
 const ActivityLogsPage = lazy(() => import("./pages/admin/ActivityLogsPage"));
+const PaymentErrorsPage = lazy(() => import("./pages/admin/PaymentErrorsPage"));
 
 const queryClient = new QueryClient();
 
@@ -103,6 +104,7 @@ const App = () => (
                       <Route path="visitors" element={<VisitorsPage />} />
                       <Route path="reports" element={<ReportsPage />} />
                       <Route path="activity-logs" element={<ActivityLogsPage />} />
+                      <Route path="payment-errors" element={<PaymentErrorsPage />} />
                     </Route>
                     <Route path="/admin/qr-scanner" element={<RequireAdmin><QRScanner /></RequireAdmin>} />
                     <Route path="/admin/pos" element={<RequireAdmin><AdminPOS /></RequireAdmin>} />

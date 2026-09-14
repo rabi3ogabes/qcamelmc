@@ -239,6 +239,38 @@ Deno.serve(async (req) => {
 
     console.log(`Order ${websiteRefNo} updated to ${paymentStatus}`)
 
+    // Record failed payments so admins can track them in the dashboard
+    if (paymentStatus === 'cancelled') {
+      try {
+        const { data: failedOrder } = await supabase
+          .from('orders')
+          .select('id, booking_reference, event_id, quantity, total_amount, customers(name, phone)')
+          .eq('booking_reference', websiteRefNo)
+          .maybeSingle()
+
+        const reasonText = `${paymentErrorReason ?? ''} ${transactionStatus ?? ''}`.toLowerCase()
+        const bankHints = ['card', 'بطاقة', 'declin', 'مرفوض', 'insufficient', 'رصيد', 'bank', 'بنك', 'issuer', 'cvv', 'authorization']
+        const errorSource = bankHints.some((h) => reasonText.includes(h)) ? 'bank' : 'sadad'
+
+        await supabase.from('payment_errors').insert({
+          order_id: failedOrder?.id ?? null,
+          booking_reference: websiteRefNo,
+          event_id: failedOrder?.event_id ?? null,
+          customer_name: (failedOrder?.customers as any)?.name ?? null,
+          customer_phone: (failedOrder?.customers as any)?.phone ?? null,
+          quantity: failedOrder?.quantity ?? null,
+          amount: failedOrder?.total_amount ?? null,
+          payment_id: transactionNumber || null,
+          error_source: errorSource,
+          error_code: String(transactionStatus ?? 'TXN_FAILURE'),
+          error_message: paymentErrorReason,
+          raw: { source: 'sadad-webhook', transactionStatus, message },
+        })
+      } catch (logError) {
+        console.error('Failed to record payment error:', logError)
+      }
+    }
+
     // Get webhook URL to call n8n if configured
     const { data: webhookSettings } = await supabase
       .from('settings')
