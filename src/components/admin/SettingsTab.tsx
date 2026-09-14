@@ -1999,6 +1999,59 @@ export const SettingsTab = () => {
           </Button>
         </div>
       </Card>
+
+      {/* Microsoft Clarity heatmaps */}
+      <Card className="p-6 relative overflow-hidden border-primary/20">
+        <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-l from-primary/70 via-primary to-primary/70" />
+        <div className="flex items-center justify-between gap-4 mb-4">
+          <div>
+            <h3 className="text-lg font-semibold font-lusail">تحليلات Microsoft Clarity (خرائط الحرارة)</h3>
+            <p className="text-xs text-muted-foreground font-lusail mt-1">
+              تتبّع زوّار الموقع العام فقط — لا يعمل في نقاط البيع أو صفحات الفريق أو لوحة التحكم.
+            </p>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <span className={`text-xs font-lusail ${clarityEnabled ? "text-primary" : "text-muted-foreground"}`}>
+              {clarityEnabled ? "مفعّل" : "معطّل"}
+            </span>
+            <Switch
+              checked={clarityEnabled}
+              onCheckedChange={handleToggleClarity}
+              disabled={savingClarity}
+            />
+          </div>
+        </div>
+
+        <div className="space-y-4">
+          <div>
+            <Label htmlFor="clarity-project-id" className="font-lusail">معرّف المشروع (Project ID)</Label>
+            <Input
+              id="clarity-project-id"
+              dir="ltr"
+              placeholder="abcd1234ef"
+              value={clarityProjectId}
+              onChange={(e) => setClarityProjectId(e.target.value)}
+              className="mt-2 font-mono text-left"
+            />
+            <p className="text-xs text-muted-foreground mt-2 font-lusail">
+              تجده في clarity.microsoft.com ضمن Settings ← Overview ← Project ID.
+            </p>
+          </div>
+
+          <div className="rounded-lg border bg-muted/40 p-4 space-y-1">
+            <p className="text-xs font-semibold font-lusail">ما الذي يُسجَّل؟</p>
+            <ul className="text-xs text-muted-foreground font-lusail list-disc pr-4 space-y-1">
+              <li>جلسات الزوّار وخرائط الحرارة والنقرات على الصفحة الرئيسية واختيار التذاكر والدفع.</li>
+              <li>حدث «ticket_purchase» عند إتمام الشراء مع رقم الحجز والمبلغ وعدد التذاكر.</li>
+              <li>حدث «payment_failed» عند فشل أو إلغاء الدفع.</li>
+            </ul>
+          </div>
+
+          <Button onClick={handleSaveClarity} disabled={savingClarity} className="font-lusail">
+            {savingClarity ? t("loading") : t("save")}
+          </Button>
+        </div>
+      </Card>
         </TabsContent>
 
         {/* Data Management Tab */}
