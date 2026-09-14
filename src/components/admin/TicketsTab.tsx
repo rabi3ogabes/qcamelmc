@@ -9,6 +9,12 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { EditTicketDialog } from "@/components/admin/EditTicketDialog";
 
+interface PaymentBreakdown {
+  paid: number;
+  pending: number;
+  failed: number;
+}
+
 interface TicketType {
   id: string;
   type: string;
@@ -17,6 +23,7 @@ interface TicketType {
   sold_quantity: number;
   event_id: string;
   description: string | null;
+  payments?: PaymentBreakdown;
   events?: {
     title: string;
     event_date: string;
@@ -82,20 +89,27 @@ export const TicketsTab = () => {
 
   type HolderRow = {
     ticket_type: string;
-    orders: { event_id: string; events: { title: string | null; event_date: string; is_archived: boolean } };
+    orders: {
+      event_id: string;
+      payment_status: string | null;
+      events: { title: string | null; event_date: string; is_archived: boolean };
+    };
   };
 
-  const fetchConfirmedHolders = () =>
-    fetchAllRows<HolderRow>((from, to) =>
-      supabase
+  const fetchHolders = (status?: "confirmed" | "pending" | "cancelled") =>
+    fetchAllRows<HolderRow>((from, to) => {
+      const base = supabase
         .from("ticket_holders")
         .select(
           `ticket_type, orders!inner(event_id, payment_status, events!inner(title, event_date, is_archived))`
-        )
-        .eq("orders.payment_status", "confirmed")
+        );
+      const query = status ? base.eq("orders.payment_status", status) : base;
+      return query
         .order("id", { ascending: true })
-        .range(from, to) as unknown as PromiseLike<{ data: HolderRow[] | null; error: unknown }>
-    );
+        .range(from, to) as unknown as PromiseLike<{ data: HolderRow[] | null; error: unknown }>;
+    });
+
+  const fetchConfirmedHolders = () => fetchHolders("confirmed");
 
   const fetchTickets = async () => {
     try {
@@ -106,18 +120,31 @@ export const TicketsTab = () => {
 
       if (error) throw error;
 
-      // Sold quantity = confirmed ticket holders of that type (orders can mix types)
-      const holders = await fetchConfirmedHolders();
-      const soldMap = new Map<string, number>();
+      // Count holders per event + ticket type, split by the order payment status
+      const holders = await fetchHolders();
+      const statusMap = new Map<string, PaymentBreakdown>();
       holders.forEach(h => {
         const key = `${h.orders.event_id}-${h.ticket_type}`;
-        soldMap.set(key, (soldMap.get(key) || 0) + 1);
+        const entry = statusMap.get(key) || { paid: 0, pending: 0, failed: 0 };
+        const status = h.orders.payment_status;
+        if (status === "confirmed") entry.paid += 1;
+        else if (status === "pending") entry.pending += 1;
+        else entry.failed += 1;
+        statusMap.set(key, entry);
       });
 
-      const ticketsWithCorrectSold = (data || []).map(ticket => ({
-        ...ticket,
-        sold_quantity: soldMap.get(`${ticket.event_id}-${ticket.type}`) || 0
-      }));
+      const ticketsWithCorrectSold = (data || []).map(ticket => {
+        const breakdown = statusMap.get(`${ticket.event_id}-${ticket.type}`) || {
+          paid: 0,
+          pending: 0,
+          failed: 0,
+        };
+        return {
+          ...ticket,
+          sold_quantity: breakdown.paid,
+          payments: breakdown,
+        };
+      });
 
       setTickets(ticketsWithCorrectSold);
     } catch (error) {
@@ -260,6 +287,7 @@ export const TicketsTab = () => {
   const renderTicketCard = (ticket: TicketType) => {
     const remaining = ticket.available_quantity - ticket.sold_quantity;
     const soldPercentage = ((ticket.sold_quantity / ticket.available_quantity) * 100).toFixed(0);
+    const payments = ticket.payments || { paid: ticket.sold_quantity, pending: 0, failed: 0 };
     
     return (
       <Card key={ticket.id} className="p-6 hover:shadow-lg transition-shadow">
@@ -299,7 +327,25 @@ export const TicketsTab = () => {
             <span className="text-sm text-muted-foreground font-lusail">{t("sold")}</span>
             <span className="font-bold font-lusail">{ticket.sold_quantity}</span>
           </div>
-          
+
+          <div className="pt-3 border-t">
+            <p className="text-sm text-muted-foreground font-lusail mb-2">حالة الدفع</p>
+            <div className="grid grid-cols-3 gap-2">
+              <div className="rounded-lg bg-emerald-500/10 border border-emerald-500/20 p-2 text-center">
+                <p className="text-lg font-bold font-lusail text-emerald-600">{payments.paid}</p>
+                <p className="text-xs font-lusail text-emerald-700/80">مدفوعة</p>
+              </div>
+              <div className="rounded-lg bg-amber-500/10 border border-amber-500/20 p-2 text-center">
+                <p className="text-lg font-bold font-lusail text-amber-600">{payments.pending}</p>
+                <p className="text-xs font-lusail text-amber-700/80">قيد الانتظار</p>
+              </div>
+              <div className="rounded-lg bg-destructive/10 border border-destructive/20 p-2 text-center">
+                <p className="text-lg font-bold font-lusail text-destructive">{payments.failed}</p>
+                <p className="text-xs font-lusail text-destructive/80">فاشلة</p>
+              </div>
+            </div>
+          </div>
+
           <div className="pt-3 border-t">
             <div className="flex justify-between items-center mb-2">
               <span className="text-sm text-muted-foreground font-lusail">المباع</span>
