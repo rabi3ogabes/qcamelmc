@@ -14,6 +14,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Footer } from "@/components/Footer";
 import { useSettings } from "@/contexts/SettingsContext";
 import { bookingGuardMessage, checkTicketLimits, formatLimitViolation, isTicketLimitError, ticketLimitErrorMessage } from "@/lib/ticketLimit";
+import { classifyPaymentError, logPaymentError } from "@/lib/paymentErrors";
 import { useReserveTickets } from "@/hooks/useReserveTickets";
 
 // Convert Arabic numerals to English numerals
