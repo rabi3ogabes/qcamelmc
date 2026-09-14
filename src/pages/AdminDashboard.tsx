@@ -21,6 +21,7 @@ import {
   X,
   ArrowLeftRight,
   Bell,
+  AlertTriangle,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { CapacityAlert } from "@/components/admin/CapacityAlert";
@@ -82,6 +83,7 @@ const AdminDashboard = () => {
     { to: "/admin/dashboard/events", label: t("events"), icon: Calendar },
     { to: "/admin/dashboard/tickets", label: t("tickets"), icon: Ticket },
     { to: "/admin/dashboard/invoices", label: "إرسال الفواتير", icon: FileText },
+    { to: "/admin/dashboard/payment-errors", label: "أخطاء الدفع", icon: AlertTriangle },
   ];
 
   const settingsNav = [
