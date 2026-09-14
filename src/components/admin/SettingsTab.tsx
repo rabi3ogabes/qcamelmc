@@ -1904,6 +1904,48 @@ export const SettingsTab = () => {
           </Button>
         </div>
       </Card>
+
+      {/* Payment failure email */}
+      <Card className="p-6">
+        <div className="flex items-center justify-between gap-4 mb-4">
+          <h3 className="text-lg font-semibold font-lusail">بريد إشعار فشل الدفع</h3>
+          <div className="flex items-center gap-2">
+            <span className={`text-xs font-lusail ${paymentFailedEmailEnabled ? "text-primary" : "text-muted-foreground"}`}>
+              {paymentFailedEmailEnabled ? "مفعّل" : "معطّل"}
+            </span>
+            <Switch
+              checked={paymentFailedEmailEnabled}
+              onCheckedChange={handleTogglePaymentFailedEmail}
+              disabled={savingPaymentFailedEmail}
+            />
+          </div>
+        </div>
+        <div className="space-y-4">
+          <p className="text-xs text-muted-foreground font-lusail">
+            عند التفعيل يصل العميل بريد بالعربية يوضح المبلغ ورقم الحجز وسبب الرفض (البنك/البطاقة أو بوابة سداد)
+            مع رابط لإعادة المحاولة ورابط متابعة الحجز، ولا يتكرر الإرسال لنفس الطلب.
+          </p>
+
+          <div>
+            <Label htmlFor="admin-email" className="font-lusail">بريد الإدارة (يستلم نسخة دائماً)</Label>
+            <Input
+              id="admin-email"
+              type="email"
+              placeholder="admin@example.com"
+              value={newAdminEmail}
+              onChange={(e) => setNewAdminEmail(e.target.value)}
+              className="mt-2 font-lusail"
+            />
+            <p className="text-xs text-muted-foreground mt-2 font-lusail">
+              تصل نسخة من كل إشعار فشل دفع إلى هذا البريد حتى لو كان الإشعار للعميل معطّلاً.
+            </p>
+          </div>
+
+          <Button onClick={handleSaveAdminEmail} disabled={savingAdminEmail} className="font-lusail">
+            {savingAdminEmail ? t("loading") : t("save")}
+          </Button>
+        </div>
+      </Card>
         </TabsContent>
 
         {/* Data Management Tab */}
