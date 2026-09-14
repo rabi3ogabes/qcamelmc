@@ -1005,6 +1005,11 @@ const AdminPOS = () => {
 
       if (bookingError) throw bookingError;
 
+      // Notify the admin by email about this sale (never blocks the sale)
+      supabase.functions
+        .invoke("notify-admin-sale", { body: { booking_reference: bookingRef } })
+        .catch((e) => console.error("admin sale alert failed:", e));
+
       // Sold quantities are maintained automatically by database triggers.
 
 

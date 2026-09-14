@@ -27,6 +27,9 @@ verify_jwt = false
 [functions.send-payment-failed-email]
 verify_jwt = false
 
+[functions.notify-admin-sale]
+verify_jwt = false
+
 [functions.staff-customer-lookup]
 verify_jwt = false
 
