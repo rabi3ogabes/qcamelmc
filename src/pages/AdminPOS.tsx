@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowRight, ShoppingCart, Trash2, Plus, Minus, Maximize, Minimize, CalendarIcon, CheckCircle2, User, Crown, Ticket, Car, X } from "lucide-react";
+import { ArrowRight, ShoppingCart, Trash2, Plus, Minus, Maximize, Minimize, CalendarIcon, CheckCircle2, User, Crown, Ticket, Car, X, UserCheck } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { useToast } from "@/hooks/use-toast";
@@ -25,6 +25,7 @@ import { bookingGuardMessage, checkTicketLimits, formatLimitViolation, isTicketL
 import { useReserveTickets } from "@/hooks/useReserveTickets";
 import { CapacityAlert } from "@/components/admin/CapacityAlert";
 import { CapacityNotificationBanner } from "@/components/admin/CapacityNotificationBanner";
+import { ManualCheckInDialog } from "@/components/admin/ManualCheckInDialog";
 import { useCapacityNotification } from "@/hooks/useCapacityNotification";
 
 interface POSUser {
@@ -81,6 +82,7 @@ const AdminPOS = () => {
   const [headerBgColor, setHeaderBgColor] = useState<string>("hsl(var(--card) / 0.5)");
   
   const [cart, setCart] = useState<CartItem[]>([]);
+  const [checkInOpen, setCheckInOpen] = useState(false);
   const [customerName, setCustomerName] = useState("");
   const [customerEmail, setCustomerEmail] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
@@ -1147,6 +1149,14 @@ const AdminPOS = () => {
               </Button>
               <h2 className="text-base sm:text-xl font-semibold bg-yellow-400 px-3 sm:px-4 py-2 rounded">بيع تذكرة</h2>
               <Button
+                type="button"
+                onClick={() => setCheckInOpen(true)}
+                className="h-auto px-3 sm:px-4 py-2 gap-2 font-semibold shadow-elegant bg-gradient-to-l from-primary to-primary/80"
+              >
+                <UserCheck className="w-4 h-4" />
+                تسجيل الحضور
+              </Button>
+              <Button
                 variant="ghost"
                 size="icon"
                 onClick={toggleFullscreen}
@@ -1163,6 +1173,13 @@ const AdminPOS = () => {
           </div>
         </div>
       </header>
+
+      <ManualCheckInDialog
+        open={checkInOpen}
+        onOpenChange={setCheckInOpen}
+        staffName={selectedPosUserName || null}
+      />
+
 
       <div className="w-full mx-auto py-4 sm:py-8 px-2 sm:px-4 lg:px-6 max-w-7xl">
         {/* Capacity Alert */}
