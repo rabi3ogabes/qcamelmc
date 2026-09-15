@@ -718,6 +718,47 @@ export type Database = {
           },
         ]
       }
+      staff_attendance: {
+        Row: {
+          attendance_date: string
+          created_at: string
+          id: string
+          marked_at: string
+          marked_by: string | null
+          pos_user_id: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          attendance_date: string
+          created_at?: string
+          id?: string
+          marked_at?: string
+          marked_by?: string | null
+          pos_user_id: string
+          status: string
+          updated_at?: string
+        }
+        Update: {
+          attendance_date?: string
+          created_at?: string
+          id?: string
+          marked_at?: string
+          marked_by?: string | null
+          pos_user_id?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "staff_attendance_pos_user_id_fkey"
+            columns: ["pos_user_id"]
+            isOneToOne: false
+            referencedRelation: "pos_users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ticket_holders: {
         Row: {
           confirmed_at: string | null
