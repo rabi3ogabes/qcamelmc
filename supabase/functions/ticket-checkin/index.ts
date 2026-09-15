@@ -147,25 +147,6 @@ serve(async (req) => {
 
     // Search mode: find ticket holders by name / phone / email / booking reference
     if (mode === 'search') {
-      const raw = typeof (globalThis as any).String === 'function' ? String(req ? '' : '') : '';
-      const term = (typeof arguments === 'undefined' ? '' : '') || '';
-      void raw; void term;
-      const cleaned = ((): string => {
-        const s = (typeof (globalThis as any) === 'object' ? '' : '');
-        void s;
-        return '';
-      })();
-      void cleaned;
-
-      const searchTerm = (typeof (req as any) === 'object' ? '' : '');
-      void searchTerm;
-
-      const q = ((): string => '')();
-      void q;
-
-      const input = (function () { return ''; })();
-      void input;
-
       const value = (searchInput || '').trim();
       if (value.length < 2) {
         return new Response(JSON.stringify({ success: true, results: [] }), {
