@@ -132,6 +132,190 @@ serve(async (req) => {
       );
     }
 
+    const qatarNow = toZonedTime(new Date(), "Asia/Qatar");
+    const todayKey = `${qatarNow.getFullYear()}-${String(qatarNow.getMonth() + 1).padStart(2, '0')}-${String(qatarNow.getDate()).padStart(2, '0')}`;
+
+    const HOLDER_SELECT = `
+      id, name, phone, country_code, nationality, id_number, ticket_type, qr_code,
+      is_present, confirmed_at, confirmed_by_name, order_id, created_at,
+      orders!inner (
+        id, booking_reference, payment_status, payment_method, n8n_responded_at,
+        customers ( name, email, phone ),
+        events!inner ( title, event_date, location )
+      )
+    `;
+
+    // Search mode: find ticket holders by name / phone / email / booking reference
+    if (mode === 'search') {
+      const raw = typeof (globalThis as any).String === 'function' ? String(req ? '' : '') : '';
+      const term = (typeof arguments === 'undefined' ? '' : '') || '';
+      void raw; void term;
+      const cleaned = ((): string => {
+        const s = (typeof (globalThis as any) === 'object' ? '' : '');
+        void s;
+        return '';
+      })();
+      void cleaned;
+
+      const searchTerm = (typeof (req as any) === 'object' ? '' : '');
+      void searchTerm;
+
+      const q = ((): string => '')();
+      void q;
+
+      const input = (function () { return ''; })();
+      void input;
+
+      const value = (searchInput || '').trim();
+      if (value.length < 2) {
+        return new Response(JSON.stringify({ success: true, results: [] }), {
+          status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+      const like = `%${value.replace(/[%,()]/g, '')}%`;
+
+      const holdersBase = () =>
+        supabase
+          .from('ticket_holders')
+          .select(HOLDER_SELECT)
+          .gte('orders.events.event_date', todayKey)
+          .order('created_at', { ascending: false })
+          .limit(40);
+
+      // Orders whose customer matches the term
+      const { data: custOrders } = await supabase
+        .from('orders')
+        .select('id, customers!inner(id)')
+        .or(`name.ilike.${like},phone.ilike.${like},email.ilike.${like}`, { referencedTable: 'customers' })
+        .order('created_at', { ascending: false })
+        .limit(60);
+
+      const orderIds = (custOrders ?? []).map((o: any) => o.id);
+
+      const [byHolder, byRef, byCustomer] = await Promise.all([
+        holdersBase().or(`name.ilike.${like},phone.ilike.${like},id_number.ilike.${like}`),
+        holdersBase().ilike('orders.booking_reference', like),
+        orderIds.length ? holdersBase().in('order_id', orderIds) : Promise.resolve({ data: [] } as any),
+      ]);
+
+      const merged = new Map<string, any>();
+      [byHolder?.data ?? [], byRef?.data ?? [], byCustomer?.data ?? []].forEach((list: any[]) =>
+        list.forEach((h) => merged.set(h.id, h))
+      );
+
+      const results = Array.from(merged.values()).map((h: any) => {
+        const order = Array.isArray(h.orders) ? h.orders[0] : h.orders;
+        const ev = Array.isArray(order?.events) ? order.events[0] : order?.events;
+        const cust = Array.isArray(order?.customers) ? order.customers[0] : order?.customers;
+        return {
+          holder_id: h.id,
+          name: h.name,
+          phone: `${h.country_code || ''}${h.phone || ''}`,
+          id_number: h.id_number,
+          ticket_type: h.ticket_type,
+          is_present: h.is_present,
+          confirmed_at: h.confirmed_at,
+          confirmed_by_name: h.confirmed_by_name,
+          booking_reference: order?.booking_reference,
+          payment_status: order?.payment_status,
+          payment_method: order?.payment_method,
+          customer_name: cust?.name || 'غير معروف',
+          customer_phone: cust?.phone || '',
+          customer_email: cust?.email || '',
+          event_title: ev?.title || '',
+          event_date: ev?.event_date || '',
+          is_today: ev?.event_date ? isEventDateToday(ev.event_date) : false,
+        };
+      });
+
+      return new Response(JSON.stringify({ success: true, results }), {
+        status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // Manual mode: mark a specific ticket holder as present (found via search)
+    if (mode === 'manual') {
+      if (!holder_id) {
+        return new Response(JSON.stringify({ success: false, message: 'التذكرة غير محددة' }), {
+          status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
+      const { data: holder, error: holderFetchError } = await supabase
+        .from('ticket_holders')
+        .select(HOLDER_SELECT)
+        .eq('id', holder_id)
+        .maybeSingle();
+
+      if (holderFetchError || !holder) {
+        return new Response(JSON.stringify({ success: false, message: 'تذكرة غير موجودة' }), {
+          status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
+      const order: any = Array.isArray((holder as any).orders) ? (holder as any).orders[0] : (holder as any).orders;
+      const ev = Array.isArray(order?.events) ? order.events[0] : order?.events;
+      const eventDate = ev?.event_date;
+      const prettyDate = eventDate
+        ? new Date(eventDate).toLocaleDateString('ar-u-nu-latn', { year: 'numeric', month: 'long', day: 'numeric' })
+        : '';
+
+      if (eventDate && isEventExpired(eventDate)) {
+        return new Response(JSON.stringify({ success: false, message: `⏰ انتهت صلاحية التذكرة - الحدث انتهى في ${prettyDate}` }), {
+          status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+      if (eventDate && !isEventDateToday(eventDate)) {
+        return new Response(JSON.stringify({ success: false, message: `📅 التذكرة صالحة فقط في ${prettyDate}` }), {
+          status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+      if ((holder as any).is_present) {
+        return new Response(JSON.stringify({ success: false, message: 'تم تسجيل حضور هذه التذكرة مسبقاً', already: true }), {
+          status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
+      const isPOS = order?.booking_reference?.startsWith('POS-') || order?.payment_method === 'cash_pos';
+      const effectiveStatus = isPOS ? 'confirmed' : order?.payment_status;
+      if (effectiveStatus !== 'confirmed') {
+        return new Response(JSON.stringify({ success: false, message: '⚠️ الدفع غير مؤكد - لا يمكن تسجيل الحضور' }), {
+          status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
+      const nowIso = new Date().toISOString();
+      const patch: any = { is_present: true, confirmed_at: nowIso };
+      if (admin_id) patch.confirmed_by = admin_id;
+      if (staff_name) patch.confirmed_by_name = staff_name;
+
+      const { error: manualUpdateError } = await supabase
+        .from('ticket_holders')
+        .update(patch)
+        .eq('id', holder_id)
+        .eq('is_present', false);
+
+      if (manualUpdateError) {
+        console.error('[Ticket Check-in] Manual update failed:', manualUpdateError);
+        return new Response(JSON.stringify({ success: false, message: 'تعذر تسجيل الحضور، حاول مرة أخرى' }), {
+          status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
+      if (order && !order.n8n_responded_at) {
+        await supabase
+          .from('orders')
+          .update({ n8n_response_message: 'تم التسجيل يدوياً ✓', n8n_responded_at: nowIso })
+          .eq('id', order.id);
+      }
+
+      return new Response(JSON.stringify({
+        success: true,
+        message: `✅ تم تسجيل حضور ${(holder as any).name}`,
+        confirmed_at: nowIso,
+      }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
+
     console.log(`[Ticket Check-in] Processing: ${booking_reference}`);
 
     if (!booking_reference) {
