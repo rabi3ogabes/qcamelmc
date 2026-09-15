@@ -102,7 +102,7 @@ serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseKey);
 
     // Parse request body
-    const { booking_reference, admin_id, staff_name, mode, passcode }: CheckInRequest = await req.json();
+    const { booking_reference, admin_id, staff_name, mode, passcode, search: searchInput, holder_id }: CheckInRequest = await req.json();
 
     if (!(await isStaffAuthorized(req, supabase, passcode))) {
       return unauthorizedResponse(corsHeaders);
