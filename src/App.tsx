@@ -38,6 +38,7 @@ const AdminPOS = lazy(() => import("./pages/AdminPOS"));
 const POSReceiptPage = lazy(() => import("./pages/POSReceiptPage"));
 const TicketViewer = lazy(() => import("./pages/TicketViewer"));
 const StaffHub = lazy(() => import("./pages/StaffHub"));
+const StaffAttendance = lazy(() => import("./pages/StaffAttendance"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 // Admin dashboard sub-pages
@@ -54,6 +55,7 @@ const VisitorsPage = lazy(() => import("./pages/admin/VisitorsPage"));
 const ReportsPage = lazy(() => import("./pages/admin/ReportsPage"));
 const ActivityLogsPage = lazy(() => import("./pages/admin/ActivityLogsPage"));
 const PaymentErrorsPage = lazy(() => import("./pages/admin/PaymentErrorsPage"));
+const AttendancePage = lazy(() => import("./pages/admin/AttendancePage"));
 
 const queryClient = new QueryClient();
 
@@ -91,6 +93,7 @@ const App = () => (
                     <Route path="/live-bookings" element={<RequireAdmin><LiveBookings /></RequireAdmin>} />
                     <Route path="/live-visitors" element={<RequireAdmin adminOnly><LiveVisitors /></RequireAdmin>} />
                     <Route path="/staff" element={<RequireAdmin><StaffHub /></RequireAdmin>} />
+                    <Route path="/staff/attendance" element={<RequireAdmin><StaffAttendance /></RequireAdmin>} />
                     <Route path="/admin/login" element={<AdminLogin />} />
                     <Route path="/admin/dashboard" element={<RequireAdmin adminOnly><AdminDashboard /></RequireAdmin>}>
                       <Route index element={<Navigate to="orders" replace />} />
@@ -107,6 +110,7 @@ const App = () => (
                       <Route path="reports" element={<ReportsPage />} />
                       <Route path="activity-logs" element={<ActivityLogsPage />} />
                       <Route path="payment-errors" element={<PaymentErrorsPage />} />
+                      <Route path="attendance" element={<AttendancePage />} />
                     </Route>
                     <Route path="/admin/qr-scanner" element={<RequireAdmin><QRScanner /></RequireAdmin>} />
                     <Route path="/admin/pos" element={<RequireAdmin><AdminPOS /></RequireAdmin>} />
