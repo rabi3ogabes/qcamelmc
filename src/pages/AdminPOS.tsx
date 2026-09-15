@@ -1147,6 +1147,14 @@ const AdminPOS = () => {
               </Button>
               <h2 className="text-base sm:text-xl font-semibold bg-yellow-400 px-3 sm:px-4 py-2 rounded">بيع تذكرة</h2>
               <Button
+                type="button"
+                onClick={() => setCheckInOpen(true)}
+                className="h-auto px-3 sm:px-4 py-2 gap-2 font-semibold shadow-elegant bg-gradient-to-l from-primary to-primary/80"
+              >
+                <UserCheck className="w-4 h-4" />
+                تسجيل الحضور
+              </Button>
+              <Button
                 variant="ghost"
                 size="icon"
                 onClick={toggleFullscreen}
