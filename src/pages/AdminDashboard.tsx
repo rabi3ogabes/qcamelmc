@@ -22,6 +22,10 @@ import {
   ArrowLeftRight,
   Bell,
   AlertTriangle,
+  LayoutDashboard,
+  BarChart3,
+  ClipboardCheck,
+  ChevronDown,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { CapacityAlert } from "@/components/admin/CapacityAlert";
@@ -35,6 +39,25 @@ const AdminDashboard = () => {
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
   const [headerBgColor, setHeaderBgColor] = useState<string>("hsl(var(--card) / 0.5)");
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>(() => {
+    try {
+      return JSON.parse(localStorage.getItem("admin_nav_groups") || "{}");
+    } catch {
+      return {};
+    }
+  });
+
+  const toggleGroup = (id: string, open: boolean) => {
+    setOpenGroups((prev) => {
+      const next = { ...prev, [id]: open };
+      try {
+        localStorage.setItem("admin_nav_groups", JSON.stringify(next));
+      } catch {
+        // ignore storage errors
+      }
+      return next;
+    });
+  };
   const navigate = useNavigate();
   const location = useLocation();
 
