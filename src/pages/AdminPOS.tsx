@@ -1174,6 +1174,13 @@ const AdminPOS = () => {
         </div>
       </header>
 
+      <ManualCheckInDialog
+        open={checkInOpen}
+        onOpenChange={setCheckInOpen}
+        staffName={selectedPosUserName || null}
+      />
+
+
       <div className="w-full mx-auto py-4 sm:py-8 px-2 sm:px-4 lg:px-6 max-w-7xl">
         {/* Capacity Alert */}
         {currentEventId && <CapacityAlert eventId={currentEventId} />}
