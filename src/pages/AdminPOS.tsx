@@ -81,6 +81,7 @@ const AdminPOS = () => {
   const [headerBgColor, setHeaderBgColor] = useState<string>("hsl(var(--card) / 0.5)");
   
   const [cart, setCart] = useState<CartItem[]>([]);
+  const [checkInOpen, setCheckInOpen] = useState(false);
   const [customerName, setCustomerName] = useState("");
   const [customerEmail, setCustomerEmail] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
