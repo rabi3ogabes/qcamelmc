@@ -75,23 +75,56 @@ const AdminDashboard = () => {
     navigate("/admin/login");
   };
 
-  const mainNav = [
-    { to: "/admin/dashboard/notifications", label: "الإشعارات", icon: Bell },
-    { to: "/admin/dashboard/orders", label: t("orders"), icon: ShoppingCart },
-    { to: "/admin/dashboard/customers", label: "العملاء", icon: Users },
-    { to: "/admin/dashboard/transactions", label: "المعاملات", icon: ArrowLeftRight },
-    { to: "/admin/dashboard/events", label: t("events"), icon: Calendar },
-    { to: "/admin/dashboard/tickets", label: t("tickets"), icon: Ticket },
-    { to: "/admin/dashboard/invoices", label: "إرسال الفواتير", icon: FileText },
-    { to: "/admin/dashboard/payment-errors", label: "أخطاء الدفع", icon: AlertTriangle },
-  ];
-
-  const settingsNav = [
-    { to: "/admin/dashboard/settings", label: "الإعدادات العامة", icon: Settings },
-    { to: "/admin/dashboard/pos-users", label: "مستخدمي POS", icon: UserCog },
-    { to: "/admin/dashboard/visitors", label: "الزوار النشطون", icon: Eye },
-    { to: "/admin/dashboard/reports", label: "التقارير", icon: FileText },
-    { to: "/admin/dashboard/activity-logs", label: "سجلات النشاط", icon: FileText },
+  const navGroups = [
+    {
+      id: "main",
+      label: "الرئيسية",
+      icon: LayoutDashboard,
+      items: [
+        { to: "/admin/dashboard/notifications", label: "الإشعارات", icon: Bell },
+        { to: "/admin/dashboard/orders", label: t("orders"), icon: ShoppingCart },
+        { to: "/admin/dashboard/customers", label: "العملاء", icon: Users },
+        { to: "/admin/dashboard/transactions", label: "المعاملات", icon: ArrowLeftRight },
+      ],
+    },
+    {
+      id: "events",
+      label: "الفعاليات والتذاكر",
+      icon: Calendar,
+      items: [
+        { to: "/admin/dashboard/events", label: t("events"), icon: Calendar },
+        { to: "/admin/dashboard/tickets", label: t("tickets"), icon: Ticket },
+        { to: "/admin/dashboard/invoices", label: "إرسال الفواتير", icon: FileText },
+      ],
+    },
+    {
+      id: "team",
+      label: "الفريق",
+      icon: UserCog,
+      items: [
+        { to: "/admin/dashboard/pos-users", label: "مستخدمي POS", icon: UserCog },
+        { to: "/admin/dashboard/attendance", label: "حضور الفريق", icon: ClipboardCheck },
+      ],
+    },
+    {
+      id: "analytics",
+      label: "التحليلات والتقارير",
+      icon: BarChart3,
+      items: [
+        { to: "/admin/dashboard/visitors", label: "الزوار النشطون", icon: Eye },
+        { to: "/admin/dashboard/reports", label: "التقارير", icon: FileText },
+        { to: "/admin/dashboard/activity-logs", label: "سجلات النشاط", icon: FileText },
+        { to: "/admin/dashboard/payment-errors", label: "أخطاء الدفع", icon: AlertTriangle },
+      ],
+    },
+    {
+      id: "settings",
+      label: t("settings"),
+      icon: Settings,
+      items: [
+        { to: "/admin/dashboard/settings", label: "الإعدادات العامة", icon: Settings },
+      ],
+    },
   ];
 
   const quickActions = [
@@ -105,43 +138,61 @@ const AdminDashboard = () => {
 
   const navItemClass = ({ isActive }: { isActive: boolean }) =>
     cn(
-      "group relative flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-all duration-200",
+      "group relative flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-all duration-200",
       isActive
         ? "bg-primary text-primary-foreground shadow-[var(--shadow-elegant)]"
         : "text-muted-foreground hover:bg-muted hover:text-foreground"
     );
 
   const NavSections = () => (
-    <nav className="space-y-6">
-      <div>
-        <p className="px-3 pb-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground/70">
-          الإدارة
-        </p>
-        <div className="space-y-1">
-          {mainNav.map(({ to, label, icon: Icon }) => (
-            <NavLink key={to} to={to} className={navItemClass}>
-              <Icon className="h-4 w-4 shrink-0" />
-              <span className="truncate font-medium">{label}</span>
-            </NavLink>
-          ))}
-        </div>
-      </div>
+    <nav className="space-y-2">
+      {navGroups.map((group) => {
+        const GroupIcon = group.icon;
+        const hasActive = group.items.some((i) => location.pathname === i.to);
+        const open = openGroups[group.id] ?? hasActive;
+        return (
+          <div
+            key={group.id}
+            className={cn(
+              "overflow-hidden rounded-xl border transition-colors duration-200",
+              hasActive ? "border-primary/30 bg-muted/40" : "border-transparent hover:bg-muted/30"
+            )}
+          >
+            <button
+              onClick={() => toggleGroup(group.id, !open)}
+              className="flex w-full items-center gap-3 px-3 py-2.5 text-sm font-semibold"
+            >
+              <GroupIcon className={cn("h-4 w-4 shrink-0", hasActive ? "text-primary" : "text-muted-foreground")} />
+              <span className="flex-1 text-right truncate">{group.label}</span>
+              <ChevronDown
+                className={cn(
+                  "h-4 w-4 shrink-0 text-muted-foreground transition-transform duration-200",
+                  open && "rotate-180"
+                )}
+              />
+            </button>
+            <div
+              className={cn(
+                "grid transition-all duration-300 ease-out",
+                open ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
+              )}
+            >
+              <div className="overflow-hidden">
+                <div className="space-y-1 border-t border-border/50 px-2 py-2">
+                  {group.items.map(({ to, label, icon: Icon }) => (
+                    <NavLink key={to} to={to} className={navItemClass}>
+                      <Icon className="h-4 w-4 shrink-0" />
+                      <span className="truncate font-medium">{label}</span>
+                    </NavLink>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      })}
 
-      <div>
-        <p className="px-3 pb-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground/70">
-          {t("settings")}
-        </p>
-        <div className="space-y-1">
-          {settingsNav.map(({ to, label, icon: Icon }) => (
-            <NavLink key={to} to={to} className={navItemClass}>
-              <Icon className="h-4 w-4 shrink-0" />
-              <span className="truncate font-medium">{label}</span>
-            </NavLink>
-          ))}
-        </div>
-      </div>
-
-      <div>
+      <div className="pt-3">
         <p className="px-3 pb-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground/70">
           روابط سريعة
         </p>
@@ -150,7 +201,7 @@ const AdminDashboard = () => {
             <button
               key={label}
               onClick={onClick}
-              className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+              className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
             >
               <Icon className="h-4 w-4 shrink-0" />
               <span className="truncate">{label}</span>
