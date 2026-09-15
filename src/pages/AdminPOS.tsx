@@ -25,6 +25,7 @@ import { bookingGuardMessage, checkTicketLimits, formatLimitViolation, isTicketL
 import { useReserveTickets } from "@/hooks/useReserveTickets";
 import { CapacityAlert } from "@/components/admin/CapacityAlert";
 import { CapacityNotificationBanner } from "@/components/admin/CapacityNotificationBanner";
+import { ManualCheckInDialog } from "@/components/admin/ManualCheckInDialog";
 import { useCapacityNotification } from "@/hooks/useCapacityNotification";
 
 interface POSUser {
