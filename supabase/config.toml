@@ -44,3 +44,6 @@ verify_jwt = false
 
 [functions.manage-staff-users]
 verify_jwt = true
+
+[functions.staff-attendance]
+verify_jwt = false
