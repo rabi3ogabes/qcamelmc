@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
+import { getStaffPasscode } from "@/lib/staffAccess";
 import {
   CalendarDays,
   Check,
@@ -87,91 +88,76 @@ export const AttendanceTab = () => {
     [dateKey]
   );
 
-  const fetchAll = useCallback(async () => {
-    const from = weekKeys[0];
-    const [{ data: userData, error: userErr }, { data: attData, error: attErr }] =
-      await Promise.all([
-        supabase
-          .from("pos_users")
-          .select("id, name, icon, is_active")
-          .eq("is_active", true)
-          .order("name", { ascending: true }),
-        supabase
-          .from("staff_attendance")
-          .select("pos_user_id, attendance_date, status")
-          .gte("attendance_date", from)
-          .lte("attendance_date", dateKey),
-      ]);
+  /** All reads/writes go through the edge function so passcode-only staff work too. */
+  const callAttendance = useCallback(async (payload: Record<string, unknown>) => {
+    const { data, error } = await supabase.functions.invoke("staff-attendance", {
+      body: { ...payload, passcode: getStaffPasscode() },
+    });
+    if (error) throw error;
+    if (data?.error) throw new Error(data.error);
+    return data;
+  }, []);
 
-    if (userErr || attErr) {
-      console.error("Attendance load error:", userErr || attErr);
+  const fetchAll = useCallback(async () => {
+    try {
+      const data = await callAttendance({
+        mode: "list",
+        from: weekKeys[0],
+        to: dateKey,
+      });
+      setUsers((data?.users as POSUser[]) || []);
+      setRecords((data?.records as AttendanceRow[]) || []);
+    } catch (error) {
+      console.error("Attendance load error:", error);
       toast({
         title: "خطأ",
         description: "تعذّر تحميل بيانات الحضور",
         variant: "destructive",
       });
+    } finally {
+      setLoading(false);
     }
-    setUsers((userData as POSUser[]) || []);
-    setRecords((attData as AttendanceRow[]) || []);
-    setLoading(false);
-  }, [dateKey, weekKeys, toast]);
+  }, [callAttendance, dateKey, weekKeys, toast]);
 
   useEffect(() => {
     setLoading(true);
     fetchAll();
   }, [fetchAll]);
 
+  // Realtime is blocked for passcode-only staff, so refresh periodically instead.
   useEffect(() => {
-    const channel = supabase
-      .channel("staff-attendance-live")
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "staff_attendance" },
-        () => fetchAll()
-      )
-      .subscribe();
-    return () => {
-      supabase.removeChannel(channel);
-    };
+    const id = window.setInterval(() => fetchAll(), 30000);
+    return () => window.clearInterval(id);
   }, [fetchAll]);
 
   const statusFor = (userId: string, key = dateKey): Status | null =>
     records.find((r) => r.pos_user_id === userId && r.attendance_date === key)?.status ?? null;
 
+  const currentUserId = async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    return session?.user?.id ?? null;
+  };
+
   const setStatus = async (userId: string, next: Status) => {
     const current = statusFor(userId);
     setSavingId(userId);
     try {
-      if (current === next) {
-        const { error } = await supabase
-          .from("staff_attendance")
-          .delete()
-          .eq("pos_user_id", userId)
-          .eq("attendance_date", dateKey);
-        if (error) throw error;
-        setRecords((prev) =>
-          prev.filter((r) => !(r.pos_user_id === userId && r.attendance_date === dateKey))
+      const clearing = current === next;
+      await callAttendance({
+        mode: "set",
+        date: dateKey,
+        pos_user_id: userId,
+        status: clearing ? null : next,
+        marked_by: await currentUserId(),
+      });
+      setRecords((prev) => {
+        const rest = prev.filter(
+          (r) => !(r.pos_user_id === userId && r.attendance_date === dateKey)
         );
-      } else {
-        const { data: { session } } = await supabase.auth.getSession();
-        const { error } = await supabase
-          .from("staff_attendance")
-          .upsert(
-            {
-              pos_user_id: userId,
-              attendance_date: dateKey,
-              status: next,
-              marked_by: session?.user?.id ?? null,
-              marked_at: new Date().toISOString(),
-            },
-            { onConflict: "pos_user_id,attendance_date" }
-          );
-        if (error) throw error;
-        setRecords((prev) => [
-          ...prev.filter((r) => !(r.pos_user_id === userId && r.attendance_date === dateKey)),
-          { pos_user_id: userId, attendance_date: dateKey, status: next },
-        ]);
-      }
+        return clearing
+          ? rest
+          : [...rest, { pos_user_id: userId, attendance_date: dateKey, status: next }];
+      });
     } catch (error) {
       console.error("Attendance save error:", error);
       toast({ title: "خطأ", description: "لم يتم حفظ الحالة", variant: "destructive" });
@@ -184,24 +170,17 @@ export const AttendanceTab = () => {
     if (!users.length) return;
     setBulkBusy(true);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      const rows = users.map((u) => ({
-        pos_user_id: u.id,
-        attendance_date: dateKey,
-        status: "present" as Status,
-        marked_by: session?.user?.id ?? null,
-        marked_at: new Date().toISOString(),
-      }));
-      const { error } = await supabase
-        .from("staff_attendance")
-        .upsert(rows, { onConflict: "pos_user_id,attendance_date" });
-      if (error) throw error;
+      await callAttendance({
+        mode: "bulk_present",
+        date: dateKey,
+        marked_by: await currentUserId(),
+      });
       setRecords((prev) => [
         ...prev.filter((r) => r.attendance_date !== dateKey),
-        ...rows.map(({ pos_user_id, attendance_date, status }) => ({
-          pos_user_id,
-          attendance_date,
-          status,
+        ...users.map((u) => ({
+          pos_user_id: u.id,
+          attendance_date: dateKey,
+          status: "present" as Status,
         })),
       ]);
       toast({ title: "تم", description: "تم تسجيل الجميع كحاضرين" });
@@ -216,11 +195,7 @@ export const AttendanceTab = () => {
   const clearDay = async () => {
     setBulkBusy(true);
     try {
-      const { error } = await supabase
-        .from("staff_attendance")
-        .delete()
-        .eq("attendance_date", dateKey);
-      if (error) throw error;
+      await callAttendance({ mode: "clear_day", date: dateKey });
       setRecords((prev) => prev.filter((r) => r.attendance_date !== dateKey));
       toast({ title: "تم", description: "تم مسح سجل هذا اليوم" });
     } catch (error) {
