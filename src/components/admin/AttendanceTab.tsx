@@ -87,34 +87,36 @@ export const AttendanceTab = () => {
     [dateKey]
   );
 
-  const fetchAll = useCallback(async () => {
-    const from = weekKeys[0];
-    const [{ data: userData, error: userErr }, { data: attData, error: attErr }] =
-      await Promise.all([
-        supabase
-          .from("pos_users")
-          .select("id, name, icon, is_active")
-          .eq("is_active", true)
-          .order("name", { ascending: true }),
-        supabase
-          .from("staff_attendance")
-          .select("pos_user_id, attendance_date, status")
-          .gte("attendance_date", from)
-          .lte("attendance_date", dateKey),
-      ]);
+  /** All reads/writes go through the edge function so passcode-only staff work too. */
+  const callAttendance = useCallback(async (payload: Record<string, unknown>) => {
+    const { data, error } = await supabase.functions.invoke("staff-attendance", {
+      body: { ...payload, passcode: getStaffPasscode() },
+    });
+    if (error) throw error;
+    if (data?.error) throw new Error(data.error);
+    return data;
+  }, []);
 
-    if (userErr || attErr) {
-      console.error("Attendance load error:", userErr || attErr);
+  const fetchAll = useCallback(async () => {
+    try {
+      const data = await callAttendance({
+        mode: "list",
+        from: weekKeys[0],
+        to: dateKey,
+      });
+      setUsers((data?.users as POSUser[]) || []);
+      setRecords((data?.records as AttendanceRow[]) || []);
+    } catch (error) {
+      console.error("Attendance load error:", error);
       toast({
         title: "خطأ",
         description: "تعذّر تحميل بيانات الحضور",
         variant: "destructive",
       });
+    } finally {
+      setLoading(false);
     }
-    setUsers((userData as POSUser[]) || []);
-    setRecords((attData as AttendanceRow[]) || []);
-    setLoading(false);
-  }, [dateKey, weekKeys, toast]);
+  }, [callAttendance, dateKey, weekKeys, toast]);
 
   useEffect(() => {
     setLoading(true);
