@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
+import { getStaffPasscode } from "@/lib/staffAccess";
 import {
   CalendarDays,
   Check,
@@ -195,102 +196,6 @@ export const AttendanceTab = () => {
     setBulkBusy(true);
     try {
       await callAttendance({ mode: "clear_day", date: dateKey });
-      setRecords((prev) => prev.filter((r) => r.attendance_date !== dateKey));
-      toast({ title: "تم", description: "تم مسح سجل هذا اليوم" });
-    } catch (error) {
-      console.error(error);
-      toast({ title: "خطأ", description: "تعذّر المسح", variant: "destructive" });
-    } finally {
-      setBulkBusy(false);
-    }
-  };
-
-  const statusFor = (userId: string, key = dateKey): Status | null =>
-    records.find((r) => r.pos_user_id === userId && r.attendance_date === key)?.status ?? null;
-
-  const setStatus = async (userId: string, next: Status) => {
-    const current = statusFor(userId);
-    setSavingId(userId);
-    try {
-      if (current === next) {
-        const { error } = await supabase
-          .from("staff_attendance")
-          .delete()
-          .eq("pos_user_id", userId)
-          .eq("attendance_date", dateKey);
-        if (error) throw error;
-        setRecords((prev) =>
-          prev.filter((r) => !(r.pos_user_id === userId && r.attendance_date === dateKey))
-        );
-      } else {
-        const { data: { session } } = await supabase.auth.getSession();
-        const { error } = await supabase
-          .from("staff_attendance")
-          .upsert(
-            {
-              pos_user_id: userId,
-              attendance_date: dateKey,
-              status: next,
-              marked_by: session?.user?.id ?? null,
-              marked_at: new Date().toISOString(),
-            },
-            { onConflict: "pos_user_id,attendance_date" }
-          );
-        if (error) throw error;
-        setRecords((prev) => [
-          ...prev.filter((r) => !(r.pos_user_id === userId && r.attendance_date === dateKey)),
-          { pos_user_id: userId, attendance_date: dateKey, status: next },
-        ]);
-      }
-    } catch (error) {
-      console.error("Attendance save error:", error);
-      toast({ title: "خطأ", description: "لم يتم حفظ الحالة", variant: "destructive" });
-    } finally {
-      setSavingId(null);
-    }
-  };
-
-  const markAllPresent = async () => {
-    if (!users.length) return;
-    setBulkBusy(true);
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      const rows = users.map((u) => ({
-        pos_user_id: u.id,
-        attendance_date: dateKey,
-        status: "present" as Status,
-        marked_by: session?.user?.id ?? null,
-        marked_at: new Date().toISOString(),
-      }));
-      const { error } = await supabase
-        .from("staff_attendance")
-        .upsert(rows, { onConflict: "pos_user_id,attendance_date" });
-      if (error) throw error;
-      setRecords((prev) => [
-        ...prev.filter((r) => r.attendance_date !== dateKey),
-        ...rows.map(({ pos_user_id, attendance_date, status }) => ({
-          pos_user_id,
-          attendance_date,
-          status,
-        })),
-      ]);
-      toast({ title: "تم", description: "تم تسجيل الجميع كحاضرين" });
-    } catch (error) {
-      console.error(error);
-      toast({ title: "خطأ", description: "تعذّر التحديث", variant: "destructive" });
-    } finally {
-      setBulkBusy(false);
-    }
-  };
-
-  const clearDay = async () => {
-    setBulkBusy(true);
-    try {
-      const { error } = await supabase
-        .from("staff_attendance")
-        .delete()
-        .eq("attendance_date", dateKey);
-      if (error) throw error;
       setRecords((prev) => prev.filter((r) => r.attendance_date !== dateKey));
       toast({ title: "تم", description: "تم مسح سجل هذا اليوم" });
     } catch (error) {
