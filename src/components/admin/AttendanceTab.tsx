@@ -123,19 +123,87 @@ export const AttendanceTab = () => {
     fetchAll();
   }, [fetchAll]);
 
+  // Realtime is blocked for passcode-only staff, so refresh periodically instead.
   useEffect(() => {
-    const channel = supabase
-      .channel("staff-attendance-live")
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "staff_attendance" },
-        () => fetchAll()
-      )
-      .subscribe();
-    return () => {
-      supabase.removeChannel(channel);
-    };
+    const id = window.setInterval(() => fetchAll(), 30000);
+    return () => window.clearInterval(id);
   }, [fetchAll]);
+
+  const statusFor = (userId: string, key = dateKey): Status | null =>
+    records.find((r) => r.pos_user_id === userId && r.attendance_date === key)?.status ?? null;
+
+  const currentUserId = async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    return session?.user?.id ?? null;
+  };
+
+  const setStatus = async (userId: string, next: Status) => {
+    const current = statusFor(userId);
+    setSavingId(userId);
+    try {
+      const clearing = current === next;
+      await callAttendance({
+        mode: "set",
+        date: dateKey,
+        pos_user_id: userId,
+        status: clearing ? null : next,
+        marked_by: await currentUserId(),
+      });
+      setRecords((prev) => {
+        const rest = prev.filter(
+          (r) => !(r.pos_user_id === userId && r.attendance_date === dateKey)
+        );
+        return clearing
+          ? rest
+          : [...rest, { pos_user_id: userId, attendance_date: dateKey, status: next }];
+      });
+    } catch (error) {
+      console.error("Attendance save error:", error);
+      toast({ title: "خطأ", description: "لم يتم حفظ الحالة", variant: "destructive" });
+    } finally {
+      setSavingId(null);
+    }
+  };
+
+  const markAllPresent = async () => {
+    if (!users.length) return;
+    setBulkBusy(true);
+    try {
+      await callAttendance({
+        mode: "bulk_present",
+        date: dateKey,
+        marked_by: await currentUserId(),
+      });
+      setRecords((prev) => [
+        ...prev.filter((r) => r.attendance_date !== dateKey),
+        ...users.map((u) => ({
+          pos_user_id: u.id,
+          attendance_date: dateKey,
+          status: "present" as Status,
+        })),
+      ]);
+      toast({ title: "تم", description: "تم تسجيل الجميع كحاضرين" });
+    } catch (error) {
+      console.error(error);
+      toast({ title: "خطأ", description: "تعذّر التحديث", variant: "destructive" });
+    } finally {
+      setBulkBusy(false);
+    }
+  };
+
+  const clearDay = async () => {
+    setBulkBusy(true);
+    try {
+      await callAttendance({ mode: "clear_day", date: dateKey });
+      setRecords((prev) => prev.filter((r) => r.attendance_date !== dateKey));
+      toast({ title: "تم", description: "تم مسح سجل هذا اليوم" });
+    } catch (error) {
+      console.error(error);
+      toast({ title: "خطأ", description: "تعذّر المسح", variant: "destructive" });
+    } finally {
+      setBulkBusy(false);
+    }
+  };
 
   const statusFor = (userId: string, key = dateKey): Status | null =>
     records.find((r) => r.pos_user_id === userId && r.attendance_date === key)?.status ?? null;
