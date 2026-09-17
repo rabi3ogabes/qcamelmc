@@ -128,14 +128,14 @@ export const InvoiceCard = ({ data }: InvoiceCardProps) => {
           <Row label="نوع التذكرة" value={ticketLabel(data.ticket_type)} />
         </div>
 
-        <div className="mt-6 grid grid-cols-2 gap-4 rounded-xl border border-secondary/30 bg-muted/50 p-5">
+        <div className={`mt-6 grid grid-cols-2 gap-4 rounded-xl border p-5 ${isPaid ? "border-success/30 bg-success/5" : "border-secondary/30 bg-muted/50"}`}>
           <div className="text-center">
             <p className="text-xs text-muted-foreground">عدد التذاكر المدفوعة</p>
-            <p className="mt-1 text-3xl font-bold text-secondary">{data.quantity}</p>
+            <p className={`mt-1 text-3xl font-bold ${isPaid ? "text-success" : "text-secondary"}`}>{data.quantity}</p>
           </div>
           <div className="text-center">
             <p className="text-xs text-muted-foreground">المبلغ الإجمالي</p>
-            <p className="mt-1 text-3xl font-bold text-secondary">
+            <p className={`mt-1 text-3xl font-bold ${isPaid ? "text-success" : "text-secondary"}`}>
               {Number(data.total_amount).toFixed(2)} <span className="text-base">ر.ق</span>
             </p>
           </div>
