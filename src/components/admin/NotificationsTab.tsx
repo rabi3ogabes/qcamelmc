@@ -18,6 +18,7 @@ import {
   CheckCheck,
   Clock,
   CreditCard,
+  ExternalLink,
   Hash,
   Phone,
   RefreshCw,
@@ -25,6 +26,7 @@ import {
   Ticket,
   User,
 } from "lucide-react";
+import InvoiceDialog from "@/components/InvoiceDialog";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
@@ -182,6 +184,7 @@ const NotificationsTab = () => {
   const [dateFilter, setDateFilter] = useState<DateFilter>("today");
   const [customDay, setCustomDay] = useState<string>(() => qatarDateKey(new Date()));
   const [selected, setSelected] = useState<NotificationRow | null>(null);
+  const [invoiceOpen, setInvoiceOpen] = useState(false);
   const [arrivedIds, setArrivedIds] = useState<string[]>([]);
   const [lastSeen, setLastSeen] = useState<string>(
     () => localStorage.getItem(SEEN_KEY) || new Date(0).toISOString()
@@ -517,13 +520,20 @@ const NotificationsTab = () => {
               </div>
 
               <div className="flex justify-end gap-2">
+                <Button onClick={() => setInvoiceOpen(true)}>
+                  <Hash className="ms-2 h-4 w-4" />
+                  عرض الفاتورة
+                </Button>
                 <Button
                   variant="outline"
+                  size="icon"
+                  aria-label="فتح الفاتورة في تبويب جديد"
+                  title="فتح الفاتورة في تبويب جديد"
                   onClick={() =>
                     window.open(`/invoice/${selected.booking_reference}`, "_blank")
                   }
                 >
-                  عرض الفاتورة
+                  <ExternalLink className="h-4 w-4" />
                 </Button>
                 <Button variant="ghost" onClick={() => setSelected(null)}>
                   إغلاق
@@ -533,6 +543,13 @@ const NotificationsTab = () => {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Invoice popup */}
+      <InvoiceDialog
+        bookingReference={selected?.booking_reference ?? null}
+        open={invoiceOpen}
+        onOpenChange={setInvoiceOpen}
+      />
     </div>
   );
 };
