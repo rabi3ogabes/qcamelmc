@@ -99,7 +99,7 @@ const AdminLogin = () => {
       </header>
 
       <div className="flex flex-col items-center justify-center px-4 py-14">
-        <UnifiedLoginCard intendedPath={intendedPath} showHomeLink />
+        <UnifiedLoginCard intendedPath={intendedPath} defaultTab="passcode" showHomeLink />
 
         <div className="mt-6 grid w-full max-w-md grid-cols-2 gap-3">
           <Button
