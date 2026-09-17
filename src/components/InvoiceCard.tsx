@@ -136,7 +136,7 @@ export const InvoiceCard = ({ data }: InvoiceCardProps) => {
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
               {qrUrls.map((url, i) => {
                 const state = data.ticket_states?.[i];
-                const used = Boolean(state?.is_present);
+                const used = Boolean(state?.is_present && state?.confirmed_at);
                 return (
                   <div
                     key={url + i}
