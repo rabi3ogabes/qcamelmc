@@ -17,6 +17,8 @@ interface UnifiedLoginCardProps {
   onPasscodeSuccess?: () => void;
   /** Show the "back to home" link (login page only). */
   showHomeLink?: boolean;
+  /** Which tab opens by default ("account" | "passcode"). */
+  defaultTab?: "account" | "passcode";
 }
 
 /**
@@ -27,6 +29,7 @@ const UnifiedLoginCard = ({
   intendedPath,
   onPasscodeSuccess,
   showHomeLink = false,
+  defaultTab = "account",
 }: UnifiedLoginCardProps) => {
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
@@ -131,7 +134,7 @@ const UnifiedLoginCard = ({
       </div>
 
       <div className="p-6 sm:p-8">
-        <Tabs defaultValue="account" className="w-full">
+        <Tabs defaultValue={defaultTab} className="w-full">
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="account" className="gap-2">
               <ShieldCheck className="h-4 w-4" />
