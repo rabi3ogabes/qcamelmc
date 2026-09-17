@@ -520,13 +520,20 @@ const NotificationsTab = () => {
               </div>
 
               <div className="flex justify-end gap-2">
+                <Button onClick={() => setInvoiceOpen(true)}>
+                  <Hash className="ms-2 h-4 w-4" />
+                  عرض الفاتورة
+                </Button>
                 <Button
                   variant="outline"
+                  size="icon"
+                  aria-label="فتح الفاتورة في تبويب جديد"
+                  title="فتح الفاتورة في تبويب جديد"
                   onClick={() =>
                     window.open(`/invoice/${selected.booking_reference}`, "_blank")
                   }
                 >
-                  عرض الفاتورة
+                  <ExternalLink className="h-4 w-4" />
                 </Button>
                 <Button variant="ghost" onClick={() => setSelected(null)}>
                   إغلاق
@@ -536,6 +543,13 @@ const NotificationsTab = () => {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Invoice popup */}
+      <InvoiceDialog
+        bookingReference={selected?.booking_reference ?? null}
+        open={invoiceOpen}
+        onOpenChange={setInvoiceOpen}
+      />
     </div>
   );
 };
