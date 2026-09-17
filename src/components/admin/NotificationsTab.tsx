@@ -544,7 +544,7 @@ const NotificationsTab = () => {
               </div>
 
               <div className="flex justify-end gap-2">
-                <Button onClick={() => setInvoiceOpen(true)}>
+                <Button onClick={() => setInvoiceRow(selected)}>
                   <Hash className="ms-2 h-4 w-4" />
                   عرض الفاتورة
                 </Button>
