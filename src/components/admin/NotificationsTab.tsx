@@ -378,6 +378,7 @@ const NotificationsTab = () => {
                 isNew={row.created_at > lastSeen}
                 justArrived={arrivedIds.includes(row.id)}
                 onClick={() => setSelected(row)}
+                onInvoice={() => setInvoiceRow(row)}
               />
             ))}
           </div>
