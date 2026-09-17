@@ -113,7 +113,7 @@ export const InvoiceCard = ({ data }: InvoiceCardProps) => {
           <h2 className="text-2xl font-bold tracking-tight">فاتورة الحجز</h2>
           <p className="font-mono text-sm text-muted-foreground">{data.booking_reference}</p>
           {isPaid && (
-            <span className="mt-1 inline-flex items-center gap-1.5 rounded-full border border-secondary/50 bg-secondary/10 px-3 py-1 text-xs font-semibold text-secondary">
+            <span className="mt-1 inline-flex items-center gap-1.5 rounded-full border border-success/50 bg-success/10 px-3 py-1 text-xs font-semibold text-success">
               <CheckCircle2 className="h-3.5 w-3.5" /> تم الدفع بنجاح
             </span>
           )}
