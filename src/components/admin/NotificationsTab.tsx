@@ -112,20 +112,29 @@ const NotificationCard = ({
   isNew,
   justArrived,
   onClick,
+  onInvoice,
 }: {
   row: NotificationRow;
   isNew: boolean;
   justArrived: boolean;
   onClick: () => void;
+  onInvoice: () => void;
 }) => {
   const isPos = row.payment_method === "cash_pos";
   const status = statusMeta[row.payment_status || "pending"];
   return (
-    <button
-      type="button"
+    <div
+      role="button"
+      tabIndex={0}
       onClick={onClick}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          onClick();
+        }
+      }}
       className={cn(
-        "group relative w-full overflow-hidden rounded-xl border border-border/60 bg-card p-3 text-right shadow-card transition-all hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-elegant",
+        "group relative w-full cursor-pointer overflow-hidden rounded-xl border border-border/60 bg-card p-3 text-right shadow-card outline-none transition-all hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-elegant focus-visible:ring-2 focus-visible:ring-primary/50",
         isNew && "bg-primary/[0.04] ring-1 ring-primary/20",
         justArrived && "animate-in fade-in slide-in-from-top-4 duration-700"
       )}
@@ -173,8 +182,22 @@ const NotificationCard = ({
           <span className="text-sm font-bold text-primary">{money(row.total_amount)}</span>
           <span className="text-[10px] text-muted-foreground">{qatarTime(row.created_at)}</span>
         </div>
+
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="h-7 gap-1.5 border-primary/30 text-xs text-primary hover:bg-primary/10 hover:text-primary"
+          onClick={(e) => {
+            e.stopPropagation();
+            onInvoice();
+          }}
+        >
+          <Hash className="h-3 w-3" />
+          عرض الفاتورة
+        </Button>
       </div>
-    </button>
+    </div>
   );
 };
 
