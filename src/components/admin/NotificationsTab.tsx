@@ -18,6 +18,7 @@ import {
   CheckCheck,
   Clock,
   CreditCard,
+  ExternalLink,
   Hash,
   Phone,
   RefreshCw,
@@ -25,6 +26,7 @@ import {
   Ticket,
   User,
 } from "lucide-react";
+import InvoiceDialog from "@/components/InvoiceDialog";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
@@ -182,6 +184,7 @@ const NotificationsTab = () => {
   const [dateFilter, setDateFilter] = useState<DateFilter>("today");
   const [customDay, setCustomDay] = useState<string>(() => qatarDateKey(new Date()));
   const [selected, setSelected] = useState<NotificationRow | null>(null);
+  const [invoiceOpen, setInvoiceOpen] = useState(false);
   const [arrivedIds, setArrivedIds] = useState<string[]>([]);
   const [lastSeen, setLastSeen] = useState<string>(
     () => localStorage.getItem(SEEN_KEY) || new Date(0).toISOString()
