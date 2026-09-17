@@ -1,4 +1,5 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import QRCode from "qrcode";
 import { useNavigate } from "react-router-dom";
 import { toPng } from "html-to-image";
 import { Button } from "@/components/ui/button";
