@@ -207,7 +207,7 @@ const NotificationsTab = () => {
   const [dateFilter, setDateFilter] = useState<DateFilter>("today");
   const [customDay, setCustomDay] = useState<string>(() => qatarDateKey(new Date()));
   const [selected, setSelected] = useState<NotificationRow | null>(null);
-  const [invoiceOpen, setInvoiceOpen] = useState(false);
+  const [invoiceRow, setInvoiceRow] = useState<NotificationRow | null>(null);
   const [arrivedIds, setArrivedIds] = useState<string[]>([]);
   const [lastSeen, setLastSeen] = useState<string>(
     () => localStorage.getItem(SEEN_KEY) || new Date(0).toISOString()
