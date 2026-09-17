@@ -570,9 +570,9 @@ const NotificationsTab = () => {
 
       {/* Invoice popup */}
       <InvoiceDialog
-        bookingReference={selected?.booking_reference ?? null}
-        open={invoiceOpen}
-        onOpenChange={setInvoiceOpen}
+        bookingReference={invoiceRow?.booking_reference ?? null}
+        open={!!invoiceRow}
+        onOpenChange={(o) => !o && setInvoiceRow(null)}
       />
     </div>
   );
