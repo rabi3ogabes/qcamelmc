@@ -33,14 +33,25 @@ const TICKET_TYPE_LABELS: Record<string, string> = {
 const ticketLabel = (type?: string | null) =>
   (type && TICKET_TYPE_LABELS[type.toLowerCase()]) || type || '-';
 
-export const generateInvoicePdf = (data: InvoiceData) => {
-  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+export const generateInvoicePdf = async (data: InvoiceData) => {
+  const QRCode = (await import('qrcode')).default;
 
-  const qrItems = data.qr_codes.map((qr, i) => {
-    const url = qr.startsWith('http') ? qr : `${supabaseUrl}/storage/v1/object/public/qr-codes/${qr}.png`;
-    const type = ticketLabel(data.ticket_types[i] || data.ticket_type);
-    return `<div class="qr-item"><img src="${url}" alt="QR" /><span>${type}</span></div>`;
-  }).join('');
+  const qrItems = (
+    await Promise.all(
+      data.qr_codes.map(async (qr, i) => {
+        let url = qr;
+        if (!qr.startsWith('http')) {
+          try {
+            url = await QRCode.toDataURL(qr, { width: 512, margin: 1 });
+          } catch {
+            return '';
+          }
+        }
+        const type = ticketLabel(data.ticket_types[i] || data.ticket_type);
+        return `<div class="qr-item"><img src="${url}" alt="QR" /><span>${type}</span></div>`;
+      }),
+    )
+  ).join('');
 
   const statusClass = data.payment_status === 'confirmed' ? 'paid' : 'pending';
   const statusText = data.payment_status === 'confirmed' ? 'مدفوع' : 'قيد الانتظار';

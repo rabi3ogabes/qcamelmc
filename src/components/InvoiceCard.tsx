@@ -1,4 +1,5 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import QRCode from "qrcode";
 import { useNavigate } from "react-router-dom";
 import { toPng } from "html-to-image";
 import { Button } from "@/components/ui/button";
@@ -51,10 +52,29 @@ export const InvoiceCard = ({ data }: InvoiceCardProps) => {
   const [savingImage, setSavingImage] = useState(false);
   const navigate = useNavigate();
 
-  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-  const qrUrls = (data.qr_codes || []).map((qr) =>
-    qr.startsWith("http") ? qr : `${supabaseUrl}/storage/v1/object/public/qr-codes/${qr}.png`,
-  );
+  const codes = data.qr_codes || [];
+  const [qrUrls, setQrUrls] = useState<string[]>([]);
+
+  useEffect(() => {
+    let active = true;
+    const build = async () => {
+      const urls = await Promise.all(
+        codes.map(async (qr) => {
+          if (qr.startsWith("http")) return qr;
+          try {
+            return await QRCode.toDataURL(qr, { width: 512, margin: 1 });
+          } catch {
+            return "";
+          }
+        }),
+      );
+      if (active) setQrUrls(urls.filter(Boolean));
+    };
+    build();
+    return () => {
+      active = false;
+    };
+  }, [codes.join("|")]);
 
   const handleImage = async () => {
     if (!captureRef.current) return;
