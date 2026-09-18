@@ -29,6 +29,12 @@ import {
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { CapacityAlert } from "@/components/admin/CapacityAlert";
+import {
+  SEEN_KEY,
+  NOTIFICATIONS_SEEN_EVENT,
+  qatarDateKey,
+  qatarDayRange,
+} from "@/components/admin/NotificationsTab";
 import { cn } from "@/lib/utils";
 
 import "../i18n/config";
@@ -86,6 +92,53 @@ const AdminDashboard = () => {
       navigate("/admin/login");
     }
   };
+
+  // Live unread-notifications badge (sidebar) — count of today's orders newer than last seen
+  const [unreadNotifications, setUnreadNotifications] = useState(0);
+  const isOnNotificationsPage = location.pathname === "/admin/dashboard/notifications";
+
+  useEffect(() => {
+    if (isOnNotificationsPage) {
+      setUnreadNotifications(0);
+      return;
+    }
+    let cancelled = false;
+
+    const computeCount = async () => {
+      try {
+        const lastSeen = localStorage.getItem(SEEN_KEY) || new Date(0).toISOString();
+        const { start, end } = qatarDayRange(qatarDateKey(new Date()));
+        const { count, error } = await supabase
+          .from("orders")
+          .select("id", { count: "exact", head: true })
+          .gte("created_at", start)
+          .lt("created_at", end)
+          .gt("created_at", lastSeen);
+        if (!cancelled && !error) setUnreadNotifications(count ?? 0);
+      } catch {
+        // badge is non-critical
+      }
+    };
+
+    computeCount();
+    const channel = supabase
+      .channel("admin-nav-notifications")
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "orders" },
+        () => computeCount()
+      )
+      .subscribe();
+    const interval = setInterval(computeCount, 30000);
+    window.addEventListener(NOTIFICATIONS_SEEN_EVENT, computeCount);
+
+    return () => {
+      cancelled = true;
+      supabase.removeChannel(channel);
+      clearInterval(interval);
+      window.removeEventListener(NOTIFICATIONS_SEEN_EVENT, computeCount);
+    };
+  }, [isOnNotificationsPage]);
 
   useEffect(() => {
     checkAuth();
@@ -206,6 +259,14 @@ const AdminDashboard = () => {
                     <NavLink key={to} to={to} className={navItemClass}>
                       <Icon className="h-4 w-4 shrink-0" />
                       <span className="truncate font-medium">{label}</span>
+                      {to === "/admin/dashboard/notifications" &&
+                        unreadNotifications > 0 && (
+                          <span className="ms-auto flex h-5 min-w-5 animate-in fade-in zoom-in items-center justify-center rounded-full bg-destructive px-1.5 text-[11px] font-bold text-destructive-foreground">
+                            {unreadNotifications > 99
+                              ? "+99"
+                              : unreadNotifications.toLocaleString("ar-u-nu-latn")}
+                          </span>
+                        )}
                     </NavLink>
                   ))}
                 </div>
