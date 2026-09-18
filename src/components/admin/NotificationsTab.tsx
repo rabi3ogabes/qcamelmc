@@ -30,7 +30,8 @@ import InvoiceDialog from "@/components/InvoiceDialog";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
-const SEEN_KEY = "admin:notifications:lastSeenAt";
+export const SEEN_KEY = "admin:notifications:lastSeenAt";
+export const NOTIFICATIONS_SEEN_EVENT = "admin:notifications:seen";
 const PAGE_SIZE = 200;
 
 type NotificationRow = {
@@ -52,7 +53,7 @@ const SELECT_COLS =
   "id, created_at, booking_reference, payment_method, payment_status, total_amount, quantity, ticket_type, customers(name, phone), events(title, event_date)";
 
 /** YYYY-MM-DD in Qatar time */
-const qatarDateKey = (d: Date) =>
+export const qatarDateKey = (d: Date) =>
   new Intl.DateTimeFormat("en-CA", {
     timeZone: "Asia/Qatar",
     year: "numeric",
@@ -61,7 +62,7 @@ const qatarDateKey = (d: Date) =>
   }).format(d);
 
 /** Qatar (UTC+3) day boundaries as UTC ISO strings */
-const qatarDayRange = (dayKey: string) => {
+export const qatarDayRange = (dayKey: string) => {
   const start = new Date(`${dayKey}T00:00:00+03:00`);
   const end = new Date(start.getTime() + 24 * 60 * 60 * 1000);
   return { start: start.toISOString(), end: end.toISOString() };
@@ -318,6 +319,8 @@ const NotificationsTab = () => {
     const now = new Date().toISOString();
     localStorage.setItem(SEEN_KEY, now);
     setLastSeen(now);
+    // Let the sidebar badge know the count changed
+    window.dispatchEvent(new Event(NOTIFICATIONS_SEEN_EVENT));
   };
 
   const dateButtons: { key: DateFilter; label: string }[] = [
