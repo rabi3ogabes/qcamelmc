@@ -1337,7 +1337,86 @@ const QRScanner = () => {
               )}
               {scanning && <span className="pointer-events-none absolute inset-x-10 top-10 h-px bg-scanner-gold shadow-elegant animate-scanner-line" />}
             </div>
-            
+
+            {/* Camera Controls */}
+            {!scanning && !ticketInfo && (
+              <div className="flex flex-col items-center gap-3">
+                {cameraError && (
+                  <div className="flex w-full items-center gap-2 rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
+                    <AlertCircle className="w-4 h-4 shrink-0" />
+                    <span>{cameraError}</span>
+                  </div>
+                )}
+                <Button
+                  onClick={startScanner}
+                  disabled={cameraStarting}
+                  className="h-12 w-full max-w-sm bg-scanner-maroon text-scanner-foreground hover:bg-scanner-maroon/90"
+                >
+                  {cameraStarting ? (
+                    <>
+                      <Loader2 className="w-5 h-5 ml-2 animate-spin" />
+                      جاري تشغيل الكاميرا...
+                    </>
+                  ) : (
+                    <>
+                      <Camera className="w-5 h-5 ml-2" />
+                      تشغيل الكاميرا
+                    </>
+                  )}
+                </Button>
+              </div>
+            )}
+
+            {/* Scanner Status */}
+            {scanning && !ticketInfo && (
+              <div className="text-center space-y-2">
+                <div className="flex items-center justify-center gap-2 text-green-600 dark:text-green-400">
+                  <div className="w-2 h-2 bg-green-600 dark:bg-green-400 rounded-full animate-pulse"></div>
+                  <span className="font-semibold">الكاميرا تعمل - جاهز للمسح</span>
+                </div>
+              </div>
+            )}
+
+            {/* Manual Search Toggle */}
+            <div className="flex justify-center pt-1">
+              <Button
+                variant="ghost"
+                onClick={() => setShowManualSearch(!showManualSearch)}
+                size="sm"
+                className="text-xs text-scanner-muted hover:bg-scanner-elevated hover:text-scanner-foreground sm:text-sm"
+              >
+                <Search className="w-4 h-4 ml-2" />
+                {showManualSearch ? "إخفاء البحث اليدوي" : "بحث يدوي"}
+              </Button>
+            </div>
+
+            {/* Manual Search Input */}
+            {showManualSearch && (
+              <form onSubmit={handleManualSearch} className="mx-auto max-w-xl space-y-3 rounded-lg border border-scanner-elevated bg-scanner-background p-3">
+                <Input
+                  type="text"
+                  placeholder="أدخل رقم الحجز أو رقم الهاتف"
+                  value={manualSearch}
+                  onChange={(e) => setManualSearch(e.target.value.toUpperCase())}
+                  className="border-scanner-elevated bg-scanner-surface text-center font-mono text-scanner-foreground placeholder:text-scanner-muted"
+                  disabled={processing}
+                />
+                <Button type="submit" className="w-full bg-scanner-gold text-scanner-background hover:bg-scanner-gold/90" disabled={processing}>
+                  {processing ? (
+                    <>
+                      <Loader2 className="w-4 h-4 ml-2 animate-spin" />
+                      جاري البحث...
+                    </>
+                  ) : (
+                    <>
+                      <Search className="w-4 h-4 ml-2" />
+                      بحث عن التذكرة
+                    </>
+                  )}
+                </Button>
+              </form>
+            )}
+
             {processing && (
               <div className="flex items-center justify-center gap-2 mt-4 text-sm sm:text-base">
                 <Loader2 className="w-5 h-5 sm:w-6 sm:h-6 animate-spin" />
