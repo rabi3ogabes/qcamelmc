@@ -14,6 +14,9 @@ export interface InvoiceData {
   ticket_states?: Array<{
     qr_code: string | null;
     ticket_type: string;
+    name?: string | null;
+    phone?: string | null;
+    country_code?: string | null;
     is_present?: boolean | null;
     confirmed_at?: string | null;
     confirmed_by_name?: string | null;

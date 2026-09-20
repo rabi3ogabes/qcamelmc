@@ -5,7 +5,7 @@ import { toPng } from "html-to-image";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { FileDown, ImageDown, CheckCircle2, Loader2, Home, ZoomIn } from "lucide-react";
-import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { generateInvoicePdf, type InvoiceData } from "@/lib/generateInvoicePdf";
 
 interface InvoiceCardProps {
@@ -56,6 +56,8 @@ export const InvoiceCard = ({ data }: InvoiceCardProps) => {
   const codes = data.qr_codes || [];
   const [qrUrls, setQrUrls] = useState<string[]>([]);
   const [enlargedQr, setEnlargedQr] = useState<string | null>(null);
+  const enlargedQrIndex = enlargedQr ? qrUrls.indexOf(enlargedQr) : -1;
+  const enlargedTicket = enlargedQrIndex >= 0 ? data.ticket_states?.[enlargedQrIndex] : undefined;
 
   useEffect(() => {
     let active = true;
@@ -234,8 +236,14 @@ export const InvoiceCard = ({ data }: InvoiceCardProps) => {
         <DialogContent className="max-w-sm border-secondary/40 p-6 text-center" dir="rtl">
           <div className="pointer-events-none absolute inset-x-0 top-0 h-1.5 rounded-t-lg bg-gradient-to-l from-secondary via-primary to-secondary" />
           <DialogTitle className="text-sm font-semibold text-muted-foreground">
-            {ticketLabel(data.ticket_types[qrUrls.indexOf(enlargedQr || "")] || data.ticket_type)} — {data.booking_reference}
+            {ticketLabel(data.ticket_types[enlargedQrIndex] || data.ticket_type)} — {data.booking_reference}
           </DialogTitle>
+          <DialogDescription className="space-y-1 text-center">
+            <span className="block text-base font-bold text-foreground">{enlargedTicket?.name || data.customer_name}</span>
+            <span className="block font-mono text-sm" dir="ltr">
+              {`${enlargedTicket?.country_code || ""}${enlargedTicket?.phone || data.customer_phone}`}
+            </span>
+          </DialogDescription>
           {enlargedQr && (
             <div className="mx-auto rounded-2xl border border-border bg-white p-4 shadow-elegant">
               <img src={enlargedQr} alt="QR" className="mx-auto h-72 w-72 object-contain" />
