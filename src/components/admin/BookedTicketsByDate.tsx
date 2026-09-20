@@ -115,7 +115,7 @@ export const BookedTicketsByDate = () => {
         .from("ticket_holders")
         .select(
           `id, name, phone, ticket_type, qr_code, is_present, confirmed_at, confirmed_by_name, created_at,
-           orders!inner(id, booking_reference, payment_status, payment_method, total_amount, created_at,
+           order:orders!inner(id, booking_reference, payment_status, payment_method, total_amount, created_at,
              customers(name, email, phone),
              events!inner(title, event_date, location, is_archived))`
         )
@@ -124,8 +124,8 @@ export const BookedTicketsByDate = () => {
       if (selectedKey) {
         const { start, end } = qatarDayRange(selectedKey);
         query = query
-          .gte("orders.events.event_date", start)
-          .lt("orders.events.event_date", end);
+          .gte("order.events.event_date", start)
+          .lt("order.events.event_date", end);
       }
 
       // Page through everything (Supabase caps at 1000 rows)
@@ -135,7 +135,7 @@ export const BookedTicketsByDate = () => {
         const from = page * pageSize;
         const { data, error } = await query.range(from, from + pageSize - 1);
         if (error) throw error;
-        const batch = (data || []) as unknown as BookedTicket[];
+        const batch = ((data || []) as unknown as BookedTicket[]).filter((t) => t.order);
         rows.push(...batch);
         if (batch.length < pageSize) break;
       }
