@@ -132,6 +132,78 @@ serve(async (req) => {
       );
     }
 
+    // Reset mode: undo a check-in. ADMIN ACCOUNT ONLY — passcode staff and
+    // moderators are rejected. Requires a valid bearer token for a user who is
+    // in public.admin_users or has the 'admin' role.
+    if (mode === 'reset') {
+      const authHeader = req.headers.get("Authorization") || "";
+      const token = authHeader.replace("Bearer ", "").trim();
+      if (!token) {
+        return new Response(
+          JSON.stringify({ success: false, message: 'إلغاء المسح متاح للأدمن فقط' }),
+          { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      const { data: userData } = await supabase.auth.getUser(token);
+      const userId = userData?.user?.id;
+      let isAdmin = false;
+      if (userId) {
+        const { data: adminRow } = await supabase
+          .from('admin_users').select('id').eq('id', userId).maybeSingle();
+        if (adminRow) {
+          isAdmin = true;
+        } else {
+          const { data: roleRow } = await supabase
+            .from('user_roles').select('role').eq('user_id', userId).eq('role', 'admin').maybeSingle();
+          isAdmin = !!roleRow;
+        }
+      }
+      if (!isAdmin) {
+        return new Response(
+          JSON.stringify({ success: false, message: 'إلغاء المسح متاح للأدمن فقط' }),
+          { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      if (!holder_id) {
+        return new Response(
+          JSON.stringify({ success: false, message: 'معرّف التذكرة مطلوب' }),
+          { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      const { data: resetRows, error: resetError } = await supabase
+        .from('ticket_holders')
+        .update({ is_present: false, confirmed_at: null, confirmed_by: null, confirmed_by_name: null })
+        .eq('id', holder_id)
+        .eq('is_present', true)
+        .select('id, name, qr_code');
+
+      if (resetError) {
+        console.error('[Ticket Check-in] Reset failed:', resetError);
+        return new Response(
+          JSON.stringify({ success: false, message: 'تعذر إلغاء المسح' }),
+          { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      if (!resetRows || resetRows.length === 0) {
+        return new Response(
+          JSON.stringify({ success: false, message: 'التذكرة غير ممسوحة أصلاً' }),
+          { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      await supabase.from('activity_logs').insert({
+        activity_type: 'ticket_checkin_reset',
+        user_type: 'admin',
+        user_identifier: userId,
+        action_data: { holder_id, qr_code: resetRows[0].qr_code, holder_name: resetRows[0].name },
+      });
+
+      return new Response(
+        JSON.stringify({ success: true, message: 'تم إلغاء المسح، التذكرة صالحة من جديد' }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     const qatarNow = toZonedTime(new Date(), "Asia/Qatar");
     const todayKey = `${qatarNow.getFullYear()}-${String(qatarNow.getMonth() + 1).padStart(2, '0')}-${String(qatarNow.getDate()).padStart(2, '0')}`;
 
