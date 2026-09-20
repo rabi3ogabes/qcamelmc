@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
@@ -14,6 +14,7 @@ const InvoicePage = () => {
   const [invoice, setInvoice] = useState<InvoiceData | null>(null);
   const [orderId, setOrderId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const loadRef = useRef<(() => void) | null>(null);
 
   useEffect(() => {
     let active = true;
