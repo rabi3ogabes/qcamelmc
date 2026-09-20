@@ -180,7 +180,17 @@ export const InvoiceCard = ({ data }: InvoiceCardProps) => {
                         )}
                       </div>
                     ) : (
-                      <img src={url} alt="QR" className="mx-auto h-28 w-28 object-contain" crossOrigin="anonymous" />
+                      <button
+                        type="button"
+                        onClick={() => setEnlargedQr(url)}
+                        className="group relative mx-auto block cursor-zoom-in rounded-lg transition-transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-primary"
+                        aria-label="تكبير رمز QR"
+                      >
+                        <img src={url} alt="QR" className="mx-auto h-28 w-28 object-contain" crossOrigin="anonymous" />
+                        <span className="absolute inset-0 flex items-center justify-center rounded-lg bg-black/0 opacity-0 transition group-hover:bg-black/30 group-hover:opacity-100">
+                          <ZoomIn className="h-6 w-6 text-white" />
+                        </span>
+                      </button>
                     )}
                     <span className="mt-1 block text-xs text-muted-foreground">
                       {ticketLabel(data.ticket_types[i] || data.ticket_type)}
