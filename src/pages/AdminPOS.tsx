@@ -18,6 +18,9 @@ import { useToast } from "@/hooks/use-toast";
 import { useTranslation } from "react-i18next";
 import { TicketAddItem } from "@/components/admin/TicketAddItem";
 import { format } from "date-fns";
+import { formatInTimeZone } from "date-fns-tz";
+const formatQatarDate = (value: string | Date) =>
+  formatInTimeZone(new Date(value), "Asia/Qatar", "PPP");
 import { canPurchaseTickets } from "@/lib/eventUtils";
 import { useActivityLog } from "@/hooks/useActivityLog";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
@@ -101,6 +104,7 @@ const AdminPOS = () => {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
   const [currentEventId, setCurrentEventId] = useState<string | null>(null);
+  const [availableEvents, setAvailableEvents] = useState<{ id: string; title: string; event_date: string }[]>([]);
   const [showSuccessDialog, setShowSuccessDialog] = useState(false);
   const [fireworksTrigger, setFireworksTrigger] = useState(0);
   const [successData, setSuccessData] = useState<SuccessData | null>(null);
@@ -161,33 +165,30 @@ const AdminPOS = () => {
   };
 
   useEffect(() => {
-    // Fetch the upcoming event automatically
+    // Fetch every event that still allows ticket sales
     const fetchUpcomingEvent = async () => {
       try {
         const { data, error } = await supabase
           .from("events")
-          .select("id, event_date")
+          .select("id, title, event_date")
           .eq("is_active", true)
+          .eq("is_archived", false)
           .order("event_date", { ascending: true });
 
         if (error) {
           console.error("Error fetching upcoming event:", error);
           throw error;
         }
-        
-        console.log("Upcoming event data:", data);
-        
-        // Filter to find the first event that still allows ticket purchases
-        const availableEvent = data?.find(event => canPurchaseTickets(event.event_date));
-        
+
+        const sellable = (data || []).filter(event => canPurchaseTickets(event.event_date));
+        setAvailableEvents(sellable);
+
+        const availableEvent = sellable[0];
+
         if (availableEvent) {
           setSelectedDate(new Date(availableEvent.event_date));
           setCurrentEventId(availableEvent.id);
-          // Store the event ID to fetch tickets for this specific event
           fetchTicketsForEvent(availableEvent.id);
-          console.log("Selected date set to:", new Date(availableEvent.event_date));
-        } else {
-          console.log("No upcoming events found");
         }
       } catch (error) {
         console.error("Failed to fetch upcoming event:", error);
@@ -197,6 +198,20 @@ const AdminPOS = () => {
     fetchUpcomingEvent();
     fetchSettings();
   }, []);
+
+  const handleEventChange = async (eventId: string) => {
+    const event = availableEvents.find(e => e.id === eventId);
+    if (!event) return;
+    setCurrentEventId(eventId);
+    setSelectedDate(new Date(event.event_date));
+    setLoading(true);
+    try {
+      await fetchTicketsForEvent(eventId);
+    } finally {
+      setLoading(false);
+    }
+  };
+
 
   const handleDateSelect = async (date: Date | undefined) => {
     if (!date) return;
@@ -1144,12 +1159,33 @@ const AdminPOS = () => {
                 </SelectContent>
               </Select>
               
-              <Button variant="outline" className="flex items-center gap-2 px-2 sm:px-4 py-2 h-auto text-sm sm:text-base cursor-not-allowed opacity-70" disabled>
-                <CalendarIcon className="h-4 w-4" />
-                <span className="font-semibold">
-                  {selectedDate ? format(selectedDate, "PPP") : "اختر التاريخ"}
-                </span>
-              </Button>
+              {availableEvents.length > 1 ? (
+                <Select value={currentEventId || undefined} onValueChange={handleEventChange}>
+                  <SelectTrigger className="w-auto min-w-[200px] max-w-[320px] gap-2 h-auto py-2 text-sm sm:text-base font-semibold">
+                    <CalendarIcon className="h-4 w-4 shrink-0" />
+                    <SelectValue placeholder="اختر الفعالية" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {availableEvents.map((event) => (
+                      <SelectItem key={event.id} value={event.id}>
+                        <span className="flex flex-col items-start">
+                          <span className="font-semibold">{event.title}</span>
+                          <span className="text-xs text-muted-foreground">
+                            {formatQatarDate(event.event_date)}
+                          </span>
+                        </span>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              ) : (
+                <Button variant="outline" className="flex items-center gap-2 px-2 sm:px-4 py-2 h-auto text-sm sm:text-base cursor-not-allowed opacity-70" disabled>
+                  <CalendarIcon className="h-4 w-4" />
+                  <span className="font-semibold">
+                    {selectedDate ? formatQatarDate(selectedDate) : "اختر التاريخ"}
+                  </span>
+                </Button>
+              )}
               <h2 className="text-base sm:text-xl font-semibold bg-yellow-400 px-3 sm:px-4 py-2 rounded">بيع تذكرة</h2>
               <Button
                 type="button"
