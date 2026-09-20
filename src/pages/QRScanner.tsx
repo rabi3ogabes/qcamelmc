@@ -1194,52 +1194,27 @@ const QRScanner = () => {
     <div className="min-h-screen bg-scanner-background font-lusail text-scanner-foreground" dir="rtl">
       {/* Header */}
       <header className="sticky top-0 z-20 border-b border-scanner-elevated bg-scanner-background/95 backdrop-blur-xl">
-        <div className="mx-auto flex max-w-5xl items-center justify-between gap-3 px-4 py-4 sm:px-6">
-          <button onClick={() => navigate("/staff")} className="flex items-center gap-3 text-right focus:outline-none focus-visible:ring-2 focus-visible:ring-scanner-gold">
+        <div className="mx-auto flex max-w-5xl flex-wrap items-center gap-2 px-3 py-2 sm:px-6 sm:py-2.5">
+          <button onClick={() => navigate("/staff")} className="flex items-center gap-2 text-right focus:outline-none focus-visible:ring-2 focus-visible:ring-scanner-gold">
             {logoUrl ? (
-              <span className="flex size-11 items-center justify-center rounded-lg border border-scanner-gold/30 bg-scanner-elevated p-2"><img src={logoUrl} alt="Logo" className="h-full w-full object-contain" /></span>
+              <span className="flex size-9 items-center justify-center rounded-lg border border-scanner-gold/30 bg-scanner-elevated p-1.5"><img src={logoUrl} alt="Logo" className="h-full w-full object-contain" /></span>
             ) : (
-              <span className="flex size-11 items-center justify-center rounded-lg bg-scanner-maroon"><QrCode className="size-6" /></span>
+              <span className="flex size-9 items-center justify-center rounded-lg bg-scanner-maroon"><QrCode className="size-5" /></span>
             )}
-            <span><strong className="block text-base sm:text-lg">ماسح التذاكر الذكي</strong><small className="block text-xs text-scanner-muted">نظام إدارة الدخول</small></span>
+            <span>
+              <strong className="block text-sm leading-tight sm:text-base">ماسح التذاكر الذكي</strong>
+              <small className="flex items-center gap-1.5 text-[10px] text-scanner-muted">
+                <span className="size-1.5 rounded-full bg-success animate-pulse" />
+                نظام إدارة الدخول — متصل
+              </small>
+            </span>
           </button>
-          <Button variant="outline" onClick={handleLogout} size="sm" className="border-scanner-elevated bg-scanner-surface text-scanner-foreground hover:bg-scanner-elevated hover:text-scanner-foreground">
-            <LogOut className="w-4 h-4 ml-2" />
-            <span>{t("logout")}</span>
-          </Button>
-        </div>
-      </header>
-
-      <main className="mx-auto max-w-5xl space-y-5 px-3 py-4 sm:px-6 sm:py-8">
-        <div className="flex items-center justify-between gap-3">
-          <div>
-            <p className="text-xs font-semibold text-scanner-gold">بوابة الدخول</p>
-            <h1 className="mt-1 text-2xl font-bold sm:text-3xl">مسح وتأكيد التذاكر</h1>
-          </div>
-          <div className="flex items-center gap-2 rounded-full border border-success/30 bg-success/10 px-3 py-2 text-xs font-bold text-success">
-            <span className="size-2 rounded-full bg-success animate-pulse" />
-            النظام متصل
-          </div>
-        </div>
-
-        {/* Staff selector */}
-        <Card className="border-scanner-elevated bg-scanner-surface text-scanner-foreground shadow-elegant">
-          <CardContent className="p-4 sm:p-5">
-            <div className="mb-3 flex items-center gap-2">
-              <UserRound className="size-4 text-scanner-gold" />
-              <span className="text-sm font-bold">اختر موظف البوابة</span>
-              {staffName && (
-                <span className="mr-auto rounded-full border border-scanner-gold/40 bg-scanner-gold/10 px-2.5 py-1 text-[11px] font-bold text-scanner-gold">
-                  {staffName}
-                </span>
-              )}
-            </div>
-            {staffUsers.length === 0 ? (
-              <span className="text-xs text-scanner-muted">لا يوجد موظفون مفعّلون</span>
-            ) : (
+          <div className="mr-auto flex items-center gap-2">
+            {staffUsers.length > 0 ? (
               <Select value={staffName || undefined} onValueChange={setStaffName} dir="rtl">
-                <SelectTrigger className="h-12 border-scanner-elevated bg-scanner-elevated text-scanner-foreground focus:ring-scanner-gold">
-                  <SelectValue placeholder="اختر اسم الموظف..." />
+                <SelectTrigger className="h-9 w-40 border-scanner-elevated bg-scanner-elevated text-xs text-scanner-foreground focus:ring-scanner-gold sm:w-52 sm:text-sm">
+                  <UserRound className="size-3.5 shrink-0 text-scanner-gold" />
+                  <SelectValue placeholder="اختر موظف البوابة..." />
                 </SelectTrigger>
                 <SelectContent className="border-scanner-elevated bg-scanner-surface text-scanner-foreground">
                   {staffUsers.map((u) => (
@@ -1250,46 +1225,60 @@ const QRScanner = () => {
                   ))}
                 </SelectContent>
               </Select>
+            ) : (
+              <span className="text-[11px] text-scanner-muted">لا يوجد موظفون مفعّلون</span>
             )}
-          </CardContent>
-        </Card>
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={handleLogout}
+              aria-label={t("logout")}
+              title={t("logout")}
+              className="size-9 shrink-0 border-scanner-elevated bg-scanner-surface text-scanner-foreground hover:bg-destructive hover:text-destructive-foreground"
+            >
+              <LogOut className="size-4" />
+            </Button>
+          </div>
+        </div>
+      </header>
+
+      <main className="mx-auto max-w-5xl space-y-3 px-3 py-3 sm:px-6 sm:py-4">
 
 
-        {/* Mode Toggle Buttons */}
-        <div className="grid grid-cols-2 gap-1 rounded-lg border border-scanner-elevated bg-scanner-surface p-1.5">
+
+        {/* Mode Buttons */}
+        <div className="grid grid-cols-2 gap-2">
           <Button
-            variant="ghost"
             onClick={() => setScanMode('confirm')}
-            className={`h-12 text-xs sm:text-sm ${scanMode === 'confirm' ? "bg-scanner-maroon text-scanner-foreground hover:bg-scanner-maroon/90 hover:text-scanner-foreground" : "text-scanner-muted hover:bg-scanner-elevated hover:text-scanner-foreground"}`}
+            className={`h-11 border text-xs sm:text-sm ${scanMode === 'confirm' ? "border-scanner-gold/60 bg-scanner-maroon text-scanner-foreground shadow-elegant hover:bg-scanner-maroon/90 hover:text-scanner-foreground" : "border-scanner-elevated bg-scanner-surface text-scanner-muted hover:bg-scanner-elevated hover:text-scanner-foreground"}`}
           >
-            <CheckCircle2 className="w-3 h-3 sm:w-4 sm:h-4 lg:w-5 lg:h-5 ml-1 sm:ml-2" />
+            <CheckCircle2 className="w-4 h-4 ml-1.5" />
             <span>تأكيد الحضور</span>
           </Button>
           <Button
-            variant="ghost"
             onClick={() => setScanMode('unconfirm')}
-            className={`h-12 text-xs sm:text-sm ${scanMode === 'unconfirm' ? "bg-destructive text-destructive-foreground hover:bg-destructive/90" : "text-scanner-muted hover:bg-scanner-elevated hover:text-scanner-foreground"}`}
+            className={`h-11 border text-xs sm:text-sm ${scanMode === 'unconfirm' ? "border-destructive/60 bg-destructive text-destructive-foreground shadow-elegant hover:bg-destructive/90" : "border-scanner-elevated bg-scanner-surface text-scanner-muted hover:bg-scanner-elevated hover:text-scanner-foreground"}`}
           >
-            <XCircle className="w-3 h-3 sm:w-4 sm:h-4 lg:w-5 lg:h-5 ml-1 sm:ml-2" />
+            <XCircle className="w-4 h-4 ml-1.5" />
             <span>إلغاء التأكيد</span>
           </Button>
         </div>
 
         {/* Scanner */}
         <Card className="overflow-hidden border-scanner-elevated bg-scanner-surface text-scanner-foreground shadow-elegant">
-          <CardHeader className="border-b border-scanner-elevated pb-5">
+          <CardHeader className="border-b border-scanner-elevated pb-3">
             <div className="flex items-center justify-between gap-3">
               <div>
-                <CardTitle className="text-lg sm:text-xl">{t('scanTicket') || 'مسح التذكرة'}</CardTitle>
-                <p className="mt-1 text-xs text-scanner-muted">ضع رمز QR داخل الإطار ليتم التحقق تلقائياً</p>
+                <CardTitle className="text-base sm:text-lg">{t('scanTicket') || 'مسح التذكرة'}</CardTitle>
+                <p className="mt-0.5 text-[11px] text-scanner-muted">ضع رمز QR داخل الإطار ليتم التحقق تلقائياً</p>
               </div>
-              <span className={`flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-bold ${scanning ? "bg-success/15 text-success" : "bg-scanner-elevated text-scanner-muted"}`}>
+              <span className={`flex items-center gap-2 rounded-full px-2.5 py-1 text-[11px] font-bold ${scanning ? "bg-success/15 text-success" : "bg-scanner-elevated text-scanner-muted"}`}>
                 <span className={`size-2 rounded-full ${scanning ? "bg-success animate-pulse" : "bg-scanner-muted"}`} />
                 {scanning ? "الكاميرا نشطة" : "الكاميرا متوقفة"}
               </span>
             </div>
           </CardHeader>
-          <CardContent className="space-y-4 p-4 sm:p-6">
+          <CardContent className="space-y-3 p-3 sm:p-4">
             {/* Camera Controls */}
             {!scanning && !ticketInfo && (
               <div className="flex flex-col items-center gap-3">
