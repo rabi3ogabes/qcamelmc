@@ -78,7 +78,7 @@ const QRScanner = () => {
   const [cameraStarting, setCameraStarting] = useState(false);
   const [availableTickets, setAvailableTickets] = useState<TicketHolder[]>([]);
   const [selectedTicketIds, setSelectedTicketIds] = useState<string[]>([]);
-  const [scanMode, setScanMode] = useState<'confirm' | 'unconfirm'>('confirm');
+  const scanMode = 'confirm' as const;
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
   const [relatedTicketsSameDay, setRelatedTicketsSameDay] = useState<RelatedTicket[]>([]);
   const [relatedTicketsOtherDays, setRelatedTicketsOtherDays] = useState<RelatedTicket[]>([]);
@@ -970,73 +970,6 @@ const QRScanner = () => {
     }
   };
 
-  const handleUnconfirmPresence = async () => {
-    if (!ticketInfo) return;
-    
-    // If we have multiple tickets available, user must select at least one
-    if (availableTickets.length > 0 && selectedTicketIds.length === 0) {
-      toast.error('الرجاء اختيار التذاكر المراد إلغاء تأكيدها');
-      return;
-    }
-    
-    updateProcessing(true);
-    try {
-      // Get QR codes for selected tickets
-      const qrCodes = selectedTicketIds.length > 0
-        ? availableTickets.filter(t => selectedTicketIds.includes(t.id)).map(t => t.qr_code)
-        : ticketInfo.ticket_holder_qr_code ? [ticketInfo.ticket_holder_qr_code] : [];
-      
-      if (qrCodes.length === 0) {
-        toast.error('خطأ: لم يتم العثور على رموز QR');
-        return;
-      }
-
-      let successCount = 0;
-      let errorCount = 0;
-
-      // Process each ticket
-      for (const qrCode of qrCodes) {
-        try {
-          const { error } = await supabase
-            .from('ticket_holders')
-            .update({ 
-              is_present: false,
-              confirmed_at: null,
-              confirmed_by: null
-            })
-            .eq('qr_code', qrCode);
-
-          if (error) throw error;
-          successCount++;
-        } catch (err) {
-          console.error('Error unconfirming ticket:', qrCode, err);
-          errorCount++;
-        }
-      }
-
-      // Show results
-      if (successCount > 0) {
-        toast.success(`✅ تم إلغاء تأكيد ${successCount} تذكرة بنجاح`);
-      }
-      if (errorCount > 0) {
-        toast.error(`⚠️ فشل إلغاء تأكيد ${errorCount} تذكرة`);
-      }
-
-      // Clear selections and refresh
-      setAvailableTickets([]);
-      setSelectedTicketIds([]);
-      setRelatedTicketsSameDay([]);
-      setRelatedTicketsOtherDays([]);
-      setSameBookingTickets([]);
-      setTicketInfo(null);
-      setScanResult(null);
-    } catch (err: any) {
-      console.error('Unconfirmation error:', err);
-      toast.error(err.message || 'حدث خطأ أثناء إلغاء تأكيد الحضور');
-    } finally {
-      updateProcessing(false);
-    }
-  };
 
   const onScanSuccess = async (decodedText: string) => {
     if (processing) return;
@@ -1285,24 +1218,6 @@ const QRScanner = () => {
       <main className="mx-auto max-w-5xl space-y-3 px-3 py-3 sm:px-6 sm:py-4">
 
 
-
-        {/* Mode Buttons */}
-        <div className="grid grid-cols-2 gap-2">
-          <Button
-            onClick={() => setScanMode('confirm')}
-            className={`h-11 border text-xs sm:text-sm ${scanMode === 'confirm' ? "border-scanner-gold/60 bg-scanner-maroon text-scanner-foreground shadow-elegant hover:bg-scanner-maroon/90 hover:text-scanner-foreground" : "border-scanner-elevated bg-scanner-surface text-scanner-muted hover:bg-scanner-elevated hover:text-scanner-foreground"}`}
-          >
-            <CheckCircle2 className="w-4 h-4 ml-1.5" />
-            <span>تأكيد الحضور</span>
-          </Button>
-          <Button
-            onClick={() => setScanMode('unconfirm')}
-            className={`h-11 border text-xs sm:text-sm ${scanMode === 'unconfirm' ? "border-destructive/60 bg-destructive text-destructive-foreground shadow-elegant hover:bg-destructive/90" : "border-scanner-elevated bg-scanner-surface text-scanner-muted hover:bg-scanner-elevated hover:text-scanner-foreground"}`}
-          >
-            <XCircle className="w-4 h-4 ml-1.5" />
-            <span>إلغاء التأكيد</span>
-          </Button>
-        </div>
 
         {/* Scanner */}
         <Card className="overflow-hidden border-scanner-elevated bg-scanner-surface text-scanner-foreground shadow-elegant">
@@ -1601,26 +1516,6 @@ const QRScanner = () => {
                         </Button>
                       )}
                       
-                      {scanMode === 'unconfirm' && (
-                        <Button 
-                          onClick={handleUnconfirmPresence}
-                          disabled={processing}
-                          className="w-full bg-red-600 hover:bg-red-700 text-white"
-                          size="lg"
-                        >
-                          {processing ? (
-                            <>
-                              <Loader2 className="w-5 h-5 ml-2 animate-spin" />
-                              جاري إلغاء التأكيد...
-                            </>
-                          ) : (
-                            <>
-                              <XCircle className="w-5 h-5 ml-2" />
-                              ✗ إلغاء تأكيد {selectedTicketIds.length} تذكرة
-                            </>
-                          )}
-                        </Button>
-                      )}
                     </div>
                   )}
                 </div>
@@ -1689,29 +1584,6 @@ const QRScanner = () => {
                   </div>
                 )}
                 
-                {/* Unconfirm Presence Button - Only show when there are no available tickets (single ticket scan) */}
-                {availableTickets.length === 0 && scanMode === 'unconfirm' && ticketInfo.is_present && (
-                  <div className="pt-4">
-                    <Button 
-                      onClick={handleUnconfirmPresence}
-                      disabled={processing}
-                      className="w-full bg-red-600 hover:bg-red-700 text-white"
-                      size="lg"
-                    >
-                      {processing ? (
-                        <>
-                          <Loader2 className="w-5 h-5 ml-2 animate-spin" />
-                          جاري إلغاء التأكيد...
-                        </>
-                      ) : (
-                        <>
-                          <XCircle className="w-5 h-5 ml-2" />
-                          ✗ إلغاء تأكيد الحضور
-                        </>
-                      )}
-                    </Button>
-                  </div>
-                )}
                 <div className="flex flex-col sm:flex-row sm:justify-between py-2 border-b gap-1">
                   <span className="font-semibold text-xs sm:text-sm lg:text-base">اسم الحدث</span>
                   <span className="text-sm sm:text-base lg:text-lg break-words text-left sm:text-right">{ticketInfo.event_title}</span>
@@ -2189,25 +2061,6 @@ const QRScanner = () => {
         </div>
       )}
 
-      {/* Fixed Floating Action Button for Unconfirm - Right Middle */}
-      {selectedTicketIds.length > 0 && scanMode === 'unconfirm' && (
-        <div className="fixed right-4 top-1/2 -translate-y-1/2 z-50">
-          <Button
-            onClick={handleUnconfirmPresence}
-            disabled={processing}
-            className="w-16 h-16 rounded-xl bg-red-600 hover:bg-red-700 text-white shadow-2xl flex flex-col items-center justify-center gap-1 animate-pulse hover:animate-none"
-          >
-            {processing ? (
-              <Loader2 className="w-8 h-8 animate-spin" />
-            ) : (
-              <>
-                <XCircle className="w-7 h-7" />
-                <span className="text-xs font-bold">{selectedTicketIds.length}</span>
-              </>
-            )}
-          </Button>
-        </div>
-      )}
     </div>
   );
 };
