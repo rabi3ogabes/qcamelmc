@@ -76,16 +76,21 @@ const InvoicePage = () => {
 
     loadRef.current = load;
     load();
-    // Refresh so a scanned ticket switches to "مستخدمة" without a manual reload
-    const interval = window.setInterval(load, 15000);
+    // Refresh quickly so a scanned ticket switches to "مستخدمة" without a manual reload
+    const interval = window.setInterval(() => {
+      if (document.visibilityState === "visible") load();
+    }, 3000);
     const onFocus = () => load();
     window.addEventListener("focus", onFocus);
+    document.addEventListener("visibilitychange", onFocus);
     return () => {
       active = false;
       window.clearInterval(interval);
       window.removeEventListener("focus", onFocus);
+      document.removeEventListener("visibilitychange", onFocus);
     };
   }, [bookingReference, settings?.logo_url]);
+
 
   // Real-time: refresh instantly when any ticket of this order is scanned
   useEffect(() => {
