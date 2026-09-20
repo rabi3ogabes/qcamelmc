@@ -8,6 +8,7 @@ import { useTranslation } from "react-i18next";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { EditTicketDialog } from "@/components/admin/EditTicketDialog";
+import { BookedTicketsByDate } from "@/components/admin/BookedTicketsByDate";
 
 interface PaymentBreakdown {
   paid: number;
@@ -415,6 +416,9 @@ export const TicketsTab = () => {
           </Button>
         </div>
       </div>
+
+      {/* Booked tickets by event date (today / tomorrow / specific day / all) */}
+      <BookedTicketsByDate />
 
       {/* Daily Sales Statistics Table */}
       {visibleSummaries.length > 0 && (
