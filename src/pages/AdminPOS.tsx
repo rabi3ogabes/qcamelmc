@@ -1171,7 +1171,7 @@ const AdminPOS = () => {
                         <span className="flex flex-col items-start">
                           <span className="font-semibold">{event.title}</span>
                           <span className="text-xs text-muted-foreground">
-                            {format(new Date(event.event_date), "PPP")}
+                            {formatQatarDate(event.event_date)}
                           </span>
                         </span>
                       </SelectItem>
@@ -1182,7 +1182,7 @@ const AdminPOS = () => {
                 <Button variant="outline" className="flex items-center gap-2 px-2 sm:px-4 py-2 h-auto text-sm sm:text-base cursor-not-allowed opacity-70" disabled>
                   <CalendarIcon className="h-4 w-4" />
                   <span className="font-semibold">
-                    {selectedDate ? format(selectedDate, "PPP") : "اختر التاريخ"}
+                    {selectedDate ? formatQatarDate(selectedDate) : "اختر التاريخ"}
                   </span>
                 </Button>
               )}
