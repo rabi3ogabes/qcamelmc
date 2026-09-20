@@ -1194,19 +1194,51 @@ const QRScanner = () => {
     <div className="min-h-screen bg-scanner-background font-lusail text-scanner-foreground" dir="rtl">
       {/* Header */}
       <header className="sticky top-0 z-20 border-b border-scanner-elevated bg-scanner-background/95 backdrop-blur-xl">
-        <div className="mx-auto flex max-w-5xl items-center justify-between gap-3 px-4 py-4 sm:px-6">
-          <button onClick={() => navigate("/staff")} className="flex items-center gap-3 text-right focus:outline-none focus-visible:ring-2 focus-visible:ring-scanner-gold">
+        <div className="mx-auto flex max-w-5xl flex-wrap items-center gap-2 px-3 py-2 sm:px-6 sm:py-2.5">
+          <button onClick={() => navigate("/staff")} className="flex items-center gap-2 text-right focus:outline-none focus-visible:ring-2 focus-visible:ring-scanner-gold">
             {logoUrl ? (
-              <span className="flex size-11 items-center justify-center rounded-lg border border-scanner-gold/30 bg-scanner-elevated p-2"><img src={logoUrl} alt="Logo" className="h-full w-full object-contain" /></span>
+              <span className="flex size-9 items-center justify-center rounded-lg border border-scanner-gold/30 bg-scanner-elevated p-1.5"><img src={logoUrl} alt="Logo" className="h-full w-full object-contain" /></span>
             ) : (
-              <span className="flex size-11 items-center justify-center rounded-lg bg-scanner-maroon"><QrCode className="size-6" /></span>
+              <span className="flex size-9 items-center justify-center rounded-lg bg-scanner-maroon"><QrCode className="size-5" /></span>
             )}
-            <span><strong className="block text-base sm:text-lg">ماسح التذاكر الذكي</strong><small className="block text-xs text-scanner-muted">نظام إدارة الدخول</small></span>
+            <span>
+              <strong className="block text-sm leading-tight sm:text-base">ماسح التذاكر الذكي</strong>
+              <small className="flex items-center gap-1.5 text-[10px] text-scanner-muted">
+                <span className="size-1.5 rounded-full bg-success animate-pulse" />
+                نظام إدارة الدخول — متصل
+              </small>
+            </span>
           </button>
-          <Button variant="outline" onClick={handleLogout} size="sm" className="border-scanner-elevated bg-scanner-surface text-scanner-foreground hover:bg-scanner-elevated hover:text-scanner-foreground">
-            <LogOut className="w-4 h-4 ml-2" />
-            <span>{t("logout")}</span>
-          </Button>
+          <div className="mr-auto flex items-center gap-2">
+            {staffUsers.length > 0 ? (
+              <Select value={staffName || undefined} onValueChange={setStaffName} dir="rtl">
+                <SelectTrigger className="h-9 w-40 border-scanner-elevated bg-scanner-elevated text-xs text-scanner-foreground focus:ring-scanner-gold sm:w-52 sm:text-sm">
+                  <UserRound className="size-3.5 shrink-0 text-scanner-gold" />
+                  <SelectValue placeholder="اختر موظف البوابة..." />
+                </SelectTrigger>
+                <SelectContent className="border-scanner-elevated bg-scanner-surface text-scanner-foreground">
+                  {staffUsers.map((u) => (
+                    <SelectItem key={u.id} value={u.name} className="focus:bg-scanner-elevated focus:text-scanner-foreground">
+                      <span className="ml-2">{u.icon || "⭐"}</span>
+                      {u.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            ) : (
+              <span className="text-[11px] text-scanner-muted">لا يوجد موظفون مفعّلون</span>
+            )}
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={handleLogout}
+              aria-label={t("logout")}
+              title={t("logout")}
+              className="size-9 shrink-0 border-scanner-elevated bg-scanner-surface text-scanner-foreground hover:bg-destructive hover:text-destructive-foreground"
+            >
+              <LogOut className="size-4" />
+            </Button>
+          </div>
         </div>
       </header>
 
@@ -1222,37 +1254,6 @@ const QRScanner = () => {
           </div>
         </div>
 
-        {/* Staff selector */}
-        <Card className="border-scanner-elevated bg-scanner-surface text-scanner-foreground shadow-elegant">
-          <CardContent className="p-4 sm:p-5">
-            <div className="mb-3 flex items-center gap-2">
-              <UserRound className="size-4 text-scanner-gold" />
-              <span className="text-sm font-bold">اختر موظف البوابة</span>
-              {staffName && (
-                <span className="mr-auto rounded-full border border-scanner-gold/40 bg-scanner-gold/10 px-2.5 py-1 text-[11px] font-bold text-scanner-gold">
-                  {staffName}
-                </span>
-              )}
-            </div>
-            {staffUsers.length === 0 ? (
-              <span className="text-xs text-scanner-muted">لا يوجد موظفون مفعّلون</span>
-            ) : (
-              <Select value={staffName || undefined} onValueChange={setStaffName} dir="rtl">
-                <SelectTrigger className="h-12 border-scanner-elevated bg-scanner-elevated text-scanner-foreground focus:ring-scanner-gold">
-                  <SelectValue placeholder="اختر اسم الموظف..." />
-                </SelectTrigger>
-                <SelectContent className="border-scanner-elevated bg-scanner-surface text-scanner-foreground">
-                  {staffUsers.map((u) => (
-                    <SelectItem key={u.id} value={u.name} className="focus:bg-scanner-elevated focus:text-scanner-foreground">
-                      <span className="ml-2">{u.icon || "⭐"}</span>
-                      {u.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            )}
-          </CardContent>
-        </Card>
 
 
         {/* Mode Toggle Buttons */}
