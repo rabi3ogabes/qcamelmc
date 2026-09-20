@@ -145,6 +145,70 @@ serve(async (req) => {
       )
     `;
 
+    // Lookup mode: read-only ticket lookup by QR code / booking reference (no check-in)
+    if (mode === 'lookup') {
+      const code = (booking_reference || '').trim();
+      if (!code) {
+        return new Response(JSON.stringify({ success: false, message: 'رقم التذكرة مطلوب', results: [] }), {
+          status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
+      let { data: rows } = await supabase
+        .from('ticket_holders')
+        .select(HOLDER_SELECT)
+        .eq('qr_code', code)
+        .limit(20);
+
+      if (!rows || rows.length === 0) {
+        const res = await supabase
+          .from('ticket_holders')
+          .select(HOLDER_SELECT)
+          .ilike('qr_code', `%${code.replace(/[%,()]/g, '')}%`)
+          .limit(20);
+        rows = res.data ?? [];
+      }
+
+      if (!rows || rows.length === 0) {
+        const res = await supabase
+          .from('ticket_holders')
+          .select(HOLDER_SELECT)
+          .eq('orders.booking_reference', code)
+          .limit(20);
+        rows = res.data ?? [];
+      }
+
+      const results = (rows ?? []).map((h: any) => {
+        const order = Array.isArray(h.orders) ? h.orders[0] : h.orders;
+        const ev = Array.isArray(order?.events) ? order.events[0] : order?.events;
+        const cust = Array.isArray(order?.customers) ? order.customers[0] : order?.customers;
+        return {
+          id: h.id,
+          name: h.name,
+          phone: h.phone,
+          nationality: h.nationality,
+          id_number: h.id_number,
+          ticket_type: h.ticket_type,
+          qr_code: h.qr_code,
+          is_present: h.is_present,
+          confirmed_at: h.confirmed_at,
+          confirmed_by_name: h.confirmed_by_name,
+          order_id: h.order_id,
+          orders: {
+            booking_reference: order?.booking_reference,
+            payment_status: order?.payment_status,
+            payment_method: order?.payment_method,
+            customers: { name: cust?.name || 'غير معروف' },
+            events: { title: ev?.title || '', event_date: ev?.event_date || '' },
+          },
+        };
+      });
+
+      return new Response(JSON.stringify({ success: true, results }), {
+        status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
     // Search mode: find ticket holders by name / phone / email / booking reference
     if (mode === 'search') {
       const value = (searchInput || '').trim();
