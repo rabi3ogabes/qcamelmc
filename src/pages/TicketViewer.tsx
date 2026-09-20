@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { ArrowLeft, Download, Loader2, QrCode as QrCodeIcon, Send, Ticket } from "lucide-react";
+import { ArrowLeft, Download, Loader2, QrCode as QrCodeIcon, RotateCcw, Send, Ticket } from "lucide-react";
 import { toast } from "sonner";
 import QRCodeLib from "qrcode";
 import { Footer } from "@/components/Footer";
@@ -46,6 +46,45 @@ const TicketViewer = () => {
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
   const [headerBgColor, setHeaderBgColor] = useState<string>("hsl(var(--card) / 0.5)");
   const [selectedQR, setSelectedQR] = useState<{ image: string; holder: TicketHolder } | null>(null);
+  const [isAdminUser, setIsAdminUser] = useState(false);
+  const [resettingId, setResettingId] = useState<string | null>(null);
+
+  // Only a signed-in admin account may reset a scanned ticket.
+  useEffect(() => {
+    (async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+      const [{ data: adminRow }, { data: roleRow }] = await Promise.all([
+        supabase.from("admin_users").select("id").eq("id", session.user.id).maybeSingle(),
+        supabase.from("user_roles").select("role").eq("user_id", session.user.id).eq("role", "admin").maybeSingle(),
+      ]);
+      setIsAdminUser(!!adminRow || !!roleRow);
+    })();
+  }, []);
+
+  const handleResetTicket = async (holder: TicketHolder) => {
+    if (!window.confirm(`إلغاء مسح تذكرة ${holder.name}؟ ستعود التذكرة صالحة من جديد.`)) return;
+    setResettingId(holder.id);
+    try {
+      const { data, error } = await supabase.functions.invoke("ticket-checkin", {
+        body: { mode: "reset", holder_id: holder.id },
+      });
+      if (error || !data?.success) {
+        toast.error(data?.message || "تعذر إلغاء المسح — هذه العملية للأدمن فقط");
+        return;
+      }
+      toast.success(data.message || "تم إلغاء المسح");
+      setTicketHolders((current) =>
+        current.map((h) =>
+          h.id === holder.id ? { ...h, is_present: false, confirmed_at: null } : h
+        )
+      );
+    } catch {
+      toast.error("تعذر إلغاء المسح");
+    } finally {
+      setResettingId(null);
+    }
+  };
 
   useEffect(() => {
     if (bookingRef) {
@@ -635,8 +674,27 @@ const TicketViewer = () => {
                     }
                   </span>
                   {holder.is_present && (
-                    <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded">
-                      حاضر ✓
+                    <span className="flex items-center gap-2">
+                      <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded">
+                        حاضر ✓
+                      </span>
+                      {isAdminUser && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-6 px-2 text-[11px] text-destructive border-destructive/40 hover:bg-destructive/10"
+                          disabled={resettingId === holder.id}
+                          onClick={() => handleResetTicket(holder)}
+                          title="إلغاء المسح (للأدمن فقط)"
+                        >
+                          {resettingId === holder.id ? (
+                            <Loader2 className="h-3 w-3 animate-spin" />
+                          ) : (
+                            <RotateCcw className="h-3 w-3" />
+                          )}
+                          إلغاء
+                        </Button>
+                      )}
                     </span>
                   )}
                 </CardTitle>
