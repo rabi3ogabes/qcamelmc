@@ -134,6 +134,19 @@ const QRScanner = () => {
     if (errorDialogMessage) playErrorSound();
   }, [errorDialogMessage]);
 
+  // Already-scanned alert: warn loudly, then get the camera ready for the next ticket
+  useEffect(() => {
+    if (!alreadyScanned) return;
+    playErrorSound();
+    if (!cameraScanRef.current) return;
+    const timer = setTimeout(() => {
+      setAlreadyScanned(null);
+      resetScanner();
+    }, 4000);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [alreadyScanned]);
+
   const scannerRef = useRef<Html5Qrcode | null>(null);
   const isScanning = useRef(false);
 
