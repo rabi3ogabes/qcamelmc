@@ -491,9 +491,7 @@ const QRScanner = () => {
           
           // Set as available ticket and auto-select it if not already present
           setAvailableTickets([ticket]);
-          if (!ticket.is_present && scanMode === 'confirm') {
-            setSelectedTicketIds([ticket.id]);
-          } else if (ticket.is_present && scanMode === 'unconfirm') {
+          if (!ticket.is_present) {
             setSelectedTicketIds([ticket.id]);
           }
           
@@ -791,7 +789,7 @@ const QRScanner = () => {
         // Auto-select single ticket or all unpresent/present tickets based on mode
         if (ticketsData.length === 1) {
           const ticket = ticketsData[0];
-          if ((!ticket.is_present && scanMode === 'confirm') || (ticket.is_present && scanMode === 'unconfirm')) {
+          if (!ticket.is_present) {
             setSelectedTicketIds([ticket.id]);
           }
         }
@@ -1436,7 +1434,7 @@ const QRScanner = () => {
                               ? 'border-primary bg-primary/10 shadow-md'
                               : 'border-border bg-card hover:border-primary/50'
                           } ${
-                            (scanMode === 'confirm' && ticket.is_present) || (scanMode === 'unconfirm' && !ticket.is_present)
+                            ticket.is_present
                               ? 'opacity-50 cursor-not-allowed'
                               : ''
                           }`}
