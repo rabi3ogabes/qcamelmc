@@ -1242,36 +1242,24 @@ const QRScanner = () => {
         </div>
       </header>
 
-      <main className="mx-auto max-w-5xl space-y-5 px-3 py-4 sm:px-6 sm:py-8">
-        <div className="flex items-center justify-between gap-3">
-          <div>
-            <p className="text-xs font-semibold text-scanner-gold">بوابة الدخول</p>
-            <h1 className="mt-1 text-2xl font-bold sm:text-3xl">مسح وتأكيد التذاكر</h1>
-          </div>
-          <div className="flex items-center gap-2 rounded-full border border-success/30 bg-success/10 px-3 py-2 text-xs font-bold text-success">
-            <span className="size-2 rounded-full bg-success animate-pulse" />
-            النظام متصل
-          </div>
-        </div>
+      <main className="mx-auto max-w-5xl space-y-3 px-3 py-3 sm:px-6 sm:py-4">
 
 
 
-        {/* Mode Toggle Buttons */}
-        <div className="grid grid-cols-2 gap-1 rounded-lg border border-scanner-elevated bg-scanner-surface p-1.5">
+        {/* Mode Buttons */}
+        <div className="grid grid-cols-2 gap-2">
           <Button
-            variant="ghost"
             onClick={() => setScanMode('confirm')}
-            className={`h-12 text-xs sm:text-sm ${scanMode === 'confirm' ? "bg-scanner-maroon text-scanner-foreground hover:bg-scanner-maroon/90 hover:text-scanner-foreground" : "text-scanner-muted hover:bg-scanner-elevated hover:text-scanner-foreground"}`}
+            className={`h-11 border text-xs sm:text-sm ${scanMode === 'confirm' ? "border-scanner-gold/60 bg-scanner-maroon text-scanner-foreground shadow-elegant hover:bg-scanner-maroon/90 hover:text-scanner-foreground" : "border-scanner-elevated bg-scanner-surface text-scanner-muted hover:bg-scanner-elevated hover:text-scanner-foreground"}`}
           >
-            <CheckCircle2 className="w-3 h-3 sm:w-4 sm:h-4 lg:w-5 lg:h-5 ml-1 sm:ml-2" />
+            <CheckCircle2 className="w-4 h-4 ml-1.5" />
             <span>تأكيد الحضور</span>
           </Button>
           <Button
-            variant="ghost"
             onClick={() => setScanMode('unconfirm')}
-            className={`h-12 text-xs sm:text-sm ${scanMode === 'unconfirm' ? "bg-destructive text-destructive-foreground hover:bg-destructive/90" : "text-scanner-muted hover:bg-scanner-elevated hover:text-scanner-foreground"}`}
+            className={`h-11 border text-xs sm:text-sm ${scanMode === 'unconfirm' ? "border-destructive/60 bg-destructive text-destructive-foreground shadow-elegant hover:bg-destructive/90" : "border-scanner-elevated bg-scanner-surface text-scanner-muted hover:bg-scanner-elevated hover:text-scanner-foreground"}`}
           >
-            <XCircle className="w-3 h-3 sm:w-4 sm:h-4 lg:w-5 lg:h-5 ml-1 sm:ml-2" />
+            <XCircle className="w-4 h-4 ml-1.5" />
             <span>إلغاء التأكيد</span>
           </Button>
         </div>
