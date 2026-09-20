@@ -539,6 +539,20 @@ serve(async (req) => {
         );
       }
 
+      // Only tickets for today's event can be checked in
+      if (eventDate && !isEventDateToday(eventDate)) {
+        return new Response(
+          JSON.stringify({
+            success: false,
+            error: 'Wrong day',
+            message: `📅 هذه التذكرة ليست لليوم — صالحة في ${formattedEventDate} فقط`,
+          } as CheckInResponse),
+          { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+
+
       // Check if already checked in first
       if (ticketHolder.is_present) {
         console.warn(`[Ticket Check-in] Already checked in: ${booking_reference}`);
