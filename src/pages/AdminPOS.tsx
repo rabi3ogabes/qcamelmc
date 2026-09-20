@@ -21,6 +21,7 @@ import { format } from "date-fns";
 import { canPurchaseTickets } from "@/lib/eventUtils";
 import { useActivityLog } from "@/hooks/useActivityLog";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { FireworksBurst } from "@/components/FireworksBurst";
 import { bookingGuardMessage, checkTicketLimits, formatLimitViolation, isTicketLimitError, ticketLimitErrorMessage } from "@/lib/ticketLimit";
 import { useReserveTickets } from "@/hooks/useReserveTickets";
 import { CapacityAlert } from "@/components/admin/CapacityAlert";
@@ -101,6 +102,7 @@ const AdminPOS = () => {
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
   const [currentEventId, setCurrentEventId] = useState<string | null>(null);
   const [showSuccessDialog, setShowSuccessDialog] = useState(false);
+  const [fireworksTrigger, setFireworksTrigger] = useState(0);
   const [successData, setSuccessData] = useState<SuccessData | null>(null);
   
   // Capacity notification hook
@@ -1034,6 +1036,7 @@ const AdminPOS = () => {
         ticketHolders: allHoldersSummary,
         ticketTypes: ticketTypeSummary
       });
+      setFireworksTrigger(t => t + 1);
       setShowSuccessDialog(true);
 
       // Log activity
@@ -1596,15 +1599,17 @@ const AdminPOS = () => {
       </div>
 
       {/* Success Dialog */}
+      {showSuccessDialog && <FireworksBurst trigger={fireworksTrigger} />}
       <Dialog open={showSuccessDialog} onOpenChange={setShowSuccessDialog}>
-        <DialogContent className="sm:max-w-md text-center p-8">
+        <DialogContent className="sm:max-w-md text-center p-8 border-2 border-primary/30 shadow-[0_0_60px_-10px] shadow-primary/40 overflow-visible">
           <div className="flex flex-col items-center gap-6">
-            <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center">
-              <CheckCircle2 className="w-12 h-12 text-green-600" />
+            <div className="relative w-20 h-20 bg-success/15 rounded-full flex items-center justify-center animate-in zoom-in-50 duration-500">
+              <span className="absolute inset-0 rounded-full ring-4 ring-success/25 animate-ping" aria-hidden="true" />
+              <CheckCircle2 className="w-12 h-12 text-success relative" />
             </div>
-            
+
             <div className="space-y-2">
-              <DialogTitle className="text-2xl font-bold text-green-600">تم بنجاح!</DialogTitle>
+              <DialogTitle className="text-2xl font-extrabold text-success tracking-wide animate-in fade-in slide-in-from-top-2 duration-700">تم بنجاح!</DialogTitle>
               <p className="text-muted-foreground">تم إنشاء الطلب بنجاح</p>
             </div>
 
