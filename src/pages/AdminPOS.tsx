@@ -196,6 +196,20 @@ const AdminPOS = () => {
     fetchSettings();
   }, []);
 
+  const handleEventChange = async (eventId: string) => {
+    const event = availableEvents.find(e => e.id === eventId);
+    if (!event) return;
+    setCurrentEventId(eventId);
+    setSelectedDate(new Date(event.event_date));
+    setLoading(true);
+    try {
+      await fetchTicketsForEvent(eventId);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+
   const handleDateSelect = async (date: Date | undefined) => {
     if (!date) return;
     
