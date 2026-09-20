@@ -20,7 +20,7 @@ import { TicketAddItem } from "@/components/admin/TicketAddItem";
 import { format } from "date-fns";
 import { canPurchaseTickets } from "@/lib/eventUtils";
 import { useActivityLog } from "@/hooks/useActivityLog";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { bookingGuardMessage, checkTicketLimits, formatLimitViolation, isTicketLimitError, ticketLimitErrorMessage } from "@/lib/ticketLimit";
 import { useReserveTickets } from "@/hooks/useReserveTickets";
 import { CapacityAlert } from "@/components/admin/CapacityAlert";
@@ -1604,7 +1604,7 @@ const AdminPOS = () => {
             </div>
             
             <div className="space-y-2">
-              <h2 className="text-2xl font-bold text-green-600">تم بنجاح!</h2>
+              <DialogTitle className="text-2xl font-bold text-green-600">تم بنجاح!</DialogTitle>
               <p className="text-muted-foreground">تم إنشاء الطلب بنجاح</p>
             </div>
 
