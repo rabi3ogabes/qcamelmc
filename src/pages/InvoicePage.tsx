@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
@@ -12,7 +12,9 @@ const InvoicePage = () => {
   const { bookingReference } = useParams<{ bookingReference: string }>();
   const { settings } = useSettings();
   const [invoice, setInvoice] = useState<InvoiceData | null>(null);
+  const [orderId, setOrderId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const loadRef = useRef<(() => void) | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -32,8 +34,10 @@ const InvoicePage = () => {
         const order = data as any;
         if (!order?.id) {
           setInvoice(null);
+          setOrderId(null);
           return;
         }
+        setOrderId(order.id);
 
         const holders = (order.ticket_holders || []) as Array<{
           qr_code: string | null;
@@ -70,6 +74,7 @@ const InvoicePage = () => {
       }
     };
 
+    loadRef.current = load;
     load();
     // Refresh so a scanned ticket switches to "مستخدمة" without a manual reload
     const interval = window.setInterval(load, 15000);
@@ -81,6 +86,27 @@ const InvoicePage = () => {
       window.removeEventListener("focus", onFocus);
     };
   }, [bookingReference, settings?.logo_url]);
+
+  // Real-time: refresh instantly when any ticket of this order is scanned
+  useEffect(() => {
+    if (!orderId) return;
+    const channel = supabase
+      .channel(`invoice-holders-${orderId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "ticket_holders",
+          filter: `order_id=eq.${orderId}`,
+        },
+        () => loadRef.current?.(),
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [orderId]);
 
   return (
     <div className="min-h-screen bg-background" dir="rtl">

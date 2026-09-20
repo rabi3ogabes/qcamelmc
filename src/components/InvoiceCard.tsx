@@ -4,7 +4,8 @@ import { useNavigate } from "react-router-dom";
 import { toPng } from "html-to-image";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { FileDown, ImageDown, CheckCircle2, Loader2, Home } from "lucide-react";
+import { FileDown, ImageDown, CheckCircle2, Loader2, Home, ZoomIn } from "lucide-react";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { generateInvoicePdf, type InvoiceData } from "@/lib/generateInvoicePdf";
 
 interface InvoiceCardProps {
@@ -54,6 +55,7 @@ export const InvoiceCard = ({ data }: InvoiceCardProps) => {
 
   const codes = data.qr_codes || [];
   const [qrUrls, setQrUrls] = useState<string[]>([]);
+  const [enlargedQr, setEnlargedQr] = useState<string | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -178,7 +180,17 @@ export const InvoiceCard = ({ data }: InvoiceCardProps) => {
                         )}
                       </div>
                     ) : (
-                      <img src={url} alt="QR" className="mx-auto h-28 w-28 object-contain" crossOrigin="anonymous" />
+                      <button
+                        type="button"
+                        onClick={() => setEnlargedQr(url)}
+                        className="group relative mx-auto block cursor-zoom-in rounded-lg transition-transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-primary"
+                        aria-label="تكبير رمز QR"
+                      >
+                        <img src={url} alt="QR" className="mx-auto h-28 w-28 object-contain" crossOrigin="anonymous" />
+                        <span className="absolute inset-0 flex items-center justify-center rounded-lg bg-black/0 opacity-0 transition group-hover:bg-black/30 group-hover:opacity-100">
+                          <ZoomIn className="h-6 w-6 text-white" />
+                        </span>
+                      </button>
                     )}
                     <span className="mt-1 block text-xs text-muted-foreground">
                       {ticketLabel(data.ticket_types[i] || data.ticket_type)}
@@ -217,6 +229,21 @@ export const InvoiceCard = ({ data }: InvoiceCardProps) => {
       >
         <Home className="ml-2 h-5 w-5" /> للتحويل للصفحة الرئيسية
       </Button>
+
+      <Dialog open={Boolean(enlargedQr)} onOpenChange={(open) => !open && setEnlargedQr(null)}>
+        <DialogContent className="max-w-sm border-secondary/40 p-6 text-center" dir="rtl">
+          <div className="pointer-events-none absolute inset-x-0 top-0 h-1.5 rounded-t-lg bg-gradient-to-l from-secondary via-primary to-secondary" />
+          <DialogTitle className="text-sm font-semibold text-muted-foreground">
+            {ticketLabel(data.ticket_types[qrUrls.indexOf(enlargedQr || "")] || data.ticket_type)} — {data.booking_reference}
+          </DialogTitle>
+          {enlargedQr && (
+            <div className="mx-auto rounded-2xl border border-border bg-white p-4 shadow-elegant">
+              <img src={enlargedQr} alt="QR" className="mx-auto h-72 w-72 object-contain" />
+            </div>
+          )}
+          <p className="text-xs text-muted-foreground">اعرض الرمز عند البوابة ليتم مسحه</p>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
