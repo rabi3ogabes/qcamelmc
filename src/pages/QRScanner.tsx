@@ -206,6 +206,33 @@ const QRScanner = () => {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) {
       navigate("/admin/login");
+      return;
+    }
+    // Only a signed-in admin account may reset a scanned ticket.
+    const [{ data: adminRow }, { data: roleRow }] = await Promise.all([
+      supabase.from("admin_users").select("id").eq("id", session.user.id).maybeSingle(),
+      supabase.from("user_roles").select("role").eq("user_id", session.user.id).eq("role", "admin").maybeSingle(),
+    ]);
+    setIsAdminUser(!!adminRow || !!roleRow);
+  };
+
+  const handleResetTicket = async (holderId: string, holderName: string) => {
+    if (!window.confirm(`إلغاء مسح تذكرة ${holderName}؟ ستعود التذكرة صالحة من جديد.`)) return;
+    setResettingId(holderId);
+    try {
+      const { data, error } = await supabase.functions.invoke("ticket-checkin", {
+        body: { mode: "reset", holder_id: holderId },
+      });
+      if (error || !data?.success) {
+        toast.error(data?.message || "تعذر إلغاء المسح — هذه العملية للأدمن فقط");
+        return;
+      }
+      toast.success(data.message || "تم إلغاء المسح");
+      setScanHistory((prev) => prev.filter((h) => h.id !== holderId));
+    } catch {
+      toast.error("تعذر إلغاء المسح");
+    } finally {
+      setResettingId(null);
     }
   };
 
