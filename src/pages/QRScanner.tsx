@@ -8,7 +8,7 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { ArrowLeft, CheckCircle2, XCircle, Loader2, Search, Camera, AlertCircle, LogOut, Calendar, Users, ChevronDown, ChevronUp } from "lucide-react";
+import { ArrowLeft, CheckCircle2, XCircle, Loader2, Search, Camera, AlertCircle, LogOut, Calendar, Users, ChevronDown, ChevronUp, RotateCcw } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { useActivityLog } from "@/hooks/useActivityLog";
@@ -1912,19 +1912,38 @@ const QRScanner = () => {
                         {h.orders?.events?.title ? ` · ${h.orders.events.title}` : ""}
                       </p>
                     </div>
-                    <div className="text-end shrink-0">
-                      <p className="text-[11px] text-muted-foreground">
-                        {h.confirmed_at
-                          ? new Date(h.confirmed_at).toLocaleString("ar-u-nu-latn", {
-                              timeZone: "Asia/Qatar",
-                              dateStyle: "short",
-                              timeStyle: "short",
-                            })
-                          : "-"}
-                      </p>
-                      {h.confirmed_by_name && (
-                        <p className="text-[11px] font-medium text-primary">{h.confirmed_by_name}</p>
+                    <div className="flex items-center gap-2 shrink-0">
+                      {isAdminUser && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-7 px-2 text-[11px] text-destructive border-destructive/40 hover:bg-destructive/10"
+                          disabled={resettingId === h.id}
+                          onClick={() => handleResetTicket(h.id, h.name)}
+                          title="إلغاء المسح (للأدمن فقط)"
+                        >
+                          {resettingId === h.id ? (
+                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                          ) : (
+                            <RotateCcw className="h-3.5 w-3.5" />
+                          )}
+                          إلغاء
+                        </Button>
                       )}
+                      <div className="text-end">
+                        <p className="text-[11px] text-muted-foreground">
+                          {h.confirmed_at
+                            ? new Date(h.confirmed_at).toLocaleString("ar-u-nu-latn", {
+                                timeZone: "Asia/Qatar",
+                                dateStyle: "short",
+                                timeStyle: "short",
+                              })
+                            : "-"}
+                        </p>
+                        {h.confirmed_by_name && (
+                          <p className="text-[11px] font-medium text-primary">{h.confirmed_by_name}</p>
+                        )}
+                      </div>
                     </div>
                   </div>
                 ))}
