@@ -21,6 +21,7 @@ import { format } from "date-fns";
 import { canPurchaseTickets } from "@/lib/eventUtils";
 import { useActivityLog } from "@/hooks/useActivityLog";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { FireworksBurst } from "@/components/FireworksBurst";
 import { bookingGuardMessage, checkTicketLimits, formatLimitViolation, isTicketLimitError, ticketLimitErrorMessage } from "@/lib/ticketLimit";
 import { useReserveTickets } from "@/hooks/useReserveTickets";
 import { CapacityAlert } from "@/components/admin/CapacityAlert";
@@ -101,6 +102,7 @@ const AdminPOS = () => {
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
   const [currentEventId, setCurrentEventId] = useState<string | null>(null);
   const [showSuccessDialog, setShowSuccessDialog] = useState(false);
+  const [fireworksTrigger, setFireworksTrigger] = useState(0);
   const [successData, setSuccessData] = useState<SuccessData | null>(null);
   
   // Capacity notification hook
