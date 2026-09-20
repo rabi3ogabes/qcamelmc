@@ -815,15 +815,23 @@ const QRScanner = () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       
-      // Get selected tickets
+      // Get selected tickets — fall back to the single scanned ticket
       const selectedTickets = selectedTicketIds.length > 0
         ? availableTickets.filter(t => selectedTicketIds.includes(t.id))
-        : [];
+        : ticketInfo.ticket_holder_qr_code
+          ? [{
+              id: ticketInfo.ticket_holder_qr_code,
+              name: ticketInfo.ticket_holder_name || ticketInfo.customer_name,
+              ticket_type: ticketInfo.ticket_type,
+              qr_code: ticketInfo.ticket_holder_qr_code,
+            } as any]
+          : [];
       
       if (selectedTickets.length === 0) {
-        toast.error('خطأ: لم يتم العثور على تذاكر');
+        setErrorDialogMessage('لم يتم تحديد أي تذكرة للتأكيد');
         return;
       }
+
       
       let successCount = 0;
       let errorCount = 0;
