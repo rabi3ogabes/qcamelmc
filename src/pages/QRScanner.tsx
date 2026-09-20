@@ -366,6 +366,7 @@ const QRScanner = () => {
             qr_code,
             is_present,
             confirmed_at,
+            confirmed_by_name,
             id_number,
             order_id,
             orders!inner (
@@ -535,6 +536,7 @@ const QRScanner = () => {
             qr_code,
             is_present,
             confirmed_at,
+            confirmed_by_name,
             id_number,
             orders!inner (
               booking_reference,
@@ -561,6 +563,7 @@ const QRScanner = () => {
               qr_code,
               is_present,
               confirmed_at,
+              confirmed_by_name,
               id_number,
               orders!inner (
                 booking_reference,
@@ -1072,6 +1075,7 @@ const QRScanner = () => {
           qr_code,
           is_present,
           confirmed_at,
+          confirmed_by_name,
           id_number,
           order_id,
           orders!inner (
@@ -1155,6 +1159,7 @@ const QRScanner = () => {
           qr_code,
           is_present,
           confirmed_at,
+          confirmed_by_name,
           id_number,
           order_id
         `)
