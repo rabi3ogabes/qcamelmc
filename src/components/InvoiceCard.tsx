@@ -4,7 +4,8 @@ import { useNavigate } from "react-router-dom";
 import { toPng } from "html-to-image";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { FileDown, ImageDown, CheckCircle2, Loader2, Home } from "lucide-react";
+import { FileDown, ImageDown, CheckCircle2, Loader2, Home, ZoomIn } from "lucide-react";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { generateInvoicePdf, type InvoiceData } from "@/lib/generateInvoicePdf";
 
 interface InvoiceCardProps {
@@ -54,6 +55,7 @@ export const InvoiceCard = ({ data }: InvoiceCardProps) => {
 
   const codes = data.qr_codes || [];
   const [qrUrls, setQrUrls] = useState<string[]>([]);
+  const [enlargedQr, setEnlargedQr] = useState<string | null>(null);
 
   useEffect(() => {
     let active = true;
