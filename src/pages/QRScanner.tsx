@@ -1226,28 +1226,32 @@ const QRScanner = () => {
             <div className="mb-3 flex items-center gap-2">
               <UserRound className="size-4 text-scanner-gold" />
               <span className="text-sm font-bold">اختر موظف البوابة</span>
-              {staffName && <span className="mr-auto text-xs text-scanner-muted">المحدد: {staffName}</span>}
+              {staffName && (
+                <span className="mr-auto rounded-full border border-scanner-gold/40 bg-scanner-gold/10 px-2.5 py-1 text-[11px] font-bold text-scanner-gold">
+                  {staffName}
+                </span>
+              )}
             </div>
-            <div className="flex gap-2 overflow-x-auto pb-1">
             {staffUsers.length === 0 ? (
               <span className="text-xs text-scanner-muted">لا يوجد موظفون مفعّلون</span>
             ) : (
-              staffUsers.map((u) => (
-                <Button
-                  key={u.id}
-                  size="sm"
-                  variant="outline"
-                  onClick={() => setStaffName(u.name)}
-                  className={`shrink-0 border-scanner-elevated text-xs ${staffName === u.name ? "border-scanner-gold bg-scanner-gold text-scanner-background hover:bg-scanner-gold/90" : "bg-scanner-elevated text-scanner-foreground hover:bg-scanner-elevated/70 hover:text-scanner-foreground"}`}
-                >
-                  <span className="ml-1">{u.icon || "⭐"}</span>
-                  {u.name}
-                </Button>
-              ))
+              <Select value={staffName || undefined} onValueChange={setStaffName} dir="rtl">
+                <SelectTrigger className="h-12 border-scanner-elevated bg-scanner-elevated text-scanner-foreground focus:ring-scanner-gold">
+                  <SelectValue placeholder="اختر اسم الموظف..." />
+                </SelectTrigger>
+                <SelectContent className="border-scanner-elevated bg-scanner-surface text-scanner-foreground">
+                  {staffUsers.map((u) => (
+                    <SelectItem key={u.id} value={u.name} className="focus:bg-scanner-elevated focus:text-scanner-foreground">
+                      <span className="ml-2">{u.icon || "⭐"}</span>
+                      {u.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             )}
-            </div>
           </CardContent>
         </Card>
+
 
         {/* Mode Toggle Buttons */}
         <div className="grid grid-cols-2 gap-1 rounded-lg border border-scanner-elevated bg-scanner-surface p-1.5">
