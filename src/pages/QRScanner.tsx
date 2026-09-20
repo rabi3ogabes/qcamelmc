@@ -8,7 +8,7 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { ArrowLeft, CheckCircle2, XCircle, Loader2, Search, Camera, AlertCircle, LogOut, Calendar, Users, ChevronDown, ChevronUp } from "lucide-react";
+import { ArrowLeft, CheckCircle2, XCircle, Loader2, Search, Camera, AlertCircle, LogOut, Calendar, Users, ChevronDown, ChevronUp, RotateCcw } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { useActivityLog } from "@/hooks/useActivityLog";
@@ -91,6 +91,8 @@ const QRScanner = () => {
   const [scanHistory, setScanHistory] = useState<
     { id: string; name: string; ticket_type: string; confirmed_at: string | null; confirmed_by_name: string | null; orders?: { booking_reference: string; events?: { title: string } | null } | null }[]
   >([]);
+  const [isAdminUser, setIsAdminUser] = useState(false);
+  const [resettingId, setResettingId] = useState<string | null>(null);
 
   useEffect(() => {
     localStorage.setItem("scanner_staff_name", staffName);
@@ -199,11 +201,39 @@ const QRScanner = () => {
   };
 
   const checkAuth = async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session) {
+      // A signed-in admin account may reset scanned tickets — even if the
+      // team passcode is also stored in this browser.
+      const [{ data: adminRow }, { data: roleRow }] = await Promise.all([
+        supabase.from("admin_users").select("id").eq("id", session.user.id).maybeSingle(),
+        supabase.from("user_roles").select("role").eq("user_id", session.user.id).eq("role", "admin").maybeSingle(),
+      ]);
+      setIsAdminUser(!!adminRow || !!roleRow);
+      return;
+    }
     // The team passcode (verified by the route guard) is enough — no account needed.
     if (getStaffPasscode()) return;
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) {
-      navigate("/admin/login");
+    navigate("/admin/login");
+  };
+
+  const handleResetTicket = async (holderId: string, holderName: string) => {
+    if (!window.confirm(`إلغاء مسح تذكرة ${holderName}؟ ستعود التذكرة صالحة من جديد.`)) return;
+    setResettingId(holderId);
+    try {
+      const { data, error } = await supabase.functions.invoke("ticket-checkin", {
+        body: { mode: "reset", holder_id: holderId },
+      });
+      if (error || !data?.success) {
+        toast.error(data?.message || "تعذر إلغاء المسح — هذه العملية للأدمن فقط");
+        return;
+      }
+      toast.success(data.message || "تم إلغاء المسح");
+      setScanHistory((prev) => prev.filter((h) => h.id !== holderId));
+    } catch {
+      toast.error("تعذر إلغاء المسح");
+    } finally {
+      setResettingId(null);
     }
   };
 
@@ -1883,19 +1913,38 @@ const QRScanner = () => {
                         {h.orders?.events?.title ? ` · ${h.orders.events.title}` : ""}
                       </p>
                     </div>
-                    <div className="text-end shrink-0">
-                      <p className="text-[11px] text-muted-foreground">
-                        {h.confirmed_at
-                          ? new Date(h.confirmed_at).toLocaleString("ar-u-nu-latn", {
-                              timeZone: "Asia/Qatar",
-                              dateStyle: "short",
-                              timeStyle: "short",
-                            })
-                          : "-"}
-                      </p>
-                      {h.confirmed_by_name && (
-                        <p className="text-[11px] font-medium text-primary">{h.confirmed_by_name}</p>
+                    <div className="flex items-center gap-2 shrink-0">
+                      {isAdminUser && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-7 px-2 text-[11px] text-destructive border-destructive/40 hover:bg-destructive/10"
+                          disabled={resettingId === h.id}
+                          onClick={() => handleResetTicket(h.id, h.name)}
+                          title="إلغاء المسح (للأدمن فقط)"
+                        >
+                          {resettingId === h.id ? (
+                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                          ) : (
+                            <RotateCcw className="h-3.5 w-3.5" />
+                          )}
+                          إلغاء
+                        </Button>
                       )}
+                      <div className="text-end">
+                        <p className="text-[11px] text-muted-foreground">
+                          {h.confirmed_at
+                            ? new Date(h.confirmed_at).toLocaleString("ar-u-nu-latn", {
+                                timeZone: "Asia/Qatar",
+                                dateStyle: "short",
+                                timeStyle: "short",
+                              })
+                            : "-"}
+                        </p>
+                        {h.confirmed_by_name && (
+                          <p className="text-[11px] font-medium text-primary">{h.confirmed_by_name}</p>
+                        )}
+                      </div>
                     </div>
                   </div>
                 ))}
