@@ -229,6 +229,21 @@ export const InvoiceCard = ({ data }: InvoiceCardProps) => {
       >
         <Home className="ml-2 h-5 w-5" /> للتحويل للصفحة الرئيسية
       </Button>
+
+      <Dialog open={Boolean(enlargedQr)} onOpenChange={(open) => !open && setEnlargedQr(null)}>
+        <DialogContent className="max-w-sm border-secondary/40 p-6 text-center" dir="rtl">
+          <div className="pointer-events-none absolute inset-x-0 top-0 h-1.5 rounded-t-lg bg-gradient-to-l from-secondary via-primary to-secondary" />
+          <p className="text-sm font-semibold text-muted-foreground">
+            {ticketLabel(data.ticket_types[qrUrls.indexOf(enlargedQr || "")] || data.ticket_type)} — {data.booking_reference}
+          </p>
+          {enlargedQr && (
+            <div className="mx-auto rounded-2xl border border-border bg-white p-4 shadow-elegant">
+              <img src={enlargedQr} alt="QR" className="mx-auto h-72 w-72 object-contain" />
+            </div>
+          )}
+          <p className="text-xs text-muted-foreground">اعرض الرمز عند البوابة ليتم مسحه</p>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
