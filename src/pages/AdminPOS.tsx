@@ -18,6 +18,9 @@ import { useToast } from "@/hooks/use-toast";
 import { useTranslation } from "react-i18next";
 import { TicketAddItem } from "@/components/admin/TicketAddItem";
 import { format } from "date-fns";
+import { formatInTimeZone } from "date-fns-tz";
+const formatQatarDate = (value: string | Date) =>
+  formatInTimeZone(new Date(value), "Asia/Qatar", "PPP");
 import { canPurchaseTickets } from "@/lib/eventUtils";
 import { useActivityLog } from "@/hooks/useActivityLog";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
