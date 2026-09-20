@@ -1319,6 +1319,25 @@ const QRScanner = () => {
             </div>
           </CardHeader>
           <CardContent className="space-y-3 p-3 sm:p-4">
+
+            {/* QR Scanner Container */}
+            <div className="relative mx-auto w-full max-w-2xl overflow-hidden rounded-lg border border-scanner-elevated bg-scanner-background p-2">
+              <div id="qr-reader" className="min-h-[280px] w-full overflow-hidden rounded-md bg-scanner-background sm:min-h-[400px]" />
+              {!scanning && !ticketInfo && !cameraStarting && (
+                <div className="pointer-events-none absolute inset-2 flex flex-col items-center justify-center rounded-md bg-scanner-background">
+                  <div className="relative flex size-48 items-center justify-center sm:size-64">
+                    <span className="absolute right-0 top-0 size-10 border-r-2 border-t-2 border-scanner-gold" />
+                    <span className="absolute left-0 top-0 size-10 border-l-2 border-t-2 border-scanner-gold" />
+                    <span className="absolute bottom-0 right-0 size-10 border-b-2 border-r-2 border-scanner-gold" />
+                    <span className="absolute bottom-0 left-0 size-10 border-b-2 border-l-2 border-scanner-gold" />
+                    <ScanLine className="size-20 text-scanner-elevated" />
+                  </div>
+                  <p className="mt-5 text-sm text-scanner-muted">الكاميرا جاهزة للتشغيل</p>
+                </div>
+              )}
+              {scanning && <span className="pointer-events-none absolute inset-x-10 top-10 h-px bg-scanner-gold shadow-elegant animate-scanner-line" />}
+            </div>
+
             {/* Camera Controls */}
             {!scanning && !ticketInfo && (
               <div className="flex flex-col items-center gap-3">
@@ -1398,24 +1417,6 @@ const QRScanner = () => {
               </form>
             )}
 
-            {/* QR Scanner Container */}
-            <div className="relative mx-auto w-full max-w-2xl overflow-hidden rounded-lg border border-scanner-elevated bg-scanner-background p-2">
-              <div id="qr-reader" className="min-h-[280px] w-full overflow-hidden rounded-md bg-scanner-background sm:min-h-[400px]" />
-              {!scanning && !ticketInfo && !cameraStarting && (
-                <div className="pointer-events-none absolute inset-2 flex flex-col items-center justify-center rounded-md bg-scanner-background">
-                  <div className="relative flex size-48 items-center justify-center sm:size-64">
-                    <span className="absolute right-0 top-0 size-10 border-r-2 border-t-2 border-scanner-gold" />
-                    <span className="absolute left-0 top-0 size-10 border-l-2 border-t-2 border-scanner-gold" />
-                    <span className="absolute bottom-0 right-0 size-10 border-b-2 border-r-2 border-scanner-gold" />
-                    <span className="absolute bottom-0 left-0 size-10 border-b-2 border-l-2 border-scanner-gold" />
-                    <ScanLine className="size-20 text-scanner-elevated" />
-                  </div>
-                  <p className="mt-5 text-sm text-scanner-muted">الكاميرا جاهزة للتشغيل</p>
-                </div>
-              )}
-              {scanning && <span className="pointer-events-none absolute inset-x-10 top-10 h-px bg-scanner-gold shadow-elegant animate-scanner-line" />}
-            </div>
-            
             {processing && (
               <div className="flex items-center justify-center gap-2 mt-4 text-sm sm:text-base">
                 <Loader2 className="w-5 h-5 sm:w-6 sm:h-6 animate-spin" />
