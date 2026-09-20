@@ -1156,12 +1156,33 @@ const AdminPOS = () => {
                 </SelectContent>
               </Select>
               
-              <Button variant="outline" className="flex items-center gap-2 px-2 sm:px-4 py-2 h-auto text-sm sm:text-base cursor-not-allowed opacity-70" disabled>
-                <CalendarIcon className="h-4 w-4" />
-                <span className="font-semibold">
-                  {selectedDate ? format(selectedDate, "PPP") : "اختر التاريخ"}
-                </span>
-              </Button>
+              {availableEvents.length > 1 ? (
+                <Select value={currentEventId || undefined} onValueChange={handleEventChange}>
+                  <SelectTrigger className="w-auto min-w-[200px] max-w-[320px] gap-2 h-auto py-2 text-sm sm:text-base font-semibold">
+                    <CalendarIcon className="h-4 w-4 shrink-0" />
+                    <SelectValue placeholder="اختر الفعالية" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {availableEvents.map((event) => (
+                      <SelectItem key={event.id} value={event.id}>
+                        <span className="flex flex-col items-start">
+                          <span className="font-semibold">{event.title}</span>
+                          <span className="text-xs text-muted-foreground">
+                            {format(new Date(event.event_date), "PPP")}
+                          </span>
+                        </span>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              ) : (
+                <Button variant="outline" className="flex items-center gap-2 px-2 sm:px-4 py-2 h-auto text-sm sm:text-base cursor-not-allowed opacity-70" disabled>
+                  <CalendarIcon className="h-4 w-4" />
+                  <span className="font-semibold">
+                    {selectedDate ? format(selectedDate, "PPP") : "اختر التاريخ"}
+                  </span>
+                </Button>
+              )}
               <h2 className="text-base sm:text-xl font-semibold bg-yellow-400 px-3 sm:px-4 py-2 rounded">بيع تذكرة</h2>
               <Button
                 type="button"
