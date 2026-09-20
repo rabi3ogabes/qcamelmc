@@ -1266,19 +1266,19 @@ const QRScanner = () => {
 
         {/* Scanner */}
         <Card className="overflow-hidden border-scanner-elevated bg-scanner-surface text-scanner-foreground shadow-elegant">
-          <CardHeader className="border-b border-scanner-elevated pb-5">
+          <CardHeader className="border-b border-scanner-elevated pb-3">
             <div className="flex items-center justify-between gap-3">
               <div>
-                <CardTitle className="text-lg sm:text-xl">{t('scanTicket') || 'مسح التذكرة'}</CardTitle>
-                <p className="mt-1 text-xs text-scanner-muted">ضع رمز QR داخل الإطار ليتم التحقق تلقائياً</p>
+                <CardTitle className="text-base sm:text-lg">{t('scanTicket') || 'مسح التذكرة'}</CardTitle>
+                <p className="mt-0.5 text-[11px] text-scanner-muted">ضع رمز QR داخل الإطار ليتم التحقق تلقائياً</p>
               </div>
-              <span className={`flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-bold ${scanning ? "bg-success/15 text-success" : "bg-scanner-elevated text-scanner-muted"}`}>
+              <span className={`flex items-center gap-2 rounded-full px-2.5 py-1 text-[11px] font-bold ${scanning ? "bg-success/15 text-success" : "bg-scanner-elevated text-scanner-muted"}`}>
                 <span className={`size-2 rounded-full ${scanning ? "bg-success animate-pulse" : "bg-scanner-muted"}`} />
                 {scanning ? "الكاميرا نشطة" : "الكاميرا متوقفة"}
               </span>
             </div>
           </CardHeader>
-          <CardContent className="space-y-4 p-4 sm:p-6">
+          <CardContent className="space-y-3 p-3 sm:p-4">
             {/* Camera Controls */}
             {!scanning && !ticketInfo && (
               <div className="flex flex-col items-center gap-3">
