@@ -201,15 +201,11 @@ const QRScanner = () => {
   };
 
   const checkAuth = async () => {
-    // The team passcode (verified by the route guard) is enough — no account needed.
-    if (getStaffPasscode()) return;
     const { data: { session } } = await supabase.auth.getSession();
-    if (!session) {
-      navigate("/admin/login");
-      return;
-    }
-    // Only a signed-in admin account may reset a scanned ticket.
-    const [{ data: adminRow }, { data: roleRow }] = await Promise.all([
+    if (session) {
+      // A signed-in admin account may reset scanned tickets — even if the
+      // team passcode is also stored in this browser.
+      const [{ data: adminRow }, { data: roleRow }] = await Promise.all([
       supabase.from("admin_users").select("id").eq("id", session.user.id).maybeSingle(),
       supabase.from("user_roles").select("role").eq("user_id", session.user.id).eq("role", "admin").maybeSingle(),
     ]);
