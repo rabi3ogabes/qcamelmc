@@ -12,6 +12,7 @@ const InvoicePage = () => {
   const { bookingReference } = useParams<{ bookingReference: string }>();
   const { settings } = useSettings();
   const [invoice, setInvoice] = useState<InvoiceData | null>(null);
+  const [orderId, setOrderId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -32,8 +33,10 @@ const InvoicePage = () => {
         const order = data as any;
         if (!order?.id) {
           setInvoice(null);
+          setOrderId(null);
           return;
         }
+        setOrderId(order.id);
 
         const holders = (order.ticket_holders || []) as Array<{
           qr_code: string | null;
