@@ -87,6 +87,14 @@ const QRScanner = () => {
   const [successData, setSuccessData] = useState<SuccessData | null>(null);
   const [collapsedDates, setCollapsedDates] = useState<Record<string, boolean>>({});
   const [errorDialogMessage, setErrorDialogMessage] = useState<string | null>(null);
+  const [alreadyScanned, setAlreadyScanned] = useState<{
+    name: string;
+    ticketType: string;
+    reference: string;
+    confirmedAt?: string | null;
+    confirmedBy?: string | null;
+  } | null>(null);
+  const cameraScanRef = useRef(false);
   const [staffUsers, setStaffUsers] = useState<{ id: string; name: string; icon: string | null }[]>([]);
   const [staffName, setStaffName] = useState<string>(() => localStorage.getItem("scanner_staff_name") || "");
   const [scanHistory, setScanHistory] = useState<
