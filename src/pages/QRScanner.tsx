@@ -10,7 +10,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
-import { CheckCircle2, XCircle, Loader2, Search, Camera, AlertCircle, LogOut, Calendar, Users, ChevronDown, ChevronUp, RotateCcw, QrCode, RefreshCw, UserRound, ScanLine } from "lucide-react";
+import { CheckCircle2, XCircle, Loader2, Search, Camera, AlertCircle, AlertTriangle, LogOut, Calendar, Users, ChevronDown, ChevronUp, RotateCcw, QrCode, RefreshCw, UserRound, ScanLine } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { useActivityLog } from "@/hooks/useActivityLog";
@@ -87,6 +87,14 @@ const QRScanner = () => {
   const [successData, setSuccessData] = useState<SuccessData | null>(null);
   const [collapsedDates, setCollapsedDates] = useState<Record<string, boolean>>({});
   const [errorDialogMessage, setErrorDialogMessage] = useState<string | null>(null);
+  const [alreadyScanned, setAlreadyScanned] = useState<{
+    name: string;
+    ticketType: string;
+    reference: string;
+    confirmedAt?: string | null;
+    confirmedBy?: string | null;
+  } | null>(null);
+  const cameraScanRef = useRef(false);
   const [staffUsers, setStaffUsers] = useState<{ id: string; name: string; icon: string | null }[]>([]);
   const [staffName, setStaffName] = useState<string>(() => localStorage.getItem("scanner_staff_name") || "");
   const [scanHistory, setScanHistory] = useState<
@@ -125,6 +133,19 @@ const QRScanner = () => {
   useEffect(() => {
     if (errorDialogMessage) playErrorSound();
   }, [errorDialogMessage]);
+
+  // Already-scanned alert: warn loudly, then get the camera ready for the next ticket
+  useEffect(() => {
+    if (!alreadyScanned) return;
+    playErrorSound();
+    if (!cameraScanRef.current) return;
+    const timer = setTimeout(() => {
+      setAlreadyScanned(null);
+      resetScanner();
+    }, 4000);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [alreadyScanned]);
 
   const scannerRef = useRef<Html5Qrcode | null>(null);
   const isScanning = useRef(false);
@@ -358,6 +379,7 @@ const QRScanner = () => {
             qr_code,
             is_present,
             confirmed_at,
+            confirmed_by_name,
             id_number,
             order_id,
             orders!inner (
@@ -493,7 +515,13 @@ const QRScanner = () => {
 
           if (ticket.is_present) {
             setScanResult('error');
-            toast.error('تم استخدام التذكرة مسبقاً');
+            setAlreadyScanned({
+              name: ticket.name,
+              ticketType: ticket.ticket_type,
+              reference: order.booking_reference,
+              confirmedAt: ticket.confirmed_at,
+              confirmedBy: (ticket as any).confirmed_by_name,
+            });
           } else if (effectivePaymentStatus !== 'confirmed') {
             setScanResult('success');
             toast.warning('⚠️ الدفع غير مؤكد');
@@ -521,6 +549,7 @@ const QRScanner = () => {
             qr_code,
             is_present,
             confirmed_at,
+            confirmed_by_name,
             id_number,
             orders!inner (
               booking_reference,
@@ -547,6 +576,7 @@ const QRScanner = () => {
               qr_code,
               is_present,
               confirmed_at,
+              confirmed_by_name,
               id_number,
               orders!inner (
                 booking_reference,
@@ -650,7 +680,13 @@ const QRScanner = () => {
 
         if (orderData.is_present) {
           setScanResult('error');
-          toast.error('تم استخدام التذكرة مسبقاً');
+          setAlreadyScanned({
+            name: orderData.name,
+            ticketType: orderData.ticket_type,
+            reference: order.booking_reference,
+            confirmedAt: orderData.confirmed_at,
+            confirmedBy: (orderData as any).confirmed_by_name,
+          });
         } else if (effectivePaymentStatus !== 'confirmed') {
           setScanResult('success');
           toast.warning('⚠️ الدفع غير مؤكد');
@@ -1010,6 +1046,7 @@ const QRScanner = () => {
     await stopScanner();
     setScanning(false);
     
+    cameraScanRef.current = true;
     await processTicket(decodedText);
   };
 
@@ -1052,6 +1089,7 @@ const QRScanner = () => {
           qr_code,
           is_present,
           confirmed_at,
+          confirmed_by_name,
           id_number,
           order_id,
           orders!inner (
@@ -1135,6 +1173,7 @@ const QRScanner = () => {
           qr_code,
           is_present,
           confirmed_at,
+          confirmed_by_name,
           id_number,
           order_id
         `)
@@ -1187,6 +1226,7 @@ const QRScanner = () => {
       toast.error("الرجاء إدخال رقم الحجز");
       return;
     }
+    cameraScanRef.current = false;
     await processTicket(manualSearch.trim());
   };
 
@@ -2044,6 +2084,56 @@ const QRScanner = () => {
               className="w-full h-12 text-lg"
             >
               حسناً
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Already scanned - live alert */}
+      <Dialog
+        open={!!alreadyScanned}
+        onOpenChange={(open) => {
+          if (!open) {
+            setAlreadyScanned(null);
+            if (cameraScanRef.current) resetScanner();
+          }
+        }}
+      >
+        <DialogContent className="sm:max-w-md text-center p-8" dir="rtl">
+          <div className="flex flex-col items-center gap-5">
+            <div className="w-20 h-20 rounded-full bg-amber-100 flex items-center justify-center animate-pulse">
+              <AlertTriangle className="w-12 h-12 text-amber-600" />
+            </div>
+            <div className="space-y-2">
+              <h2 className="text-2xl font-bold text-amber-600">تم مسح هذه التذكرة مسبقاً</h2>
+              <p className="text-lg font-semibold">{alreadyScanned?.name}</p>
+              <p className="text-sm text-muted-foreground" dir="ltr">
+                {alreadyScanned?.reference}
+              </p>
+              {alreadyScanned?.confirmedAt && (
+                <p className="text-sm text-foreground">
+                  وقت المسح:{" "}
+                  {new Date(alreadyScanned.confirmedAt).toLocaleString("ar-u-nu-latn", {
+                    timeZone: "Asia/Qatar",
+                  })}
+                </p>
+              )}
+              {alreadyScanned?.confirmedBy && (
+                <p className="text-sm text-muted-foreground">بواسطة {alreadyScanned.confirmedBy}</p>
+              )}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              الكاميرا ستكون جاهزة لمسح تذكرة جديدة خلال لحظات…
+            </p>
+            <Button
+              onClick={() => {
+                setAlreadyScanned(null);
+                if (cameraScanRef.current) resetScanner();
+              }}
+              size="lg"
+              className="w-full h-12 text-lg"
+            >
+              مسح تذكرة جديدة
             </Button>
           </div>
         </DialogContent>

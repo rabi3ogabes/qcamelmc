@@ -20,12 +20,15 @@ import {
   Crown,
   Car,
   CheckCircle2,
+  Clock,
+  ScanLine,
   Search,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
 type DateFilter = "today" | "tomorrow" | "custom" | "all";
+type ScanFilter = "all" | "scanned" | "unscanned";
 
 interface BookedTicket {
   id: string;
@@ -92,6 +95,7 @@ export const BookedTicketsByDate = () => {
   const [tickets, setTickets] = useState<BookedTicket[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [scanFilter, setScanFilter] = useState<ScanFilter>("all");
   const [qrDialog, setQrDialog] = useState<{ code: string; title: string } | null>(null);
   const [qrDataUrl, setQrDataUrl] = useState<string>("");
   const [detailsTicket, setDetailsTicket] = useState<BookedTicket | null>(null);
@@ -150,13 +154,20 @@ export const BookedTicketsByDate = () => {
 
   useEffect(() => {
     fetchTickets();
+    const interval = setInterval(fetchTickets, 15000);
+    return () => clearInterval(interval);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedKey]);
 
+  const scannedCount = useMemo(() => tickets.filter((t) => t.is_present).length, [tickets]);
+
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
-    if (!q) return tickets;
-    return tickets.filter(
+    const byScan = tickets.filter((t) =>
+      scanFilter === "all" ? true : scanFilter === "scanned" ? !!t.is_present : !t.is_present
+    );
+    if (!q) return byScan;
+    return byScan.filter(
       (t) =>
         t.name.toLowerCase().includes(q) ||
         t.phone.includes(q) ||
@@ -164,7 +175,7 @@ export const BookedTicketsByDate = () => {
         (t.order.customers?.name || "").toLowerCase().includes(q) ||
         (t.order.customers?.phone || "").includes(q)
     );
-  }, [tickets, search]);
+  }, [tickets, search, scanFilter]);
 
   const openQr = async (ticket: BookedTicket) => {
     const code = ticket.qr_code || ticket.order.booking_reference;
@@ -216,6 +227,34 @@ export const BookedTicketsByDate = () => {
           {filterButton("tomorrow", "غداً")}
           {filterButton("custom", "يوم محدد")}
           {filterButton("all", "الكل")}
+        </div>
+        <div className="flex rounded-lg border p-1 bg-muted/40">
+          <Button
+            variant={scanFilter === "all" ? "default" : "ghost"}
+            size="sm"
+            className="font-lusail"
+            onClick={() => setScanFilter("all")}
+          >
+            كل التذاكر
+          </Button>
+          <Button
+            variant={scanFilter === "scanned" ? "default" : "ghost"}
+            size="sm"
+            className="font-lusail gap-1"
+            onClick={() => setScanFilter("scanned")}
+          >
+            <ScanLine className="w-4 h-4" />
+            ممسوحة ({scannedCount})
+          </Button>
+          <Button
+            variant={scanFilter === "unscanned" ? "default" : "ghost"}
+            size="sm"
+            className="font-lusail gap-1"
+            onClick={() => setScanFilter("unscanned")}
+          >
+            <Clock className="w-4 h-4" />
+            غير ممسوحة ({tickets.length - scannedCount})
+          </Button>
         </div>
         {filter === "custom" && (
           <Input
@@ -276,16 +315,33 @@ export const BookedTicketsByDate = () => {
                   <span dir="ltr">{ticket.order.booking_reference}</span>
                   <span>•</span>
                   <span>{ticket.order.events.title}</span>
-                  {ticket.is_present && (
-                    <>
-                      <span>•</span>
-                      <span className="flex items-center gap-1 text-success font-semibold">
-                        <CheckCircle2 className="w-3.5 h-3.5" />
-                        حاضر
-                      </span>
-                    </>
-                  )}
                 </div>
+
+                {ticket.is_present ? (
+                  <div className="flex items-center gap-2 rounded-lg border border-success/40 bg-success/10 px-2.5 py-1.5 text-xs font-lusail text-success">
+                    <CheckCircle2 className="w-4 h-4 shrink-0" />
+                    <span className="font-semibold">تم المسح</span>
+                    {ticket.confirmed_at && (
+                      <span className="text-[11px] opacity-90">
+                        {new Date(ticket.confirmed_at).toLocaleString("ar-u-nu-latn", {
+                          timeZone: "Asia/Qatar",
+                          day: "2-digit",
+                          month: "2-digit",
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
+                      </span>
+                    )}
+                    {ticket.confirmed_by_name && (
+                      <span className="text-[11px] opacity-80 truncate">— {ticket.confirmed_by_name}</span>
+                    )}
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2 rounded-lg border border-muted-foreground/25 bg-muted/40 px-2.5 py-1.5 text-xs font-lusail text-muted-foreground">
+                    <Clock className="w-4 h-4 shrink-0" />
+                    <span>لم تُمسح بعد</span>
+                  </div>
+                )}
 
                 <div className="flex items-center justify-between gap-2">
                   {paymentBadge(ticket.order.payment_status)}
