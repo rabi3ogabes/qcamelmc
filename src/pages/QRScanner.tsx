@@ -2089,6 +2089,56 @@ const QRScanner = () => {
         </DialogContent>
       </Dialog>
 
+      {/* Already scanned - live alert */}
+      <Dialog
+        open={!!alreadyScanned}
+        onOpenChange={(open) => {
+          if (!open) {
+            setAlreadyScanned(null);
+            if (cameraScanRef.current) resetScanner();
+          }
+        }}
+      >
+        <DialogContent className="sm:max-w-md text-center p-8" dir="rtl">
+          <div className="flex flex-col items-center gap-5">
+            <div className="w-20 h-20 rounded-full bg-amber-100 flex items-center justify-center animate-pulse">
+              <AlertTriangle className="w-12 h-12 text-amber-600" />
+            </div>
+            <div className="space-y-2">
+              <h2 className="text-2xl font-bold text-amber-600">تم مسح هذه التذكرة مسبقاً</h2>
+              <p className="text-lg font-semibold">{alreadyScanned?.name}</p>
+              <p className="text-sm text-muted-foreground" dir="ltr">
+                {alreadyScanned?.reference}
+              </p>
+              {alreadyScanned?.confirmedAt && (
+                <p className="text-sm text-foreground">
+                  وقت المسح:{" "}
+                  {new Date(alreadyScanned.confirmedAt).toLocaleString("ar-u-nu-latn", {
+                    timeZone: "Asia/Qatar",
+                  })}
+                </p>
+              )}
+              {alreadyScanned?.confirmedBy && (
+                <p className="text-sm text-muted-foreground">بواسطة {alreadyScanned.confirmedBy}</p>
+              )}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              الكاميرا ستكون جاهزة لمسح تذكرة جديدة خلال لحظات…
+            </p>
+            <Button
+              onClick={() => {
+                setAlreadyScanned(null);
+                if (cameraScanRef.current) resetScanner();
+              }}
+              size="lg"
+              className="w-full h-12 text-lg"
+            >
+              مسح تذكرة جديدة
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       {/* Error Dialog - Centered Popup */}
       <Dialog 
         open={!!errorDialogMessage} 
