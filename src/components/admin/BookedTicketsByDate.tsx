@@ -135,7 +135,7 @@ export const BookedTicketsByDate = () => {
         const from = page * pageSize;
         const { data, error } = await query.range(from, from + pageSize - 1);
         if (error) throw error;
-        const batch = (data || []) as unknown as BookedTicket[];
+        const batch = ((data || []) as unknown as BookedTicket[]).filter((t) => t.order);
         rows.push(...batch);
         if (batch.length < pageSize) break;
       }
