@@ -667,7 +667,7 @@ const QRScanner = () => {
           setAlreadyScanned({
             name: orderData.name,
             ticketType: orderData.ticket_type,
-            reference: orderData.orders?.booking_reference || orderData.qr_code || '',
+            reference: order.booking_reference,
             confirmedAt: orderData.confirmed_at,
             confirmedBy: (orderData as any).confirmed_by_name,
           });
