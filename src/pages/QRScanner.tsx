@@ -537,6 +537,24 @@ const QRScanner = () => {
           }
         }
 
+        // Fallback for passcode-only staff (no signed-in session): use the secure lookup service
+        if (!orderData) {
+          try {
+            const { data: lookup } = await supabase.functions.invoke('ticket-checkin', {
+              body: { mode: 'lookup', booking_reference: scannedCode, passcode: getStaffPasscode() },
+            });
+            const found = (lookup as any)?.results?.[0];
+            if (found) {
+              orderData = found;
+              orderError = null;
+            }
+          } catch (lookupErr) {
+            console.error('Lookup fallback failed:', lookupErr);
+          }
+        }
+
+
+
         if (orderError || !orderData) {
           setScanResult('error');
           setTicketInfo({
