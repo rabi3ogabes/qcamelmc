@@ -73,7 +73,7 @@ const AdminDashboard = () => {
 
   const fetchSettings = async () => {
     const { data, error } = await supabase
-      .from("settings")
+      .from("public_settings")
       .select("logo_url, header_bg_color")
       .maybeSingle();
 
