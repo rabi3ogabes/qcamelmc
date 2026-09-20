@@ -162,33 +162,30 @@ const AdminPOS = () => {
   };
 
   useEffect(() => {
-    // Fetch the upcoming event automatically
+    // Fetch every event that still allows ticket sales
     const fetchUpcomingEvent = async () => {
       try {
         const { data, error } = await supabase
           .from("events")
-          .select("id, event_date")
+          .select("id, title, event_date")
           .eq("is_active", true)
+          .eq("is_archived", false)
           .order("event_date", { ascending: true });
 
         if (error) {
           console.error("Error fetching upcoming event:", error);
           throw error;
         }
-        
-        console.log("Upcoming event data:", data);
-        
-        // Filter to find the first event that still allows ticket purchases
-        const availableEvent = data?.find(event => canPurchaseTickets(event.event_date));
-        
+
+        const sellable = (data || []).filter(event => canPurchaseTickets(event.event_date));
+        setAvailableEvents(sellable);
+
+        const availableEvent = sellable[0];
+
         if (availableEvent) {
           setSelectedDate(new Date(availableEvent.event_date));
           setCurrentEventId(availableEvent.id);
-          // Store the event ID to fetch tickets for this specific event
           fetchTicketsForEvent(availableEvent.id);
-          console.log("Selected date set to:", new Date(availableEvent.event_date));
-        } else {
-          console.log("No upcoming events found");
         }
       } catch (error) {
         console.error("Failed to fetch upcoming event:", error);
