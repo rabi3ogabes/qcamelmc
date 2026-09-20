@@ -91,6 +91,8 @@ const QRScanner = () => {
   const [scanHistory, setScanHistory] = useState<
     { id: string; name: string; ticket_type: string; confirmed_at: string | null; confirmed_by_name: string | null; orders?: { booking_reference: string; events?: { title: string } | null } | null }[]
   >([]);
+  const [isAdminUser, setIsAdminUser] = useState(false);
+  const [resettingId, setResettingId] = useState<string | null>(null);
 
   useEffect(() => {
     localStorage.setItem("scanner_staff_name", staffName);
