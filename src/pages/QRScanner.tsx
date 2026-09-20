@@ -206,10 +206,15 @@ const QRScanner = () => {
       // A signed-in admin account may reset scanned tickets — even if the
       // team passcode is also stored in this browser.
       const [{ data: adminRow }, { data: roleRow }] = await Promise.all([
-      supabase.from("admin_users").select("id").eq("id", session.user.id).maybeSingle(),
-      supabase.from("user_roles").select("role").eq("user_id", session.user.id).eq("role", "admin").maybeSingle(),
-    ]);
-    setIsAdminUser(!!adminRow || !!roleRow);
+        supabase.from("admin_users").select("id").eq("id", session.user.id).maybeSingle(),
+        supabase.from("user_roles").select("role").eq("user_id", session.user.id).eq("role", "admin").maybeSingle(),
+      ]);
+      setIsAdminUser(!!adminRow || !!roleRow);
+      return;
+    }
+    // The team passcode (verified by the route guard) is enough — no account needed.
+    if (getStaffPasscode()) return;
+    navigate("/admin/login");
   };
 
   const handleResetTicket = async (holderId: string, holderName: string) => {
