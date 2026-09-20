@@ -382,6 +382,12 @@ serve(async (req) => {
           status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       }
+      if (eventDate && !isEventDateToday(eventDate)) {
+        return new Response(JSON.stringify({ success: false, message: `📅 هذه التذكرة ليست لليوم — صالحة في ${prettyDate} فقط` }), {
+          status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
       if ((holder as any).is_present) {
         return new Response(JSON.stringify({ success: false, message: 'تم تسجيل حضور هذه التذكرة مسبقاً', already: true }), {
           status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
