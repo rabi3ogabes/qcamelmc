@@ -115,7 +115,7 @@ export const BookedTicketsByDate = () => {
         .from("ticket_holders")
         .select(
           `id, name, phone, ticket_type, qr_code, is_present, confirmed_at, confirmed_by_name, created_at,
-           orders!inner(id, booking_reference, payment_status, payment_method, total_amount, created_at,
+           order:orders!inner(id, booking_reference, payment_status, payment_method, total_amount, created_at,
              customers(name, email, phone),
              events!inner(title, event_date, location, is_archived))`
         )
