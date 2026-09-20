@@ -74,6 +74,7 @@ const InvoicePage = () => {
       }
     };
 
+    loadRef.current = load;
     load();
     // Refresh so a scanned ticket switches to "مستخدمة" without a manual reload
     const interval = window.setInterval(load, 15000);
