@@ -124,8 +124,8 @@ export const BookedTicketsByDate = () => {
       if (selectedKey) {
         const { start, end } = qatarDayRange(selectedKey);
         query = query
-          .gte("orders.events.event_date", start)
-          .lt("orders.events.event_date", end);
+          .gte("order.events.event_date", start)
+          .lt("order.events.event_date", end);
       }
 
       // Page through everything (Supabase caps at 1000 rows)
