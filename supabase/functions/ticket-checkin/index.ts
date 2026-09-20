@@ -64,7 +64,7 @@ interface CheckInRequest {
   booking_reference: string;
   admin_id?: string;
   staff_name?: string;
-  mode?: 'checkin' | 'history' | 'search' | 'manual';
+  mode?: 'checkin' | 'history' | 'search' | 'manual' | 'lookup';
   passcode?: string;
   search?: string;
   holder_id?: string;
