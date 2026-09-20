@@ -8,7 +8,7 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { ArrowLeft, CheckCircle2, XCircle, Loader2, Search, Camera, AlertCircle, LogOut, Calendar, Users, ChevronDown, ChevronUp, RotateCcw, QrCode, ShieldCheck, RefreshCw, UserRound, ScanLine } from "lucide-react";
+import { CheckCircle2, XCircle, Loader2, Search, Camera, AlertCircle, LogOut, Calendar, Users, ChevronDown, ChevronUp, RotateCcw, QrCode, RefreshCw, UserRound, ScanLine } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { useActivityLog } from "@/hooks/useActivityLog";
@@ -78,7 +78,6 @@ const QRScanner = () => {
   const [selectedTicketIds, setSelectedTicketIds] = useState<string[]>([]);
   const [scanMode, setScanMode] = useState<'confirm' | 'unconfirm'>('confirm');
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
-  const [headerBgColor, setHeaderBgColor] = useState<string>("hsl(var(--card) / 0.5)");
   const [relatedTicketsSameDay, setRelatedTicketsSameDay] = useState<RelatedTicket[]>([]);
   const [relatedTicketsOtherDays, setRelatedTicketsOtherDays] = useState<RelatedTicket[]>([]);
   const [sameBookingTickets, setSameBookingTickets] = useState<RelatedTicket[]>([]);
@@ -183,9 +182,6 @@ const QRScanner = () => {
       setLogoUrl(data.logo_url);
     }
     
-    if (data?.header_bg_color) {
-      setHeaderBgColor(data.header_bg_color);
-    }
   };
 
   const stopScanner = async () => {
