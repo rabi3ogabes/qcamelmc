@@ -101,6 +101,7 @@ const AdminPOS = () => {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
   const [currentEventId, setCurrentEventId] = useState<string | null>(null);
+  const [availableEvents, setAvailableEvents] = useState<{ id: string; title: string; event_date: string }[]>([]);
   const [showSuccessDialog, setShowSuccessDialog] = useState(false);
   const [fireworksTrigger, setFireworksTrigger] = useState(0);
   const [successData, setSuccessData] = useState<SuccessData | null>(null);
