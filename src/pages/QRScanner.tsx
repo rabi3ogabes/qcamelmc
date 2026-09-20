@@ -1033,6 +1033,7 @@ const QRScanner = () => {
     await stopScanner();
     setScanning(false);
     
+    cameraScanRef.current = true;
     await processTicket(decodedText);
   };
 
@@ -1212,6 +1213,7 @@ const QRScanner = () => {
       toast.error("الرجاء إدخال رقم الحجز");
       return;
     }
+    cameraScanRef.current = false;
     await processTicket(manualSearch.trim());
   };
 
