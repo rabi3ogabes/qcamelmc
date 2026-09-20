@@ -729,7 +729,7 @@ const LiveBookings = () => {
   const fetchSettings = async () => {
     try {
       const { data, error } = await supabase
-        .from("settings")
+        .from("public_settings")
         .select("logo_url, header_bg_color")
         .maybeSingle();
 
