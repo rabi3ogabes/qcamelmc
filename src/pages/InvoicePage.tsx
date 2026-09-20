@@ -85,6 +85,27 @@ const InvoicePage = () => {
     };
   }, [bookingReference, settings?.logo_url]);
 
+  // Real-time: refresh instantly when any ticket of this order is scanned
+  useEffect(() => {
+    if (!orderId) return;
+    const channel = supabase
+      .channel(`invoice-holders-${orderId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "ticket_holders",
+          filter: `order_id=eq.${orderId}`,
+        },
+        () => loadRef.current?.(),
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [orderId]);
+
   return (
     <div className="min-h-screen bg-background" dir="rtl">
       <main className="mx-auto w-full max-w-3xl px-4 py-10">
