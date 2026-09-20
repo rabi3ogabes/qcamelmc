@@ -501,7 +501,13 @@ const QRScanner = () => {
 
           if (ticket.is_present) {
             setScanResult('error');
-            toast.error('تم استخدام التذكرة مسبقاً');
+            setAlreadyScanned({
+              name: ticket.name,
+              ticketType: ticket.ticket_type,
+              reference: order.booking_reference,
+              confirmedAt: ticket.confirmed_at,
+              confirmedBy: (ticket as any).confirmed_by_name,
+            });
           } else if (effectivePaymentStatus !== 'confirmed') {
             setScanResult('success');
             toast.warning('⚠️ الدفع غير مؤكد');
@@ -658,7 +664,13 @@ const QRScanner = () => {
 
         if (orderData.is_present) {
           setScanResult('error');
-          toast.error('تم استخدام التذكرة مسبقاً');
+          setAlreadyScanned({
+            name: orderData.name,
+            ticketType: orderData.ticket_type,
+            reference: orderData.orders?.booking_reference || orderData.qr_code || '',
+            confirmedAt: orderData.confirmed_at,
+            confirmedBy: (orderData as any).confirmed_by_name,
+          });
         } else if (effectivePaymentStatus !== 'confirmed') {
           setScanResult('success');
           toast.warning('⚠️ الدفع غير مؤكد');
