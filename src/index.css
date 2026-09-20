@@ -43,6 +43,14 @@ All colors MUST be HSL.
     --ticket-parking: 210 90% 50%;
     --ticket-normal: 345 75% 35%;
 
+    --scanner-background: 0 0% 9%;
+    --scanner-surface: 0 0% 13%;
+    --scanner-elevated: 0 0% 18%;
+    --scanner-foreground: 0 0% 96%;
+    --scanner-muted: 0 0% 65%;
+    --scanner-gold: 42 90% 53%;
+    --scanner-maroon: 343 82% 36%;
+
     --radius: 0.75rem;
 
     --gradient-primary: linear-gradient(135deg, hsl(345 75% 35%), hsl(345 85% 45%));
@@ -96,6 +104,14 @@ All colors MUST be HSL.
     --ticket-parking: 210 90% 60%;
     --ticket-normal: 345 75% 45%;
 
+    --scanner-background: 0 0% 7%;
+    --scanner-surface: 0 0% 11%;
+    --scanner-elevated: 0 0% 17%;
+    --scanner-foreground: 0 0% 96%;
+    --scanner-muted: 0 0% 65%;
+    --scanner-gold: 42 90% 53%;
+    --scanner-maroon: 343 82% 40%;
+
     --sidebar-background: 345 50% 10%;
     --sidebar-primary: 345 75% 45%;
     --sidebar-primary-foreground: 0 0% 100%;
@@ -117,6 +133,19 @@ All colors MUST be HSL.
 }
 
 @layer utilities {
+  @keyframes scanner-line {
+    0%, 100% { transform: translateY(0); opacity: 0.25; }
+    50% { transform: translateY(15rem); opacity: 0.9; }
+  }
+
+  .animate-scanner-line {
+    animation: scanner-line 2.8s ease-in-out infinite;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .animate-scanner-line { animation: none; }
+  }
+
   /* New booking glow animation */
   @keyframes new-booking-glow {
     0%, 100% {

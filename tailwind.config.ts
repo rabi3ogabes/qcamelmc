@@ -60,6 +60,15 @@ export default {
           parking: "hsl(var(--ticket-parking))",
           normal: "hsl(var(--ticket-normal))",
         },
+        scanner: {
+          background: "hsl(var(--scanner-background))",
+          surface: "hsl(var(--scanner-surface))",
+          elevated: "hsl(var(--scanner-elevated))",
+          foreground: "hsl(var(--scanner-foreground))",
+          muted: "hsl(var(--scanner-muted))",
+          gold: "hsl(var(--scanner-gold))",
+          maroon: "hsl(var(--scanner-maroon))",
+        },
         sidebar: {
           DEFAULT: "hsl(var(--sidebar-background))",
           foreground: "hsl(var(--sidebar-foreground))",

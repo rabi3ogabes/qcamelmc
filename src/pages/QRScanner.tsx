@@ -8,7 +8,7 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { ArrowLeft, CheckCircle2, XCircle, Loader2, Search, Camera, AlertCircle, LogOut, Calendar, Users, ChevronDown, ChevronUp, RotateCcw } from "lucide-react";
+import { CheckCircle2, XCircle, Loader2, Search, Camera, AlertCircle, LogOut, Calendar, Users, ChevronDown, ChevronUp, RotateCcw, QrCode, RefreshCw, UserRound, ScanLine } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { useActivityLog } from "@/hooks/useActivityLog";
@@ -78,7 +78,6 @@ const QRScanner = () => {
   const [selectedTicketIds, setSelectedTicketIds] = useState<string[]>([]);
   const [scanMode, setScanMode] = useState<'confirm' | 'unconfirm'>('confirm');
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
-  const [headerBgColor, setHeaderBgColor] = useState<string>("hsl(var(--card) / 0.5)");
   const [relatedTicketsSameDay, setRelatedTicketsSameDay] = useState<RelatedTicket[]>([]);
   const [relatedTicketsOtherDays, setRelatedTicketsOtherDays] = useState<RelatedTicket[]>([]);
   const [sameBookingTickets, setSameBookingTickets] = useState<RelatedTicket[]>([]);
@@ -183,9 +182,6 @@ const QRScanner = () => {
       setLogoUrl(data.logo_url);
     }
     
-    if (data?.header_bg_color) {
-      setHeaderBgColor(data.header_bg_color);
-    }
   };
 
   const stopScanner = async () => {
@@ -1185,64 +1181,80 @@ const QRScanner = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background font-lusail" dir="rtl">
+    <div className="min-h-screen bg-scanner-background font-lusail text-scanner-foreground" dir="rtl">
       {/* Header */}
-      <header className="border-b backdrop-blur-sm sticky top-0 z-10" style={{ backgroundColor: headerBgColor }}>
-        <div className="container mx-auto px-3 sm:px-4 py-3 sm:py-4 flex justify-between items-center gap-2">
-          <button onClick={() => navigate("/admin/dashboard")} className="focus:outline-none hover:opacity-80 transition-opacity">
+      <header className="sticky top-0 z-20 border-b border-scanner-elevated bg-scanner-background/95 backdrop-blur-xl">
+        <div className="mx-auto flex max-w-5xl items-center justify-between gap-3 px-4 py-4 sm:px-6">
+          <button onClick={() => navigate("/staff")} className="flex items-center gap-3 text-right focus:outline-none focus-visible:ring-2 focus-visible:ring-scanner-gold">
             {logoUrl ? (
-              <img src={logoUrl} alt="Logo" className="h-10 sm:h-12 object-contain" />
+              <span className="flex size-11 items-center justify-center rounded-lg border border-scanner-gold/30 bg-scanner-elevated p-2"><img src={logoUrl} alt="Logo" className="h-full w-full object-contain" /></span>
             ) : (
-              <h1 className="text-xl sm:text-2xl font-bold">{t('scanTicket') || 'مسح التذكرة'}</h1>
+              <span className="flex size-11 items-center justify-center rounded-lg bg-scanner-maroon"><QrCode className="size-6" /></span>
             )}
+            <span><strong className="block text-base sm:text-lg">ماسح التذاكر الذكي</strong><small className="block text-xs text-scanner-muted">نظام إدارة الدخول</small></span>
           </button>
-          <Button variant="outline" onClick={handleLogout} size="sm" className="sm:size-default">
+          <Button variant="outline" onClick={handleLogout} size="sm" className="border-scanner-elevated bg-scanner-surface text-scanner-foreground hover:bg-scanner-elevated hover:text-scanner-foreground">
             <LogOut className="w-4 h-4 ml-2" />
-            <span className="hidden sm:inline">{t("logout")}</span>
+            <span>{t("logout")}</span>
           </Button>
         </div>
       </header>
 
-      <div className="max-w-4xl mx-auto py-3 sm:py-6 lg:py-8 px-3 sm:px-4 lg:px-6">
+      <main className="mx-auto max-w-5xl space-y-5 px-3 py-4 sm:px-6 sm:py-8">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <p className="text-xs font-semibold text-scanner-gold">بوابة الدخول</p>
+            <h1 className="mt-1 text-2xl font-bold sm:text-3xl">مسح وتأكيد التذاكر</h1>
+          </div>
+          <div className="flex items-center gap-2 rounded-full border border-success/30 bg-success/10 px-3 py-2 text-xs font-bold text-success">
+            <span className="size-2 rounded-full bg-success animate-pulse" />
+            النظام متصل
+          </div>
+        </div>
+
         {/* Staff selector */}
-        <Card className="mb-4 border-primary/20 bg-gradient-to-l from-primary/5 to-transparent">
-          <CardContent className="flex flex-wrap items-center gap-2 p-3 sm:p-4">
-            <span className="text-sm font-semibold">اسم الموظف:</span>
+        <Card className="border-scanner-elevated bg-scanner-surface text-scanner-foreground shadow-elegant">
+          <CardContent className="p-4 sm:p-5">
+            <div className="mb-3 flex items-center gap-2">
+              <UserRound className="size-4 text-scanner-gold" />
+              <span className="text-sm font-bold">اختر موظف البوابة</span>
+              {staffName && <span className="mr-auto text-xs text-scanner-muted">المحدد: {staffName}</span>}
+            </div>
+            <div className="flex gap-2 overflow-x-auto pb-1">
             {staffUsers.length === 0 ? (
-              <span className="text-xs text-muted-foreground">لا يوجد موظفون مفعّلون</span>
+              <span className="text-xs text-scanner-muted">لا يوجد موظفون مفعّلون</span>
             ) : (
               staffUsers.map((u) => (
                 <Button
                   key={u.id}
                   size="sm"
-                  variant={staffName === u.name ? "default" : "outline"}
+                  variant="outline"
                   onClick={() => setStaffName(u.name)}
-                  className="text-xs"
+                  className={`shrink-0 border-scanner-elevated text-xs ${staffName === u.name ? "border-scanner-gold bg-scanner-gold text-scanner-background hover:bg-scanner-gold/90" : "bg-scanner-elevated text-scanner-foreground hover:bg-scanner-elevated/70 hover:text-scanner-foreground"}`}
                 >
                   <span className="ml-1">{u.icon || "⭐"}</span>
                   {u.name}
                 </Button>
               ))
             )}
+            </div>
           </CardContent>
         </Card>
 
         {/* Mode Toggle Buttons */}
-        <div className="flex justify-center gap-2 sm:gap-3 lg:gap-4 mb-4 sm:mb-6">
+        <div className="grid grid-cols-2 gap-1 rounded-lg border border-scanner-elevated bg-scanner-surface p-1.5">
           <Button
-            variant={scanMode === 'confirm' ? 'default' : 'secondary'}
+            variant="ghost"
             onClick={() => setScanMode('confirm')}
-            size="sm"
-            className="flex-1 sm:flex-none sm:min-w-[160px] lg:min-w-[200px] text-xs sm:text-sm lg:text-base"
+            className={`h-12 text-xs sm:text-sm ${scanMode === 'confirm' ? "bg-scanner-maroon text-scanner-foreground hover:bg-scanner-maroon/90 hover:text-scanner-foreground" : "text-scanner-muted hover:bg-scanner-elevated hover:text-scanner-foreground"}`}
           >
             <CheckCircle2 className="w-3 h-3 sm:w-4 sm:h-4 lg:w-5 lg:h-5 ml-1 sm:ml-2" />
             <span>تأكيد الحضور</span>
           </Button>
           <Button
-            variant={scanMode === 'unconfirm' ? 'destructive' : 'secondary'}
+            variant="ghost"
             onClick={() => setScanMode('unconfirm')}
-            size="sm"
-            className="flex-1 sm:flex-none sm:min-w-[160px] lg:min-w-[200px] text-xs sm:text-sm lg:text-base"
+            className={`h-12 text-xs sm:text-sm ${scanMode === 'unconfirm' ? "bg-destructive text-destructive-foreground hover:bg-destructive/90" : "text-scanner-muted hover:bg-scanner-elevated hover:text-scanner-foreground"}`}
           >
             <XCircle className="w-3 h-3 sm:w-4 sm:h-4 lg:w-5 lg:h-5 ml-1 sm:ml-2" />
             <span>إلغاء التأكيد</span>
@@ -1250,16 +1262,25 @@ const QRScanner = () => {
         </div>
 
         {/* Scanner */}
-        <Card className="mb-4 sm:mb-6">
-          <CardHeader>
-            <CardTitle className="text-center text-lg sm:text-xl">{t('scanTicket') || 'مسح التذكرة'}</CardTitle>
+        <Card className="overflow-hidden border-scanner-elevated bg-scanner-surface text-scanner-foreground shadow-elegant">
+          <CardHeader className="border-b border-scanner-elevated pb-5">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <CardTitle className="text-lg sm:text-xl">{t('scanTicket') || 'مسح التذكرة'}</CardTitle>
+                <p className="mt-1 text-xs text-scanner-muted">ضع رمز QR داخل الإطار ليتم التحقق تلقائياً</p>
+              </div>
+              <span className={`flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-bold ${scanning ? "bg-success/15 text-success" : "bg-scanner-elevated text-scanner-muted"}`}>
+                <span className={`size-2 rounded-full ${scanning ? "bg-success animate-pulse" : "bg-scanner-muted"}`} />
+                {scanning ? "الكاميرا نشطة" : "الكاميرا متوقفة"}
+              </span>
+            </div>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-4 p-4 sm:p-6">
             {/* Camera Controls */}
             {!scanning && !ticketInfo && (
               <div className="flex flex-col items-center gap-3">
                 {cameraError && (
-                  <div className="flex items-center gap-2 text-destructive text-sm bg-destructive/10 p-3 rounded-lg w-full">
+                  <div className="flex w-full items-center gap-2 rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
                     <AlertCircle className="w-4 h-4 shrink-0" />
                     <span>{cameraError}</span>
                   </div>
@@ -1267,8 +1288,7 @@ const QRScanner = () => {
                 <Button
                   onClick={startScanner}
                   disabled={cameraStarting}
-                  className="w-full max-w-xs"
-                  size="lg"
+                  className="h-12 w-full max-w-sm bg-scanner-maroon text-scanner-foreground hover:bg-scanner-maroon/90"
                 >
                   {cameraStarting ? (
                     <>
@@ -1296,12 +1316,12 @@ const QRScanner = () => {
             )}
 
             {/* Manual Search Toggle */}
-            <div className="flex justify-center gap-2 pt-2">
+            <div className="flex justify-center pt-1">
               <Button
-                variant={showManualSearch ? "default" : "outline"}
+                variant="ghost"
                 onClick={() => setShowManualSearch(!showManualSearch)}
                 size="sm"
-                className="text-xs sm:text-sm"
+                className="text-xs text-scanner-muted hover:bg-scanner-elevated hover:text-scanner-foreground sm:text-sm"
               >
                 <Search className="w-4 h-4 ml-2" />
                 {showManualSearch ? "إخفاء البحث اليدوي" : "بحث يدوي"}
@@ -1310,16 +1330,16 @@ const QRScanner = () => {
 
             {/* Manual Search Input */}
             {showManualSearch && (
-              <form onSubmit={handleManualSearch} className="space-y-3">
+              <form onSubmit={handleManualSearch} className="mx-auto max-w-xl space-y-3 rounded-lg border border-scanner-elevated bg-scanner-background p-3">
                 <Input
                   type="text"
                   placeholder="أدخل رقم الحجز أو رقم الهاتف"
                   value={manualSearch}
                   onChange={(e) => setManualSearch(e.target.value.toUpperCase())}
-                  className="text-center font-mono"
+                  className="border-scanner-elevated bg-scanner-surface text-center font-mono text-scanner-foreground placeholder:text-scanner-muted"
                   disabled={processing}
                 />
-                <Button type="submit" className="w-full" disabled={processing}>
+                <Button type="submit" className="w-full bg-scanner-gold text-scanner-background hover:bg-scanner-gold/90" disabled={processing}>
                   {processing ? (
                     <>
                       <Loader2 className="w-4 h-4 ml-2 animate-spin" />
@@ -1336,10 +1356,22 @@ const QRScanner = () => {
             )}
 
             {/* QR Scanner Container */}
-            <div 
-              id="qr-reader" 
-              className="w-full min-h-[200px] sm:min-h-[280px] md:min-h-[320px] lg:min-h-[360px] rounded-lg overflow-hidden bg-muted/30"
-            ></div>
+            <div className="relative mx-auto w-full max-w-2xl overflow-hidden rounded-lg border border-scanner-elevated bg-scanner-background p-2">
+              <div id="qr-reader" className="min-h-[280px] w-full overflow-hidden rounded-md bg-scanner-background sm:min-h-[400px]" />
+              {!scanning && !ticketInfo && !cameraStarting && (
+                <div className="pointer-events-none absolute inset-2 flex flex-col items-center justify-center rounded-md bg-scanner-background">
+                  <div className="relative flex size-48 items-center justify-center sm:size-64">
+                    <span className="absolute right-0 top-0 size-10 border-r-2 border-t-2 border-scanner-gold" />
+                    <span className="absolute left-0 top-0 size-10 border-l-2 border-t-2 border-scanner-gold" />
+                    <span className="absolute bottom-0 right-0 size-10 border-b-2 border-r-2 border-scanner-gold" />
+                    <span className="absolute bottom-0 left-0 size-10 border-b-2 border-l-2 border-scanner-gold" />
+                    <ScanLine className="size-20 text-scanner-elevated" />
+                  </div>
+                  <p className="mt-5 text-sm text-scanner-muted">الكاميرا جاهزة للتشغيل</p>
+                </div>
+              )}
+              {scanning && <span className="pointer-events-none absolute inset-x-10 top-10 h-px bg-scanner-gold shadow-elegant animate-scanner-line" />}
+            </div>
             
             {processing && (
               <div className="flex items-center justify-center gap-2 mt-4 text-sm sm:text-base">
@@ -1889,36 +1921,42 @@ const QRScanner = () => {
         )}
 
         {/* Scan history */}
-        <Card className="mt-6">
-          <CardHeader className="flex-row items-center justify-between space-y-0">
-            <CardTitle className="text-base sm:text-lg">سجل عمليات المسح الناجحة</CardTitle>
-            <Button variant="outline" size="sm" onClick={loadScanHistory} className="text-xs">
-              تحديث
+        <Card className="border-scanner-elevated bg-scanner-surface text-scanner-foreground shadow-elegant">
+          <CardHeader className="flex-row items-center justify-between space-y-0 border-b border-scanner-elevated p-4 sm:p-5">
+            <div>
+              <CardTitle className="text-base sm:text-lg">آخر عمليات الدخول</CardTitle>
+              <p className="mt-1 text-xs text-scanner-muted">{scanHistory.length} تذكرة مسجلة</p>
+            </div>
+            <Button variant="outline" size="sm" onClick={loadScanHistory} className="border-scanner-elevated bg-scanner-elevated text-xs text-scanner-foreground hover:bg-scanner-elevated/70 hover:text-scanner-foreground">
+              <RefreshCw className="size-3.5" /> تحديث
             </Button>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-3 sm:p-5">
             {scanHistory.length === 0 ? (
-              <p className="text-sm text-muted-foreground text-center py-4">لا يوجد سجل بعد</p>
+              <p className="py-8 text-center text-sm text-scanner-muted">لا يوجد سجل بعد</p>
             ) : (
-              <div className="space-y-2 max-h-80 overflow-y-auto">
-                {scanHistory.map((h) => (
+              <div className="max-h-[32rem] space-y-2 overflow-y-auto pl-1">
+                {scanHistory.map((h, index) => (
                   <div
                     key={h.id}
-                    className="flex items-center justify-between gap-3 rounded-lg border bg-card px-3 py-2"
+                    className="flex items-center justify-between gap-3 rounded-lg border border-scanner-elevated bg-scanner-background px-3 py-3 transition-colors hover:border-scanner-gold/40 sm:px-4"
                   >
-                    <div className="min-w-0">
-                      <p className="text-sm font-semibold truncate">{h.name}</p>
-                      <p className="text-[11px] text-muted-foreground truncate">
+                    <div className="flex min-w-0 items-center gap-3">
+                      <span className={`flex size-9 shrink-0 items-center justify-center rounded-md text-xs font-black ${h.ticket_type?.toUpperCase() === "VIP" ? "bg-scanner-gold text-scanner-background" : "bg-scanner-maroon text-scanner-foreground"}`}>{index + 1}</span>
+                      <div className="min-w-0">
+                      <p className="truncate text-sm font-semibold">{h.name}</p>
+                      <p className="truncate text-[11px] text-scanner-muted">
                         {h.orders?.booking_reference} · {h.ticket_type?.toUpperCase()}
                         {h.orders?.events?.title ? ` · ${h.orders.events.title}` : ""}
                       </p>
+                      </div>
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
                       {isAdminUser && (
                         <Button
                           variant="outline"
                           size="sm"
-                          className="h-7 px-2 text-[11px] text-destructive border-destructive/40 hover:bg-destructive/10"
+                          className="h-9 border-destructive/60 bg-destructive/10 px-3 text-[11px] font-bold text-destructive hover:bg-destructive hover:text-destructive-foreground"
                           disabled={resettingId === h.id}
                           onClick={() => handleResetTicket(h.id, h.name)}
                           title="إلغاء المسح (للأدمن فقط)"
@@ -1928,11 +1966,11 @@ const QRScanner = () => {
                           ) : (
                             <RotateCcw className="h-3.5 w-3.5" />
                           )}
-                          إلغاء
+                          إلغاء المسح
                         </Button>
                       )}
                       <div className="text-end">
-                        <p className="text-[11px] text-muted-foreground">
+                        <p className="text-[11px] text-scanner-muted">
                           {h.confirmed_at
                             ? new Date(h.confirmed_at).toLocaleString("ar-u-nu-latn", {
                                 timeZone: "Asia/Qatar",
@@ -1942,7 +1980,7 @@ const QRScanner = () => {
                             : "-"}
                         </p>
                         {h.confirmed_by_name && (
-                          <p className="text-[11px] font-medium text-primary">{h.confirmed_by_name}</p>
+                          <p className="text-[11px] font-medium text-scanner-gold">بواسطة {h.confirmed_by_name}</p>
                         )}
                       </div>
                     </div>
@@ -1952,7 +1990,7 @@ const QRScanner = () => {
             )}
           </CardContent>
         </Card>
-      </div>
+      </main>
 
 
       {/* Success Dialog */}
