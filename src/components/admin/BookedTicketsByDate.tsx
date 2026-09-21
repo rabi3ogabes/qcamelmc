@@ -472,6 +472,19 @@ export const BookedTicketsByDate = () => {
                       <Info className="w-4 h-4" />
                       التفاصيل
                     </Button>
+                    {isAdminUser && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="font-lusail gap-1 text-destructive hover:text-destructive hover:bg-destructive/10"
+                        onClick={() => deleteTicket(ticket)}
+                        disabled={busyId === ticket.id}
+                        title="حذف التذكرة (تُنقل إلى سلة المحذوفات)"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                        حذف
+                      </Button>
+                    )}
                   </div>
                 </div>
               </div>
