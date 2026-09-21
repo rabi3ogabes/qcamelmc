@@ -720,6 +720,19 @@ export const BookedTicketsByDate = () => {
                         {row.context?.event_title ? ` • ${row.context.event_title}` : ""}
                       </p>
                       <p className="text-[11px] text-muted-foreground">
+                        تاريخ البيع: {qatarStamp(row.holder_created_at)}
+                      </p>
+                      <p className="text-[11px] text-muted-foreground">
+                        {row.is_present ? (
+                          <span className="text-success">
+                            تم المسح {qatarStamp(row.confirmed_at)}
+                            {row.confirmed_by_name ? ` — ${row.confirmed_by_name}` : ""}
+                          </span>
+                        ) : (
+                          "لم تُمسح"
+                        )}
+                      </p>
+                      <p className="text-[11px] text-muted-foreground">
                         حُذفت في{" "}
                         {new Date(row.deleted_at).toLocaleString("ar-u-nu-latn", { timeZone: "Asia/Qatar" })}
                         {row.deleted_by_name ? ` — بواسطة ${row.deleted_by_name}` : ""}
