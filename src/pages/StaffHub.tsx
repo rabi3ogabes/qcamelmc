@@ -40,6 +40,12 @@ const LINKS = [
     icon: ClipboardCheck,
     to: "/staff/attendance",
   },
+  {
+    label: "لوحة البوابة",
+    hint: "أرقام الحضور لحظة بلحظة",
+    icon: Users,
+    to: "/staff/gate",
+  },
 ];
 
 const StaffHub = () => {
