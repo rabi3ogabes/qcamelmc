@@ -207,7 +207,23 @@ const UnifiedLoginCard = ({
       </div>
 
       <div className="p-6 sm:p-8">
+        {lockSeconds > 0 && (
+          <div className="mb-5 rounded-xl border border-destructive/40 bg-destructive/10 p-4 text-center">
+            <p className="text-sm font-semibold text-destructive">
+              تم إيقاف المحاولات مؤقتاً
+            </p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              حاول مجدداً بعد <span dir="ltr">{lockLabel}</span> — تم إشعار الإدارة.
+            </p>
+          </div>
+        )}
+        {lockSeconds === 0 && attemptsLeft !== null && attemptsLeft <= 2 && (
+          <p className="mb-4 text-center text-xs text-destructive">
+            تبقّت {attemptsLeft} محاولة قبل الإيقاف المؤقت
+          </p>
+        )}
         <Tabs defaultValue={defaultTab} className="w-full">
+
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="account" className="gap-2">
               <ShieldCheck className="h-4 w-4" />
