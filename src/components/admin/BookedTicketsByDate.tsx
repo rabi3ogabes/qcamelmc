@@ -384,7 +384,7 @@ export const BookedTicketsByDate = () => {
               سلة المحذوفات
             </Button>
           )}
-          <Button variant="outline" size="sm" onClick={fetchTickets} disabled={loading} className="font-lusail gap-1">
+          <Button variant="outline" size="sm" onClick={() => fetchTickets()} disabled={loading} className="font-lusail gap-1">
             <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
             تحديث
           </Button>
