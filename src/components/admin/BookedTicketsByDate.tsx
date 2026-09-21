@@ -168,7 +168,9 @@ export const BookedTicketsByDate = () => {
     try {
       const { data, error } = await supabase
         .from("deleted_tickets")
-        .select("id, name, phone, ticket_type, deleted_at, deleted_by_name, context")
+        .select(
+          "id, name, phone, ticket_type, deleted_at, deleted_by_name, holder_created_at, is_present, confirmed_at, confirmed_by_name, context"
+        )
         .order("deleted_at", { ascending: false })
         .limit(500);
       if (error) throw error;
