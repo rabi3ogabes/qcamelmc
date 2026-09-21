@@ -295,7 +295,7 @@ serve(async (req) => {
         supabase
           .from('ticket_holders')
           .select(HOLDER_SELECT)
-          .gte('orders.events.event_date', todayKey)
+          .gte('orders.events.event_date', qatarDayStartUtc)
           .order('created_at', { ascending: false })
           .limit(40);
 
