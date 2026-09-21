@@ -80,6 +80,15 @@ Deno.serve(async (req) => {
       return json({ success: true });
     }
 
+    if (action === "reset_password") {
+      if (!userId || !password || password.length < 8) {
+        return json({ success: false, message: "كلمة مرور (8 أحرف على الأقل) مطلوبة" }, 400);
+      }
+      const { error } = await admin.auth.admin.updateUserById(userId, { password });
+      if (error) return json({ success: false, message: error.message }, 400);
+      return json({ success: true });
+    }
+
     return json({ success: false, message: "إجراء غير معروف" }, 400);
   } catch (e) {
     return json({ success: false, message: (e as Error).message }, 500);
