@@ -288,8 +288,17 @@ const UnifiedLoginCard = ({
                   placeholder="••••••••"
                 />
               </div>
-              <Button type="submit" className="w-full" size="lg" disabled={verifying}>
-                {verifying ? "جاري التحقق..." : "فتح الصفحة"}
+              <Button
+                type="submit"
+                className="w-full"
+                size="lg"
+                disabled={verifying || lockSeconds > 0}
+              >
+                {lockSeconds > 0
+                  ? `موقوف مؤقتاً (${lockLabel})`
+                  : verifying
+                  ? "جاري التحقق..."
+                  : "فتح الصفحة"}
               </Button>
               <p className="text-center text-xs text-muted-foreground">
                 تبقى الصلاحية فعّالة لمدة ١٠ أيام في هذا المتصفح، ثم تُطلب كلمة المرور من جديد.
