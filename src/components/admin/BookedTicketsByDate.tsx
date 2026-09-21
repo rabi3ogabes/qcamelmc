@@ -118,6 +118,7 @@ export const BookedTicketsByDate = () => {
   const [qrDataUrl, setQrDataUrl] = useState<string>("");
   const [detailsTicket, setDetailsTicket] = useState<BookedTicket | null>(null);
   const [isAdminUser, setIsAdminUser] = useState(false);
+  const [showDeleteTicket, setShowDeleteTicket] = useState(true);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [binOpen, setBinOpen] = useState(false);
   const [bin, setBin] = useState<BinnedTicket[]>([]);
@@ -133,6 +134,13 @@ export const BookedTicketsByDate = () => {
         supabase.from("user_roles").select("role").eq("user_id", session.user.id).eq("role", "admin").maybeSingle(),
       ]);
       setIsAdminUser(!!adminRow || !!roleRow);
+      const { data: settings } = await supabase
+        .from("settings")
+        .select("show_delete_ticket_button")
+        .maybeSingle();
+      if (settings?.show_delete_ticket_button !== undefined && settings?.show_delete_ticket_button !== null) {
+        setShowDeleteTicket(settings.show_delete_ticket_button);
+      }
     })();
   }, []);
 
@@ -472,7 +480,7 @@ export const BookedTicketsByDate = () => {
                       <Info className="w-4 h-4" />
                       التفاصيل
                     </Button>
-                    {isAdminUser && (
+                    {isAdminUser && showDeleteTicket && (
                       <Button
                         variant="ghost"
                         size="sm"
