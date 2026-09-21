@@ -531,21 +531,23 @@ export const BookedTicketsByDate = () => {
                 <div className="flex items-center justify-between gap-2">
                   {paymentBadge(ticket.order.payment_status)}
                   <div className="flex gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="font-lusail gap-1"
-                      onClick={() => openQr(ticket)}
-                      disabled={ticket.order.payment_status !== "confirmed"}
-                      title={
-                        ticket.order.payment_status !== "confirmed"
-                          ? "رمز QR متاح للتذاكر المدفوعة فقط"
-                          : "عرض رمز QR"
-                      }
-                    >
-                      <QrCode className="w-4 h-4" />
-                      QR
-                    </Button>
+                    {!ticket.is_present && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="font-lusail gap-1"
+                        onClick={() => openQr(ticket)}
+                        disabled={ticket.order.payment_status !== "confirmed"}
+                        title={
+                          ticket.order.payment_status !== "confirmed"
+                            ? "رمز QR متاح للتذاكر المدفوعة فقط"
+                            : "عرض رمز QR"
+                        }
+                      >
+                        <QrCode className="w-4 h-4" />
+                        QR
+                      </Button>
+                    )}
                     <Button
                       variant="ghost"
                       size="sm"
@@ -618,6 +620,20 @@ export const BookedTicketsByDate = () => {
                 <Detail
                   label="الحالة"
                   value={detailsTicket.is_present ? "حاضر ✓" : "لم تُمسح بعد"}
+                />
+                <Detail
+                  label="وقت المسح"
+                  value={
+                    detailsTicket.confirmed_at
+                      ? new Date(detailsTicket.confirmed_at).toLocaleString("ar-u-nu-latn", {
+                          timeZone: "Asia/Qatar",
+                        })
+                      : "—"
+                  }
+                />
+                <Detail
+                  label="المسحة بواسطة"
+                  value={detailsTicket.confirmed_by_name || "—"}
                 />
                 <Detail
                   label="العميل"
