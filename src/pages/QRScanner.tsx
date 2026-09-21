@@ -2067,8 +2067,8 @@ const QRScanner = () => {
             </div>
             
             <div className="space-y-2">
-              <h2 className="text-2xl font-bold text-green-600">تم تأكيد الحضور!</h2>
-              <p className="text-muted-foreground">تم تسجيل الحضور بنجاح</p>
+              <DialogTitle className="text-2xl font-bold text-green-600">تم تأكيد الحضور!</DialogTitle>
+              <DialogDescription className="text-muted-foreground">تم تسجيل الحضور بنجاح</DialogDescription>
             </div>
 
             {successData && (
