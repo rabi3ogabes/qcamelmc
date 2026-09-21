@@ -304,10 +304,23 @@ export const BookedTicketsByDate = () => {
             </p>
           </div>
         </div>
-        <Button variant="outline" size="sm" onClick={fetchTickets} disabled={loading} className="font-lusail gap-1">
-          <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
-          تحديث
-        </Button>
+        <div className="flex items-center gap-2">
+          {isAdminUser && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="font-lusail gap-1"
+              onClick={() => { setBinOpen(true); fetchBin(); }}
+            >
+              <Trash2 className="w-4 h-4" />
+              سلة المحذوفات
+            </Button>
+          )}
+          <Button variant="outline" size="sm" onClick={fetchTickets} disabled={loading} className="font-lusail gap-1">
+            <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
+            تحديث
+          </Button>
+        </div>
       </div>
 
       <div className="flex flex-wrap items-center gap-3">
