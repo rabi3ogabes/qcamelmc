@@ -82,19 +82,25 @@ export const AttendanceTab = () => {
   const [loading, setLoading] = useState(true);
   const [savingId, setSavingId] = useState<string | null>(null);
   const [bulkBusy, setBulkBusy] = useState(false);
+  /** Editing requires a real account session; passcode-only staff get a read-only board. */
+  const [canEdit, setCanEdit] = useState(false);
 
   const weekKeys = useMemo(
     () => Array.from({ length: 7 }, (_, i) => shiftKey(dateKey, i - 6)),
     [dateKey]
   );
 
-  /** All reads/writes go through the edge function so passcode-only staff work too. */
+  /**
+   * All reads/writes go through the edge function. It uses the signed-in
+   * dashboard session (same Supabase session as the admin dashboard) to decide
+   * who may edit, and falls back to the shared passcode for read-only access.
+   */
   const callAttendance = useCallback(async (payload: Record<string, unknown>) => {
     const { data, error } = await supabase.functions.invoke("staff-attendance", {
       body: { ...payload, passcode: getStaffPasscode() },
     });
     if (error) throw error;
-    if (data?.error) throw new Error(data.error);
+    if (data?.error) throw new Error(data.message || data.error);
     return data;
   }, []);
 
@@ -107,6 +113,7 @@ export const AttendanceTab = () => {
       });
       setUsers((data?.users as POSUser[]) || []);
       setRecords((data?.records as AttendanceRow[]) || []);
+      setCanEdit(!!data?.can_edit);
     } catch (error) {
       console.error("Attendance load error:", error);
       toast({
