@@ -83,7 +83,11 @@ Deno.serve(async (req) => {
       if (users.error || records.error) {
         return json({ error: (users.error || records.error)?.message }, 500);
       }
-      return json({ users: users.data ?? [], records: records.data ?? [] });
+      return json({
+        users: users.data ?? [],
+        records: records.data ?? [],
+        can_edit: !!editorId,
+      });
     }
 
     if (mode === "set") {
