@@ -3,7 +3,9 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Ticket, Edit, Archive } from "lucide-react";
+import { Ticket, Edit, Archive, Eye, EyeOff } from "lucide-react";
+
+const SHOW_DAILY_STATS_KEY = "tickets_show_daily_stats";
 import { useTranslation } from "react-i18next";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
