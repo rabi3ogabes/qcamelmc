@@ -146,6 +146,14 @@ export const AttendanceTab = () => {
   };
 
   const setStatus = async (userId: string, next: Status) => {
+    if (!canEdit) {
+      toast({
+        title: "للقراءة فقط",
+        description: "سجّل الدخول بحسابك لتعديل الحضور",
+        variant: "destructive",
+      });
+      return;
+    }
     const current = statusFor(userId);
     setSavingId(userId);
     try {
@@ -289,13 +297,24 @@ export const AttendanceTab = () => {
         ))}
       </div>
 
+      {/* Read-only notice for shared-passcode staff */}
+      {!loading && !canEdit && (
+        <div className="rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm text-amber-700">
+          أنت في وضع العرض فقط — سجّل الدخول بحسابك (بريد وكلمة مرور) لتسجيل الحضور والغياب.
+        </div>
+      )}
+
       {/* Quick actions */}
       <div className="flex flex-wrap gap-2">
-        <Button onClick={markAllPresent} disabled={bulkBusy || !users.length} size="sm">
+        <Button
+          onClick={markAllPresent}
+          disabled={bulkBusy || !users.length || !canEdit}
+          size="sm"
+        >
           <CheckCheck className="ms-2 h-4 w-4" />
           تحديد الكل حاضر
         </Button>
-        <Button onClick={clearDay} disabled={bulkBusy} size="sm" variant="outline">
+        <Button onClick={clearDay} disabled={bulkBusy || !canEdit} size="sm" variant="outline">
           <RotateCcw className="ms-2 h-4 w-4" />
           مسح اليوم
         </Button>
