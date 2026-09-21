@@ -40,6 +40,7 @@ const TicketViewer = lazy(() => import("./pages/TicketViewer"));
 const StaffHub = lazy(() => import("./pages/StaffHub"));
 const StaffAttendance = lazy(() => import("./pages/StaffAttendance"));
 const StaffGateBoard = lazy(() => import("./pages/StaffGateBoard"));
+const OAuthConsent = lazy(() => import("./pages/OAuthConsent"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 // Admin dashboard sub-pages
@@ -99,6 +100,8 @@ const App = () => (
                     <Route path="/staff/attendance" element={<RequireAdmin><StaffAttendance /></RequireAdmin>} />
                     <Route path="/staff/gate" element={<RequireAdmin><StaffGateBoard /></RequireAdmin>} />
                     <Route path="/admin/login" element={<AdminLogin />} />
+                    <Route path="/.lovable/oauth/consent" element={<OAuthConsent />} />
+
                     <Route path="/admin/dashboard" element={<RequireAdmin adminOnly><AdminDashboard /></RequireAdmin>}>
                       <Route index element={<Navigate to="orders" replace />} />
                       <Route path="notifications" element={<NotificationsPage />} />
