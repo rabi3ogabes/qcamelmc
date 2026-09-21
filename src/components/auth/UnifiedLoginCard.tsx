@@ -37,6 +37,9 @@ const UnifiedLoginCard = ({
   const [passcode, setPasscode] = useState("");
   const [loading, setLoading] = useState(false);
   const [verifying, setVerifying] = useState(false);
+  /** Seconds remaining on a temporary lock after too many failed attempts. */
+  const [lockSeconds, setLockSeconds] = useState(0);
+  const [attemptsLeft, setAttemptsLeft] = useState<number | null>(null);
 
   // Warm up the passcode check function in the background so the real
   // verification responds instantly (the first call otherwise waits on a cold start).
@@ -46,14 +49,76 @@ const UnifiedLoginCard = ({
       .catch(() => {});
   }, []);
 
+  // Countdown for the temporary lock.
+  useEffect(() => {
+    if (lockSeconds <= 0) return;
+    const id = window.setInterval(
+      () => setLockSeconds((s) => (s <= 1 ? 0 : s - 1)),
+      1000,
+    );
+    return () => window.clearInterval(id);
+  }, [lockSeconds]);
+
+  const lockLabel = (() => {
+    const m = Math.floor(lockSeconds / 60);
+    const s = lockSeconds % 60;
+    return `${m}:${String(s).padStart(2, "0")}`;
+  })();
+
+  const guard = async (payload: Record<string, unknown>) => {
+    try {
+      const { data } = await supabase.functions.invoke("login-guard", { body: payload });
+      return (data ?? {}) as {
+        allowed?: boolean;
+        blocked?: boolean;
+        retry_after_seconds?: number;
+        attempts_left?: number;
+      };
+    } catch {
+      return {};
+    }
+  };
+
+  /** Returns false when the attempt is currently blocked. */
+  const ensureNotBlocked = async (identifier: string, kind: "account" | "passcode") => {
+    const res = await guard({ mode: "check", identifier, kind });
+    if (res.blocked) {
+      setLockSeconds(res.retry_after_seconds || 1800);
+      toast.error("تم إيقاف المحاولات مؤقتاً بسبب تكرار الأخطاء");
+      return false;
+    }
+    return true;
+  };
+
+  const recordAttempt = async (
+    identifier: string,
+    kind: "account" | "passcode",
+    success: boolean,
+  ) => {
+    const res = await guard({ mode: "record", identifier, kind, success });
+    if (success) {
+      setAttemptsLeft(null);
+      setLockSeconds(0);
+      return;
+    }
+    if (res.blocked) setLockSeconds(res.retry_after_seconds || 1800);
+    else if (typeof res.attempts_left === "number") setAttemptsLeft(res.attempts_left);
+  };
+
   const signInAndRoute = async (loginEmail: string, loginPassword: string) => {
+    if (lockSeconds > 0) return;
     setLoading(true);
     try {
+      if (!(await ensureNotBlocked(loginEmail, "account"))) return;
+
       const { data, error } = await supabase.auth.signInWithPassword({
         email: loginEmail,
         password: loginPassword,
       });
-      if (error) throw error;
+      if (error) {
+        await recordAttempt(loginEmail, "account", false);
+        throw error;
+      }
 
       const { data: roleRows } = await supabase
         .from("user_roles")
@@ -63,6 +128,7 @@ const UnifiedLoginCard = ({
 
       // Moderators only ever get the quick-links page — never the dashboard.
       if (roles.includes("moderator") && !roles.includes("admin")) {
+        await recordAttempt(loginEmail, "account", true);
         toast.success("تم تسجيل الدخول");
         navigate("/staff", { replace: true });
         return;
@@ -76,9 +142,11 @@ const UnifiedLoginCard = ({
 
       if (!adminUser && !roles.includes("admin")) {
         await supabase.auth.signOut();
+        await recordAttempt(loginEmail, "account", false);
         throw new Error("غير مصرح: الدخول للأدمن فقط");
       }
 
+      await recordAttempt(loginEmail, "account", true);
       toast.success("تم تسجيل الدخول");
       const target =
         intendedPath && intendedPath.startsWith("/admin") ? intendedPath : "/admin/dashboard";
@@ -97,18 +165,23 @@ const UnifiedLoginCard = ({
 
   const handleUnlock = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (lockSeconds > 0) return;
     setVerifying(true);
     try {
+      if (!(await ensureNotBlocked("team-passcode", "passcode"))) return;
+
       const { data, error } = await supabase.functions.invoke("staff-auth", {
         body: { passcode },
       });
       if (error) throw error;
       if (data?.ok) {
+        await recordAttempt("team-passcode", "passcode", true);
         grantStaffAccess(passcode);
         toast.success("تم فتح الصفحة");
         if (onPasscodeSuccess) onPasscodeSuccess();
         else navigate("/staff", { replace: true });
       } else {
+        await recordAttempt("team-passcode", "passcode", false);
         toast.error("كلمة المرور غير صحيحة");
       }
     } catch {
