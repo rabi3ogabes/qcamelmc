@@ -442,9 +442,20 @@ export const TicketsTab = () => {
       <BookedTicketsByDate />
 
       {/* Daily Sales Statistics Table */}
-      {visibleSummaries.length > 0 && (
+      {visibleSummaries.length > 0 && showDailyStats && (
         <Card className="p-6">
-          <h3 className="text-xl font-bold font-lusail mb-4">إحصائيات المبيعات اليومية</h3>
+          <div className="flex items-center justify-between gap-3 mb-4">
+            <h3 className="text-xl font-bold font-lusail">إحصائيات المبيعات اليومية</h3>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={toggleDailyStats}
+              className="font-lusail gap-1.5 text-muted-foreground hover:text-foreground"
+            >
+              <EyeOff className="w-4 h-4" />
+              إخفاء
+            </Button>
+          </div>
           <div className="overflow-x-auto">
             <table className="w-full border-collapse">
               <thead>
