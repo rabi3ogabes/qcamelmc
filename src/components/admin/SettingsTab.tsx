@@ -976,6 +976,39 @@ export const SettingsTab = () => {
     }
   };
 
+  const handleToggleDeleteTicketButton = async (newValue: boolean) => {
+    setSavingDeleteTicketButton(true);
+    try {
+      const { data: settings } = await supabase
+        .from("settings")
+        .select("id")
+        .maybeSingle();
+
+      if (settings) {
+        const { error } = await supabase
+          .from("settings")
+          .update({ show_delete_ticket_button: newValue })
+          .eq("id", settings.id);
+
+        if (error) throw error;
+      } else {
+        const { error } = await supabase
+          .from("settings")
+          .insert({ show_delete_ticket_button: newValue });
+
+        if (error) throw error;
+      }
+
+      setShowDeleteTicketButton(newValue);
+      toast.success(t("savedSuccessfully"));
+    } catch (error) {
+      console.error("Error saving delete ticket button setting:", error);
+      toast.error("فشل في حفظ الإعداد");
+    } finally {
+      setSavingDeleteTicketButton(false);
+    }
+  };
+
   const handleSaveAutoInvoiceInterval = async () => {
     if (autoInvoiceInterval < 10) {
       toast.error("يجب أن يكون الفاصل الزمني 10 ثوانٍ على الأقل");
@@ -1601,6 +1634,19 @@ export const SettingsTab = () => {
               checked={showDeleteEventButton}
               onCheckedChange={handleToggleDeleteEventButton}
               disabled={savingDeleteEventButton}
+            />
+          </div>
+          <div className="flex items-center justify-between pt-4 border-t">
+            <div className="space-y-1">
+              <Label className="font-lusail">إظهار زر حذف التذكرة</Label>
+              <p className="text-xs text-muted-foreground">
+                عند التفعيل، سيظهر زر حذف كل تذكرة في صفحة إدارة التذاكر (تُنقل إلى سلة المحذوفات)
+              </p>
+            </div>
+            <Switch
+              checked={showDeleteTicketButton}
+              onCheckedChange={handleToggleDeleteTicketButton}
+              disabled={savingDeleteTicketButton}
             />
           </div>
         </div>
