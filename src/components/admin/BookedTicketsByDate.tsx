@@ -402,8 +402,17 @@ export const BookedTicketsByDate = () => {
             return (
               <div
                 key={ticket.id}
-                className="rounded-xl border bg-card p-4 space-y-3 hover:shadow-md transition-shadow"
+                className="relative rounded-xl border bg-card p-4 space-y-3 hover:shadow-md transition-shadow"
               >
+                {!ticket.is_present && (
+                  <span
+                    className="absolute top-2 left-2 text-muted-foreground/50"
+                    title="لم تُمسح بعد"
+                    aria-label="لم تُمسح بعد"
+                  >
+                    <Clock className="w-3.5 h-3.5" />
+                  </span>
+                )}
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex items-center gap-2 min-w-0">
                     <div className="p-2 rounded-lg bg-primary/10 shrink-0">
@@ -416,7 +425,10 @@ export const BookedTicketsByDate = () => {
                       </p>
                     </div>
                   </div>
-                  <Badge variant="outline" className={`font-lusail shrink-0 ${typeBadgeClass(ticket.ticket_type)}`}>
+                  <Badge
+                    variant="outline"
+                    className={`font-lusail shrink-0 ${typeBadgeClass(ticket.ticket_type)} ${!ticket.is_present ? "me-5" : ""}`}
+                  >
                     {typeLabel(ticket.ticket_type)}
                   </Badge>
                 </div>
@@ -427,7 +439,7 @@ export const BookedTicketsByDate = () => {
                   <span>{ticket.order.events.title}</span>
                 </div>
 
-                {ticket.is_present ? (
+                {ticket.is_present && (
                   <div className="flex items-center gap-2 rounded-lg border border-success/40 bg-success/10 px-2.5 py-1.5 text-xs font-lusail text-success">
                     <CheckCircle2 className="w-4 h-4 shrink-0" />
                     <span className="font-semibold">تم المسح</span>
@@ -445,11 +457,6 @@ export const BookedTicketsByDate = () => {
                     {ticket.confirmed_by_name && (
                       <span className="text-[11px] opacity-80 truncate">— {ticket.confirmed_by_name}</span>
                     )}
-                  </div>
-                ) : (
-                  <div className="flex items-center gap-2 rounded-lg border border-muted-foreground/25 bg-muted/40 px-2.5 py-1.5 text-xs font-lusail text-muted-foreground">
-                    <Clock className="w-4 h-4 shrink-0" />
-                    <span>لم تُمسح بعد</span>
                   </div>
                 )}
 
