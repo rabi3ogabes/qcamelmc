@@ -436,6 +436,17 @@ export const TicketsTab = () => {
             الأرشيف
           </Button>
         </div>
+        {visibleSummaries.length > 0 && !showDailyStats && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={toggleDailyStats}
+            className="font-lusail gap-1.5"
+          >
+            <Eye className="w-4 h-4" />
+            إظهار الإحصائيات
+          </Button>
+        )}
       </div>
 
       {/* Booked tickets by event date (today / tomorrow / specific day / all) */}
