@@ -1969,7 +1969,7 @@ const QRScanner = () => {
       {/* Scan Result Popup — full ticket details before confirming */}
       <Dialog open={scanPopupOpen} onOpenChange={(open) => setScanPopupOpen(open)}>
         <DialogContent className="sm:max-w-md overflow-hidden border-2 border-success/50 bg-scanner-surface p-0 text-scanner-foreground shadow-elegant" dir="rtl">
-          <DialogHeader className="border-b border-success/30 bg-success/10 px-5 pb-3 pt-5">
+          <div className="border-b border-success/30 bg-success/10 px-5 pb-3 pt-5">
             <DialogTitle className="flex items-center justify-center gap-2 text-lg font-bold text-success">
               <CheckCircle2 className="size-6" />
               تم العثور على التذكرة
@@ -1977,7 +1977,7 @@ const QRScanner = () => {
             <DialogDescription className="text-center text-xs text-scanner-muted">
               راجع بيانات التذكرة ثم اضغط تأكيد الحضور
             </DialogDescription>
-          </DialogHeader>
+          </div>
 
           {ticketInfo && (
             <>
