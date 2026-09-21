@@ -62,6 +62,10 @@ interface BinnedTicket {
   ticket_type: string;
   deleted_at: string;
   deleted_by_name: string | null;
+  holder_created_at: string | null;
+  is_present: boolean | null;
+  confirmed_at: string | null;
+  confirmed_by_name: string | null;
   context: {
     booking_reference?: string;
     event_title?: string;
@@ -69,6 +73,21 @@ interface BinnedTicket {
     customer_name?: string;
   } | null;
 }
+
+const qatarStamp = (value?: string | null) =>
+  value
+    ? new Date(value).toLocaleString("ar-u-nu-latn", {
+        timeZone: "Asia/Qatar",
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      })
+    : "—";
+
+const sourceLabel = (method?: string | null) =>
+  method === "cash_pos" ? "نقاط البيع" : "دفع إلكتروني";
 
 const qatarDateKey = (d: Date) =>
   new Intl.DateTimeFormat("en-CA", {
