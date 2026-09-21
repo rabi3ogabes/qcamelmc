@@ -148,6 +148,15 @@ const QRScanner = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [alreadyScanned]);
 
+  // Scan popup: whenever a valid, paid ticket is found, show all its details in a popup
+  useEffect(() => {
+    if (ticketInfo && scanResult === 'success' && ticketInfo.payment_status === 'confirmed') {
+      setScanPopupOpen(true);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ticketInfo, scanResult]);
+
+
   const scannerRef = useRef<Html5Qrcode | null>(null);
   const isScanning = useRef(false);
 
@@ -943,6 +952,7 @@ const QRScanner = () => {
           ticketTypes: ticketTypeSummary
         });
         setShowSuccessDialog(true);
+        setScanPopupOpen(false);
         toast.success(`✅ تم تأكيد حضور ${successCount} تذكرة`);
         loadScanHistory();
       }
