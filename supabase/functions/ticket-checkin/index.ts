@@ -705,7 +705,7 @@ serve(async (req) => {
         events!inner(title, event_date, location)
       `)
       .eq('booking_reference', booking_reference)
-      .gte('events.event_date', todayStr)
+      .gte('events.event_date', qatarDayStartUtc)
       .single();
 
     if (fetchError || !order) {
