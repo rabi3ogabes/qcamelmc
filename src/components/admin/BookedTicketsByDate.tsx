@@ -499,6 +499,14 @@ export const BookedTicketsByDate = () => {
                   <span>{ticket.order.events.title}</span>
                 </div>
 
+                <div className="flex flex-wrap items-center gap-2 text-[11px] font-lusail text-muted-foreground">
+                  <Badge variant="outline" className="font-lusail text-[10px] py-0">
+                    {sourceLabel(ticket.order.payment_method)}
+                  </Badge>
+                  <span>تاريخ البيع: {qatarStamp(ticket.order.created_at || ticket.created_at)}</span>
+                </div>
+
+
                 {ticket.is_present && (
                   <div className="flex items-center gap-2 rounded-lg border border-success/40 bg-success/10 px-2.5 py-1.5 text-xs font-lusail text-success">
                     <CheckCircle2 className="w-4 h-4 shrink-0" />
