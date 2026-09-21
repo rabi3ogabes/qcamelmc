@@ -971,6 +971,11 @@ const QRScanner = () => {
       setSameBookingTickets([]);
       setTicketInfo(null);
       setScanResult(null);
+
+      // Popup hidden — get the camera ready for the next scan right away
+      if (cameraScanRef.current) {
+        await resetScanner();
+      }
     } catch (err: any) {
       console.error('Confirmation error:', err);
       toast.error(err.message || 'حدث خطأ أثناء تأكيد الحضور');
