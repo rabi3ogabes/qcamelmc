@@ -93,6 +93,17 @@ const StaffHub = () => {
           <p className="mt-2 text-sm text-muted-foreground">
             اختر المهمة التي تريد البدء بها
           </p>
+          <span
+            className={`mt-3 inline-block rounded-full px-3 py-1 text-xs font-semibold ${
+              role ? "bg-emerald-500/10 text-emerald-600" : "bg-amber-500/10 text-amber-700"
+            }`}
+          >
+            {role === "admin"
+              ? "دخول بحساب مسؤول"
+              : role === "moderator"
+                ? "دخول بحساب موظف"
+                : "دخول بكلمة مرور الفريق — الحضور للعرض فقط"}
+          </span>
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2">
