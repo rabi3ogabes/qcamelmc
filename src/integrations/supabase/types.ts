@@ -158,6 +158,72 @@ export type Database = {
         }
         Relationships: []
       }
+      deleted_tickets: {
+        Row: {
+          confirmed_at: string | null
+          confirmed_by: string | null
+          confirmed_by_name: string | null
+          context: Json
+          country_code: string | null
+          deleted_at: string
+          deleted_by: string | null
+          deleted_by_name: string | null
+          holder_created_at: string | null
+          holder_id: string
+          id: string
+          id_number: string | null
+          is_present: boolean | null
+          name: string
+          nationality: string
+          order_id: string
+          phone: string
+          qr_code: string | null
+          ticket_type: string
+        }
+        Insert: {
+          confirmed_at?: string | null
+          confirmed_by?: string | null
+          confirmed_by_name?: string | null
+          context?: Json
+          country_code?: string | null
+          deleted_at?: string
+          deleted_by?: string | null
+          deleted_by_name?: string | null
+          holder_created_at?: string | null
+          holder_id: string
+          id?: string
+          id_number?: string | null
+          is_present?: boolean | null
+          name: string
+          nationality: string
+          order_id: string
+          phone: string
+          qr_code?: string | null
+          ticket_type: string
+        }
+        Update: {
+          confirmed_at?: string | null
+          confirmed_by?: string | null
+          confirmed_by_name?: string | null
+          context?: Json
+          country_code?: string | null
+          deleted_at?: string
+          deleted_by?: string | null
+          deleted_by_name?: string | null
+          holder_created_at?: string | null
+          holder_id?: string
+          id?: string
+          id_number?: string | null
+          is_present?: boolean | null
+          name?: string
+          nationality?: string
+          order_id?: string
+          phone?: string
+          qr_code?: string | null
+          ticket_type?: string
+        }
+        Relationships: []
+      }
       email_delivery_events: {
         Row: {
           attempt: number
@@ -946,6 +1012,7 @@ export type Database = {
       }
     }
     Functions: {
+      bin_ticket_holder: { Args: { p_holder_id: string }; Returns: Json }
       cleanup_stale_visitors: { Args: never; Returns: undefined }
       create_pos_booking: {
         Args: {
@@ -1041,6 +1108,7 @@ export type Database = {
         Args: { p_event_id: string; p_quantity: number; p_ticket_type: string }
         Returns: Json
       }
+      restore_ticket_holder: { Args: { p_bin_id: string }; Returns: Json }
     }
     Enums: {
       app_role: "admin" | "moderator"
