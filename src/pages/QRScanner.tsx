@@ -704,7 +704,7 @@ const QRScanner = () => {
         }
       } else {
         // It's a booking reference - fetch all tickets for this booking
-        const { data: orderData, error: orderError } = await supabase
+        let { data: orderData, error: orderError } = await supabase
           .from('orders')
           .select(`
             id,
@@ -718,55 +718,69 @@ const QRScanner = () => {
           .eq('booking_reference', scannedCode)
           .single();
 
+        let ticketsData: any[] | null = null;
+        let ticketsError: any = null;
+
         if (orderError || !orderData) {
-          setScanResult('error');
-          setTicketInfo({
-            booking_reference: scannedCode,
-            customer_name: "غير موجود",
-            event_title: "-",
-            ticket_type: "-",
-            quantity: 0,
-            payment_status: "غير مؤكد",
-            is_present: false,
-          });
-          toast.error('حجز غير موجود');
-          return;
-        }
+          // Fallback for passcode-only staff (no signed-in session): use the secure lookup service
+          let lookupResults: any[] | null = null;
+          try {
+            const { data: lookup } = await supabase.functions.invoke('ticket-checkin', {
+              body: { mode: 'lookup', booking_reference: scannedCode, passcode: getStaffPasscode() },
+            });
+            if ((lookup as any)?.success && (lookup as any)?.results?.length) {
+              lookupResults = (lookup as any).results;
+            }
+          } catch (lookupErr) {
+            console.error('Booking lookup fallback failed:', lookupErr);
+          }
 
-        console.log('=== Booking Reference Scan Debug ===');
-        console.log('Scanned booking:', scannedCode);
-        console.log('Order payment status:', orderData.payment_status);
-        console.log('Order payment method:', orderData.payment_method);
-        
-        // Fetch all tickets for this order with orders relation for display
-        const { data: ticketsData, error: ticketsError } = await supabase
-          .from('ticket_holders')
-          .select(`
-            *,
-            orders!inner (
-              id,
-              booking_reference,
-              payment_status,
-              payment_method,
-              quantity,
-              customers (name),
-              events (title, event_date)
-            )
-          `)
-          .eq('order_id', orderData.id)
-          .order('qr_code');
+          if (!lookupResults) {
+            setScanResult('error');
+            setTicketInfo({
+              booking_reference: scannedCode,
+              customer_name: "غير موجود",
+              event_title: "-",
+              ticket_type: "-",
+              quantity: 0,
+              payment_status: "غير مؤكد",
+              is_present: false,
+            });
+            toast.error('حجز غير موجود');
+            return;
+          }
 
-        console.log('=== Booking Reference Tickets Debug ===');
-        console.log('Order ID:', orderData.id);
-        console.log('Booking Reference:', orderData.booking_reference);
-        console.log('Tickets found:', ticketsData?.length);
-        console.log('Tickets data:', ticketsData);
-
-        if (ticketsError || !ticketsData || ticketsData.length === 0) {
-          console.error('Tickets error:', ticketsError);
-          setScanResult('error');
-          toast.error('لا توجد تذاكر لهذا الحجز');
-          return;
+          const o = lookupResults[0].orders;
+          orderData = {
+            id: lookupResults[0].order_id,
+            booking_reference: o.booking_reference,
+            payment_status: o.payment_status,
+            payment_method: o.payment_method,
+            quantity: o.quantity,
+            customers: o.customers,
+            events: o.events,
+          };
+          ticketsData = lookupResults;
+        } else {
+          // Fetch all tickets for this order with orders relation for display
+          const { data, error } = await supabase
+            .from('ticket_holders')
+            .select(`
+              *,
+              orders!inner (
+                id,
+                booking_reference,
+                payment_status,
+                payment_method,
+                quantity,
+                customers (name),
+                events (title, event_date)
+              )
+            `)
+            .eq('order_id', orderData.id)
+            .order('qr_code');
+          ticketsData = data;
+          ticketsError = error;
         }
 
         // Force confirmed status for POS orders
