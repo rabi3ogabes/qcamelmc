@@ -3,7 +3,9 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Ticket, Edit, Archive } from "lucide-react";
+import { Ticket, Edit, Archive, Eye, EyeOff } from "lucide-react";
+
+const SHOW_DAILY_STATS_KEY = "tickets_show_daily_stats";
 import { useTranslation } from "react-i18next";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -65,6 +67,25 @@ export const TicketsTab = () => {
   const [editingTicket, setEditingTicket] = useState<TicketType | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [view, setView] = useState<"current" | "archived">("current");
+  const [showDailyStats, setShowDailyStats] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem(SHOW_DAILY_STATS_KEY) !== "false";
+    } catch {
+      return true;
+    }
+  });
+
+  const toggleDailyStats = () => {
+    setShowDailyStats((prev) => {
+      const next = !prev;
+      try {
+        localStorage.setItem(SHOW_DAILY_STATS_KEY, String(next));
+      } catch {
+        // ignore storage errors
+      }
+      return next;
+    });
+  };
 
   useEffect(() => {
     fetchTickets();
@@ -415,15 +436,37 @@ export const TicketsTab = () => {
             الأرشيف
           </Button>
         </div>
+        {visibleSummaries.length > 0 && !showDailyStats && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={toggleDailyStats}
+            className="font-lusail gap-1.5"
+          >
+            <Eye className="w-4 h-4" />
+            إظهار الإحصائيات
+          </Button>
+        )}
       </div>
 
       {/* Booked tickets by event date (today / tomorrow / specific day / all) */}
       <BookedTicketsByDate />
 
       {/* Daily Sales Statistics Table */}
-      {visibleSummaries.length > 0 && (
+      {visibleSummaries.length > 0 && showDailyStats && (
         <Card className="p-6">
-          <h3 className="text-xl font-bold font-lusail mb-4">إحصائيات المبيعات اليومية</h3>
+          <div className="flex items-center justify-between gap-3 mb-4">
+            <h3 className="text-xl font-bold font-lusail">إحصائيات المبيعات اليومية</h3>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={toggleDailyStats}
+              className="font-lusail gap-1.5 text-muted-foreground hover:text-foreground"
+            >
+              <EyeOff className="w-4 h-4" />
+              إخفاء
+            </Button>
+          </div>
           <div className="overflow-x-auto">
             <table className="w-full border-collapse">
               <thead>
