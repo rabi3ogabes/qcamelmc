@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 import { CheckCircle2, XCircle, Loader2, Search, Camera, AlertCircle, AlertTriangle, LogOut, Calendar, Users, ChevronDown, ChevronUp, RotateCcw, QrCode, RefreshCw, UserRound, ScanLine } from "lucide-react";
@@ -84,6 +84,7 @@ const QRScanner = () => {
   const [relatedTicketsOtherDays, setRelatedTicketsOtherDays] = useState<RelatedTicket[]>([]);
   const [sameBookingTickets, setSameBookingTickets] = useState<RelatedTicket[]>([]);
   const [showSuccessDialog, setShowSuccessDialog] = useState(false);
+  const [scanPopupOpen, setScanPopupOpen] = useState(false);
   const [successData, setSuccessData] = useState<SuccessData | null>(null);
   const [collapsedDates, setCollapsedDates] = useState<Record<string, boolean>>({});
   const [errorDialogMessage, setErrorDialogMessage] = useState<string | null>(null);
