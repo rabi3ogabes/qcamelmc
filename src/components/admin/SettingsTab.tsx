@@ -758,7 +758,12 @@ export const SettingsTab = () => {
     }
     setSavingClarity(true);
     try {
-      await updateSettingsRow({ clarity_enabled: checked });
+      const projectId = clarityProjectId.trim();
+      await updateSettingsRow(
+        checked
+          ? { clarity_enabled: true, clarity_project_id: projectId }
+          : { clarity_enabled: false },
+      );
       setClarityEnabled(checked);
       toast.success(checked ? "تم تفعيل تتبّع Microsoft Clarity" : "تم إيقاف تتبّع Microsoft Clarity");
     } catch (error) {

@@ -99,7 +99,11 @@ export const FireworksBurst = ({ trigger = 0, duration = 6000 }: FireworksBurstP
     launchVolley();
 
     const burstTimer = window.setInterval(() => {
-      if (!running) return;
+      // Stop spawning new bursts once the show duration has elapsed
+      if (!running || performance.now() - start >= duration) {
+        window.clearInterval(burstTimer);
+        return;
+      }
       explode(width * rand(0.15, 0.85), height * rand(0.12, 0.4), PALETTE[Math.floor(rand(0, PALETTE.length))], rand(24, 44), rand(3, 4.4));
     }, 750);
 
