@@ -24,7 +24,7 @@ import {
   ScanLine,
   Search,
   Trash2,
-  RotateCcw,
+
   Undo2,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
