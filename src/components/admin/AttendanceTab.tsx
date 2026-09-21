@@ -361,7 +361,7 @@ export const AttendanceTab = () => {
                   <div className="flex items-center gap-1.5">
                     <button
                       onClick={() => setStatus(user.id, "present")}
-                      disabled={savingId === user.id}
+                      disabled={savingId === user.id || !canEdit}
                       aria-label={`تسجيل ${user.name} حاضر`}
                       className={cn(
                         "flex h-10 w-10 items-center justify-center rounded-xl border transition-all",
@@ -374,7 +374,7 @@ export const AttendanceTab = () => {
                     </button>
                     <button
                       onClick={() => setStatus(user.id, "absent")}
-                      disabled={savingId === user.id}
+                      disabled={savingId === user.id || !canEdit}
                       aria-label={`تسجيل ${user.name} غائب`}
                       className={cn(
                         "flex h-10 w-10 items-center justify-center rounded-xl border transition-all",
