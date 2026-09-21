@@ -7,7 +7,7 @@ const GEO_CACHE_KEY = "visitor_geo_cache";
 const GEO_CACHE_TTL = 30 * 60 * 1000; // 30 minutes
 
 // Activity update interval: 2 minutes instead of 30 seconds
-const ACTIVITY_INTERVAL_MS = 120_000;
+const ACTIVITY_INTERVAL_MS = 300_000;
 
 // Admin/backend pages that should not be tracked
 const EXCLUDED_PATHS = [
@@ -152,9 +152,7 @@ const recordPageView = async (sessionId: string, geoInfo: GeoInfo) => {
 };
 
 export const useVisitorTracking = () => {
-  // TEMPORARILY DISABLED to reduce database load
-  // Remove this early return to re-enable visitor tracking
-  return;
+
 
   const sessionIdRef = useRef<string>(getSessionId());
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
