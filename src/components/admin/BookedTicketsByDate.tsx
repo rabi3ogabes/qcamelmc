@@ -593,6 +593,71 @@ export const BookedTicketsByDate = () => {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Recycle bin dialog */}
+      <Dialog open={binOpen} onOpenChange={setBinOpen}>
+        <DialogContent className="sm:max-w-2xl" dir="rtl">
+          <DialogHeader>
+            <DialogTitle className="font-lusail flex items-center gap-2">
+              <Trash2 className="w-5 h-5 text-destructive" />
+              سلة المحذوفات
+            </DialogTitle>
+            <DialogDescription className="font-lusail">
+              التذاكر المحذوفة لا تظهر في أي تقرير — يمكن استرجاعها في أي وقت
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex justify-end">
+            <Button variant="outline" size="sm" className="font-lusail gap-1" onClick={fetchBin} disabled={binLoading}>
+              <RefreshCw className={`w-4 h-4 ${binLoading ? "animate-spin" : ""}`} />
+              تحديث
+            </Button>
+          </div>
+          <div className="max-h-[55vh] overflow-y-auto space-y-2">
+            {binLoading ? (
+              <p className="text-center py-8 text-muted-foreground font-lusail">جاري التحميل…</p>
+            ) : bin.length === 0 ? (
+              <p className="text-center py-8 text-muted-foreground font-lusail">السلة فارغة</p>
+            ) : (
+              bin.map((row) => {
+                const Icon = typeIcon(row.ticket_type);
+                return (
+                  <div key={row.id} className="rounded-xl border bg-muted/30 p-3 flex items-center gap-3">
+                    <div className="p-2 rounded-lg bg-destructive/10 shrink-0">
+                      <Icon className="w-4 h-4 text-destructive" />
+                    </div>
+                    <div className="min-w-0 flex-1 font-lusail">
+                      <div className="flex items-center gap-2">
+                        <p className="font-bold truncate">{row.name}</p>
+                        <Badge variant="outline" className={`shrink-0 ${typeBadgeClass(row.ticket_type)}`}>
+                          {typeLabel(row.ticket_type)}
+                        </Badge>
+                      </div>
+                      <p className="text-xs text-muted-foreground truncate">
+                        <span dir="ltr">{row.context?.booking_reference || "—"}</span>
+                        {row.context?.event_title ? ` • ${row.context.event_title}` : ""}
+                      </p>
+                      <p className="text-[11px] text-muted-foreground">
+                        حُذفت في{" "}
+                        {new Date(row.deleted_at).toLocaleString("ar-u-nu-latn", { timeZone: "Asia/Qatar" })}
+                        {row.deleted_by_name ? ` — بواسطة ${row.deleted_by_name}` : ""}
+                      </p>
+                    </div>
+                    <Button
+                      size="sm"
+                      className="font-lusail gap-1 shrink-0"
+                      onClick={() => restoreTicket(row)}
+                      disabled={busyId === row.id}
+                    >
+                      <Undo2 className="w-4 h-4" />
+                      استرجاع
+                    </Button>
+                  </div>
+                );
+              })
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 };
