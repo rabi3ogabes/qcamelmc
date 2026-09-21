@@ -699,6 +699,7 @@ export type Database = {
           sadad_website_domain: string | null
           show_delete_customer_button: boolean | null
           show_delete_event_button: boolean | null
+          show_delete_ticket_button: boolean
           show_generate_qr_button: boolean | null
           updated_at: string | null
           webhook_enabled: boolean
@@ -734,6 +735,7 @@ export type Database = {
           sadad_website_domain?: string | null
           show_delete_customer_button?: boolean | null
           show_delete_event_button?: boolean | null
+          show_delete_ticket_button?: boolean
           show_generate_qr_button?: boolean | null
           updated_at?: string | null
           webhook_enabled?: boolean
@@ -769,6 +771,7 @@ export type Database = {
           sadad_website_domain?: string | null
           show_delete_customer_button?: boolean | null
           show_delete_event_button?: boolean | null
+          show_delete_ticket_button?: boolean
           show_generate_qr_button?: boolean | null
           updated_at?: string | null
           webhook_enabled?: boolean
