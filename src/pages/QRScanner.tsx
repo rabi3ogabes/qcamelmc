@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 import { CheckCircle2, XCircle, Loader2, Search, Camera, AlertCircle, AlertTriangle, LogOut, Calendar, Users, ChevronDown, ChevronUp, RotateCcw, QrCode, RefreshCw, UserRound, ScanLine } from "lucide-react";
@@ -84,6 +84,7 @@ const QRScanner = () => {
   const [relatedTicketsOtherDays, setRelatedTicketsOtherDays] = useState<RelatedTicket[]>([]);
   const [sameBookingTickets, setSameBookingTickets] = useState<RelatedTicket[]>([]);
   const [showSuccessDialog, setShowSuccessDialog] = useState(false);
+  const [scanPopupOpen, setScanPopupOpen] = useState(false);
   const [successData, setSuccessData] = useState<SuccessData | null>(null);
   const [collapsedDates, setCollapsedDates] = useState<Record<string, boolean>>({});
   const [errorDialogMessage, setErrorDialogMessage] = useState<string | null>(null);
@@ -146,6 +147,15 @@ const QRScanner = () => {
     return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [alreadyScanned]);
+
+  // Scan popup: whenever a valid, paid ticket is found, show all its details in a popup
+  useEffect(() => {
+    if (ticketInfo && scanResult === 'success' && ticketInfo.payment_status === 'confirmed') {
+      setScanPopupOpen(true);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ticketInfo, scanResult]);
+
 
   const scannerRef = useRef<Html5Qrcode | null>(null);
   const isScanning = useRef(false);
@@ -694,7 +704,7 @@ const QRScanner = () => {
         }
       } else {
         // It's a booking reference - fetch all tickets for this booking
-        const { data: orderData, error: orderError } = await supabase
+        let { data: orderData, error: orderError } = await supabase
           .from('orders')
           .select(`
             id,
@@ -708,55 +718,69 @@ const QRScanner = () => {
           .eq('booking_reference', scannedCode)
           .single();
 
+        let ticketsData: any[] | null = null;
+        let ticketsError: any = null;
+
         if (orderError || !orderData) {
-          setScanResult('error');
-          setTicketInfo({
-            booking_reference: scannedCode,
-            customer_name: "غير موجود",
-            event_title: "-",
-            ticket_type: "-",
-            quantity: 0,
-            payment_status: "غير مؤكد",
-            is_present: false,
-          });
-          toast.error('حجز غير موجود');
-          return;
-        }
+          // Fallback for passcode-only staff (no signed-in session): use the secure lookup service
+          let lookupResults: any[] | null = null;
+          try {
+            const { data: lookup } = await supabase.functions.invoke('ticket-checkin', {
+              body: { mode: 'lookup', booking_reference: scannedCode, passcode: getStaffPasscode() },
+            });
+            if ((lookup as any)?.success && (lookup as any)?.results?.length) {
+              lookupResults = (lookup as any).results;
+            }
+          } catch (lookupErr) {
+            console.error('Booking lookup fallback failed:', lookupErr);
+          }
 
-        console.log('=== Booking Reference Scan Debug ===');
-        console.log('Scanned booking:', scannedCode);
-        console.log('Order payment status:', orderData.payment_status);
-        console.log('Order payment method:', orderData.payment_method);
-        
-        // Fetch all tickets for this order with orders relation for display
-        const { data: ticketsData, error: ticketsError } = await supabase
-          .from('ticket_holders')
-          .select(`
-            *,
-            orders!inner (
-              id,
-              booking_reference,
-              payment_status,
-              payment_method,
-              quantity,
-              customers (name),
-              events (title, event_date)
-            )
-          `)
-          .eq('order_id', orderData.id)
-          .order('qr_code');
+          if (!lookupResults) {
+            setScanResult('error');
+            setTicketInfo({
+              booking_reference: scannedCode,
+              customer_name: "غير موجود",
+              event_title: "-",
+              ticket_type: "-",
+              quantity: 0,
+              payment_status: "غير مؤكد",
+              is_present: false,
+            });
+            toast.error('حجز غير موجود');
+            return;
+          }
 
-        console.log('=== Booking Reference Tickets Debug ===');
-        console.log('Order ID:', orderData.id);
-        console.log('Booking Reference:', orderData.booking_reference);
-        console.log('Tickets found:', ticketsData?.length);
-        console.log('Tickets data:', ticketsData);
-
-        if (ticketsError || !ticketsData || ticketsData.length === 0) {
-          console.error('Tickets error:', ticketsError);
-          setScanResult('error');
-          toast.error('لا توجد تذاكر لهذا الحجز');
-          return;
+          const o = lookupResults[0].orders;
+          orderData = {
+            id: lookupResults[0].order_id,
+            booking_reference: o.booking_reference,
+            payment_status: o.payment_status,
+            payment_method: o.payment_method,
+            quantity: o.quantity,
+            customers: o.customers,
+            events: o.events,
+          };
+          ticketsData = lookupResults;
+        } else {
+          // Fetch all tickets for this order with orders relation for display
+          const { data, error } = await supabase
+            .from('ticket_holders')
+            .select(`
+              *,
+              orders!inner (
+                id,
+                booking_reference,
+                payment_status,
+                payment_method,
+                quantity,
+                customers (name),
+                events (title, event_date)
+              )
+            `)
+            .eq('order_id', orderData.id)
+            .order('qr_code');
+          ticketsData = data;
+          ticketsError = error;
         }
 
         // Force confirmed status for POS orders
@@ -942,6 +966,7 @@ const QRScanner = () => {
           ticketTypes: ticketTypeSummary
         });
         setShowSuccessDialog(true);
+        setScanPopupOpen(false);
         toast.success(`✅ تم تأكيد حضور ${successCount} تذكرة`);
         loadScanHistory();
       }
@@ -960,6 +985,11 @@ const QRScanner = () => {
       setSameBookingTickets([]);
       setTicketInfo(null);
       setScanResult(null);
+
+      // Popup hidden — get the camera ready for the next scan right away
+      if (cameraScanRef.current) {
+        await resetScanner();
+      }
     } catch (err: any) {
       console.error('Confirmation error:', err);
       toast.error(err.message || 'حدث خطأ أثناء تأكيد الحضور');
@@ -1936,6 +1966,98 @@ const QRScanner = () => {
       </main>
 
 
+      {/* Scan Result Popup — full ticket details before confirming */}
+      <Dialog open={scanPopupOpen} onOpenChange={(open) => setScanPopupOpen(open)}>
+        <DialogContent className="sm:max-w-md overflow-hidden border-2 border-success/50 bg-scanner-surface p-0 text-scanner-foreground shadow-elegant" dir="rtl">
+          <div className="border-b border-success/30 bg-success/10 px-5 pb-3 pt-5">
+            <DialogTitle className="flex items-center justify-center gap-2 text-lg font-bold text-success">
+              <CheckCircle2 className="size-6" />
+              تم العثور على التذكرة
+            </DialogTitle>
+            <DialogDescription className="text-center text-xs text-scanner-muted">
+              راجع بيانات التذكرة ثم اضغط تأكيد الحضور
+            </DialogDescription>
+          </div>
+
+          {ticketInfo && (
+            <>
+              <div className="max-h-[52vh] space-y-1.5 overflow-y-auto px-5 py-3 text-sm">
+                {([
+                  ['رقم الحجز', <span key="ref" className="font-mono break-all text-left" dir="ltr">{ticketInfo.booking_reference}</span>],
+                  ...(ticketInfo.ticket_holder_name ? [['اسم حامل التذكرة', <span key="hn" className="font-bold">{ticketInfo.ticket_holder_name}</span>]] : []),
+                  ...(ticketInfo.ticket_holder_phone ? [['رقم الهاتف', <span key="hp" className="font-mono" dir="ltr">{ticketInfo.ticket_holder_phone}</span>]] : []),
+                  ...(ticketInfo.ticket_holder_nationality ? [['الجنسية', <span key="nat">{ticketInfo.ticket_holder_nationality}</span>]] : []),
+                  ...(ticketInfo.ticket_holder_id_number ? [['رقم الهوية', <span key="id" className="font-mono break-all" dir="ltr">{ticketInfo.ticket_holder_id_number}</span>]] : []),
+                  ['اسم العميل', <span key="cn" className="font-bold">{ticketInfo.customer_name}</span>],
+                  ['اسم الحدث', <span key="ev">{ticketInfo.event_title}</span>],
+                  ['نوع التذكرة', <span key="tt" className="font-bold uppercase">{ticketInfo.ticket_type}</span>],
+                  ['الكمية', <span key="qty">{ticketInfo.quantity}</span>],
+                  ['حالة الدفع', <span key="ps" className="font-bold text-success">مدفوعة ✓</span>],
+                ] as [string, React.ReactNode][]).map(([label, value], i) => (
+                  <div key={i} className="flex items-center justify-between gap-3 border-b border-scanner-elevated/60 py-1.5 last:border-0">
+                    <span className="shrink-0 text-xs font-semibold text-scanner-muted">{label}</span>
+                    <span className="text-left text-sm">{value}</span>
+                  </div>
+                ))}
+              </div>
+
+              {/* Ticket selection for booking-reference scans */}
+              {availableTickets.length > 1 && (
+                <div className="mx-5 rounded-lg border border-scanner-elevated bg-scanner-background p-3">
+                  <p className="mb-2 text-xs font-bold text-scanner-muted">
+                    تذاكر الحجز ({availableTickets.filter(t => !t.is_present).length} متاحة) — اختر للتأكيد:
+                  </p>
+                  <div className="space-y-1.5">
+                    {availableTickets.map((ticket) => (
+                      <label
+                        key={ticket.id}
+                        className={`flex items-center gap-2 rounded-md border p-2 text-xs transition-colors ${
+                          ticket.is_present
+                            ? 'cursor-not-allowed border-scanner-elevated opacity-50'
+                            : selectedTicketIds.includes(ticket.id)
+                            ? 'cursor-pointer border-success bg-success/10'
+                            : 'cursor-pointer border-scanner-elevated hover:border-scanner-gold/50'
+                        }`}
+                      >
+                        <Checkbox
+                          checked={selectedTicketIds.includes(ticket.id)}
+                          onCheckedChange={() => !ticket.is_present && toggleTicketSelection(ticket.id)}
+                          disabled={ticket.is_present}
+                        />
+                        <span className="font-bold">{ticket.name}</span>
+                        <span className="uppercase text-scanner-muted">— {ticket.ticket_type}</span>
+                        {ticket.is_present && <span className="mr-auto text-success">✓ حاضر</span>}
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <div className="border-t border-scanner-elevated px-5 py-4">
+                <Button
+                  onClick={handleConfirmPresence}
+                  disabled={processing || (availableTickets.length > 1 && selectedTicketIds.length === 0)}
+                  size="lg"
+                  className="h-12 w-full bg-green-600 text-lg text-white hover:bg-green-700"
+                >
+                  {processing ? (
+                    <>
+                      <Loader2 className="ml-2 size-5 animate-spin" />
+                      جاري التأكيد...
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle2 className="ml-2 size-5" />
+                      ✓ تأكيد الحضور{selectedTicketIds.length > 1 ? ` (${selectedTicketIds.length})` : ''}
+                    </>
+                  )}
+                </Button>
+              </div>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
+
       {/* Success Dialog */}
       <Dialog open={showSuccessDialog} onOpenChange={setShowSuccessDialog}>
         <DialogContent className="sm:max-w-md text-center p-8">
@@ -1945,8 +2067,8 @@ const QRScanner = () => {
             </div>
             
             <div className="space-y-2">
-              <h2 className="text-2xl font-bold text-green-600">تم تأكيد الحضور!</h2>
-              <p className="text-muted-foreground">تم تسجيل الحضور بنجاح</p>
+              <DialogTitle className="text-2xl font-bold text-green-600">تم تأكيد الحضور!</DialogTitle>
+              <DialogDescription className="text-muted-foreground">تم تسجيل الحضور بنجاح</DialogDescription>
             </div>
 
             {successData && (

@@ -295,7 +295,7 @@ serve(async (req) => {
         supabase
           .from('ticket_holders')
           .select(HOLDER_SELECT)
-          .gte('orders.events.event_date', todayKey)
+          .gte('orders.events.event_date', qatarDayStartUtc)
           .order('created_at', { ascending: false })
           .limit(40);
 
@@ -457,7 +457,10 @@ serve(async (req) => {
     const qatarTimeZone = "Asia/Qatar";
     const nowInQatar = toZonedTime(new Date(), qatarTimeZone);
     const todayStr = `${nowInQatar.getFullYear()}-${String(nowInQatar.getMonth() + 1).padStart(2, '0')}-${String(nowInQatar.getDate()).padStart(2, '0')}`;
-    
+    // Start of the Qatari day as a UTC instant (Qatar = UTC+3) — comparing with a bare
+    // date string uses UTC midnight and wrongly excludes events at midnight in Qatar.
+    const qatarDayStartUtc = new Date(Date.UTC(nowInQatar.getFullYear(), nowInQatar.getMonth(), nowInQatar.getDate()) - 3 * 60 * 60 * 1000).toISOString();
+
     console.log('[Ticket Check-in] Searching for ticket holder with QR code:', booking_reference, '| today:', todayStr);
     
     let { data: ticketHolder, error: holderError } = await supabase
@@ -496,7 +499,7 @@ serve(async (req) => {
         )
       `)
       .eq('qr_code', booking_reference)
-      .gte('orders.events.event_date', todayStr)
+      .gte('orders.events.event_date', qatarDayStartUtc)
       .maybeSingle();
 
     console.log('[Ticket Check-in] Ticket holder search result:', ticketHolder ? 'FOUND' : 'NOT FOUND');
@@ -702,7 +705,7 @@ serve(async (req) => {
         events!inner(title, event_date, location)
       `)
       .eq('booking_reference', booking_reference)
-      .gte('events.event_date', todayStr)
+      .gte('events.event_date', qatarDayStartUtc)
       .single();
 
     if (fetchError || !order) {
