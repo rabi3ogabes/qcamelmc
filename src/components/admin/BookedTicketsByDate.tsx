@@ -439,7 +439,7 @@ export const BookedTicketsByDate = () => {
                   <span>{ticket.order.events.title}</span>
                 </div>
 
-                {ticket.is_present ? (
+                {ticket.is_present && (
                   <div className="flex items-center gap-2 rounded-lg border border-success/40 bg-success/10 px-2.5 py-1.5 text-xs font-lusail text-success">
                     <CheckCircle2 className="w-4 h-4 shrink-0" />
                     <span className="font-semibold">تم المسح</span>
@@ -457,11 +457,6 @@ export const BookedTicketsByDate = () => {
                     {ticket.confirmed_by_name && (
                       <span className="text-[11px] opacity-80 truncate">— {ticket.confirmed_by_name}</span>
                     )}
-                  </div>
-                ) : (
-                  <div className="flex items-center gap-2 rounded-lg border border-muted-foreground/25 bg-muted/40 px-2.5 py-1.5 text-xs font-lusail text-muted-foreground">
-                    <Clock className="w-4 h-4 shrink-0" />
-                    <span>لم تُمسح بعد</span>
                   </div>
                 )}
 
