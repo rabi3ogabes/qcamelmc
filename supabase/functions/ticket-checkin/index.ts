@@ -499,7 +499,7 @@ serve(async (req) => {
         )
       `)
       .eq('qr_code', booking_reference)
-      .gte('orders.events.event_date', todayStr)
+      .gte('orders.events.event_date', qatarDayStartUtc)
       .maybeSingle();
 
     console.log('[Ticket Check-in] Ticket holder search result:', ticketHolder ? 'FOUND' : 'NOT FOUND');
