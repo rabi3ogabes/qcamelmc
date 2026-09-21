@@ -402,8 +402,17 @@ export const BookedTicketsByDate = () => {
             return (
               <div
                 key={ticket.id}
-                className="rounded-xl border bg-card p-4 space-y-3 hover:shadow-md transition-shadow"
+                className="relative rounded-xl border bg-card p-4 space-y-3 hover:shadow-md transition-shadow"
               >
+                {!ticket.is_present && (
+                  <span
+                    className="absolute top-2 left-2 text-muted-foreground/50"
+                    title="لم تُمسح بعد"
+                    aria-label="لم تُمسح بعد"
+                  >
+                    <Clock className="w-3.5 h-3.5" />
+                  </span>
+                )}
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex items-center gap-2 min-w-0">
                     <div className="p-2 rounded-lg bg-primary/10 shrink-0">
@@ -416,7 +425,10 @@ export const BookedTicketsByDate = () => {
                       </p>
                     </div>
                   </div>
-                  <Badge variant="outline" className={`font-lusail shrink-0 ${typeBadgeClass(ticket.ticket_type)}`}>
+                  <Badge
+                    variant="outline"
+                    className={`font-lusail shrink-0 ${typeBadgeClass(ticket.ticket_type)} ${!ticket.is_present ? "me-5" : ""}`}
+                  >
                     {typeLabel(ticket.ticket_type)}
                   </Badge>
                 </div>
