@@ -352,6 +352,39 @@ export type Database = {
         }
         Relationships: []
       }
+      login_attempts: {
+        Row: {
+          attempted_at: string
+          created_at: string
+          id: string
+          identifier: string
+          ip_address: string | null
+          kind: string
+          success: boolean
+          user_agent: string | null
+        }
+        Insert: {
+          attempted_at?: string
+          created_at?: string
+          id?: string
+          identifier: string
+          ip_address?: string | null
+          kind?: string
+          success?: boolean
+          user_agent?: string | null
+        }
+        Update: {
+          attempted_at?: string
+          created_at?: string
+          id?: string
+          identifier?: string
+          ip_address?: string | null
+          kind?: string
+          success?: boolean
+          user_agent?: string | null
+        }
+        Relationships: []
+      }
       orders: {
         Row: {
           booking_reference: string
@@ -1016,6 +1049,7 @@ export type Database = {
     }
     Functions: {
       bin_ticket_holder: { Args: { p_holder_id: string }; Returns: Json }
+      cleanup_login_attempts: { Args: never; Returns: undefined }
       cleanup_stale_visitors: { Args: never; Returns: undefined }
       create_pos_booking: {
         Args: {
