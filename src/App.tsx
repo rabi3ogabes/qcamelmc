@@ -39,6 +39,7 @@ const POSReceiptPage = lazy(() => import("./pages/POSReceiptPage"));
 const TicketViewer = lazy(() => import("./pages/TicketViewer"));
 const StaffHub = lazy(() => import("./pages/StaffHub"));
 const StaffAttendance = lazy(() => import("./pages/StaffAttendance"));
+const StaffGateBoard = lazy(() => import("./pages/StaffGateBoard"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 // Admin dashboard sub-pages
@@ -56,6 +57,8 @@ const ReportsPage = lazy(() => import("./pages/admin/ReportsPage"));
 const ActivityLogsPage = lazy(() => import("./pages/admin/ActivityLogsPage"));
 const PaymentErrorsPage = lazy(() => import("./pages/admin/PaymentErrorsPage"));
 const AttendancePage = lazy(() => import("./pages/admin/AttendancePage"));
+const VisitorsVsScansPage = lazy(() => import("./pages/admin/VisitorsVsScansPage"));
+const StaffAccountsPage = lazy(() => import("./pages/admin/StaffAccountsPage"));
 
 const queryClient = new QueryClient();
 
@@ -94,6 +97,7 @@ const App = () => (
                     <Route path="/live-visitors" element={<RequireAdmin adminOnly><LiveVisitors /></RequireAdmin>} />
                     <Route path="/staff" element={<RequireAdmin><StaffHub /></RequireAdmin>} />
                     <Route path="/staff/attendance" element={<RequireAdmin><StaffAttendance /></RequireAdmin>} />
+                    <Route path="/staff/gate" element={<RequireAdmin><StaffGateBoard /></RequireAdmin>} />
                     <Route path="/admin/login" element={<AdminLogin />} />
                     <Route path="/admin/dashboard" element={<RequireAdmin adminOnly><AdminDashboard /></RequireAdmin>}>
                       <Route index element={<Navigate to="orders" replace />} />
@@ -111,6 +115,8 @@ const App = () => (
                       <Route path="activity-logs" element={<ActivityLogsPage />} />
                       <Route path="payment-errors" element={<PaymentErrorsPage />} />
                       <Route path="attendance" element={<AttendancePage />} />
+                      <Route path="visitors-vs-scans" element={<VisitorsVsScansPage />} />
+                      <Route path="staff-accounts" element={<StaffAccountsPage />} />
                     </Route>
                     <Route path="/admin/qr-scanner" element={<RequireAdmin><QRScanner /></RequireAdmin>} />
                     <Route path="/admin/pos" element={<RequireAdmin><AdminPOS /></RequireAdmin>} />
