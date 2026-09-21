@@ -23,6 +23,9 @@ import {
   Clock,
   ScanLine,
   Search,
+  Trash2,
+
+  Undo2,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -50,6 +53,21 @@ interface BookedTicket {
     customers: { name: string; email: string; phone: string } | null;
     events: { title: string; event_date: string; location: string; is_archived: boolean };
   };
+}
+
+interface BinnedTicket {
+  id: string;
+  name: string;
+  phone: string;
+  ticket_type: string;
+  deleted_at: string;
+  deleted_by_name: string | null;
+  context: {
+    booking_reference?: string;
+    event_title?: string;
+    event_date?: string;
+    customer_name?: string;
+  } | null;
 }
 
 const qatarDateKey = (d: Date) =>
@@ -99,6 +117,77 @@ export const BookedTicketsByDate = () => {
   const [qrDialog, setQrDialog] = useState<{ code: string; title: string } | null>(null);
   const [qrDataUrl, setQrDataUrl] = useState<string>("");
   const [detailsTicket, setDetailsTicket] = useState<BookedTicket | null>(null);
+  const [isAdminUser, setIsAdminUser] = useState(false);
+  const [busyId, setBusyId] = useState<string | null>(null);
+  const [binOpen, setBinOpen] = useState(false);
+  const [bin, setBin] = useState<BinnedTicket[]>([]);
+  const [binLoading, setBinLoading] = useState(false);
+
+  // Deleting / restoring tickets is an admin-only action.
+  useEffect(() => {
+    (async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+      const [{ data: adminRow }, { data: roleRow }] = await Promise.all([
+        supabase.from("admin_users").select("id").eq("id", session.user.id).maybeSingle(),
+        supabase.from("user_roles").select("role").eq("user_id", session.user.id).eq("role", "admin").maybeSingle(),
+      ]);
+      setIsAdminUser(!!adminRow || !!roleRow);
+    })();
+  }, []);
+
+  const fetchBin = async () => {
+    setBinLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from("deleted_tickets")
+        .select("id, name, phone, ticket_type, deleted_at, deleted_by_name, context")
+        .order("deleted_at", { ascending: false })
+        .limit(500);
+      if (error) throw error;
+      setBin((data || []) as unknown as BinnedTicket[]);
+    } catch (error) {
+      console.error("Error loading bin:", error);
+      toast.error("تعذر تحميل سلة المحذوفات");
+    } finally {
+      setBinLoading(false);
+    }
+  };
+
+  const deleteTicket = async (ticket: BookedTicket) => {
+    if (!window.confirm(`حذف تذكرة ${ticket.name}؟ ستُنقل إلى سلة المحذوفات ويمكن استرجاعها لاحقاً.`)) return;
+    setBusyId(ticket.id);
+    try {
+      const { data, error } = await supabase.rpc("bin_ticket_holder", { p_holder_id: ticket.id });
+      const res = data as { success?: boolean; message?: string } | null;
+      if (error || !res?.success) {
+        toast.error(res?.message || "تعذر حذف التذكرة");
+        return;
+      }
+      toast.success(res.message || "تم نقل التذكرة إلى السلة");
+      setTickets((cur) => cur.filter((t) => t.id !== ticket.id));
+      if (binOpen) fetchBin();
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const restoreTicket = async (row: BinnedTicket) => {
+    setBusyId(row.id);
+    try {
+      const { data, error } = await supabase.rpc("restore_ticket_holder", { p_bin_id: row.id });
+      const res = data as { success?: boolean; message?: string } | null;
+      if (error || !res?.success) {
+        toast.error(res?.message || "تعذر استرجاع التذكرة");
+        return;
+      }
+      toast.success(res.message || "تم استرجاع التذكرة");
+      setBin((cur) => cur.filter((b) => b.id !== row.id));
+      fetchTickets();
+    } finally {
+      setBusyId(null);
+    }
+  };
 
   const selectedKey = useMemo(() => {
     const now = new Date();
@@ -215,10 +304,23 @@ export const BookedTicketsByDate = () => {
             </p>
           </div>
         </div>
-        <Button variant="outline" size="sm" onClick={fetchTickets} disabled={loading} className="font-lusail gap-1">
-          <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
-          تحديث
-        </Button>
+        <div className="flex items-center gap-2">
+          {isAdminUser && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="font-lusail gap-1"
+              onClick={() => { setBinOpen(true); fetchBin(); }}
+            >
+              <Trash2 className="w-4 h-4" />
+              سلة المحذوفات
+            </Button>
+          )}
+          <Button variant="outline" size="sm" onClick={fetchTickets} disabled={loading} className="font-lusail gap-1">
+            <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
+            تحديث
+          </Button>
+        </div>
       </div>
 
       <div className="flex flex-wrap items-center gap-3">
@@ -370,6 +472,19 @@ export const BookedTicketsByDate = () => {
                       <Info className="w-4 h-4" />
                       التفاصيل
                     </Button>
+                    {isAdminUser && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="font-lusail gap-1 text-destructive hover:text-destructive hover:bg-destructive/10"
+                        onClick={() => deleteTicket(ticket)}
+                        disabled={busyId === ticket.id}
+                        title="حذف التذكرة (تُنقل إلى سلة المحذوفات)"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                        حذف
+                      </Button>
+                    )}
                   </div>
                 </div>
               </div>
@@ -476,6 +591,71 @@ export const BookedTicketsByDate = () => {
               )}
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Recycle bin dialog */}
+      <Dialog open={binOpen} onOpenChange={setBinOpen}>
+        <DialogContent className="sm:max-w-2xl" dir="rtl">
+          <DialogHeader>
+            <DialogTitle className="font-lusail flex items-center gap-2">
+              <Trash2 className="w-5 h-5 text-destructive" />
+              سلة المحذوفات
+            </DialogTitle>
+            <DialogDescription className="font-lusail">
+              التذاكر المحذوفة لا تظهر في أي تقرير — يمكن استرجاعها في أي وقت
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex justify-end">
+            <Button variant="outline" size="sm" className="font-lusail gap-1" onClick={fetchBin} disabled={binLoading}>
+              <RefreshCw className={`w-4 h-4 ${binLoading ? "animate-spin" : ""}`} />
+              تحديث
+            </Button>
+          </div>
+          <div className="max-h-[55vh] overflow-y-auto space-y-2">
+            {binLoading ? (
+              <p className="text-center py-8 text-muted-foreground font-lusail">جاري التحميل…</p>
+            ) : bin.length === 0 ? (
+              <p className="text-center py-8 text-muted-foreground font-lusail">السلة فارغة</p>
+            ) : (
+              bin.map((row) => {
+                const Icon = typeIcon(row.ticket_type);
+                return (
+                  <div key={row.id} className="rounded-xl border bg-muted/30 p-3 flex items-center gap-3">
+                    <div className="p-2 rounded-lg bg-destructive/10 shrink-0">
+                      <Icon className="w-4 h-4 text-destructive" />
+                    </div>
+                    <div className="min-w-0 flex-1 font-lusail">
+                      <div className="flex items-center gap-2">
+                        <p className="font-bold truncate">{row.name}</p>
+                        <Badge variant="outline" className={`shrink-0 ${typeBadgeClass(row.ticket_type)}`}>
+                          {typeLabel(row.ticket_type)}
+                        </Badge>
+                      </div>
+                      <p className="text-xs text-muted-foreground truncate">
+                        <span dir="ltr">{row.context?.booking_reference || "—"}</span>
+                        {row.context?.event_title ? ` • ${row.context.event_title}` : ""}
+                      </p>
+                      <p className="text-[11px] text-muted-foreground">
+                        حُذفت في{" "}
+                        {new Date(row.deleted_at).toLocaleString("ar-u-nu-latn", { timeZone: "Asia/Qatar" })}
+                        {row.deleted_by_name ? ` — بواسطة ${row.deleted_by_name}` : ""}
+                      </p>
+                    </div>
+                    <Button
+                      size="sm"
+                      className="font-lusail gap-1 shrink-0"
+                      onClick={() => restoreTicket(row)}
+                      disabled={busyId === row.id}
+                    >
+                      <Undo2 className="w-4 h-4" />
+                      استرجاع
+                    </Button>
+                  </div>
+                );
+              })
+            )}
+          </div>
         </DialogContent>
       </Dialog>
     </Card>
