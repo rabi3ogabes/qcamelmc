@@ -78,6 +78,21 @@ export const StaffRolesCard = () => {
     }
   };
 
+  const resetPassword = async (userId: string, staffEmail: string) => {
+    const next = window.prompt(`كلمة مرور جديدة لـ ${staffEmail} (8 أحرف على الأقل)`);
+    if (!next) return;
+    if (next.length < 8) {
+      toast.error("كلمة المرور قصيرة جداً");
+      return;
+    }
+    try {
+      await call({ action: "reset_password", userId, password: next });
+      toast.success("تم تغيير كلمة المرور");
+    } catch (e) {
+      toast.error((e as Error).message);
+    }
+  };
+
   return (
     <Card className="p-5" dir="rtl">
       <div className="mb-5 flex items-center gap-3">
