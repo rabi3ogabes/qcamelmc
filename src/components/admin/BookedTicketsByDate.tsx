@@ -62,6 +62,10 @@ interface BinnedTicket {
   ticket_type: string;
   deleted_at: string;
   deleted_by_name: string | null;
+  holder_created_at: string | null;
+  is_present: boolean | null;
+  confirmed_at: string | null;
+  confirmed_by_name: string | null;
   context: {
     booking_reference?: string;
     event_title?: string;
@@ -69,6 +73,21 @@ interface BinnedTicket {
     customer_name?: string;
   } | null;
 }
+
+const qatarStamp = (value?: string | null) =>
+  value
+    ? new Date(value).toLocaleString("ar-u-nu-latn", {
+        timeZone: "Asia/Qatar",
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      })
+    : "—";
+
+const sourceLabel = (method?: string | null) =>
+  method === "cash_pos" ? "نقاط البيع" : "دفع إلكتروني";
 
 const qatarDateKey = (d: Date) =>
   new Intl.DateTimeFormat("en-CA", {
@@ -149,7 +168,9 @@ export const BookedTicketsByDate = () => {
     try {
       const { data, error } = await supabase
         .from("deleted_tickets")
-        .select("id, name, phone, ticket_type, deleted_at, deleted_by_name, context")
+        .select(
+          "id, name, phone, ticket_type, deleted_at, deleted_by_name, holder_created_at, is_present, confirmed_at, confirmed_by_name, context"
+        )
         .order("deleted_at", { ascending: false })
         .limit(500);
       if (error) throw error;
@@ -209,8 +230,8 @@ export const BookedTicketsByDate = () => {
     return null;
   }, [filter, customDate]);
 
-  const fetchTickets = async () => {
-    setLoading(true);
+  const fetchTickets = async (silent = false) => {
+    if (!silent) setLoading(true);
     try {
       let query = supabase
         .from("ticket_holders")
@@ -243,16 +264,55 @@ export const BookedTicketsByDate = () => {
       setTickets(rows);
     } catch (error) {
       console.error("Error fetching booked tickets:", error);
-      toast.error("تعذر تحميل التذاكر المحجوزة");
+      if (!silent) toast.error("تعذر تحميل التذاكر المحجوزة");
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   };
 
   useEffect(() => {
     fetchTickets();
-    const interval = setInterval(fetchTickets, 15000);
-    return () => clearInterval(interval);
+    // Silent background refresh: never re-triggers the loading skeleton
+    const interval = setInterval(() => fetchTickets(true), 10000);
+
+    // Live updates when a ticket gets scanned at the gate
+    const channel = supabase
+      .channel("booked-tickets-live")
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "ticket_holders" },
+        (payload) => {
+          const row = payload.new as {
+            id: string;
+            is_present: boolean | null;
+            confirmed_at: string | null;
+            confirmed_by_name: string | null;
+          };
+          setTickets((cur) =>
+            cur.map((t) =>
+              t.id === row.id
+                ? {
+                    ...t,
+                    is_present: row.is_present,
+                    confirmed_at: row.confirmed_at,
+                    confirmed_by_name: row.confirmed_by_name,
+                  }
+                : t
+            )
+          );
+        }
+      )
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "ticket_holders" },
+        () => fetchTickets(true)
+      )
+      .subscribe();
+
+    return () => {
+      clearInterval(interval);
+      supabase.removeChannel(channel);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedKey]);
 
@@ -324,7 +384,7 @@ export const BookedTicketsByDate = () => {
               سلة المحذوفات
             </Button>
           )}
-          <Button variant="outline" size="sm" onClick={fetchTickets} disabled={loading} className="font-lusail gap-1">
+          <Button variant="outline" size="sm" onClick={() => fetchTickets()} disabled={loading} className="font-lusail gap-1">
             <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
             تحديث
           </Button>
@@ -438,6 +498,14 @@ export const BookedTicketsByDate = () => {
                   <span>•</span>
                   <span>{ticket.order.events.title}</span>
                 </div>
+
+                <div className="flex flex-wrap items-center gap-2 text-[11px] font-lusail text-muted-foreground">
+                  <Badge variant="outline" className="font-lusail text-[10px] py-0">
+                    {sourceLabel(ticket.order.payment_method)}
+                  </Badge>
+                  <span>تاريخ البيع: {qatarStamp(ticket.order.created_at || ticket.created_at)}</span>
+                </div>
+
 
                 {ticket.is_present && (
                   <div className="flex items-center gap-2 rounded-lg border border-success/40 bg-success/10 px-2.5 py-1.5 text-xs font-lusail text-success">
@@ -650,6 +718,19 @@ export const BookedTicketsByDate = () => {
                       <p className="text-xs text-muted-foreground truncate">
                         <span dir="ltr">{row.context?.booking_reference || "—"}</span>
                         {row.context?.event_title ? ` • ${row.context.event_title}` : ""}
+                      </p>
+                      <p className="text-[11px] text-muted-foreground">
+                        تاريخ البيع: {qatarStamp(row.holder_created_at)}
+                      </p>
+                      <p className="text-[11px] text-muted-foreground">
+                        {row.is_present ? (
+                          <span className="text-success">
+                            تم المسح {qatarStamp(row.confirmed_at)}
+                            {row.confirmed_by_name ? ` — ${row.confirmed_by_name}` : ""}
+                          </span>
+                        ) : (
+                          "لم تُمسح"
+                        )}
                       </p>
                       <p className="text-[11px] text-muted-foreground">
                         حُذفت في{" "}
