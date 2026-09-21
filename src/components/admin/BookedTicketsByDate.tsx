@@ -23,6 +23,9 @@ import {
   Clock,
   ScanLine,
   Search,
+  Trash2,
+  RotateCcw,
+  Undo2,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -50,6 +53,21 @@ interface BookedTicket {
     customers: { name: string; email: string; phone: string } | null;
     events: { title: string; event_date: string; location: string; is_archived: boolean };
   };
+}
+
+interface BinnedTicket {
+  id: string;
+  name: string;
+  phone: string;
+  ticket_type: string;
+  deleted_at: string;
+  deleted_by_name: string | null;
+  context: {
+    booking_reference?: string;
+    event_title?: string;
+    event_date?: string;
+    customer_name?: string;
+  } | null;
 }
 
 const qatarDateKey = (d: Date) =>
