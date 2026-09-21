@@ -13,7 +13,13 @@ const AdminLogin = () => {
   const [staffLoading, setStaffLoading] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
-  const intendedPath = (location.state as { from?: string } | null)?.from;
+  // A `next` query param (used by the agent-integration consent flow) wins over
+  // the guard's router state; both must be same-origin relative paths.
+  const nextParam = new URLSearchParams(location.search).get("next");
+  const intendedPath =
+    nextParam && nextParam.startsWith("/") && !nextParam.startsWith("//")
+      ? nextParam
+      : (location.state as { from?: string } | null)?.from;
 
   useEffect(() => {
     const fetchSettings = async () => {

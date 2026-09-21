@@ -148,9 +148,13 @@ const UnifiedLoginCard = ({
 
       await recordAttempt(loginEmail, "account", true);
       toast.success("تم تسجيل الدخول");
-      const target =
-        intendedPath && intendedPath.startsWith("/admin") ? intendedPath : "/admin/dashboard";
-      navigate(target, { replace: true });
+      // Only same-origin relative paths are honoured as a return target.
+      const safePath =
+        intendedPath && intendedPath.startsWith("/") && !intendedPath.startsWith("//")
+          ? intendedPath
+          : undefined;
+      navigate(safePath ?? "/admin/dashboard", { replace: true });
+
     } catch (error: any) {
       toast.error(error.message || "تعذر تسجيل الدخول");
     } finally {
