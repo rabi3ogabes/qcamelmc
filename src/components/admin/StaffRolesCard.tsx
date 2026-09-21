@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Shield, ShieldCheck, UserPlus, Trash2 } from "lucide-react";
+import { Shield, ShieldCheck, UserPlus, Trash2, KeyRound } from "lucide-react";
 
 type StaffUser = { user_id: string; role: "admin" | "moderator"; email: string };
 
@@ -73,6 +73,21 @@ export const StaffRolesCard = () => {
       await call({ action: "revoke", userId });
       toast.success("تم سحب الصلاحية");
       load();
+    } catch (e) {
+      toast.error((e as Error).message);
+    }
+  };
+
+  const resetPassword = async (userId: string, staffEmail: string) => {
+    const next = window.prompt(`كلمة مرور جديدة لـ ${staffEmail} (8 أحرف على الأقل)`);
+    if (!next) return;
+    if (next.length < 8) {
+      toast.error("كلمة المرور قصيرة جداً");
+      return;
+    }
+    try {
+      await call({ action: "reset_password", userId, password: next });
+      toast.success("تم تغيير كلمة المرور");
     } catch (e) {
       toast.error((e as Error).message);
     }
@@ -151,6 +166,14 @@ export const StaffRolesCard = () => {
                   onClick={() => setRole(u.user_id, u.role === "admin" ? "moderator" : "admin")}
                 >
                   {u.role === "admin" ? "تحويل إلى مساعد" : "ترقية إلى مدير"}
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => resetPassword(u.user_id, u.email)}
+                >
+                  <KeyRound className="ms-2 h-4 w-4" />
+                  كلمة المرور
                 </Button>
                 <Button size="sm" variant="ghost" onClick={() => revoke(u.user_id)}>
                   <Trash2 className="h-4 w-4 text-destructive" />

@@ -180,6 +180,7 @@ const AdminDashboard = () => {
       items: [
         { to: "/admin/dashboard/pos-users", label: "مستخدمي POS", icon: UserCog },
         { to: "/admin/dashboard/attendance", label: "حضور الفريق", icon: ClipboardCheck },
+        { to: "/admin/dashboard/staff-accounts", label: "حسابات الفريق", icon: UserCog },
       ],
     },
     {
@@ -188,6 +189,7 @@ const AdminDashboard = () => {
       icon: BarChart3,
       items: [
         { to: "/admin/dashboard/visitors", label: "الزوار النشطون", icon: Eye },
+        { to: "/admin/dashboard/visitors-vs-scans", label: "الزوار مقابل الحضور", icon: BarChart3 },
         { to: "/admin/dashboard/reports", label: "التقارير", icon: FileText },
         { to: "/admin/dashboard/activity-logs", label: "سجلات النشاط", icon: FileText },
         { to: "/admin/dashboard/payment-errors", label: "أخطاء الدفع", icon: AlertTriangle },

@@ -82,19 +82,25 @@ export const AttendanceTab = () => {
   const [loading, setLoading] = useState(true);
   const [savingId, setSavingId] = useState<string | null>(null);
   const [bulkBusy, setBulkBusy] = useState(false);
+  /** Editing requires a real account session; passcode-only staff get a read-only board. */
+  const [canEdit, setCanEdit] = useState(false);
 
   const weekKeys = useMemo(
     () => Array.from({ length: 7 }, (_, i) => shiftKey(dateKey, i - 6)),
     [dateKey]
   );
 
-  /** All reads/writes go through the edge function so passcode-only staff work too. */
+  /**
+   * All reads/writes go through the edge function. It uses the signed-in
+   * dashboard session (same Supabase session as the admin dashboard) to decide
+   * who may edit, and falls back to the shared passcode for read-only access.
+   */
   const callAttendance = useCallback(async (payload: Record<string, unknown>) => {
     const { data, error } = await supabase.functions.invoke("staff-attendance", {
       body: { ...payload, passcode: getStaffPasscode() },
     });
     if (error) throw error;
-    if (data?.error) throw new Error(data.error);
+    if (data?.error) throw new Error(data.message || data.error);
     return data;
   }, []);
 
@@ -107,6 +113,7 @@ export const AttendanceTab = () => {
       });
       setUsers((data?.users as POSUser[]) || []);
       setRecords((data?.records as AttendanceRow[]) || []);
+      setCanEdit(!!data?.can_edit);
     } catch (error) {
       console.error("Attendance load error:", error);
       toast({
@@ -139,6 +146,14 @@ export const AttendanceTab = () => {
   };
 
   const setStatus = async (userId: string, next: Status) => {
+    if (!canEdit) {
+      toast({
+        title: "للقراءة فقط",
+        description: "سجّل الدخول بحسابك لتعديل الحضور",
+        variant: "destructive",
+      });
+      return;
+    }
     const current = statusFor(userId);
     setSavingId(userId);
     try {
@@ -282,13 +297,24 @@ export const AttendanceTab = () => {
         ))}
       </div>
 
+      {/* Read-only notice for shared-passcode staff */}
+      {!loading && !canEdit && (
+        <div className="rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm text-amber-700">
+          أنت في وضع العرض فقط — سجّل الدخول بحسابك (بريد وكلمة مرور) لتسجيل الحضور والغياب.
+        </div>
+      )}
+
       {/* Quick actions */}
       <div className="flex flex-wrap gap-2">
-        <Button onClick={markAllPresent} disabled={bulkBusy || !users.length} size="sm">
+        <Button
+          onClick={markAllPresent}
+          disabled={bulkBusy || !users.length || !canEdit}
+          size="sm"
+        >
           <CheckCheck className="ms-2 h-4 w-4" />
           تحديد الكل حاضر
         </Button>
-        <Button onClick={clearDay} disabled={bulkBusy} size="sm" variant="outline">
+        <Button onClick={clearDay} disabled={bulkBusy || !canEdit} size="sm" variant="outline">
           <RotateCcw className="ms-2 h-4 w-4" />
           مسح اليوم
         </Button>
@@ -335,7 +361,7 @@ export const AttendanceTab = () => {
                   <div className="flex items-center gap-1.5">
                     <button
                       onClick={() => setStatus(user.id, "present")}
-                      disabled={savingId === user.id}
+                      disabled={savingId === user.id || !canEdit}
                       aria-label={`تسجيل ${user.name} حاضر`}
                       className={cn(
                         "flex h-10 w-10 items-center justify-center rounded-xl border transition-all",
@@ -348,7 +374,7 @@ export const AttendanceTab = () => {
                     </button>
                     <button
                       onClick={() => setStatus(user.id, "absent")}
-                      disabled={savingId === user.id}
+                      disabled={savingId === user.id || !canEdit}
                       aria-label={`تسجيل ${user.name} غائب`}
                       className={cn(
                         "flex h-10 w-10 items-center justify-center rounded-xl border transition-all",

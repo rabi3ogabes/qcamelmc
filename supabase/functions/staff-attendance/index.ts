@@ -15,12 +15,35 @@ const json = (body: unknown, status = 200) =>
 const isDateKey = (v: unknown): v is string =>
   typeof v === "string" && /^\d{4}-\d{2}-\d{2}$/.test(v);
 
+/**
+ * Writes require a real account (admin or moderator). Shared-passcode staff
+ * may read the attendance board but never change it.
+ */
+async function accountUserId(req: Request, admin: any): Promise<string | null> {
+  const token = (req.headers.get("Authorization") || "").replace("Bearer ", "").trim();
+  if (!token) return null;
+  try {
+    const { data: userData } = await admin.auth.getUser(token);
+    const userId = userData?.user?.id;
+    if (!userId) return null;
+    const { data: adminRow } = await admin
+      .from("admin_users").select("id").eq("id", userId).maybeSingle();
+    if (adminRow) return userId;
+    const { data: roleRow } = await admin
+      .from("user_roles").select("role").eq("user_id", userId)
+      .in("role", ["admin", "moderator"]).maybeSingle();
+    return roleRow ? userId : null;
+  } catch (_e) {
+    return null;
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
     const body = await req.json().catch(() => ({}));
-    const { mode, passcode, date, from, to, pos_user_id, status, marked_by } = body ?? {};
+    const { mode, passcode, date, from, to, pos_user_id, status } = body ?? {};
 
     const admin = createClient(
       Deno.env.get("SUPABASE_URL")!,
@@ -31,6 +54,17 @@ Deno.serve(async (req) => {
     if (!(await isStaffAuthorized(req, admin, passcode))) {
       return unauthorizedResponse(corsHeaders);
     }
+
+    const editorId = await accountUserId(req, admin);
+    const marked_by = editorId;
+    const writeModes = ["set", "bulk_present", "clear_day"];
+    if (writeModes.includes(mode) && !editorId) {
+      return json(
+        { error: "account_required", message: "سجّل الدخول بحسابك لتعديل الحضور" },
+        403,
+      );
+    }
+
 
     if (mode === "list") {
       if (!isDateKey(from) || !isDateKey(to)) return json({ error: "bad_range" }, 400);
@@ -49,7 +83,11 @@ Deno.serve(async (req) => {
       if (users.error || records.error) {
         return json({ error: (users.error || records.error)?.message }, 500);
       }
-      return json({ users: users.data ?? [], records: records.data ?? [] });
+      return json({
+        users: users.data ?? [],
+        records: records.data ?? [],
+        can_edit: !!editorId,
+      });
     }
 
     if (mode === "set") {

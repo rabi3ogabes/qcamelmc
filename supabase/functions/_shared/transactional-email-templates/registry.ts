@@ -2,6 +2,7 @@ import type { ComponentType } from 'npm:react@18.3.1'
 import { template as bookingInvoiceTemplate } from './booking-invoice.tsx'
 import { template as paymentFailedTemplate } from './payment-failed.tsx'
 import { template as adminSaleAlertTemplate } from './admin-sale-alert.tsx'
+import { template as loginAlertTemplate } from './login-alert.tsx'
 
 export interface TemplateEntry {
   component: ComponentType<any>
@@ -24,4 +25,5 @@ export const TEMPLATES: Record<string, TemplateEntry> = {
   'booking-invoice': bookingInvoiceTemplate,
   'payment-failed': paymentFailedTemplate,
   'admin-sale-alert': adminSaleAlertTemplate,
+  'login-alert': loginAlertTemplate,
 }
