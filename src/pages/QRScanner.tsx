@@ -1215,6 +1215,35 @@ const QRScanner = () => {
 
       <main className="mx-auto max-w-5xl space-y-3 px-3 py-3 sm:px-6 sm:py-4">
 
+        {/* Sticky confirm bar — always reachable without scrolling */}
+        {ticketInfo && ticketInfo.payment_status === 'confirmed' && (selectedTicketIds.length > 0 || !ticketInfo.is_present) && (
+          <div className="sticky top-16 z-30 -mx-1 rounded-xl border border-success/40 bg-scanner-surface/95 p-2 shadow-elegant backdrop-blur-xl">
+            <div className="mb-1 truncate px-1 text-[11px] text-scanner-muted">
+              {ticketInfo.ticket_holder_name || ticketInfo.customer_name} — {ticketInfo.booking_reference}
+            </div>
+            <Button
+              onClick={handleConfirmPresence}
+              disabled={processing}
+              size="lg"
+              className="w-full bg-green-600 text-white hover:bg-green-700"
+            >
+              {processing ? (
+                <>
+                  <Loader2 className="w-5 h-5 ml-2 animate-spin" />
+                  جاري التأكيد...
+                </>
+              ) : (
+                <>
+                  <CheckCircle2 className="w-5 h-5 ml-2" />
+                  ✓ تأكيد الحضور{selectedTicketIds.length > 1 ? ` (${selectedTicketIds.length})` : ''}
+                </>
+              )}
+            </Button>
+          </div>
+        )}
+
+
+
 
 
         {/* Scanner */}
