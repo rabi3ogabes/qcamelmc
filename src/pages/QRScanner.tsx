@@ -1952,6 +1952,98 @@ const QRScanner = () => {
       </main>
 
 
+      {/* Scan Result Popup — full ticket details before confirming */}
+      <Dialog open={scanPopupOpen} onOpenChange={(open) => setScanPopupOpen(open)}>
+        <DialogContent className="sm:max-w-md overflow-hidden border-2 border-success/50 bg-scanner-surface p-0 text-scanner-foreground shadow-elegant" dir="rtl">
+          <DialogHeader className="border-b border-success/30 bg-success/10 px-5 pb-3 pt-5">
+            <DialogTitle className="flex items-center justify-center gap-2 text-lg font-bold text-success">
+              <CheckCircle2 className="size-6" />
+              تم العثور على التذكرة
+            </DialogTitle>
+            <DialogDescription className="text-center text-xs text-scanner-muted">
+              راجع بيانات التذكرة ثم اضغط تأكيد الحضور
+            </DialogDescription>
+          </DialogHeader>
+
+          {ticketInfo && (
+            <>
+              <div className="max-h-[52vh] space-y-1.5 overflow-y-auto px-5 py-3 text-sm">
+                {([
+                  ['رقم الحجز', <span key="ref" className="font-mono break-all text-left" dir="ltr">{ticketInfo.booking_reference}</span>],
+                  ...(ticketInfo.ticket_holder_name ? [['اسم حامل التذكرة', <span key="hn" className="font-bold">{ticketInfo.ticket_holder_name}</span>]] : []),
+                  ...(ticketInfo.ticket_holder_phone ? [['رقم الهاتف', <span key="hp" className="font-mono" dir="ltr">{ticketInfo.ticket_holder_phone}</span>]] : []),
+                  ...(ticketInfo.ticket_holder_nationality ? [['الجنسية', <span key="nat">{ticketInfo.ticket_holder_nationality}</span>]] : []),
+                  ...(ticketInfo.ticket_holder_id_number ? [['رقم الهوية', <span key="id" className="font-mono break-all" dir="ltr">{ticketInfo.ticket_holder_id_number}</span>]] : []),
+                  ['اسم العميل', <span key="cn" className="font-bold">{ticketInfo.customer_name}</span>],
+                  ['اسم الحدث', <span key="ev">{ticketInfo.event_title}</span>],
+                  ['نوع التذكرة', <span key="tt" className="font-bold uppercase">{ticketInfo.ticket_type}</span>],
+                  ['الكمية', <span key="qty">{ticketInfo.quantity}</span>],
+                  ['حالة الدفع', <span key="ps" className="font-bold text-success">مدفوعة ✓</span>],
+                ] as [string, React.ReactNode][]).map(([label, value], i) => (
+                  <div key={i} className="flex items-center justify-between gap-3 border-b border-scanner-elevated/60 py-1.5 last:border-0">
+                    <span className="shrink-0 text-xs font-semibold text-scanner-muted">{label}</span>
+                    <span className="text-left text-sm">{value}</span>
+                  </div>
+                ))}
+              </div>
+
+              {/* Ticket selection for booking-reference scans */}
+              {availableTickets.length > 1 && (
+                <div className="mx-5 rounded-lg border border-scanner-elevated bg-scanner-background p-3">
+                  <p className="mb-2 text-xs font-bold text-scanner-muted">
+                    تذاكر الحجز ({availableTickets.filter(t => !t.is_present).length} متاحة) — اختر للتأكيد:
+                  </p>
+                  <div className="space-y-1.5">
+                    {availableTickets.map((ticket) => (
+                      <label
+                        key={ticket.id}
+                        className={`flex items-center gap-2 rounded-md border p-2 text-xs transition-colors ${
+                          ticket.is_present
+                            ? 'cursor-not-allowed border-scanner-elevated opacity-50'
+                            : selectedTicketIds.includes(ticket.id)
+                            ? 'cursor-pointer border-success bg-success/10'
+                            : 'cursor-pointer border-scanner-elevated hover:border-scanner-gold/50'
+                        }`}
+                      >
+                        <Checkbox
+                          checked={selectedTicketIds.includes(ticket.id)}
+                          onCheckedChange={() => !ticket.is_present && toggleTicketSelection(ticket.id)}
+                          disabled={ticket.is_present}
+                        />
+                        <span className="font-bold">{ticket.name}</span>
+                        <span className="uppercase text-scanner-muted">— {ticket.ticket_type}</span>
+                        {ticket.is_present && <span className="mr-auto text-success">✓ حاضر</span>}
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <div className="border-t border-scanner-elevated px-5 py-4">
+                <Button
+                  onClick={handleConfirmPresence}
+                  disabled={processing || (availableTickets.length > 1 && selectedTicketIds.length === 0)}
+                  size="lg"
+                  className="h-12 w-full bg-green-600 text-lg text-white hover:bg-green-700"
+                >
+                  {processing ? (
+                    <>
+                      <Loader2 className="ml-2 size-5 animate-spin" />
+                      جاري التأكيد...
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle2 className="ml-2 size-5" />
+                      ✓ تأكيد الحضور{selectedTicketIds.length > 1 ? ` (${selectedTicketIds.length})` : ''}
+                    </>
+                  )}
+                </Button>
+              </div>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
+
       {/* Success Dialog */}
       <Dialog open={showSuccessDialog} onOpenChange={setShowSuccessDialog}>
         <DialogContent className="sm:max-w-md text-center p-8">
