@@ -117,6 +117,77 @@ export const BookedTicketsByDate = () => {
   const [qrDialog, setQrDialog] = useState<{ code: string; title: string } | null>(null);
   const [qrDataUrl, setQrDataUrl] = useState<string>("");
   const [detailsTicket, setDetailsTicket] = useState<BookedTicket | null>(null);
+  const [isAdminUser, setIsAdminUser] = useState(false);
+  const [busyId, setBusyId] = useState<string | null>(null);
+  const [binOpen, setBinOpen] = useState(false);
+  const [bin, setBin] = useState<BinnedTicket[]>([]);
+  const [binLoading, setBinLoading] = useState(false);
+
+  // Deleting / restoring tickets is an admin-only action.
+  useEffect(() => {
+    (async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+      const [{ data: adminRow }, { data: roleRow }] = await Promise.all([
+        supabase.from("admin_users").select("id").eq("id", session.user.id).maybeSingle(),
+        supabase.from("user_roles").select("role").eq("user_id", session.user.id).eq("role", "admin").maybeSingle(),
+      ]);
+      setIsAdminUser(!!adminRow || !!roleRow);
+    })();
+  }, []);
+
+  const fetchBin = async () => {
+    setBinLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from("deleted_tickets")
+        .select("id, name, phone, ticket_type, deleted_at, deleted_by_name, context")
+        .order("deleted_at", { ascending: false })
+        .limit(500);
+      if (error) throw error;
+      setBin((data || []) as unknown as BinnedTicket[]);
+    } catch (error) {
+      console.error("Error loading bin:", error);
+      toast.error("تعذر تحميل سلة المحذوفات");
+    } finally {
+      setBinLoading(false);
+    }
+  };
+
+  const deleteTicket = async (ticket: BookedTicket) => {
+    if (!window.confirm(`حذف تذكرة ${ticket.name}؟ ستُنقل إلى سلة المحذوفات ويمكن استرجاعها لاحقاً.`)) return;
+    setBusyId(ticket.id);
+    try {
+      const { data, error } = await supabase.rpc("bin_ticket_holder", { p_holder_id: ticket.id });
+      const res = data as { success?: boolean; message?: string } | null;
+      if (error || !res?.success) {
+        toast.error(res?.message || "تعذر حذف التذكرة");
+        return;
+      }
+      toast.success(res.message || "تم نقل التذكرة إلى السلة");
+      setTickets((cur) => cur.filter((t) => t.id !== ticket.id));
+      if (binOpen) fetchBin();
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const restoreTicket = async (row: BinnedTicket) => {
+    setBusyId(row.id);
+    try {
+      const { data, error } = await supabase.rpc("restore_ticket_holder", { p_bin_id: row.id });
+      const res = data as { success?: boolean; message?: string } | null;
+      if (error || !res?.success) {
+        toast.error(res?.message || "تعذر استرجاع التذكرة");
+        return;
+      }
+      toast.success(res.message || "تم استرجاع التذكرة");
+      setBin((cur) => cur.filter((b) => b.id !== row.id));
+      fetchTickets();
+    } finally {
+      setBusyId(null);
+    }
+  };
 
   const selectedKey = useMemo(() => {
     const now = new Date();
