@@ -67,6 +67,25 @@ export const TicketsTab = () => {
   const [editingTicket, setEditingTicket] = useState<TicketType | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [view, setView] = useState<"current" | "archived">("current");
+  const [showDailyStats, setShowDailyStats] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem(SHOW_DAILY_STATS_KEY) !== "false";
+    } catch {
+      return true;
+    }
+  });
+
+  const toggleDailyStats = () => {
+    setShowDailyStats((prev) => {
+      const next = !prev;
+      try {
+        localStorage.setItem(SHOW_DAILY_STATS_KEY, String(next));
+      } catch {
+        // ignore storage errors
+      }
+      return next;
+    });
+  };
 
   useEffect(() => {
     fetchTickets();
