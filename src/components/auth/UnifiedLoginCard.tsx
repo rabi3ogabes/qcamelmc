@@ -261,8 +261,13 @@ const UnifiedLoginCard = ({
                   placeholder="••••••••"
                 />
               </div>
-              <Button type="submit" className="w-full" size="lg" disabled={loading}>
-                {loading ? "جاري الدخول..." : "دخول"}
+              <Button
+                type="submit"
+                className="w-full"
+                size="lg"
+                disabled={loading || lockSeconds > 0}
+              >
+                {lockSeconds > 0 ? `موقوف مؤقتاً (${lockLabel})` : loading ? "جاري الدخول..." : "دخول"}
               </Button>
               <p className="text-center text-xs text-muted-foreground">
                 يتم توجيهك تلقائياً حسب صلاحيتك: الأدمن للوحة التحكم، والمشرف للروابط السريعة.
