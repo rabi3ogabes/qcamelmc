@@ -230,8 +230,8 @@ export const BookedTicketsByDate = () => {
     return null;
   }, [filter, customDate]);
 
-  const fetchTickets = async () => {
-    setLoading(true);
+  const fetchTickets = async (silent = false) => {
+    if (!silent) setLoading(true);
     try {
       let query = supabase
         .from("ticket_holders")
@@ -264,16 +264,55 @@ export const BookedTicketsByDate = () => {
       setTickets(rows);
     } catch (error) {
       console.error("Error fetching booked tickets:", error);
-      toast.error("تعذر تحميل التذاكر المحجوزة");
+      if (!silent) toast.error("تعذر تحميل التذاكر المحجوزة");
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   };
 
   useEffect(() => {
     fetchTickets();
-    const interval = setInterval(fetchTickets, 15000);
-    return () => clearInterval(interval);
+    // Silent background refresh: never re-triggers the loading skeleton
+    const interval = setInterval(() => fetchTickets(true), 10000);
+
+    // Live updates when a ticket gets scanned at the gate
+    const channel = supabase
+      .channel("booked-tickets-live")
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "ticket_holders" },
+        (payload) => {
+          const row = payload.new as {
+            id: string;
+            is_present: boolean | null;
+            confirmed_at: string | null;
+            confirmed_by_name: string | null;
+          };
+          setTickets((cur) =>
+            cur.map((t) =>
+              t.id === row.id
+                ? {
+                    ...t,
+                    is_present: row.is_present,
+                    confirmed_at: row.confirmed_at,
+                    confirmed_by_name: row.confirmed_by_name,
+                  }
+                : t
+            )
+          );
+        }
+      )
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "ticket_holders" },
+        () => fetchTickets(true)
+      )
+      .subscribe();
+
+    return () => {
+      clearInterval(interval);
+      supabase.removeChannel(channel);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedKey]);
 
