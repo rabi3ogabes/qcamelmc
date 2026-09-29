@@ -290,12 +290,13 @@ serve(async (req) => {
         });
       }
       const like = `%${value.replace(/[%,()]/g, '')}%`;
+      const searchDayStartUtc = new Date(Date.UTC(qatarNow.getFullYear(), qatarNow.getMonth(), qatarNow.getDate()) - 3 * 60 * 60 * 1000).toISOString();
 
       const holdersBase = () =>
         supabase
           .from('ticket_holders')
           .select(HOLDER_SELECT)
-          .gte('orders.events.event_date', qatarDayStartUtc)
+          .gte('orders.events.event_date', searchDayStartUtc)
           .order('created_at', { ascending: false })
           .limit(40);
 
