@@ -735,6 +735,7 @@ export type Database = {
           show_delete_event_button: boolean | null
           show_delete_ticket_button: boolean
           show_generate_qr_button: boolean | null
+          site_url: string | null
           updated_at: string | null
           webhook_enabled: boolean
           webhook_url: string | null
@@ -772,6 +773,7 @@ export type Database = {
           show_delete_event_button?: boolean | null
           show_delete_ticket_button?: boolean
           show_generate_qr_button?: boolean | null
+          site_url?: string | null
           updated_at?: string | null
           webhook_enabled?: boolean
           webhook_url?: string | null
@@ -809,6 +811,7 @@ export type Database = {
           show_delete_event_button?: boolean | null
           show_delete_ticket_button?: boolean
           show_generate_qr_button?: boolean | null
+          site_url?: string | null
           updated_at?: string | null
           webhook_enabled?: boolean
           webhook_url?: string | null
