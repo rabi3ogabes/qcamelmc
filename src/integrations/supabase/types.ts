@@ -727,6 +727,7 @@ export type Database = {
           logo_url: string | null
           payment_failed_email_enabled: boolean
           sadad_api_key: string | null
+          sadad_environment: string
           sadad_merchant_id: string | null
           sadad_secret: string | null
           sadad_website_domain: string | null
@@ -763,6 +764,7 @@ export type Database = {
           logo_url?: string | null
           payment_failed_email_enabled?: boolean
           sadad_api_key?: string | null
+          sadad_environment?: string
           sadad_merchant_id?: string | null
           sadad_secret?: string | null
           sadad_website_domain?: string | null
@@ -799,6 +801,7 @@ export type Database = {
           logo_url?: string | null
           payment_failed_email_enabled?: boolean
           sadad_api_key?: string | null
+          sadad_environment?: string
           sadad_merchant_id?: string | null
           sadad_secret?: string | null
           sadad_website_domain?: string | null
