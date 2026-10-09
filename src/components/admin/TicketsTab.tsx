@@ -3,12 +3,13 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Ticket, Edit, Archive, Eye, EyeOff } from "lucide-react";
+import { Ticket, Edit, Archive, Eye, EyeOff, RefreshCw } from "lucide-react";
 
 const SHOW_DAILY_STATS_KEY = "tickets_show_daily_stats";
 import { useTranslation } from "react-i18next";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { api, apiErrorMessage } from "@/lib/api";
 import { EditTicketDialog } from "@/components/admin/EditTicketDialog";
 import { BookedTicketsByDate } from "@/components/admin/BookedTicketsByDate";
 
@@ -64,6 +65,7 @@ export const TicketsTab = () => {
   const [dailyBookings, setDailyBookings] = useState<DailyBooking[]>([]);
   const [dailySummaries, setDailySummaries] = useState<DailySummary[]>([]);
   const [loading, setLoading] = useState(true);
+  const [recounting, setRecounting] = useState(false);
   const [editingTicket, setEditingTicket] = useState<TicketType | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [view, setView] = useState<"current" | "archived">("current");
@@ -259,11 +261,25 @@ export const TicketsTab = () => {
     }
   };
 
-  const getAvailabilityColor = (available: number, sold: number) => {
-    const percentage = (sold / (available + sold)) * 100;
+  // available_quantity is the total capacity, so the share sold is sold / capacity
+  const getAvailabilityColor = (capacity: number, sold: number) => {
+    const percentage = capacity > 0 ? (sold / capacity) * 100 : 100;
     if (percentage >= 90) return "text-red-600";
     if (percentage >= 70) return "text-yellow-600";
     return "text-green-600";
+  };
+
+  /** Recompute every "sold" counter from the bookings that really hold seats (fixes historic drift). */
+  const handleRecount = async () => {
+    setRecounting(true);
+    const result = await api.recountStock();
+    setRecounting(false);
+    if (result.ok === false) {
+      toast.error(apiErrorMessage(result.error, t));
+      return;
+    }
+    toast.success(result.data > 0 ? `تم تصحيح عدّاد ${result.data} نوع تذكرة` : "عدّادات التذاكر صحيحة بالفعل");
+    fetchTickets();
   };
 
   const handleEditTicket = (ticket: TicketType) => {
@@ -417,6 +433,10 @@ export const TicketsTab = () => {
     <div className="space-y-8">
       <div className="flex flex-wrap justify-between items-center gap-3">
         <h2 className="text-2xl font-bold font-lusail">{t("ticketManagement")}</h2>
+        <Button variant="outline" onClick={handleRecount} disabled={recounting} className="font-lusail" title="يعيد حساب المباع من الحجوزات الفعلية">
+          <RefreshCw className={`ml-2 h-4 w-4 ${recounting ? "animate-spin" : ""}`} />
+          إعادة حساب المخزون
+        </Button>
         <div className="flex rounded-lg border p-1 bg-muted/40">
           <Button
             variant={view === "current" ? "default" : "ghost"}

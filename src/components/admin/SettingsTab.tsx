@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Upload, Image as ImageIcon, Download, Trash2, AlertTriangle } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useTranslation } from "react-i18next";
 import { supabase } from "@/integrations/supabase/client";
@@ -59,6 +60,8 @@ export const SettingsTab = () => {
   const [sadadApiKey, setSadadApiKey] = useState("");
   const [sadadSecret, setSadadSecret] = useState("");
   const [sadadWebsiteDomain, setSadadWebsiteDomain] = useState("");
+  const [sadadEnvironment, setSadadEnvironment] = useState<"auto" | "sandbox" | "live">("auto");
+  const [siteUrl, setSiteUrl] = useState("");
   const [loading, setLoading] = useState(false);
   const [savingPhone, setSavingPhone] = useState(false);
   const [savingSadad, setSavingSadad] = useState(false);
@@ -218,7 +221,7 @@ export const SettingsTab = () => {
   const fetchSettings = async () => {
     const { data, error } = await supabase
       .from("settings")
-      .select("logo_url, hero_image_url, before_footer_image_url, header_bg_color, header_bg_image_url, hero_text, copyright_text, webhook_url, email_webhook_url, webhook_enabled, email_webhook_enabled, admin_phone, admin_email, payment_failed_email_enabled, clarity_project_id, clarity_enabled, sadad_merchant_id, sadad_api_key, sadad_secret, sadad_website_domain, show_delete_customer_button, show_generate_qr_button, show_delete_event_button, show_delete_ticket_button, auto_invoice_interval_seconds, invoice_batch_min, invoice_batch_max, invoice_send_delay_min, invoice_send_delay_max")
+      .select("logo_url, hero_image_url, before_footer_image_url, header_bg_color, header_bg_image_url, hero_text, copyright_text, webhook_url, email_webhook_url, webhook_enabled, email_webhook_enabled, admin_phone, admin_email, payment_failed_email_enabled, clarity_project_id, clarity_enabled, sadad_merchant_id, sadad_api_key, sadad_secret, sadad_website_domain, sadad_environment, site_url, show_delete_customer_button, show_generate_qr_button, show_delete_event_button, show_delete_ticket_button, auto_invoice_interval_seconds, invoice_batch_min, invoice_batch_max, invoice_send_delay_min, invoice_send_delay_max")
       .maybeSingle();
 
     if (error) {
@@ -293,6 +296,8 @@ export const SettingsTab = () => {
     if (data?.sadad_api_key) setSadadApiKey(data.sadad_api_key);
     if (data?.sadad_secret) setSadadSecret(data.sadad_secret);
     if (data?.sadad_website_domain) setSadadWebsiteDomain(data.sadad_website_domain);
+    if (data?.sadad_environment === "sandbox" || data?.sadad_environment === "live") setSadadEnvironment(data.sadad_environment);
+    if (data?.site_url) setSiteUrl(data.site_url);
     if (data?.show_delete_customer_button !== undefined) setShowDeleteButton(data.show_delete_customer_button);
     if (data?.show_generate_qr_button !== undefined) setShowGenerateQrButton(data.show_generate_qr_button);
     if (data?.show_delete_event_button !== undefined) setShowDeleteEventButton(data.show_delete_event_button);
@@ -811,7 +816,9 @@ export const SettingsTab = () => {
             sadad_merchant_id: sadadMerchantId,
             sadad_api_key: sadadApiKey,
             sadad_secret: sadadSecret,
-            sadad_website_domain: sadadWebsiteDomain
+            sadad_website_domain: sadadWebsiteDomain,
+            sadad_environment: sadadEnvironment,
+            site_url: siteUrl.trim() || null
           })
           .eq("id", settings.id);
 
@@ -823,7 +830,9 @@ export const SettingsTab = () => {
             sadad_merchant_id: sadadMerchantId,
             sadad_api_key: sadadApiKey,
             sadad_secret: sadadSecret,
-            sadad_website_domain: sadadWebsiteDomain
+            sadad_website_domain: sadadWebsiteDomain,
+            sadad_environment: sadadEnvironment,
+            site_url: siteUrl.trim() || null
           });
 
         if (error) throw error;
@@ -1905,6 +1914,39 @@ export const SettingsTab = () => {
             />
             <p className="text-xs text-muted-foreground mt-2">
               يجب أن يطابق النطاق المسجل في لوحة سداد تماماً عند إنشاء المفتاح السري
+            </p>
+          </div>
+
+          <div>
+            <Label htmlFor="sadad-environment" className="font-lusail">بيئة سداد</Label>
+            <Select value={sadadEnvironment} onValueChange={(value) => setSadadEnvironment(value as "auto" | "sandbox" | "live")}>
+              <SelectTrigger id="sadad-environment" className="mt-2 font-lusail">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="auto" className="font-lusail">تلقائي (يُكتشف من مفتاحك)</SelectItem>
+                <SelectItem value="sandbox" className="font-lusail">تجريبي (Sandbox)</SelectItem>
+                <SelectItem value="live" className="font-lusail">فعلي (Live)</SelectItem>
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground mt-2">
+              يُستخدم للتحقق من الدفع مع سداد. اتركه «تلقائي» إلا إذا طلب منك الدعم غير ذلك.
+            </p>
+          </div>
+
+          <div>
+            <Label htmlFor="site-url" className="font-lusail">عنوان الموقع (اختياري)</Label>
+            <Input
+              id="site-url"
+              type="url"
+              dir="ltr"
+              placeholder="https://qcamelmc.org"
+              value={siteUrl}
+              onChange={(e) => setSiteUrl(e.target.value)}
+              className="mt-2 font-lusail"
+            />
+            <p className="text-xs text-muted-foreground mt-2">
+              إليه يعود العميل بعد الدفع. اتركه فارغاً ليعود إلى الموقع الذي حجز منه.
             </p>
           </div>
           

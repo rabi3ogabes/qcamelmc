@@ -65,7 +65,8 @@ export const VisitorsVsScansTab = () => {
 
   const load = useCallback(
     async (silent = false) => {
-      silent ? setRefreshing(true) : setLoading(true);
+      if (silent) setRefreshing(true);
+      else setLoading(true);
       try {
         const start = new Date(Date.now() - (days - 1) * 86_400_000);
         start.setUTCHours(0, 0, 0, 0);

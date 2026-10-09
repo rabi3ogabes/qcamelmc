@@ -9,6 +9,7 @@ import { Footer } from "@/components/Footer";
 import { InvoiceCard } from "@/components/InvoiceCard";
 import type { InvoiceData } from "@/lib/generateInvoicePdf";
 import { clarityTrackPurchase, clarityTrackPaymentFailure } from "@/lib/clarity";
+import { recallOrders } from "@/lib/payment";
 
 interface Order {
   id: string;
@@ -63,23 +64,30 @@ const Confirmation = () => {
 
   const fetchOrders = async () => {
     try {
-      const orderIds: string[] = JSON.parse(localStorage.getItem("orderIds") || "[]");
+      // The booking this browser just made. Its reference is unguessable, so holding it is the proof
+      // that the booking is yours. (Older bookings kept their database id in "orderIds".)
+      const references = recallOrders().slice(-1);
+      const legacyIds: string[] = JSON.parse(localStorage.getItem("orderIds") || "[]");
 
-      if (orderIds.length === 0) {
+      if (references.length === 0 && legacyIds.length === 0) {
         navigate("/");
         return;
       }
 
-      const results = await Promise.all(
-        orderIds.map((id) => supabase.rpc("get_public_order", { p_order_id: id }))
-      );
+      const results = await Promise.all([
+        ...references.map((ref) => supabase.rpc("get_public_order", { p_booking_reference: ref })),
+        ...legacyIds.map((id) => supabase.rpc("get_public_order", { p_order_id: id })),
+      ]);
 
-      const loaded = results
-        .map((r) => r.data as unknown as Order | null)
-        .filter(Boolean) as Order[];
+      const byId = new Map<string, Order>();
+      for (const result of results) {
+        const order = result.data as unknown as Order | null;
+        if (order) byId.set(order.id, order);
+      }
+      const loaded = [...byId.values()];
 
       setOrders(loaded);
-      localStorage.removeItem("orderIds");
+      if (legacyIds.length > 0) localStorage.removeItem("orderIds");
 
       // Mark the session in Microsoft Clarity (public analytics only)
       loaded.forEach((o) => {
@@ -94,15 +102,6 @@ const Confirmation = () => {
           clarityTrackPaymentFailure("cancelled");
         }
       });
-
-      // Email the invoice to the customer (fire-and-forget, deduped server-side)
-      loaded
-        .filter((o) => o.payment_status === "confirmed")
-        .forEach((o) => {
-          supabase.functions
-            .invoke("send-invoice-email", { body: { order_id: o.id } })
-            .catch((e) => console.error("Invoice email failed:", e));
-        });
 
     } catch (error) {
       console.error("Error fetching orders:", error);

@@ -1,16 +1,11 @@
 import { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { Button } from "@/components/ui/button";
-import { toast } from "sonner";
 import UnifiedLoginCard from "@/components/auth/UnifiedLoginCard";
-import { grantStaffAccess } from "@/lib/staffAccess";
 
 const AdminLogin = () => {
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
   const [headerBgColor, setHeaderBgColor] = useState<string>("hsl(var(--card) / 0.5)");
-  const [demoLoading, setDemoLoading] = useState(false);
-  const [staffLoading, setStaffLoading] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
   // A `next` query param (used by the agent-integration consent flow) wins over
@@ -38,52 +33,6 @@ const AdminLogin = () => {
     fetchSettings();
   }, []);
 
-  const demoLogin = async () => {
-    setDemoLoading(true);
-    try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email: "rabii.souai@gmail.com",
-        password: "@@@Qatar123",
-      });
-      if (error) throw error;
-      const { data: roleRows } = await supabase
-        .from("user_roles")
-        .select("role")
-        .eq("user_id", data.user.id);
-      const roles = (roleRows || []).map((r: { role: string }) => r.role);
-      toast.success("تم تسجيل الدخول");
-      navigate(
-        roles.includes("moderator") && !roles.includes("admin") ? "/staff" : "/admin/dashboard",
-        { replace: true }
-      );
-    } catch (error: any) {
-      toast.error(error.message || "تعذر تسجيل الدخول");
-    } finally {
-      setDemoLoading(false);
-    }
-  };
-
-  const staffLogin = async () => {
-    setStaffLoading(true);
-    try {
-      const { data, error } = await supabase.functions.invoke("staff-auth", {
-        body: { passcode: "@@@Qatar123" },
-      });
-      if (error) throw error;
-      if (data?.ok) {
-        grantStaffAccess("@@@Qatar123");
-        toast.success("تم فتح صفحة الفريق");
-        navigate("/staff", { replace: true });
-      } else {
-        toast.error("تعذر فتح صفحة الفريق");
-      }
-    } catch {
-      toast.error("تعذر فتح صفحة الفريق");
-    } finally {
-      setStaffLoading(false);
-    }
-  };
-
   return (
     <div className="min-h-screen bg-background font-lusail" dir="rtl">
       <header
@@ -106,25 +55,6 @@ const AdminLogin = () => {
 
       <div className="flex flex-col items-center justify-center px-4 py-14">
         <UnifiedLoginCard intendedPath={intendedPath} defaultTab="passcode" showHomeLink />
-
-        <div className="mt-6 grid w-full max-w-md grid-cols-2 gap-3">
-          <Button
-            variant="ghost"
-            className="w-full text-sm text-muted-foreground"
-            onClick={demoLogin}
-            disabled={demoLoading}
-          >
-            {demoLoading ? "..." : "(-_-)"}
-          </Button>
-          <Button
-            variant="ghost"
-            className="w-full text-sm text-muted-foreground"
-            onClick={staffLogin}
-            disabled={staffLoading}
-          >
-            {staffLoading ? "..." : "(^_^)"}
-          </Button>
-        </div>
       </div>
     </div>
   );

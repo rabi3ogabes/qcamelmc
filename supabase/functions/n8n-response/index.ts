@@ -11,10 +11,31 @@ interface N8nResponsePayload {
   status?: 'success' | 'failed';
 }
 
+// Optional shared secret. When N8N_RESPONSE_SECRET is set, the automation must send it
+// (header `x-webhook-secret` or `Authorization: Bearer <secret>`); when it is not set the
+// function keeps accepting calls so an existing workflow does not break on deploy.
+function secretAccepted(req: Request): boolean {
+  const expected = Deno.env.get('N8N_RESPONSE_SECRET');
+  if (!expected) return true;
+  const supplied =
+    req.headers.get('x-webhook-secret') ?? (req.headers.get('authorization') ?? '').replace(/^Bearer\s+/i, '');
+  if (supplied.length !== expected.length) return false;
+  let diff = 0;
+  for (let i = 0; i < expected.length; i++) diff |= expected.charCodeAt(i) ^ supplied.charCodeAt(i);
+  return diff === 0;
+}
+
 Deno.serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
+  }
+
+  if (!secretAccepted(req)) {
+    return new Response(JSON.stringify({ success: false, error: 'unauthorized' }), {
+      status: 401,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
   }
 
   try {
@@ -26,6 +47,8 @@ Deno.serve(async (req) => {
     const payload: N8nResponsePayload = await req.json();
     
     console.log('Received n8n response:', payload);
+
+    if (typeof payload.message === 'string') payload.message = payload.message.slice(0, 500);
 
     // Validate required fields
     if (!payload.booking_reference || !payload.message) {

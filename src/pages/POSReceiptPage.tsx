@@ -4,6 +4,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Camera, FileDown, Trash2, Loader2, X, ArrowRight, ImageIcon } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { getStaffPasscode } from "@/lib/staffAccess";
 import { toast } from "sonner";
 import XLSX from "xlsx-js-style";
 import { useNavigate } from "react-router-dom";
@@ -125,7 +126,7 @@ const POSReceiptPage = () => {
 
       // Parse the receipt using AI
       const { data, error } = await supabase.functions.invoke("parse-pos-receipt", {
-        body: { imageBase64 },
+        body: { imageBase64, passcode: getStaffPasscode() },
       });
 
       if (error) throw error;

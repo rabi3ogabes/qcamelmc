@@ -15,6 +15,8 @@ export interface OrdersQueryOrder {
   sadad_manually_verified?: boolean;
   payment_id?: string | null;
   payment_error_reason?: string | null;
+  /** Why the order is in its state (e.g. "expired", "paid_after_expiry_no_stock"). */
+  payment_note?: string | null;
   customers: {
     name: string;
     email: string;
@@ -41,7 +43,7 @@ export interface OrdersQueryParams {
 }
 
 const SELECT_FIELDS =
-  "id, booking_reference, payment_status, payment_method, ticket_type, quantity, total_amount, created_at, event_id, payment_id, sadad_manually_verified, payment_error_reason, customers(name, email, phone, nationality), events!inner(title, event_date, location), pos_users(name, icon), ticket_holders(ticket_type)";
+  "id, booking_reference, payment_status, payment_method, ticket_type, quantity, total_amount, created_at, event_id, payment_id, sadad_manually_verified, payment_error_reason, payment_note, customers(name, email, phone, nationality), events!inner(title, event_date, location), pos_users(name, icon), ticket_holders(ticket_type)";
 
 const sel = (s: string): string => s;
 

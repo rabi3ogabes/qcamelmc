@@ -5,6 +5,8 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useTranslation } from "react-i18next";
+import { api } from "@/lib/api";
+import { toWhatsAppNumber } from "@/lib/phone";
 import { User, Phone, Mail, Ticket, Calendar, Send, MessageCircle, Edit, QrCode, Trash2, UserX, CreditCard, Archive, Folder, ChevronDown } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { toast } from "sonner";
@@ -23,6 +25,7 @@ interface Customer {
   email: string;
   phone: string;
   nationality?: string;
+  country_code?: string | null;
   created_at: string;
   orders: Array<{
     id: string;
@@ -614,29 +617,20 @@ export const CustomersTab = () => {
 
       // Send to n8n webhook
       console.log("Sending ticket via n8n webhook:", settings.webhook_url);
-      // Format phone number: ensure 974 country code without +
-      let formattedAdminPhone = null;
-      if (settings.admin_phone) {
-        const cleanPhone = settings.admin_phone.replace(/[\+\s]/g, '');
-        formattedAdminPhone = cleanPhone.startsWith('974') ? cleanPhone : `974${cleanPhone}`;
-      }
-
-      // Format customer and ticket holder phones
-      const formatPhoneNumber = (phone: string | null | undefined) => {
-        if (!phone) return null;
-        const cleanPhone = phone.replace(/[\+\s]/g, '');
-        return cleanPhone.startsWith('974') ? cleanPhone : `974${cleanPhone}`;
-      };
+      // Numbers keep their own country code (the old rule put 974 in front of everyone's number)
+      const formattedAdminPhone = toWhatsAppNumber(settings.admin_phone);
+      const formatPhoneNumber = (phone: string | null | undefined, countryCode?: string | null) =>
+        toWhatsAppNumber(phone, countryCode);
 
       const formattedCustomer = {
         name: customer.name,
         email: customer.email,
-        phone: formatPhoneNumber(customer.phone)
+        phone: formatPhoneNumber(customer.phone, customer.country_code)
       };
 
       const formattedHolders = holdersWithQrImages.map((holder: any) => ({
         name: holder.name,
-        phone: formatPhoneNumber(holder.phone),
+        phone: formatPhoneNumber(holder.phone, holder.country_code),
         nationality: holder.nationality,
         id_number: holder.id_number,
         ticket_type: holder.ticket_type,
@@ -916,7 +910,8 @@ export const CustomersTab = () => {
         holder: {
           name: holder.name,
           phone: holder.phone.replace(/^\+\d+\s*/, '').trim(),
-          country_code: holder.country_code?.replace('+', '') || '974',
+          // the number's own "+code" is the truth (old records stored +974 for everyone)
+          country_code: /^\s*\+(\d{1,4})\s/.exec(holder.phone)?.[1] ?? (holder.country_code?.replace('+', '') || '974'),
           nationality: holder.nationality,
           id_number: holder.id_number,
           ticket_type: holder.ticket_type,
@@ -1024,43 +1019,15 @@ export const CustomersTab = () => {
     }
 
     try {
-      // Get the event_id and ticket_type from the order to restore availability
-      const { data: orderData, error: orderFetchError } = await supabase
-        .from("orders")
-        .select("event_id, ticket_type, quantity")
-        .eq("id", order.id)
-        .single();
-
-      if (orderFetchError) throw orderFetchError;
-
-      // Restore ticket availability
-      const { data: ticketData, error: ticketFetchError } = await supabase
-        .from("tickets")
-        .select("available_quantity, sold_quantity")
-        .eq("event_id", orderData.event_id)
-        .eq("type", orderData.ticket_type)
-        .single();
-
-      if (ticketFetchError) throw ticketFetchError;
-
-      const { error: ticketUpdateError } = await supabase
-        .from("tickets")
-        .update({
-          available_quantity: ticketData.available_quantity + orderData.quantity,
-          sold_quantity: Math.max(0, ticketData.sold_quantity - orderData.quantity)
-        })
-        .eq("event_id", orderData.event_id)
-        .eq("type", orderData.ticket_type);
-
-      if (ticketUpdateError) throw ticketUpdateError;
-
-      // Mark order as cancelled (ticket returned) instead of deleting
-      const { error: orderUpdateError } = await supabase
-        .from("orders")
-        .update({ payment_status: 'cancelled' })
-        .eq("id", order.id);
-
-      if (orderUpdateError) throw orderUpdateError;
+      // One atomic server-side step: cancels the order and puts exactly the seats it
+      // held (per ticket type) back on sale. Safe to click twice.
+      const result = await api.cancelOrder(order.id, "returned by admin");
+      if (result.ok === false) throw new Error(result.error.message);
+      if (result.data.result === "already_inactive") {
+        toast.info("هذا الطلب ملغي مسبقاً");
+        fetchCustomers();
+        return;
+      }
 
       toast.success("تم إرجاع التذكرة وإعادتها للبيع بنجاح");
       fetchCustomers();

@@ -17,7 +17,7 @@ import { canPurchaseTickets } from "@/lib/eventUtils";
 interface Event {
   id: string;
   title: string;
-  description: string;
+  description: string | null;
   event_date: string;
   location: string;
   image_url: string | null;
@@ -44,7 +44,9 @@ const EventHome = () => {
           return (data as Event[]).filter(event => canPurchaseTickets(event.event_date));
         }
       }
-    } catch {}
+    } catch {
+      // unreadable cache: load fresh
+    }
     return null;
   }, []);
 
@@ -103,7 +105,9 @@ const EventHome = () => {
         // Cache for next visit
         try {
           localStorage.setItem(EVENTS_CACHE_KEY, JSON.stringify({ data, timestamp: Date.now() }));
-        } catch {}
+        } catch {
+          // storage full or unavailable: the cache is only an optimisation
+        }
         setLoading(false);
         return;
       } catch (error) {

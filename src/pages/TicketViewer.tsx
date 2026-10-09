@@ -16,7 +16,10 @@ interface TicketHolder {
   country_code?: string;
   nationality: string;
   ticket_type: string;
+  /** The scannable ticket code. */
   qr_code: string;
+  /** Stored picture of that code (may not exist yet). */
+  qr_image_url?: string | null;
   id_number: string;
   is_present: boolean;
   confirmed_at: string | null;
@@ -467,10 +470,11 @@ const TicketViewer = () => {
 
 
       // Convert QR code data URL to blob and upload to storage
-      let qrCodeImageUrl = "";
+      // Use the ticket's stored QR picture; otherwise draw it here and upload it
+      let qrCodeImageUrl = holder.qr_image_url ?? "";
       const qrDataUrl = qrCodeImages[holder.id];
       
-      if (qrDataUrl) {
+      if (!qrCodeImageUrl && qrDataUrl) {
         try {
           // Convert data URL to blob
           const response = await fetch(qrDataUrl);
@@ -518,7 +522,8 @@ const TicketViewer = () => {
         holder: {
           name: holder.name,
           phone: holder.phone.replace(/^\+\d+\s*/, '').trim(),
-          country_code: holder.country_code?.replace('+', '') || '974',
+          // the number's own "+code" is the truth (old records stored +974 for everyone)
+          country_code: /^\s*\+(\d{1,4})\s/.exec(holder.phone)?.[1] ?? (holder.country_code?.replace('+', '') || '974'),
           nationality: holder.nationality,
           id_number: holder.id_number,
           ticket_type: holder.ticket_type,
