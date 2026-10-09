@@ -172,20 +172,25 @@ const UnifiedLoginCard = ({
     if (lockSeconds > 0) return;
     setVerifying(true);
     try {
-      if (!(await ensureNotBlocked("team-passcode", "passcode"))) return;
-
+      // The server counts wrong guesses itself (this screen cannot be skipped by calling the function directly).
       const { data, error } = await supabase.functions.invoke("staff-auth", {
         body: { passcode },
       });
       if (error) throw error;
       if (data?.ok) {
-        await recordAttempt("team-passcode", "passcode", true);
+        setAttemptsLeft(null);
+        setLockSeconds(0);
         grantStaffAccess(passcode);
         toast.success("تم فتح الصفحة");
         if (onPasscodeSuccess) onPasscodeSuccess();
         else navigate("/staff", { replace: true });
+      } else if (data?.unavailable) {
+        toast.error("الدخول بكلمة مرور الفريق غير مفعّل حالياً — استخدم حسابك أو تواصل مع الإدارة");
+      } else if (data?.blocked) {
+        setLockSeconds(data.retry_after_seconds || 1800);
+        toast.error("تم إيقاف المحاولات مؤقتاً بسبب تكرار الأخطاء");
       } else {
-        await recordAttempt("team-passcode", "passcode", false);
+        if (typeof data?.attempts_left === "number") setAttemptsLeft(data.attempts_left);
         toast.error("كلمة المرور غير صحيحة");
       }
     } catch {

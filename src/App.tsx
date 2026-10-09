@@ -27,8 +27,7 @@ const TicketSelection = lazy(() => import("./pages/TicketSelection"));
 const Checkout = lazy(() => import("./pages/Checkout"));
 const Confirmation = lazy(() => import("./pages/Confirmation"));
 const InvoicePage = lazy(() => import("./pages/InvoicePage"));
-const SadadCallback = lazy(() => import("./pages/SadadCallback"));
-const SadadRedirect = lazy(() => import("./pages/SadadRedirect"));
+const PaymentResult = lazy(() => import("./pages/PaymentResult"));
 const AdminLogin = lazy(() => import("./pages/AdminLogin"));
 const AdminDashboard = lazy(() => import("./pages/AdminDashboard"));
 const LiveBookings = lazy(() => import("./pages/LiveBookings"));
@@ -92,8 +91,11 @@ const App = () => (
                     <Route path="/checkout" element={<Checkout />} />
                     <Route path="/confirmation" element={<Confirmation />} />
                     <Route path="/invoice/:bookingReference" element={<InvoicePage />} />
-                    <Route path="/sadad-callback" element={<SadadCallback />} />
-                    <Route path="/sadad-redirect" element={<SadadRedirect />} />
+                    <Route path="/tickets" element={<Navigate to="/" replace />} />
+                    <Route path="/payment/result" element={<PaymentResult />} />
+                    {/* Old return address from Sadad: same page, same behaviour */}
+                    <Route path="/sadad-callback" element={<PaymentResult />} />
+                    <Route path="/sadad-redirect" element={<Navigate to="/checkout" replace />} />
                     <Route path="/live-bookings" element={<RequireAdmin><LiveBookings /></RequireAdmin>} />
                     <Route path="/live-visitors" element={<RequireAdmin adminOnly><LiveVisitors /></RequireAdmin>} />
                     <Route path="/staff" element={<RequireAdmin><StaffHub /></RequireAdmin>} />
@@ -124,7 +126,7 @@ const App = () => (
                     <Route path="/admin/qr-scanner" element={<RequireAdmin><QRScanner /></RequireAdmin>} />
                     <Route path="/admin/pos" element={<RequireAdmin><AdminPOS /></RequireAdmin>} />
                     <Route path="/admin/pos-receipts" element={<RequireAdmin><POSReceiptPage /></RequireAdmin>} />
-                    <Route path="/admin/tickets" element={<TicketViewer />} />
+                    <Route path="/admin/tickets" element={<RequireAdmin><TicketViewer /></RequireAdmin>} />
 
                     <Route path="*" element={<NotFound />} />
                   </Routes>

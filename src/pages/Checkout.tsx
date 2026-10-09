@@ -2,6 +2,8 @@ import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { supabase } from "@/integrations/supabase/client";
+import { api, apiErrorMessage, type ApiError } from "@/lib/api";
+import { redirectToSadad, rememberOrder } from "@/lib/payment";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -391,6 +393,33 @@ const Checkout = () => {
       toast.success("تم تقليل الكمية");
     }
   };
+  /**
+   * Prices can change between choosing tickets and paying. Re-read them: if any changed, show the
+   * customer the new total and stop, so they only ever pay a price they have seen.
+   */
+  const pricesAreCurrent = async (): Promise<boolean> => {
+    const { data, error } = await supabase
+      .from("tickets")
+      .select("id, price")
+      .in("id", selections.map((selection) => selection.ticketId));
+    if (error || !data) return true; // cannot check from here: the server prices the order anyway
+
+    const live = new Map(data.map((row) => [row.id, Number(row.price)]));
+    if (selections.some((selection) => !live.has(selection.ticketId))) {
+      toast.error(apiErrorMessage({ code: "invalid_tickets", message: "" }, t));
+      return false;
+    }
+    const repriced = selections.some((selection) => live.get(selection.ticketId) !== selection.price);
+    if (repriced) {
+      const updated = selections.map((selection) => ({ ...selection, price: live.get(selection.ticketId) ?? selection.price }));
+      setSelections(updated);
+      localStorage.setItem("ticketSelection", JSON.stringify(updated));
+      toast.info("تم تحديث أسعار التذاكر. يرجى مراجعة الإجمالي ثم المتابعة.");
+      return false;
+    }
+    return true;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -494,27 +523,23 @@ const Checkout = () => {
     }
 
     setLoading(true);
+    let leavingForPayment = false;
     try {
-      // Create customer - clean phone number first
+      // Prices can change after the customer picked tickets: charge only what they have seen
+      if (!(await pricesAreCurrent())) return;
+
+      // Phone without the country code (the code is sent separately)
       let cleanPhone = customerInfo.phone.replace(/[\s+]/g, '');
       const cleanCountryCode = customerInfo.countryCode.replace('+', '');
       if (cleanPhone.startsWith(cleanCountryCode)) {
         cleanPhone = cleanPhone.substring(cleanCountryCode.length);
       }
-      
-      // Get event ID from localStorage (stored during ticket selection)
-      const selectedEventId = localStorage.getItem("selectedEventId");
-      if (!selectedEventId) {
-        throw new Error("No event selected");
-      }
 
-      const eventDatePart = eventDate
-        ? new Date(eventDate).toLocaleDateString("en-GB", { day: "numeric", month: "numeric", year: "numeric" }).replace(/\//g, "-")
-        : new Date().toLocaleDateString("en-GB", { day: "numeric", month: "numeric", year: "numeric" }).replace(/\//g, "-");
-      const bookingRef = `QTR-${eventDatePart}-${Math.random().toString(36).substring(2, 10).toUpperCase()}`;
-      const totalQuantity = selections.reduce((sum, s) => sum + s.quantity, 0);
-
+      // Each ticket holder belongs to the selection line of their ticket type
       const holdersPayload = ticketHolders.map((holder) => {
+        const line = selections.find((selection) => selection.type === holder.ticketType);
+        if (!line) throw new Error("ticket type missing from the selection");
+
         // Extract country code and clean phone number
         let holderPhone = holder.phone;
         let holderCountryCode = '+974';
@@ -527,148 +552,71 @@ const Checkout = () => {
         }
 
         return {
-          name: holder.name,
+          ticket_id: line.ticketId,
+          name: holder.name.trim(),
           phone: holderPhone,
           country_code: holderCountryCode,
           nationality: holder.nationality,
-          ticket_type: holder.ticketType,
-          id_number: holder.idNumber,
+          id_number: holder.idNumber.trim(),
         };
       });
 
-      const orderData = {
-        customer_id: null as string | null,
-        event_id: selectedEventId,
-        ticket_type: selections[0].type as "vip" | "normal" | "parking",
-        quantity: totalQuantity,
-        total_amount: calculateTotal(),
-        payment_method: paymentMethod,
-        booking_reference: bookingRef
-      };
-
-      // Create customer + order + ticket holders in one secure server-side step.
-      const { data: bookingData, error: bookingError } = await supabase.rpc("create_public_booking", {
-        p_customer: {
-          name: customerInfo.name,
-          email: customerInfo.email,
+      // The customer, the order, every ticket and its QR code are created in ONE step on the server.
+      // Prices, stock and status are decided there: nothing the browser says about money is used.
+      const result = await api.createOrder({
+        customer: {
+          name: customerInfo.name.trim(),
+          email: customerInfo.email.trim(),
           phone: cleanPhone,
           country_code: customerInfo.countryCode,
           nationality: customerInfo.nationality,
-          id_number: customerInfo.idNumber,
+          id_number: customerInfo.idNumber.trim(),
         },
-        p_event_id: selectedEventId,
-        p_payment_method: paymentMethod,
-        p_total_amount: calculateTotal(),
-        p_booking_reference: bookingRef,
-        p_holders: holdersPayload,
+        items: selections.map((selection) => ({ ticket_id: selection.ticketId, quantity: selection.quantity })),
+        holders: holdersPayload,
+        payment_method: paymentMethod,
       });
-      if (bookingError) throw bookingError;
+      if (result.ok === false) throw result.error;
 
-      const booking = bookingData as unknown as {
-        order_id: string;
-        customer_id: string;
-        booking_reference: string;
-        holders: { id: string; qr_code: string }[];
-      };
-      const order = { id: booking.order_id, booking_reference: booking.booking_reference };
-      orderData.customer_id = booking.customer_id;
-      const insertedHolders = booking.holders || [];
-
-      // Generate QR codes asynchronously in the background (non-blocking)
-      if (insertedHolders.length > 0) {
-        Promise.all(insertedHolders.map(async (holder) => {
-          try {
-            const ticketRef = holder.qr_code;
-            const {
-              data: qrData
-            } = await supabase.functions.invoke('generate-qr-code', {
-              body: {
-                text: ticketRef,
-                filename: ticketRef,
-                holderId: holder.id
-              }
-            });
-            if (!qrData?.url) {
-              console.warn('QR generation returned no url for', ticketRef);
-            }
-          } catch (error) {
-            console.error('Background QR generation failed for ticket:', error);
-          }
-        })).catch(err => console.error('QR batch generation error:', err));
-      }
-
-
-      // Handle Sadad payment - redirect to Sadad payment page
-      if (paymentMethod === "sadad") {
-        const orderItems = selections.map(s => ({
-          name: getTicketTypeName(s.type),
-          price: s.price,
-          quantity: s.quantity
-        }));
-        const {
-          data: paymentResponse,
-          error: paymentError
-        } = await supabase.functions.invoke('sadad-payment', {
-          body: {
-            orderId: order.booking_reference,
-            orderData: {
-              ...orderData,
-              customer_email: customerInfo.email,
-              customer_phone: customerInfo.phone,
-              items: orderItems
-            }
-          }
-        });
-        if (paymentError) throw paymentError;
-        if (!paymentResponse?.success) {
-          throw new Error(paymentResponse?.error || 'Failed to initiate Sadad payment');
-        }
-
-        // Store payment data for form submission
-        sessionStorage.setItem('sadadPaymentData', JSON.stringify({
-          paymentData: paymentResponse.paymentData,
-          sadadUrl: paymentResponse.sadadUrl
-        }));
-
-        // Store pending order ID for callback page (sessionStorage for tab isolation)
-        sessionStorage.setItem('pendingOrderId', order.booking_reference);
-
-        // Redirect to payment submission page
-        navigate('/sadad-redirect');
-        return;
-      }
-
-      // For cash/POS, proceed directly
-      localStorage.setItem("orderIds", JSON.stringify([order.id]));
+      const { order, payment } = result.data;
+      // The reference is unguessable: remembering it is how the next pages find this booking again
+      rememberOrder(order.booking_reference);
       localStorage.removeItem("ticketSelection");
-      localStorage.removeItem("selectedEventId");
 
-      // Call webhook asynchronously (non-blocking) — handled server-side so the
-      // webhook URL and admin phone are never exposed in the browser.
-      (async () => {
+      if (payment) {
+        // Hand over to Sadad's secure payment page; it brings the customer back to /payment/result.
+        toast.info("جاري تحويلك إلى بوابة الدفع الآمنة...");
         try {
-          await supabase.functions.invoke("checkout-webhook", {
-            body: { bookingReference: bookingRef },
-          });
-        } catch (error) {
-
-          console.error("Webhook call failed:", error);
+          leavingForPayment = true;
+          redirectToSadad(payment);
+        } catch (redirectError) {
+          console.error("Could not open the payment page:", redirectError);
+          leavingForPayment = false;
+          navigate(`/payment/result?ref=${encodeURIComponent(order.booking_reference)}`);
         }
-      })();
+        return; // keep the button disabled while the browser navigates away
+      }
+
+      // Cash at the venue: the booking is complete (the server tells the automation)
+      localStorage.removeItem("selectedEventId");
       toast.success(t('bookingCreated'));
       navigate("/confirmation");
     } catch (error) {
       console.error("Error creating booking:", error);
-      const guardMessage = bookingGuardMessage(error);
+      const apiError = error as Partial<ApiError>;
       let shownMessage: string;
-      if (isTicketLimitError(error)) {
+      if (apiError?.code === "ticket_limit_exceeded" && apiError.message) {
+        shownMessage = apiError.message;
+        toast.error(shownMessage);
+      } else if (apiError?.code) {
+        shownMessage = apiErrorMessage(apiError as ApiError, t);
+        toast.error(shownMessage);
+      } else if (isTicketLimitError(error)) {
         shownMessage = ticketLimitErrorMessage(error);
         toast.error(shownMessage);
-      } else if (guardMessage) {
-        shownMessage = guardMessage;
-        toast.error(guardMessage);
       } else {
-        shownMessage = "Failed to create booking. Please try again.";
+        const guardMessage = bookingGuardMessage(error);
+        shownMessage = guardMessage || "Failed to create booking. Please try again.";
         toast.error(shownMessage);
       }
       void logPaymentError({
@@ -685,7 +633,7 @@ const Checkout = () => {
         raw: { paymentMethod },
       });
     } finally {
-      setLoading(false);
+      if (!leavingForPayment) setLoading(false);
     }
   };
   if (selections.length === 0) {

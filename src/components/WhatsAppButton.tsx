@@ -7,7 +7,7 @@ export const WhatsAppButton = () => {
   if (!settings?.admin_phone) return null;
   
   // Clean phone number (remove spaces, dashes, etc.)
-  const cleanPhone = settings.admin_phone.replace(/[\s\-\(\)]/g, '');
+  const cleanPhone = settings.admin_phone.replace(/[\s\-()]/g, '');
   const whatsappUrl = `https://wa.me/${cleanPhone}`;
   
   return (

@@ -20,6 +20,9 @@ const EXCLUDED_PREFIXES = [
   "/live-bookings",
   "/live-visitors",
   "/sadad-redirect",
+  // the payment result address carries the booking reference, which is what opens the booking
+  "/payment",
+  "/sadad-callback",
 ];
 
 export const isTrackablePath = (pathname: string): boolean => {

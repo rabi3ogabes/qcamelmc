@@ -57,14 +57,18 @@ const getCachedSettings = (): Settings | null => {
       const { data, timestamp } = JSON.parse(cached);
       if (Date.now() - timestamp < SETTINGS_CACHE_TTL) return data;
     }
-  } catch {}
+  } catch {
+    // storage unavailable or unreadable: behave as if nothing was cached
+  }
   return null;
 };
 
 const cacheSettings = (data: Settings) => {
   try {
     localStorage.setItem(SETTINGS_CACHE_KEY, JSON.stringify({ data, timestamp: Date.now() }));
-  } catch {}
+  } catch {
+    // storage full or unavailable: the cache is only an optimisation
+  }
 };
 
 export const SettingsProvider = ({ children }: { children: ReactNode }) => {

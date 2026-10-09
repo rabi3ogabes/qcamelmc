@@ -16,12 +16,14 @@ import { cn } from "@/lib/utils";
 interface Event {
   id: string;
   title: string;
-  description: string;
+  description: string | null;
   event_date: string;
   location: string;
   image_url: string | null;
-  is_active: boolean;
-  display_order?: number;
+  is_active: boolean | null;
+  display_order?: number | null;
+  start_time?: string | null;
+  end_time?: string | null;
 }
 
 interface EditEventDialogProps {
@@ -69,8 +71,8 @@ export const EditEventDialog = ({ event, open, onOpenChange, onEventUpdated }: E
           location: event.location,
           image_url: event.image_url || "",
           display_order: event.display_order?.toString() || "0",
-          start_time: (event as any).start_time || "",
-          end_time: (event as any).end_time || "",
+          start_time: event.start_time || "",
+          end_time: event.end_time || "",
           vip_quantity: vipTicket?.available_quantity.toString() || "",
           vip_price: vipTicket?.price.toString() || "",
           normal_quantity: normalTicket?.available_quantity.toString() || "",

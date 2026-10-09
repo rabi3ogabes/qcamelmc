@@ -16,6 +16,7 @@ import { toast } from "sonner";
 import { useActivityLog } from "@/hooks/useActivityLog";
 import { format } from "date-fns";
 import { playErrorSound } from "@/lib/sfx";
+import { normalizeScannedCode } from "@/lib/tickets";
 
 interface TicketHolder {
   id: string;
@@ -344,7 +345,9 @@ const QRScanner = () => {
     }
   };
 
-  const processTicket = async (scannedCode: string) => {
+  const processTicket = async (rawScan: string) => {
+    // tickets printed long ago may encode the URL of their QR picture: the file name is the code
+    const scannedCode = normalizeScannedCode(rawScan);
     // Ignore overlapping scans so a slow earlier lookup cannot overwrite a newer one
     if (processingRef.current) return;
     updateProcessing(true);
@@ -704,6 +707,7 @@ const QRScanner = () => {
         }
       } else {
         // It's a booking reference - fetch all tickets for this booking
+        // eslint-disable-next-line prefer-const -- orderData is reassigned below (legacy fallback lookups)
         let { data: orderData, error: orderError } = await supabase
           .from('orders')
           .select(`

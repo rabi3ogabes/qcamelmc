@@ -1,0 +1,21 @@
+{
+  "extends": "./tsconfig.app.json",
+  "compilerOptions": {
+    "types": [
+      "node"
+    ],
+    "allowImportingTsExtensions": true,
+    "noEmit": true,
+    "strict": true
+  },
+  "include": [
+    "tests",
+    "supabase/functions/_shared",
+    "supabase/functions/*/handler.ts"
+  ],
+  "exclude": [
+    "supabase/functions/*/index.ts",
+    "supabase/functions/_shared/staffAuth.ts",
+    "supabase/functions/_shared/transactional-email-templates"
+  ]
+}

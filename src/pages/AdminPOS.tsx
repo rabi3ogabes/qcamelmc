@@ -45,6 +45,8 @@ interface SuccessData {
   ticketHolders: { name: string; ticketType: string }[];
   ticketTypes: { type: string; quantity: number }[];
 }
+import { api, apiErrorMessage, type ApiError } from "@/lib/api";
+import { getStaffPasscode } from "@/lib/staffAccess";
 
 interface Ticket {
   id: string;
@@ -914,10 +916,19 @@ const AdminPOS = () => {
       return;
     }
 
+    // One event per order (the server enforces this too)
+    if (new Set(cart.map((item) => item.eventId)).size > 1) {
+      toast({
+        title: "خطأ",
+        description: "لا يمكن الجمع بين تذاكر فعاليات مختلفة في طلب واحد",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setProcessing(true);
 
     try {
-      // Use atomic reservation check to prevent race conditions
       if (!currentEventId) {
         toast({
           title: "خطأ",
@@ -928,7 +939,8 @@ const AdminPOS = () => {
         return;
       }
 
-      // Enforce the 5-ticket-per-person rule before creating anything
+      // Friendly pre-checks (the server enforces the same rules again when it saves the sale)
+      // 1) the 5-ticket-per-person rule
       const limitHolders = [
         {
           name: customerName,
@@ -954,37 +966,29 @@ const AdminPOS = () => {
         return;
       }
 
+      // 2) enough tickets left
       const ticketSelections = cart.map(item => ({
         type: item.ticketType,
         quantity: item.quantity
       }));
 
       const reservationResult = await reserveMultipleTickets(currentEventId, ticketSelections);
-      
+
       if (!reservationResult.success) {
         const result = reservationResult.result;
         const failedType = reservationResult.failedType;
-        
+
         toast({
           title: "خطأ - عدد التذاكر المطلوبة غير متاح",
           description: `${getTicketTypeName(failedType || '')}: ${result?.message || 'غير متوفر'}`,
           variant: "destructive",
         });
-        
+
         // Refresh holder counts
         await fetchHolderCounts(currentEventId);
         setProcessing(false);
         return;
       }
-
-
-      // The whole sale (customer + order + every ticket) is saved in ONE database
-      // operation: if any ticket is refused, nothing at all is recorded.
-      const totalAmount = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
-      const eventDatePart = selectedDate
-        ? selectedDate.toLocaleDateString("en-GB", { day: "numeric", month: "numeric", year: "numeric" }).replace(/\//g, "-")
-        : new Date().toLocaleDateString("en-GB", { day: "numeric", month: "numeric", year: "numeric" }).replace(/\//g, "-");
-      const bookingRef = `POS-${eventDatePart}-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
 
       // First ticket holder is the customer
       const allHoldersData = [
@@ -999,40 +1003,43 @@ const AdminPOS = () => {
         ...ticketHolders
       ];
 
-      const { error: bookingError } = await supabase.rpc("create_pos_booking", {
-        p_customer: {
-          name: customerName,
-          email: customerEmail,
-          phone: customerPhone,
-          country_code: customerCountryCode,
-          nationality: customerNationality,
-          id_number: customerIdNumber,
-        },
-        p_event_id: cart[0].eventId,
-        p_total_amount: totalAmount,
-        p_booking_reference: bookingRef,
-        p_holders: allHoldersData.map(holder => ({
-          name: holder.name,
-          phone: holder.phone || customerPhone,
+      // Each holder belongs to the cart line of their ticket type; the server prices from that line
+      const holders = allHoldersData.map((holder) => {
+        const line = cart.find((item) => item.ticketType === holder.ticketType);
+        if (!line) throw new Error("ticket type missing from the cart");
+        return {
+          ticket_id: line.ticketId,
+          name: holder.name.trim(),
+          phone: (holder.phone || customerPhone).trim(),
           country_code: holder.countryCode || customerCountryCode,
           nationality: holder.nationality,
-          ticket_type: holder.ticketType,
-          id_number: holder.idNumber,
-        })),
-        p_pos_user_id: selectedPosUserId,
+          id_number: holder.idNumber.trim(),
+        };
       });
 
-      if (bookingError) throw bookingError;
+      // The whole sale (customer + order + every ticket + QR codes) is saved in ONE operation on
+      // the server: prices, stock, the confirmed status and the codes are decided there, and if any
+      // ticket is refused nothing at all is recorded. The server also e-mails the administrator.
+      const result = await api.createOrder({
+        source: "pos",
+        payment_method: "cash_pos",
+        customer: {
+          name: customerName.trim(),
+          email: customerEmail.trim(),
+          phone: customerPhone.trim(),
+          country_code: customerCountryCode,
+          nationality: customerNationality,
+          id_number: customerIdNumber.trim(),
+        },
+        items: cart.map((item) => ({ ticket_id: item.ticketId, quantity: item.quantity })),
+        holders,
+        pos_user_id: selectedPosUserId,
+        staff_passcode: getStaffPasscode(),
+      });
 
-      // Notify the admin by email about this sale (never blocks the sale)
-      supabase.functions
-        .invoke("notify-admin-sale", { body: { booking_reference: bookingRef } })
-        .catch((e) => console.error("admin sale alert failed:", e));
-
-      // Sold quantities are maintained automatically by database triggers.
-
-
-      // POS orders don't need QR codes - ticket reference is sufficient
+      if (result.ok === false) throw result.error;
+      const bookingRef = result.data.order.booking_reference;
+      const totalAmount = result.data.order.total_amount;
 
       // Prepare success data for dialog
       const ticketTypeSummary = cart.map(item => ({
@@ -1090,25 +1097,30 @@ const AdminPOS = () => {
       setCustomerNationality("قطر");
       setCustomerIdNumber("");
       setShowAllNationalities(false);
-      
+
       // Refresh tickets if we have an event ID
       if (currentEventId) {
         fetchTicketsForEvent(currentEventId);
       }
     } catch (error) {
       console.error("Error creating orders:", error);
+      const apiError = error as Partial<ApiError>;
+      const limit = apiError?.code === "ticket_limit_exceeded" || isTicketLimitError(error);
       toast({
-        title: isTicketLimitError(error) ? "تجاوز الحد الأقصى للتذاكر" : "خطأ",
-        description: isTicketLimitError(error)
-          ? ticketLimitErrorMessage(error)
-          : bookingGuardMessage(error) || "فشل إنشاء الطلبات",
+        title: limit ? "تجاوز الحد الأقصى للتذاكر" : "خطأ",
+        description: apiError?.code === "ticket_limit_exceeded"
+          ? apiError.message
+          : isTicketLimitError(error)
+            ? ticketLimitErrorMessage(error)
+            : apiError?.code
+              ? apiErrorMessage(apiError as ApiError, t)
+              : bookingGuardMessage(error) || "فشل إنشاء الطلبات",
         variant: "destructive",
       });
     } finally {
       setProcessing(false);
     }
   };
-
   return (
     <div className="min-h-screen bg-background font-lusail" dir="rtl">
       {/* Capacity Notification Banner */}

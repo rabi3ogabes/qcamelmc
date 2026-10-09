@@ -7,7 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { CheckCircle, MapPin, Calendar, Eye, QrCode, Loader2, XCircle, Printer, Trash2, Grid3x3, List, Search, Banknote, CreditCard, AlertCircle, Ticket, Crown, Car, Copy, ReceiptText } from "lucide-react";
+import { CheckCircle, MapPin, Calendar, Eye, QrCode, Loader2, XCircle, Printer, Trash2, Grid3x3, List, Search, Banknote, CreditCard, AlertCircle, Ticket, Crown, Car, Copy, ReceiptText, ShieldCheck, Undo2 } from "lucide-react";
 import { EventShiftBadge } from "./EventShiftBadge";
 import { SadadTransactionDialog } from "./SadadTransactionDialog";
 import { Input } from "@/components/ui/input";
@@ -17,6 +17,7 @@ import { Label } from "@/components/ui/label";
 import { useTranslation } from "react-i18next";
 import { supabase } from "@/integrations/supabase/client";
 import { getStaffPasscode } from "@/lib/staffAccess";
+import { api, apiErrorMessage } from "@/lib/api";
 import { toast } from "sonner";
 import QRCodeLib from "qrcode";
 import { format } from "date-fns";
@@ -30,7 +31,10 @@ interface TicketHolder {
   phone: string;
   nationality: string;
   ticket_type: string;
+  /** The scannable ticket code. */
   qr_code: string | null;
+  /** Stored picture of that code, if one exists. */
+  qr_image_url?: string | null;
   is_present: boolean | null;
   price?: number;
 }
@@ -86,6 +90,8 @@ interface Order {
   sadad_manually_verified?: boolean;
   payment_id?: string | null;
   payment_error_reason?: string | null;
+  /** Why the order is in its state (e.g. "expired", "paid_after_expiry_no_stock"). */
+  payment_note?: string | null;
   customers: {
     name: string;
     email: string;
@@ -111,6 +117,7 @@ export const OrdersTab = () => {
   } = useTranslation();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<"success" | "failed">("success");
+  const [verifying, setVerifying] = useState<string | null>(null);
   const [paymentMethodFilter, setPaymentMethodFilter] = useState<"all" | "sadad" | "cash_pos">("all");
   const [viewMode, setViewMode] = useState<"grid" | "list">(() => {
     const saved = localStorage.getItem("ordersViewMode");
@@ -171,9 +178,10 @@ export const OrdersTab = () => {
   // Generate QR code image when selectedHolder changes
   useEffect(() => {
     if (selectedHolder?.qr_code) {
-      // Check if it's already a URL
-      if (selectedHolder.qr_code.startsWith('http')) {
-        setQrCodeImage(selectedHolder.qr_code);
+      // The stored picture of the ticket, if there is one (older records kept the picture's URL in qr_code)
+      const stored = selectedHolder.qr_image_url || (selectedHolder.qr_code.startsWith('http') ? selectedHolder.qr_code : null);
+      if (stored) {
+        setQrCodeImage(stored);
       } else {
         // Generate QR code from text
         QRCodeLib.toDataURL(selectedHolder.qr_code, {
@@ -391,16 +399,24 @@ export const OrdersTab = () => {
       if (newStatus === "confirmed") {
         updateData.confirmed_at = new Date().toISOString();
         updateData.confirmed_by = user?.id || null;
+        updateData.paid_at = updateData.confirmed_at;
+        updateData.payment_note = null;
       } else {
-        // Clear confirmation fields when cancelling
+        // Clear confirmation fields when cancelling; a staff cancellation is final (never re-opened by a late payment check)
         updateData.confirmed_at = null;
         updateData.confirmed_by = null;
+        updateData.payment_note = "admin_cancelled";
       }
       const {
         error
       } = await supabase.from("orders").update(updateData).eq("id", orderId);
       if (error) {
         console.error('Error updating order:', error);
+        // The database keeps the tickets in step: re-activating an order needs its seats to be free
+        if (error.message.includes("insufficient_stock")) {
+          toast.error("لا توجد تذاكر كافية لإعادة تفعيل هذا الطلب");
+          return;
+        }
         throw error;
       }
       console.log('Order status updated successfully with confirmed_at and confirmed_by');
@@ -512,6 +528,32 @@ export const OrdersTab = () => {
       toast.error("فشل في تغيير حالة الحجز: " + (error?.message || 'خطأ غير معروف'));
     }
   };
+  /** Ask Sadad directly whether this order was paid (for orders that could not be confirmed automatically). */
+  const verifyWithSadad = async (order: Order) => {
+    setVerifying(order.id);
+    const result = await api.verifyPayment(order.booking_reference);
+    setVerifying(null);
+    if (result.ok === false) {
+      toast.error(apiErrorMessage(result.error, t));
+      return;
+    }
+    if (result.data.payment_status === "confirmed") toast.success("سداد أكّد الدفع — تم تأكيد الحجز ✓");
+    else toast.info("لم يُسجّل سداد دفعاً لهذا الحجز بعد");
+    onRefresh();
+  };
+
+  /** Cancel an unpaid booking and put its seats back on sale. */
+  const releaseOrder = async (order: Order) => {
+    if (!confirm(`إلغاء الحجز ${order.booking_reference} وإعادة تذاكره للبيع؟`)) return;
+    const result = await api.cancelOrder(order.id, "released by admin");
+    if (result.ok === false) {
+      toast.error(apiErrorMessage(result.error, t));
+      return;
+    }
+    toast.success("تم إلغاء الحجز وإعادة التذاكر للبيع");
+    onRefresh();
+  };
+
   const deleteOrder = async () => {
     if (!orderToDelete) {
       console.error("No order selected for deletion");
@@ -636,6 +678,12 @@ export const OrdersTab = () => {
       </div>
 
       <div className="pr-5 pl-4 py-4 space-y-4 flex-1">
+        {/* Why the order closed */}
+        {order.payment_note === "paid_after_expiry_no_stock" && (
+          <p className="text-xs font-semibold text-destructive">⚠️ دُفع بعد انتهاء الحجز ولا توجد تذاكر — يلزم استرداد المبلغ</p>
+        )}
+        {order.payment_note === "expired" && <p className="text-xs text-muted-foreground">انتهت مهلة الدفع</p>}
+
         {/* Failure reason */}
         {order.payment_status !== "confirmed" && order.payment_error_reason && <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-2.5 flex items-start gap-2">
             <AlertCircle className="w-4 h-4 text-destructive mt-0.5 shrink-0" />
@@ -684,6 +732,14 @@ export const OrdersTab = () => {
           {order.payment_method === "sadad" && <Button size="sm" variant="outline" onClick={() => setSadadTxOrder({ id: order.id, ref: order.booking_reference })} className="font-lusail flex items-center gap-1 text-xs px-2 h-8 border-primary/40 text-primary hover:bg-primary/10">
               <ReceiptText className="w-3 h-3" />
               تفاصيل سداد
+            </Button>}
+          {order.payment_method === "sadad" && order.payment_status !== "confirmed" && order.payment_note !== "admin_cancelled" && <Button size="sm" variant="secondary" disabled={verifying === order.id} onClick={() => verifyWithSadad(order)} className="font-lusail flex items-center gap-1 text-xs px-2 h-8">
+              {verifying === order.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <ShieldCheck className="w-3 h-3" />}
+              تحقق من سداد
+            </Button>}
+          {order.payment_status === "pending" && <Button size="sm" variant="outline" onClick={() => releaseOrder(order)} className="font-lusail flex items-center gap-1 text-xs px-2 h-8">
+              <Undo2 className="w-3 h-3" />
+              إلغاء وإعادة للبيع
             </Button>}
           {order.payment_status === "pending" && <Button size="sm" onClick={() => togglePaymentStatus(order.id, order.payment_status)} className="font-lusail flex items-center gap-1 text-xs px-2 h-8 bg-green-600 hover:bg-green-700 text-white">
               <CheckCircle className="w-3 h-3" />

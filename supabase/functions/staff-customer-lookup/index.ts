@@ -25,24 +25,8 @@ Deno.serve(async (req) => {
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const admin = createClient(supabaseUrl, serviceKey);
 
+    // isStaffAuthorized already covers administrators, moderators and the team passcode
     const authorized = await isStaffAuthorized(req, admin, passcode);
-
-    if (!authorized) {
-      const authHeader = req.headers.get("Authorization") || "";
-      const token = authHeader.replace("Bearer ", "");
-      if (token) {
-        const { data: userData } = await admin.auth.getUser(token);
-        const userId = userData?.user?.id;
-        if (userId) {
-          const { data: adminRow } = await admin
-            .from("admin_users")
-            .select("id")
-            .eq("id", userId)
-            .maybeSingle();
-          authorized = !!adminRow;
-        }
-      }
-    }
 
     if (!authorized) {
       return new Response(JSON.stringify({ error: "unauthorized" }), {

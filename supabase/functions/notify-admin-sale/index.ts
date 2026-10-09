@@ -1,5 +1,6 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.58.0'
 import { sendTemplateEmail } from '../_shared/transactional-email-templates/send-email.ts'
+import { isAdminAuthorized, isServiceRoleCall } from '../_shared/staffAuth.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -21,6 +22,11 @@ Deno.serve(async (req) => {
     Deno.env.get('SUPABASE_URL')!,
     Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
   )
+
+  // Internal: another edge function (service role) or a signed-in administrator. Never anonymous.
+  if (!isServiceRoleCall(req) && !(await isAdminAuthorized(req, supabase))) {
+    return json({ error: 'unauthorized' }, 401)
+  }
 
   let orderId: string | null = null
   let bookingRef: string | null = null

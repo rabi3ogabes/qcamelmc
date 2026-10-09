@@ -207,6 +207,33 @@ const resources = {
       "receiveEmail": "ستتلقى رسالة عبر واتساب تحتوي على تذاكرك ورموز QR بمجرد التأكيد.",
       "presentQR": "قدّم رمز QR الخاص بك عند مدخل المكان في يوم الفعالية",
       "returnToHome": "العودة للرئيسية",
+
+      // Payment result page
+      "paymentChecking": "جارٍ التحقق من الدفع...",
+      "paymentCheckingDesc": "لا تُغلق هذه الصفحة. نتأكد من دفعتك مع سداد وسيظهر حجزك خلال لحظات.",
+      "paymentSuccessTitle": "تم الدفع بنجاح!",
+      "paymentSuccessDesc": "تم تأكيد حجزك. تجد تذاكرك ورموز QR أدناه، وسنرسلها لك أيضاً عبر واتساب.",
+      "paymentFailedTitle": "لم تكتمل عملية الدفع",
+      "paymentFailedDesc": "لم يتم تأكيد أي دفعة لهذا الحجز. إذا تم الخصم من حسابك فسيُؤكَّد حجزك تلقائياً، أو تواصل معنا مع الرقم المرجعي.",
+      "paymentDelayedTitle": "ما زلنا نتحقق من دفعتك",
+      "paymentDelayedDesc": "قد يستغرق تأكيد الدفع بضع دقائق. احتفظ بالرقم المرجعي أدناه؛ إذا خُصم المبلغ فسيتأكد حجزك تلقائياً، ويمكنك أيضاً المحاولة مرة أخرى.",
+      "paymentNotFoundTitle": "لم نعثر على الحجز",
+      "paymentNotFoundDesc": "تحقق من الرابط أو ابدأ حجزاً جديداً.",
+      "checkAgain": "تحقق مرة أخرى",
+      "reopenPayment": "إعادة فتح صفحة الدفع",
+      "newBooking": "حجز جديد",
+      "ticketsAndQr": "التذاكر ورموز QR",
+      "ticketHolder": "حامل التذكرة",
+      "copyReference": "نسخ الرقم المرجعي",
+      "copied": "تم النسخ",
+      "cashBookingTitle": "تم استلام حجزك",
+      "cashBookingDesc": "احتفظ بالرقم المرجعي وأحضر رمز QR الخاص بك عند الحضور. سيتم تأكيد الدفع عند المدخل.",
+      "paymentMethodSadad": "سداد (دفع إلكتروني)",
+      "paymentMethodCash": "الدفع عند الحضور",
+      "statusConfirmed": "مؤكد",
+      "statusPending": "بانتظار الدفع",
+      "statusFailed": "لم يكتمل",
+      "statusCancelled": "ملغي",
     }
   }
 };

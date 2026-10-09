@@ -1,7 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.58.0";
 import { toZonedTime } from "https://esm.sh/date-fns-tz@3.2.0";
-import { isStaffAuthorized, unauthorizedResponse } from "../_shared/staffAuth.ts";
+import { staffIdentity, unauthorizedResponse } from "../_shared/staffAuth.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -104,9 +104,14 @@ serve(async (req) => {
     // Parse request body
     const { booking_reference, admin_id, staff_name, mode, passcode, search: searchInput, holder_id }: CheckInRequest = await req.json();
 
-    if (!(await isStaffAuthorized(req, supabase, passcode))) {
+    const identity = await staffIdentity(req, supabase, passcode);
+    if (!identity) {
       return unauthorizedResponse(corsHeaders);
     }
+    // Who is recorded as having admitted a ticket is decided here: the signed-in account, never
+    // an id sent in the request. The free-text label (shown on the gate board) is only a label.
+    const actorId = identity.userId;
+    const staffLabel = typeof staff_name === 'string' ? staff_name.replace(/\s+/g, ' ').trim().slice(0, 80) || null : null;
 
     // History mode: return the most recent successful check-ins
     if (mode === 'history') {
@@ -405,18 +410,25 @@ serve(async (req) => {
 
       const nowIso = new Date().toISOString();
       const patch: any = { is_present: true, confirmed_at: nowIso };
-      if (admin_id) patch.confirmed_by = admin_id;
-      if (staff_name) patch.confirmed_by_name = staff_name;
+      if (actorId) patch.confirmed_by = actorId;
+      if (staffLabel) patch.confirmed_by_name = staffLabel;
 
-      const { error: manualUpdateError } = await supabase
+      const { data: manualRows, error: manualUpdateError } = await supabase
         .from('ticket_holders')
         .update(patch)
         .eq('id', holder_id)
-        .eq('is_present', false);
+        .eq('is_present', false)
+        .select('id');
 
       if (manualUpdateError) {
         console.error('[Ticket Check-in] Manual update failed:', manualUpdateError);
         return new Response(JSON.stringify({ success: false, message: 'تعذر تسجيل الحضور، حاول مرة أخرى' }), {
+          status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+      // someone else admitted this ticket between our check and our update
+      if (!manualRows || manualRows.length === 0) {
+        return new Response(JSON.stringify({ success: false, message: 'تم تسجيل حضور هذه التذكرة مسبقاً', already: true }), {
           status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       }
@@ -464,7 +476,7 @@ serve(async (req) => {
 
     console.log('[Ticket Check-in] Searching for ticket holder with QR code:', booking_reference, '| today:', todayStr);
     
-    let { data: ticketHolder, error: holderError } = await supabase
+    const { data: ticketHolder, error: holderError } = await supabase
       .from('ticket_holders')
       .select(`
         id,
@@ -633,22 +645,45 @@ serve(async (req) => {
         confirmed_at: confirmed_at,
       };
 
-      if (admin_id) {
-        updateData.confirmed_by = admin_id;
+      if (actorId) {
+        updateData.confirmed_by = actorId;
       }
 
-      if (staff_name) {
-        updateData.confirmed_by_name = staff_name;
+      if (staffLabel) {
+        updateData.confirmed_by_name = staffLabel;
       }
 
-      const { error: updateError } = await supabase
+      // Conditional update: exactly one scanner can win when two people scan the same ticket at once.
+      const { data: admittedRows, error: updateError } = await supabase
         .from('ticket_holders')
         .update(updateData)
-        .eq('id', ticketHolder.id);
+        .eq('id', ticketHolder.id)
+        .eq('is_present', false)
+        .select('id');
 
       if (updateError) {
         console.error('[Ticket Check-in] Update failed:', updateError);
         throw updateError;
+      }
+      if (!admittedRows || admittedRows.length === 0) {
+        return new Response(
+          JSON.stringify({
+            success: false,
+            error: 'Already checked in',
+            message: 'تم استخدام التذكرة مسبقاً',
+            ticket_info: {
+              booking_reference: order.booking_reference,
+              customer_name: (Array.isArray(order.customers) ? order.customers[0]?.name : order.customers?.name) || 'غير معروف',
+              event_title: (Array.isArray(order.events) ? order.events[0]?.title : order.events?.title) || 'غير معروف',
+              ticket_type: ticketHolder.ticket_type,
+              ticket_holder_name: ticketHolder.name,
+              quantity: 1,
+              payment_status: order.payment_status,
+              is_present: true,
+            }
+          } as CheckInResponse),
+          { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
       }
 
       // Mark WhatsApp message as "sent via check-in" if not already sent
@@ -843,18 +878,26 @@ serve(async (req) => {
       confirmed_at: confirmed_at,
     };
 
-    if (admin_id) {
-      updateData.confirmed_by = admin_id;
+    if (actorId) {
+      updateData.confirmed_by = actorId;
     }
 
-    const { error: updateError } = await supabase
+    const { data: legacyRows, error: updateError } = await supabase
       .from('orders')
       .update(updateData)
-      .eq('id', order.id);
+      .eq('id', order.id)
+      .eq('is_present', false)
+      .select('id');
 
     if (updateError) {
       console.error('[Ticket Check-in] Update failed:', updateError);
       throw updateError;
+    }
+    if (!legacyRows || legacyRows.length === 0) {
+      return new Response(
+        JSON.stringify({ success: false, error: 'Already checked in', message: 'تم استخدام التذكرة مسبقاً' } as CheckInResponse),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
     // Mark WhatsApp message as "sent via check-in" if not already sent

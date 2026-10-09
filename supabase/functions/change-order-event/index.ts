@@ -1,6 +1,9 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.58.0";
-import { isStaffAuthorized, unauthorizedResponse } from "../_shared/staffAuth.ts";
+import { isAdminAuthorized, unauthorizedResponse } from "../_shared/staffAuth.ts";
+import { makeQrGenerator } from "../_shared/qr.ts";
+import { renderTicketQr } from "../_shared/qr-tools.ts";
+import { createQrStorage, createRepo, type SupabaseLike } from "../_shared/repo.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -8,9 +11,9 @@ const corsHeaders = {
 };
 
 function generateQRCode(): string {
-  const timestamp = Date.now();
-  const randomPart = Math.random().toString(36).substring(2, 15);
-  return `QR-${timestamp}-${randomPart}`.toUpperCase();
+  // unguessable: a ticket code is the only thing that opens the gate
+  const random = crypto.randomUUID().replace(/-/g, "").slice(0, 16);
+  return `QR-${Date.now()}-${random}`.toUpperCase();
 }
 
 serve(async (req) => {
@@ -20,7 +23,7 @@ serve(async (req) => {
   }
 
   try {
-    const { order_id, new_event_id, passcode } = await req.json();
+    const { order_id, new_event_id } = await req.json();
 
     if (!order_id || !new_event_id) {
       return new Response(
@@ -33,7 +36,8 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    if (!(await isStaffAuthorized(req, supabase, passcode))) {
+    // Moving a booking invalidates its tickets: administrators only, the shared passcode is not enough.
+    if (!(await isAdminAuthorized(req, supabase))) {
       return unauthorizedResponse(corsHeaders);
     }
 
@@ -145,6 +149,13 @@ serve(async (req) => {
 
     if (updateOrderError) {
       console.error('[Change Event] Error updating order:', updateOrderError);
+      // the database moves the booking's seats with it and refuses when the new event has no room
+      if (/insufficient_stock/.test(updateOrderError.message ?? '')) {
+        return new Response(
+          JSON.stringify({ error: 'insufficient_stock', message: 'لا توجد تذاكر كافية في الفعالية الجديدة' }),
+          { status: 409, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
       return new Response(
         JSON.stringify({ error: 'Error updating order' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -155,20 +166,38 @@ serve(async (req) => {
 
     // 5. Generate new QR codes for all ticket holders
     let updatedHoldersCount = 0;
+    const renewed: { id: string; qr_code: string }[] = [];
     if (ticketHolders && ticketHolders.length > 0) {
       for (const holder of ticketHolders) {
         const newHolderQRCode = generateQRCode();
+        // the old picture encodes the old code: drop it, a fresh one is drawn below
         const { error: updateHolderError } = await supabase
           .from('ticket_holders')
-          .update({ qr_code: newHolderQRCode })
+          .update({ qr_code: newHolderQRCode, qr_image_url: null })
           .eq('id', holder.id);
 
         if (updateHolderError) {
           console.error(`[Change Event] Error updating ticket holder ${holder.id}:`, updateHolderError);
         } else {
           updatedHoldersCount++;
+          renewed.push({ id: holder.id, qr_code: newHolderQRCode });
         }
       }
+    }
+
+    // New pictures for the new codes (best effort: a ticket also scans by its code).
+    if (renewed.length > 0) {
+      const sb = supabase as unknown as SupabaseLike;
+      const qrDeps = {
+        repo: createRepo(sb),
+        storage: createQrStorage(sb),
+        generateQr: makeQrGenerator({ loadLib: () => import("npm:qrcode@1.5.4"), fetch }),
+      };
+      await Promise.all(
+        renewed.map((holder) =>
+          renderTicketQr(qrDeps, holder).catch((e) => console.error('[Change Event] QR picture failed:', holder.qr_code, e)),
+        ),
+      );
     }
 
     console.log(`[Change Event] Updated ${updatedHoldersCount} ticket holders with new QR codes`);
