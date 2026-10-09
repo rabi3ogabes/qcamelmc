@@ -189,7 +189,7 @@ export const useVisitorTracking = () => {
 
       const { error } = await supabase
         .from("active_visitors")
-        .upsert(visitorData, { onConflict: "session_id" });
+        .upsert(visitorData, { onConflict: "session_id", ignoreDuplicates: true });
 
       if (error) console.error("Error tracking visitor:", error);
 
