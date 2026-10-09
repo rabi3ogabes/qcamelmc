@@ -1079,6 +1079,7 @@ export type Database = {
         }
         Returns: Json
       }
+      expire_stale_orders: { Args: { p_event?: string }; Returns: number }
       generate_booking_reference: { Args: never; Returns: string }
       generate_ticket_holder_reference: { Args: never; Returns: string }
       get_event_ticket_counts: {
@@ -1147,6 +1148,7 @@ export type Database = {
         Returns: boolean
       }
       is_admin: { Args: { user_id: string }; Returns: boolean }
+      release_expired_holds: { Args: { p_event: string }; Returns: number }
       reserve_tickets: {
         Args: { p_event_id: string; p_quantity: number; p_ticket_type: string }
         Returns: Json
