@@ -8,6 +8,8 @@ import { Input } from "@/components/ui/input";
 import { ArrowLeft, CheckCircle2, XCircle, Loader2, Search, Camera, AlertCircle, LogOut } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
+import { api } from "@/lib/api";
+import { normalizeScannedCode } from "@/lib/tickets";
 
 interface TicketHolder {
   id: string;
@@ -18,7 +20,7 @@ interface TicketHolder {
   ticket_type: string;
   id_number: string;
   is_present: boolean;
-  confirmed_at?: string;
+  confirmed_at?: string | null;
 }
 
 interface TicketInfo {
@@ -34,7 +36,7 @@ interface TicketInfo {
   quantity: number;
   payment_status: string;
   is_present: boolean;
-  confirmed_at?: string;
+  confirmed_at?: string | null;
 }
 
 const QRScanner = () => {
@@ -88,7 +90,6 @@ const QRScanner = () => {
     if (scannerRef.current && isScanning.current) {
       try {
         await scannerRef.current.stop();
-        console.log("Scanner stopped");
       } catch (error) {
         console.error("Error stopping scanner:", error);
       }
@@ -113,7 +114,6 @@ const QRScanner = () => {
     setCameraError(null);
     
     try {
-      console.log("Starting camera...");
       
       // Check if browser supports camera
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
@@ -129,7 +129,6 @@ const QRScanner = () => {
 
       // Get available cameras
       const cameras = await Html5Qrcode.getCameras();
-      console.log("Available cameras:", cameras);
 
       if (!cameras || cameras.length === 0) {
         throw new Error("لم يتم العثور على كاميرا");
@@ -141,7 +140,6 @@ const QRScanner = () => {
         cam.label.toLowerCase().includes('rear')
       ) || cameras[0];
 
-      console.log("Using camera:", backCamera.label);
 
       // Start scanning
       await scanner.start(
@@ -157,11 +155,11 @@ const QRScanner = () => {
       isScanning.current = true;
       setScanning(true);
       setCameraStarting(false);
-      console.log("Scanner started successfully");
       toast.success("تم تشغيل الكاميرا بنجاح");
 
-    } catch (error: any) {
-      console.error("Failed to start scanner:", error);
+    } catch (caught) {
+      const error = caught as { name?: string; message?: string };
+      console.error("Failed to start scanner:", caught);
       setCameraStarting(false);
       
       let errorMessage = "فشل تشغيل الكاميرا";
@@ -181,7 +179,8 @@ const QRScanner = () => {
     }
   };
 
-  const processTicket = async (scannedCode: string) => {
+  const processTicket = async (rawScan: string) => {
+    const scannedCode = normalizeScannedCode(rawScan);
     setProcessing(true);
     setScanning(false);
     setAvailableTickets([]);
@@ -231,7 +230,12 @@ const QRScanner = () => {
           return;
         }
 
-        const order: any = orderData.orders;
+        const order = orderData.orders as unknown as {
+          booking_reference: string;
+          payment_status: string;
+          customers: { name: string };
+          events: { title: string };
+        };
         
         setTicketInfo({
           booking_reference: order.booking_reference,
@@ -241,12 +245,12 @@ const QRScanner = () => {
           ticket_holder_name: orderData.name,
           ticket_holder_phone: orderData.phone,
           ticket_holder_nationality: orderData.nationality,
-          ticket_holder_id_number: orderData.id_number,
-          ticket_holder_qr_code: orderData.qr_code,
+          ticket_holder_id_number: orderData.id_number ?? undefined,
+          ticket_holder_qr_code: orderData.qr_code ?? undefined,
           quantity: 1,
           payment_status: order.payment_status,
-          is_present: orderData.is_present,
-          confirmed_at: orderData.confirmed_at,
+          is_present: Boolean(orderData.is_present),
+          confirmed_at: orderData.confirmed_at ?? undefined,
         });
 
         if (orderData.is_present) {
@@ -302,14 +306,21 @@ const QRScanner = () => {
           return;
         }
 
-        setAvailableTickets(ticketsData);
+        setAvailableTickets(
+          ticketsData.map((ticket) => ({
+            ...ticket,
+            qr_code: ticket.qr_code ?? "",
+            id_number: ticket.id_number ?? "",
+            is_present: Boolean(ticket.is_present),
+          })),
+        );
         setTicketInfo({
           booking_reference: orderData.booking_reference,
           customer_name: orderData.customers.name,
           event_title: orderData.events.title,
           ticket_type: ticketsData[0].ticket_type,
           quantity: ticketsData.length,
-          payment_status: orderData.payment_status,
+          payment_status: orderData.payment_status ?? "pending",
           is_present: false,
         });
         setScanResult('success');
@@ -344,8 +355,6 @@ const QRScanner = () => {
     
     setProcessing(true);
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      
       // Use the selected ticket's QR code, or the ticket info's QR code if it's a specific ticket
       const qrCode = selectedTicketId 
         ? availableTickets.find(t => t.id === selectedTicketId)?.qr_code
@@ -356,17 +365,15 @@ const QRScanner = () => {
         return;
       }
       
-      const { data, error } = await supabase.functions.invoke('ticket-checkin', {
-        body: { 
-          booking_reference: qrCode,
-          admin_id: user?.id 
-        },
-      });
+      // The server records WHICH admin admitted the ticket (from the verified session)
+      const result = await api.checkInTicket(qrCode);
+      if (result.ok === false) {
+        const detail = result.error.details?.message;
+        toast.error(typeof detail === "string" ? detail : 'فشل تأكيد الحضور');
+        return;
+      }
 
-      if (error) throw error;
-
-      const response = data as { success: boolean; message: string; ticket_info?: any; };
-
+      const response = result.data;
       if (!response.success) {
         toast.error(response.message || 'فشل تأكيد الحضور');
         return;
@@ -399,9 +406,9 @@ const QRScanner = () => {
       setSelectedTicketId(null);
       setScanResult('success');
       toast.success(response.message || '✅ تم تأكيد الحضور بنجاح');
-    } catch (err: any) {
+    } catch (err) {
       console.error('Confirmation error:', err);
-      toast.error(err.message || 'حدث خطأ أثناء تأكيد الحضور');
+      toast.error((err instanceof Error && err.message) || 'حدث خطأ أثناء تأكيد الحضور');
     } finally {
       setProcessing(false);
     }
@@ -467,9 +474,9 @@ const QRScanner = () => {
       setSelectedTicketId(null);
       setScanResult('success');
       toast.success('✅ تم إلغاء تأكيد الحضور بنجاح');
-    } catch (err: any) {
+    } catch (err) {
       console.error('Unconfirmation error:', err);
-      toast.error(err.message || 'حدث خطأ أثناء إلغاء تأكيد الحضور');
+      toast.error((err instanceof Error && err.message) || 'حدث خطأ أثناء إلغاء تأكيد الحضور');
     } finally {
       setProcessing(false);
     }
@@ -477,7 +484,6 @@ const QRScanner = () => {
 
   const onScanSuccess = async (decodedText: string) => {
     if (processing) return;
-    console.log("QR Code scanned:", decodedText);
     
     // Stop scanner while processing
     await stopScanner();
@@ -486,7 +492,7 @@ const QRScanner = () => {
     await processTicket(decodedText);
   };
 
-  const onScanError = (error: any) => {
+  const onScanError = (_error: unknown) => {
     // Ignore scan errors (they happen frequently during scanning)
     // Don't log to avoid console spam
   };

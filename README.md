@@ -1,3 +1,17 @@
+# Qatar Ticketing Hub
+
+Online ticketing for Qatar events: ticket sales with Sadad payments, QR tickets, gate scanning, a cash point of
+sale and an admin dashboard. Vite + React + TypeScript + shadcn/ui, Supabase (Postgres, RLS, Edge Functions).
+
+- **How to deploy and verify the payment/security release:** [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)
+- **Run every check:** `npm run check` (lint, types, unit tests, database tests, Deno type-check)
+- **Architecture in one paragraph:** the browser never writes orders or sets prices. `create-order` prices and
+  reserves tickets inside the database, Sadad's hosted page takes the payment, and an order is only confirmed
+  after Sadad's own API says it was paid (`supabase/functions/_shared/payment-decision.ts`). Customer data and
+  gateway secrets are readable by administrators only (row-level security).
+
+---
+
 # Welcome to your Lovable project
 
 ## Project info

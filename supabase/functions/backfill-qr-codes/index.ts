@@ -1,124 +1,18 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1';
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.58.0";
+import { backfillQrCodesHandler } from "./handler.ts";
+import { makeQrGenerator } from "./_shared/qr.ts";
+import { createQrStorage, createRepo, type SupabaseLike } from "./_shared/repo.ts";
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+const sb = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!, {
+  auth: { persistSession: false, autoRefreshToken: false },
+}) as unknown as SupabaseLike;
 
-serve(async (req) => {
-  if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
-  }
-
-  try {
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const supabase = createClient(supabaseUrl, supabaseKey);
-
-    // Fetch all ticket holders that have text-based QR codes (not URLs)
-    const { data: holders, error: fetchError } = await supabase
-      .from('ticket_holders')
-      .select('id, qr_code')
-      .not('qr_code', 'is', null);
-
-    if (fetchError) {
-      console.error('Fetch error:', fetchError);
-      return new Response(
-        JSON.stringify({ error: fetchError.message }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    console.log(`Found ${holders?.length || 0} ticket holders`);
-
-    let updated = 0;
-    let skipped = 0;
-    const errors: string[] = [];
-
-    for (const holder of holders || []) {
-      // Skip if already has a URL (starts with http)
-      if (holder.qr_code?.startsWith('http')) {
-        skipped++;
-        continue;
-      }
-
-      const qrText = holder.qr_code;
-      console.log(`Generating QR for: ${qrText}`);
-
-      try {
-        // Generate QR code using API
-        const qrApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=800x800&data=${encodeURIComponent(qrText)}&format=png`;
-        
-        console.log(`Fetching QR from API: ${qrApiUrl}`);
-        const qrResponse = await fetch(qrApiUrl);
-        
-        if (!qrResponse.ok) {
-          throw new Error(`QR API returned ${qrResponse.status}`);
-        }
-        
-        const qrBuffer = new Uint8Array(await qrResponse.arrayBuffer());
-
-        // Upload to storage
-        const { data: uploadData, error: uploadError } = await supabase.storage
-          .from('qr-codes')
-          .upload(`${qrText}.png`, qrBuffer, {
-            contentType: 'image/png',
-            upsert: true
-          });
-
-        if (uploadError) {
-          console.error(`Upload error for ${qrText}:`, uploadError);
-          errors.push(`${qrText}: ${uploadError.message}`);
-          continue;
-        }
-
-        // Get public URL
-        const { data: { publicUrl } } = supabase.storage
-          .from('qr-codes')
-          .getPublicUrl(`${qrText}.png`);
-
-        // Update ticket holder with the image URL
-        const { error: updateError } = await supabase
-          .from('ticket_holders')
-          .update({ qr_code: publicUrl })
-          .eq('id', holder.id);
-
-        if (updateError) {
-          console.error(`Update error for ${qrText}:`, updateError);
-          errors.push(`${qrText}: ${updateError.message}`);
-          continue;
-        }
-
-        updated++;
-        console.log(`Successfully updated ${qrText}`);
-
-      } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : String(error);
-        console.error(`Error processing ${qrText}:`, error);
-        errors.push(`${qrText}: ${errorMessage}`);
-      }
-    }
-
-    console.log(`Completed: ${updated} updated, ${skipped} skipped, ${errors.length} errors`);
-
-    return new Response(
-      JSON.stringify({ 
-        success: true,
-        updated,
-        skipped,
-        errors: errors.length > 0 ? errors : undefined,
-        message: `Successfully updated ${updated} QR codes, skipped ${skipped} existing URLs`
-      }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
-
-  } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    console.error('Error:', error);
-    return new Response(
-      JSON.stringify({ error: errorMessage }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
-  }
-});
+const repo = createRepo(sb);
+Deno.serve(
+  backfillQrCodesHandler({
+    repo,
+    auth: repo,
+    storage: createQrStorage(sb),
+    generateQr: makeQrGenerator({ loadLib: () => import("npm:qrcode@1.5.4"), fetch }),
+  }),
+);

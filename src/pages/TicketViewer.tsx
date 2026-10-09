@@ -16,7 +16,10 @@ interface TicketHolder {
   country_code?: string;
   nationality: string;
   ticket_type: string;
+  /** The scannable ticket code. */
   qr_code: string;
+  /** Stored picture of that code (may not exist yet). */
+  qr_image_url?: string | null;
   id_number: string;
   is_present: boolean;
   confirmed_at: string | null;
@@ -89,7 +92,6 @@ const TicketViewer = () => {
           table: 'ticket_holders'
         },
         (payload) => {
-          console.log('Ticket holder updated in viewer:', payload);
           
           // Update the specific ticket holder in the list
           setTicketHolders((current) =>
@@ -109,6 +111,7 @@ const TicketViewer = () => {
   }, []);
 
   const fetchTickets = async () => {
+    if (!bookingRef) return;
     try {
       setLoading(true);
       
@@ -116,6 +119,7 @@ const TicketViewer = () => {
       const { data: orderData, error: orderError } = await supabase
         .from("orders")
         .select(`
+          id,
           booking_reference,
           customers (
             name,
@@ -133,7 +137,12 @@ const TicketViewer = () => {
 
       if (orderError) throw orderError;
 
-      const order: any = orderData;
+      const order = orderData as unknown as {
+        id: string;
+        booking_reference: string;
+        events: { title: string; event_date: string; location: string };
+        customers: { name: string; email: string; phone: string };
+      };
       setOrderDetails({
         booking_reference: order.booking_reference,
         event_title: order.events.title,
@@ -144,40 +153,17 @@ const TicketViewer = () => {
         customer_phone: order.customers.phone,
       });
 
-      // Fetch ticket holders
+      // Fetch this booking's ticket holders
       const { data: holdersData, error: holdersError } = await supabase
         .from("ticket_holders")
         .select("*")
-        .eq("qr_code", `${bookingRef}-TKT%`)
-        .ilike("qr_code", `${bookingRef}-TKT%`);
+        .eq("order_id", order.id)
+        .order("qr_code");
 
       if (holdersError) throw holdersError;
 
-      // Also try direct order_id match as fallback
-      if (!holdersData || holdersData.length === 0) {
-        const { data: orderIdData } = await supabase
-          .from("orders")
-          .select("id")
-          .eq("booking_reference", bookingRef)
-          .single();
-
-        if (orderIdData) {
-          const { data: holdersByOrderId, error: holdersByOrderIdError } = await supabase
-            .from("ticket_holders")
-            .select("*")
-            .eq("order_id", orderIdData.id);
-
-          if (!holdersByOrderIdError && holdersByOrderId) {
-            setTicketHolders(holdersByOrderId);
-            generateAllQRCodes(holdersByOrderId);
-            return;
-          }
-        }
-      }
-
-      setTicketHolders(holdersData || []);
-      generateAllQRCodes(holdersData || []);
-    } catch (error) {
+      setTicketHolders((holdersData ?? []) as TicketHolder[]);
+      generateAllQRCodes((holdersData ?? []) as TicketHolder[]);    } catch (error) {
       console.error("Error fetching tickets:", error);
       toast.error("فشل تحميل التذاكر");
     } finally {
@@ -466,9 +452,9 @@ const TicketViewer = () => {
   const sendTicketToWhatsApp = async (holder: TicketHolder) => {
     setSendingTicket(holder.id);
     try {
-      // Fetch webhook URL from settings
+      // The webhook URL is an admin-only setting
       const { data: settings, error: settingsError } = await supabase
-        .from("settings")
+        .from("private_settings")
         .select("webhook_url")
         .maybeSingle();
 
@@ -479,11 +465,11 @@ const TicketViewer = () => {
         return;
       }
 
-      // Convert QR code data URL to blob and upload to storage
-      let qrCodeImageUrl = "";
+      // Use the ticket's stored QR picture; otherwise draw it here and upload it
+      let qrCodeImageUrl = holder.qr_image_url ?? "";
       const qrDataUrl = qrCodeImages[holder.id];
       
-      if (qrDataUrl) {
+      if (!qrCodeImageUrl && qrDataUrl) {
         try {
           // Convert data URL to blob
           const response = await fetch(qrDataUrl);
@@ -531,7 +517,8 @@ const TicketViewer = () => {
         holder: {
           name: holder.name,
           phone: holder.phone.replace(/^\+\d+\s*/, '').trim(),
-          country_code: holder.country_code?.replace('+', '') || '974',
+          // the number's own "+code" is the truth (old records stored +974 for everyone)
+          country_code: /^\s*\+(\d{1,4})\s/.exec(holder.phone)?.[1] ?? (holder.country_code?.replace('+', '') || '974'),
           nationality: holder.nationality,
           id_number: holder.id_number,
           ticket_type: holder.ticket_type,
@@ -681,10 +668,7 @@ const TicketViewer = () => {
               <CardHeader className="bg-primary/5">
                 <CardTitle className="flex items-center justify-between text-lg">
                   <span className="font-mono">
-                    {holder.qr_code?.includes('http') 
-                      ? holder.qr_code.split('/').pop()?.replace('.png', '').replace('.jpg', '')
-                      : holder.qr_code
-                    }
+                    {holder.qr_code}
                   </span>
                   {holder.is_present && (
                     <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded">
@@ -775,11 +759,7 @@ const TicketViewer = () => {
           <DialogContent className="max-w-fit">
             <DialogHeader>
               <DialogTitle className="font-lusail text-2xl text-center">
-                {selectedQR && (
-                  selectedQR.holder.qr_code?.includes('http') 
-                    ? selectedQR.holder.qr_code.split('/').pop()?.replace('.png', '').replace('.jpg', '')
-                    : selectedQR.holder.qr_code
-                )}
+                {selectedQR?.holder.qr_code}
               </DialogTitle>
             </DialogHeader>
             {selectedQR && (

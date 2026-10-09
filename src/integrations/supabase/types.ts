@@ -123,11 +123,16 @@ export type Database = {
           event_id: string
           id: string
           is_present: boolean | null
+          last_payment_check_at: string | null
+          paid_at: string | null
+          payment_expires_at: string | null
           payment_id: string | null
           payment_method: Database["public"]["Enums"]["payment_method"]
+          payment_note: string | null
           payment_status: Database["public"]["Enums"]["payment_status"] | null
           qr_code: string | null
           quantity: number
+          return_origin: string | null
           ticket_type: Database["public"]["Enums"]["ticket_type"]
           total_amount: number
         }
@@ -140,11 +145,16 @@ export type Database = {
           event_id: string
           id?: string
           is_present?: boolean | null
+          last_payment_check_at?: string | null
+          paid_at?: string | null
+          payment_expires_at?: string | null
           payment_id?: string | null
           payment_method: Database["public"]["Enums"]["payment_method"]
+          payment_note?: string | null
           payment_status?: Database["public"]["Enums"]["payment_status"] | null
           qr_code?: string | null
           quantity: number
+          return_origin?: string | null
           ticket_type: Database["public"]["Enums"]["ticket_type"]
           total_amount: number
         }
@@ -157,11 +167,16 @@ export type Database = {
           event_id?: string
           id?: string
           is_present?: boolean | null
+          last_payment_check_at?: string | null
+          paid_at?: string | null
+          payment_expires_at?: string | null
           payment_id?: string | null
           payment_method?: Database["public"]["Enums"]["payment_method"]
+          payment_note?: string | null
           payment_status?: Database["public"]["Enums"]["payment_status"] | null
           qr_code?: string | null
           quantity?: number
+          return_origin?: string | null
           ticket_type?: Database["public"]["Enums"]["ticket_type"]
           total_amount?: number
         }
@@ -212,9 +227,100 @@ export type Database = {
         }
         Relationships: []
       }
-      settings: {
+      payment_events: {
+        Row: {
+          api_result: string | null
+          booking_reference: string | null
+          checksum_valid: boolean | null
+          created_at: string
+          decision: string | null
+          id: number
+          order_id: string | null
+          outcome: string | null
+          payload: Json | null
+          source: string
+        }
+        Insert: {
+          api_result?: string | null
+          booking_reference?: string | null
+          checksum_valid?: boolean | null
+          created_at?: string
+          decision?: string | null
+          id?: never
+          order_id?: string | null
+          outcome?: string | null
+          payload?: Json | null
+          source: string
+        }
+        Update: {
+          api_result?: string | null
+          booking_reference?: string | null
+          checksum_valid?: boolean | null
+          created_at?: string
+          decision?: string | null
+          id?: never
+          order_id?: string | null
+          outcome?: string | null
+          payload?: Json | null
+          source?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payment_events_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      private_settings: {
         Row: {
           admin_phone: string | null
+          created_at: string
+          id: string
+          sadad_api_key: string | null
+          sadad_environment: string
+          sadad_merchant_id: string | null
+          sadad_secret: string | null
+          sadad_website_domain: string | null
+          singleton: boolean
+          site_url: string | null
+          updated_at: string
+          webhook_url: string | null
+        }
+        Insert: {
+          admin_phone?: string | null
+          created_at?: string
+          id?: string
+          sadad_api_key?: string | null
+          sadad_environment?: string
+          sadad_merchant_id?: string | null
+          sadad_secret?: string | null
+          sadad_website_domain?: string | null
+          singleton?: boolean
+          site_url?: string | null
+          updated_at?: string
+          webhook_url?: string | null
+        }
+        Update: {
+          admin_phone?: string | null
+          created_at?: string
+          id?: string
+          sadad_api_key?: string | null
+          sadad_environment?: string
+          sadad_merchant_id?: string | null
+          sadad_secret?: string | null
+          sadad_website_domain?: string | null
+          singleton?: boolean
+          site_url?: string | null
+          updated_at?: string
+          webhook_url?: string | null
+        }
+        Relationships: []
+      }
+      settings: {
+        Row: {
           copyright_text: string | null
           created_at: string | null
           header_bg_color: string | null
@@ -222,17 +328,11 @@ export type Database = {
           hero_text: string | null
           id: string
           logo_url: string | null
-          sadad_api_key: string | null
-          sadad_merchant_id: string | null
-          sadad_secret: string | null
-          sadad_website_domain: string | null
           show_delete_customer_button: boolean | null
           show_generate_qr_button: boolean | null
           updated_at: string | null
-          webhook_url: string | null
         }
         Insert: {
-          admin_phone?: string | null
           copyright_text?: string | null
           created_at?: string | null
           header_bg_color?: string | null
@@ -240,17 +340,11 @@ export type Database = {
           hero_text?: string | null
           id?: string
           logo_url?: string | null
-          sadad_api_key?: string | null
-          sadad_merchant_id?: string | null
-          sadad_secret?: string | null
-          sadad_website_domain?: string | null
           show_delete_customer_button?: boolean | null
           show_generate_qr_button?: boolean | null
           updated_at?: string | null
-          webhook_url?: string | null
         }
         Update: {
-          admin_phone?: string | null
           copyright_text?: string | null
           created_at?: string | null
           header_bg_color?: string | null
@@ -258,14 +352,9 @@ export type Database = {
           hero_text?: string | null
           id?: string
           logo_url?: string | null
-          sadad_api_key?: string | null
-          sadad_merchant_id?: string | null
-          sadad_secret?: string | null
-          sadad_website_domain?: string | null
           show_delete_customer_button?: boolean | null
           show_generate_qr_button?: boolean | null
           updated_at?: string | null
-          webhook_url?: string | null
         }
         Relationships: []
       }
@@ -283,6 +372,7 @@ export type Database = {
           order_id: string
           phone: string
           qr_code: string | null
+          qr_image_url: string | null
           ticket_type: string
         }
         Insert: {
@@ -298,6 +388,7 @@ export type Database = {
           order_id: string
           phone: string
           qr_code?: string | null
+          qr_image_url?: string | null
           ticket_type: string
         }
         Update: {
@@ -313,6 +404,7 @@ export type Database = {
           order_id?: string
           phone?: string
           qr_code?: string | null
+          qr_image_url?: string | null
           ticket_type?: string
         }
         Relationships: [
@@ -333,7 +425,7 @@ export type Database = {
           event_id: string
           id: string
           price: number
-          sold_quantity: number | null
+          sold_quantity: number
           type: Database["public"]["Enums"]["ticket_type"]
         }
         Insert: {
@@ -371,13 +463,16 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      cancel_order: { Args: { p_note?: string; p_order_id: string }; Returns: Json }
       generate_booking_reference: { Args: never; Returns: string }
       generate_ticket_holder_reference: { Args: never; Returns: string }
+      get_order_status: { Args: { p_refs: string[] }; Returns: Json }
       is_admin: { Args: { user_id: string }; Returns: boolean }
+      recount_ticket_stock: { Args: never; Returns: number }
     }
     Enums: {
       payment_method: "sadad" | "cash_pos"
-      payment_status: "pending" | "confirmed" | "cancelled"
+      payment_status: "pending" | "confirmed" | "cancelled" | "failed"
       ticket_type: "vip" | "normal" | "parking"
     }
     CompositeTypes: {

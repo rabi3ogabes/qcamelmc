@@ -100,7 +100,6 @@ const LiveBookings = () => {
         // Set the selected date to the upcoming event date
         const upcomingEventDate = new Date(events[0].event_date);
         setSelectedDate(upcomingEventDate);
-        console.log("Auto-selected upcoming event date:", format(upcomingEventDate, 'yyyy-MM-dd'));
       } else {
         // No upcoming events, fetch bookings without filter
         fetchBookings();
@@ -165,16 +164,14 @@ const LiveBookings = () => {
 
       if (error) throw error;
 
-      console.log("Raw data from Supabase:", data);
-      console.log("First order ticket_holders:", data?.[0]?.ticket_holders);
 
       // Filter by event date on client side if date is selected
-      let filteredData = data || [];
+      let filteredData = (data ?? []) as unknown as Booking[];
       if (selectedDate) {
         // Format selected date as YYYY-MM-DD for comparison
         const selectedDateStr = format(selectedDate, 'yyyy-MM-dd');
         
-        filteredData = filteredData.filter((order: any) => {
+        filteredData = filteredData.filter((order) => {
           if (!order.events?.event_date) return false;
           // Extract just the date part from event_date
           const eventDateStr = order.events.event_date.split('T')[0];
@@ -182,22 +179,17 @@ const LiveBookings = () => {
         });
       }
 
-      console.log("Filtered data:", filteredData);
-      console.log("First filtered order:", filteredData[0]);
 
       // Extract all ticket holders from filtered bookings
       const allTicketHolders: TicketHolder[] = [];
       filteredData.forEach(order => {
-        console.log(`Order ${order.booking_reference} ticket_holders:`, order.ticket_holders);
         if (order.ticket_holders && Array.isArray(order.ticket_holders)) {
-          order.ticket_holders.forEach((holder: any) => {
+          order.ticket_holders.forEach((holder) => {
             allTicketHolders.push(holder);
           });
         }
       });
 
-      console.log("Total ticket holders extracted:", allTicketHolders.length);
-      console.log("Ticket holders:", allTicketHolders);
 
       setBookings(filteredData);
       setTicketHolders(allTicketHolders);
@@ -222,7 +214,6 @@ const LiveBookings = () => {
           table: 'orders'
         },
         (payload) => {
-          console.log('Order update:', payload);
           fetchBookings();
         }
       )
@@ -239,7 +230,6 @@ const LiveBookings = () => {
           table: 'ticket_holders'
         },
         (payload) => {
-          console.log('Ticket holder update:', payload);
           fetchBookings();
         }
       )
@@ -256,7 +246,7 @@ const LiveBookings = () => {
     const confirmed = bookingsData.filter(b => b.payment_status === 'confirmed').length;
     const present = bookingsData.filter(b => {
       const holders = b.ticket_holders || [];
-      return holders.some((h: any) => h.is_present === true);
+      return holders.some((h) => h.is_present === true);
     }).length;
     const totalTickets = bookingsData.reduce((sum, b) => sum + b.quantity, 0);
     const totalTicketHolders = ticketHoldersData.length;
@@ -269,7 +259,7 @@ const LiveBookings = () => {
     try {
       const { error } = await supabase
         .from("orders")
-        .update({ is_present: !currentStatus } as any)
+        .update({ is_present: !currentStatus })
         .eq("id", bookingId);
 
       if (error) throw error;

@@ -16,7 +16,7 @@ interface PopupBanner {
   title: string;
   message: string;
   image_url: string | null;
-  is_active: boolean;
+  is_active: boolean | null;
 }
 
 export const PopupBannersTab = () => {
@@ -181,8 +181,8 @@ export const PopupBannersTab = () => {
                   </Label>
                   <Switch
                     id={`active-${banner.id}`}
-                    checked={banner.is_active}
-                    onCheckedChange={() => toggleBannerStatus(banner.id, banner.is_active)}
+                    checked={Boolean(banner.is_active)}
+                    onCheckedChange={() => toggleBannerStatus(banner.id, Boolean(banner.is_active))}
                   />
                 </div>
 

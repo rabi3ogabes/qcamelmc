@@ -18,12 +18,12 @@ import { cn } from "@/lib/utils";
 interface Event {
   id: string;
   title: string;
-  description: string;
+  description: string | null;
   event_date: string;
   location: string;
-  is_active: boolean;
+  is_active: boolean | null;
   image_url: string | null;
-  display_order?: number;
+  display_order?: number | null;
   tickets_sold?: { type: string; count: number; max: number }[];
 }
 
@@ -66,7 +66,7 @@ export const EventsTab = () => {
             .eq("payment_status", "confirmed");
           
           // Group by ticket type and sum quantities
-          const ticketsByType = (ordersData || []).reduce((acc: any, order) => {
+          const ticketsByType = (ordersData || []).reduce((acc: Record<string, number>, order) => {
             const type = order.ticket_type;
             if (!acc[type]) {
               acc[type] = 0;
@@ -280,8 +280,8 @@ export const EventsTab = () => {
                   </Label>
                   <Switch
                     id={`active-${event.id}`}
-                    checked={event.is_active}
-                    onCheckedChange={() => toggleEventStatus(event.id, event.is_active)}
+                    checked={Boolean(event.is_active)}
+                    onCheckedChange={() => toggleEventStatus(event.id, Boolean(event.is_active))}
                   />
                 </div>
               </div>

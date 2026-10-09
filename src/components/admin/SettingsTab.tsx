@@ -5,10 +5,30 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Upload, Image as ImageIcon } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useTranslation } from "react-i18next";
 import { supabase } from "@/integrations/supabase/client";
+import type { TablesUpdate } from "@/integrations/supabase/types";
 import { toast } from "sonner";
 import { SadadDiagnostic } from "./SadadDiagnostic";
+
+/** Branding and display options anyone may read (logo, colours, texts, toggles). */
+async function savePublicSettings(patch: TablesUpdate<"settings">) {
+  const { data: row, error: lookupError } = await supabase.from("settings").select("id").limit(1).maybeSingle();
+  if (lookupError) throw lookupError;
+  const { error } = row
+    ? await supabase.from("settings").update(patch).eq("id", row.id)
+    : await supabase.from("settings").insert(patch);
+  if (error) throw error;
+}
+
+/** Gateway credentials, webhook and admin phone: readable and writable by administrators only. */
+async function savePrivateSettings(patch: TablesUpdate<"private_settings">) {
+  const { error } = await supabase.from("private_settings").upsert({ singleton: true, ...patch }, { onConflict: "singleton" });
+  if (error) throw error;
+}
+
+type SadadEnvironment = "auto" | "sandbox" | "live";
 
 export const SettingsTab = () => {
   const { t } = useTranslation();
@@ -22,16 +42,16 @@ export const SettingsTab = () => {
   const [newHeroText, setNewHeroText] = useState("");
   const [copyrightText, setCopyrightText] = useState("");
   const [newCopyrightText, setNewCopyrightText] = useState("");
-  const [webhookUrl, setWebhookUrl] = useState("");
   const [newWebhookUrl, setNewWebhookUrl] = useState("");
-  const [adminPhone, setAdminPhone] = useState("");
   const [newAdminPhone, setNewAdminPhone] = useState("");
   const [sadadMerchantId, setSadadMerchantId] = useState("");
-  const [sadadApiKey, setSadadApiKey] = useState("");
+  const [sadadSupportPin, setSadadSupportPin] = useState("");
   const [sadadSecret, setSadadSecret] = useState("");
   const [sadadWebsiteDomain, setSadadWebsiteDomain] = useState("");
+  const [sadadEnvironment, setSadadEnvironment] = useState<SadadEnvironment>("auto");
+  const [siteUrl, setSiteUrl] = useState("");
   const [loading, setLoading] = useState(false);
-  const [savingPhone, setSavingPhone] = useState(false);
+  const [savingAutomation, setSavingAutomation] = useState(false);
   const [savingSadad, setSavingSadad] = useState(false);
   const [showDeleteButton, setShowDeleteButton] = useState(false);
   const [savingDeleteButton, setSavingDeleteButton] = useState(false);
@@ -43,57 +63,55 @@ export const SettingsTab = () => {
   }, []);
 
   const fetchSettings = async () => {
-    const { data, error } = await supabase
-      .from("settings")
-      .select("logo_url, hero_image_url, header_bg_color, hero_text, copyright_text, webhook_url, admin_phone, sadad_merchant_id, sadad_api_key, sadad_secret, sadad_website_domain, show_delete_customer_button, show_generate_qr_button")
-      .maybeSingle();
+    const [publicResult, privateResult] = await Promise.all([
+      supabase
+        .from("settings")
+        .select("logo_url, hero_image_url, header_bg_color, hero_text, copyright_text, show_delete_customer_button, show_generate_qr_button")
+        .limit(1)
+        .maybeSingle(),
+      supabase
+        .from("private_settings")
+        .select("webhook_url, admin_phone, sadad_merchant_id, sadad_api_key, sadad_secret, sadad_website_domain, sadad_environment, site_url")
+        .limit(1)
+        .maybeSingle(),
+    ]);
 
-    if (error) {
-      console.error("Error fetching settings:", error);
-      return;
-    }
+    if (publicResult.error) console.error("Error fetching settings:", publicResult.error);
+    if (privateResult.error) console.error("Error fetching private settings:", privateResult.error);
 
+    const data = publicResult.data;
     if (data?.logo_url) {
       setLogoUrl(data.logo_url);
       setNewLogoUrl(data.logo_url);
     }
-
     if (data?.hero_image_url) {
       setHeroImageUrl(data.hero_image_url);
       setNewHeroImageUrl(data.hero_image_url);
     }
-    
     if (data?.header_bg_color) {
       setHeaderBgColor(data.header_bg_color);
       setNewHeaderBgColor(data.header_bg_color);
     }
-
     if (data?.hero_text) {
       setHeroText(data.hero_text);
       setNewHeroText(data.hero_text);
     }
-
     if (data?.copyright_text) {
       setCopyrightText(data.copyright_text);
       setNewCopyrightText(data.copyright_text);
     }
+    setShowDeleteButton(Boolean(data?.show_delete_customer_button));
+    setShowGenerateQrButton(Boolean(data?.show_generate_qr_button));
 
-    if (data?.webhook_url) {
-      setWebhookUrl(data.webhook_url);
-      setNewWebhookUrl(data.webhook_url);
-    }
-
-    if (data?.admin_phone) {
-      setAdminPhone(data.admin_phone);
-      setNewAdminPhone(data.admin_phone);
-    }
-
-    if (data?.sadad_merchant_id) setSadadMerchantId(data.sadad_merchant_id);
-    if (data?.sadad_api_key) setSadadApiKey(data.sadad_api_key);
-    if (data?.sadad_secret) setSadadSecret(data.sadad_secret);
-    if (data?.sadad_website_domain) setSadadWebsiteDomain(data.sadad_website_domain);
-    if (data?.show_delete_customer_button !== undefined) setShowDeleteButton(data.show_delete_customer_button);
-    if (data?.show_generate_qr_button !== undefined) setShowGenerateQrButton(data.show_generate_qr_button);
+    const secrets = privateResult.data;
+    setNewWebhookUrl(secrets?.webhook_url ?? "");
+    setNewAdminPhone(secrets?.admin_phone ?? "");
+    setSadadMerchantId(secrets?.sadad_merchant_id ?? "");
+    setSadadSupportPin(secrets?.sadad_api_key ?? "");
+    setSadadSecret(secrets?.sadad_secret ?? "");
+    setSadadWebsiteDomain(secrets?.sadad_website_domain ?? "");
+    setSadadEnvironment((secrets?.sadad_environment as SadadEnvironment) ?? "auto");
+    setSiteUrl(secrets?.site_url ?? "");
   };
 
   const handleSaveLogo = async () => {
@@ -104,46 +122,19 @@ export const SettingsTab = () => {
 
     setLoading(true);
     try {
-      const { data: settings } = await supabase
-        .from("settings")
-        .select("id")
-        .single();
-
-      if (settings) {
-        const { error } = await supabase
-          .from("settings")
-          .update({ 
-            logo_url: newLogoUrl, 
-            hero_image_url: newHeroImageUrl,
-            header_bg_color: newHeaderBgColor,
-            hero_text: newHeroText,
-            copyright_text: newCopyrightText,
-            webhook_url: newWebhookUrl 
-          })
-          .eq("id", settings.id);
-
-        if (error) throw error;
-      } else {
-        const { error } = await supabase
-          .from("settings")
-          .insert({ 
-            logo_url: newLogoUrl, 
-            hero_image_url: newHeroImageUrl,
-            header_bg_color: newHeaderBgColor,
-            hero_text: newHeroText,
-            copyright_text: newCopyrightText,
-            webhook_url: newWebhookUrl 
-          });
-
-        if (error) throw error;
-      }
+      await savePublicSettings({
+        logo_url: newLogoUrl,
+        hero_image_url: newHeroImageUrl,
+        header_bg_color: newHeaderBgColor,
+        hero_text: newHeroText,
+        copyright_text: newCopyrightText,
+      });
 
       setLogoUrl(newLogoUrl);
       setHeroImageUrl(newHeroImageUrl);
       setHeaderBgColor(newHeaderBgColor);
       setHeroText(newHeroText);
       setCopyrightText(newCopyrightText);
-      setWebhookUrl(newWebhookUrl);
       toast.success(t("savedSuccessfully"));
     } catch (error) {
       console.error("Error saving logo:", error);
@@ -153,71 +144,36 @@ export const SettingsTab = () => {
     }
   };
 
-  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    // Validate file type
+  /** Validate, upload an image to storage, and return its public URL (or null after showing why). */
+  const uploadImage = async (file: File, folder: string, prefix: string, maxMb: number): Promise<string | null> => {
     if (!file.type.match(/image\/(png|jpeg|jpg)/)) {
       toast.error("يرجى اختيار صورة PNG أو JPG");
-      return;
+      return null;
     }
+    if (file.size > maxMb * 1024 * 1024) {
+      toast.error(`حجم الصورة يجب أن يكون أقل من ${maxMb} ميغابايت`);
+      return null;
+    }
+    const filePath = `${folder}/${prefix}-${Date.now()}.${file.name.split(".").pop()}`;
+    const { error } = await supabase.storage.from("qr-codes").upload(filePath, file, { cacheControl: "3600", upsert: true });
+    if (error) throw error;
+    return supabase.storage.from("qr-codes").getPublicUrl(filePath).data.publicUrl;
+  };
 
-    // Validate file size (5MB max)
-    if (file.size > 5 * 1024 * 1024) {
-      toast.error("حجم الصورة يجب أن يكون أقل من 5 ميغابايت");
-      return;
-    }
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const input = e.target;
+    const file = input.files?.[0];
+    if (!file) return;
 
     setLoading(true);
     try {
-      // Create a unique filename
-      const fileExt = file.name.split('.').pop();
-      const fileName = `logo-${Date.now()}.${fileExt}`;
-      const filePath = `logos/${fileName}`;
-
-      // Upload to Supabase storage
-      const { data: uploadData, error: uploadError } = await supabase.storage
-        .from('qr-codes')
-        .upload(filePath, file, {
-          cacheControl: '3600',
-          upsert: true
-        });
-
-      if (uploadError) throw uploadError;
-
-      // Get public URL
-      const { data: { publicUrl } } = supabase.storage
-        .from('qr-codes')
-        .getPublicUrl(filePath);
-
-      // Update settings with new logo URL
-      const { data: settings } = await supabase
-        .from("settings")
-        .select("id")
-        .single();
-
-      if (settings) {
-        const { error } = await supabase
-          .from("settings")
-          .update({ logo_url: publicUrl })
-          .eq("id", settings.id);
-
-        if (error) throw error;
-      } else {
-        const { error } = await supabase
-          .from("settings")
-          .insert({ logo_url: publicUrl });
-
-        if (error) throw error;
-      }
-
+      const publicUrl = await uploadImage(file, "logos", "logo", 5);
+      if (!publicUrl) return;
+      await savePublicSettings({ logo_url: publicUrl });
       setLogoUrl(publicUrl);
       setNewLogoUrl(publicUrl);
       toast.success("تم تحميل الشعار بنجاح");
-      
-      // Clear the input
-      e.target.value = '';
+      input.value = "";
     } catch (error) {
       console.error("Error uploading logo:", error);
       toast.error("فشل في تحميل الصورة");
@@ -227,70 +183,19 @@ export const SettingsTab = () => {
   };
 
   const handleHeroImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
+    const input = e.target;
+    const file = input.files?.[0];
     if (!file) return;
-
-    // Validate file type
-    if (!file.type.match(/image\/(png|jpeg|jpg)/)) {
-      toast.error("يرجى اختيار صورة PNG أو JPG");
-      return;
-    }
-
-    // Validate file size (10MB max for hero images)
-    if (file.size > 10 * 1024 * 1024) {
-      toast.error("حجم الصورة يجب أن يكون أقل من 10 ميغابايت");
-      return;
-    }
 
     setLoading(true);
     try {
-      // Create a unique filename
-      const fileExt = file.name.split('.').pop();
-      const fileName = `hero-${Date.now()}.${fileExt}`;
-      const filePath = `hero-images/${fileName}`;
-
-      // Upload to Supabase storage
-      const { data: uploadData, error: uploadError } = await supabase.storage
-        .from('qr-codes')
-        .upload(filePath, file, {
-          cacheControl: '3600',
-          upsert: true
-        });
-
-      if (uploadError) throw uploadError;
-
-      // Get public URL
-      const { data: { publicUrl } } = supabase.storage
-        .from('qr-codes')
-        .getPublicUrl(filePath);
-
-      // Update settings with new hero image URL
-      const { data: settings } = await supabase
-        .from("settings")
-        .select("id")
-        .single();
-
-      if (settings) {
-        const { error } = await supabase
-          .from("settings")
-          .update({ hero_image_url: publicUrl })
-          .eq("id", settings.id);
-
-        if (error) throw error;
-      } else {
-        const { error } = await supabase
-          .from("settings")
-          .insert({ hero_image_url: publicUrl });
-
-        if (error) throw error;
-      }
-
+      const publicUrl = await uploadImage(file, "hero-images", "hero", 10);
+      if (!publicUrl) return;
+      await savePublicSettings({ hero_image_url: publicUrl });
       setHeroImageUrl(publicUrl);
       setNewHeroImageUrl(publicUrl);
       toast.success("تم تحميل صورة الخلفية بنجاح");
-      
-      // Clear the input
-      e.target.value = '';
+      input.value = "";
     } catch (error) {
       console.error("Error uploading hero image:", error);
       toast.error("فشل في تحميل الصورة");
@@ -299,72 +204,33 @@ export const SettingsTab = () => {
     }
   };
 
-  const handleSaveAdminPhone = async () => {
-    setSavingPhone(true);
+  const handleSaveAutomation = async () => {
+    setSavingAutomation(true);
     try {
-      const { data: settings } = await supabase
-        .from("settings")
-        .select("id")
-        .single();
-
-      if (settings) {
-        const { error } = await supabase
-          .from("settings")
-          .update({ admin_phone: newAdminPhone })
-          .eq("id", settings.id);
-
-        if (error) throw error;
-      } else {
-        const { error } = await supabase
-          .from("settings")
-          .insert({ admin_phone: newAdminPhone });
-
-        if (error) throw error;
-      }
-
-      setAdminPhone(newAdminPhone);
+      await savePrivateSettings({
+        webhook_url: newWebhookUrl.trim() || null,
+        admin_phone: newAdminPhone.trim() || null,
+      });
       toast.success(t("savedSuccessfully"));
     } catch (error) {
-      console.error("Error saving admin phone:", error);
-      toast.error("فشل في حفظ رقم الهاتف");
+      console.error("Error saving automation settings:", error);
+      toast.error("فشل في حفظ الإعدادات");
     } finally {
-      setSavingPhone(false);
+      setSavingAutomation(false);
     }
   };
 
   const handleSaveSadad = async () => {
     setSavingSadad(true);
     try {
-      const { data: settings } = await supabase
-        .from("settings")
-        .select("id")
-        .maybeSingle();
-
-      if (settings) {
-        const { error } = await supabase
-          .from("settings")
-          .update({ 
-            sadad_merchant_id: sadadMerchantId,
-            sadad_api_key: sadadApiKey,
-            sadad_secret: sadadSecret,
-            sadad_website_domain: sadadWebsiteDomain
-          })
-          .eq("id", settings.id);
-
-        if (error) throw error;
-      } else {
-        const { error } = await supabase
-          .from("settings")
-          .insert({ 
-            sadad_merchant_id: sadadMerchantId,
-            sadad_api_key: sadadApiKey,
-            sadad_secret: sadadSecret,
-            sadad_website_domain: sadadWebsiteDomain
-          });
-
-        if (error) throw error;
-      }
-
+      await savePrivateSettings({
+        sadad_merchant_id: sadadMerchantId.trim() || null,
+        sadad_api_key: sadadSupportPin.trim() || null,
+        sadad_secret: sadadSecret.trim() || null,
+        sadad_website_domain: sadadWebsiteDomain.trim() || null,
+        sadad_environment: sadadEnvironment,
+        site_url: siteUrl.trim() || null,
+      });
       toast.success(t("savedSuccessfully"));
     } catch (error) {
       console.error("Error saving Sadad settings:", error);
@@ -377,28 +243,8 @@ export const SettingsTab = () => {
   const handleToggleDeleteButton = async () => {
     setSavingDeleteButton(true);
     try {
-      const { data: settings } = await supabase
-        .from("settings")
-        .select("id")
-        .maybeSingle();
-
       const newValue = !showDeleteButton;
-
-      if (settings) {
-        const { error } = await supabase
-          .from("settings")
-          .update({ show_delete_customer_button: newValue })
-          .eq("id", settings.id);
-
-        if (error) throw error;
-      } else {
-        const { error } = await supabase
-          .from("settings")
-          .insert({ show_delete_customer_button: newValue });
-
-        if (error) throw error;
-      }
-
+      await savePublicSettings({ show_delete_customer_button: newValue });
       setShowDeleteButton(newValue);
       toast.success(t("savedSuccessfully"));
     } catch (error) {
@@ -412,26 +258,7 @@ export const SettingsTab = () => {
   const handleToggleGenerateQrButton = async (newValue: boolean) => {
     setSavingGenerateQrButton(true);
     try {
-      const { data: settings } = await supabase
-        .from("settings")
-        .select("id")
-        .maybeSingle();
-
-      if (settings) {
-        const { error } = await supabase
-          .from("settings")
-          .update({ show_generate_qr_button: newValue })
-          .eq("id", settings.id);
-
-        if (error) throw error;
-      } else {
-        const { error } = await supabase
-          .from("settings")
-          .insert({ show_generate_qr_button: newValue });
-
-        if (error) throw error;
-      }
-
+      await savePublicSettings({ show_generate_qr_button: newValue });
       setShowGenerateQrButton(newValue);
       toast.success(t("savedSuccessfully"));
     } catch (error) {
@@ -596,26 +423,52 @@ export const SettingsTab = () => {
             </div>
           </div>
           
-          <div>
-            <Label htmlFor="webhook-url" className="font-lusail">رابط Webhook (n8n)</Label>
-            <div className="mt-2">
-              <Input 
-                id="webhook-url" 
-                type="url" 
-                placeholder="https://your-n8n-instance.com/webhook/..."
-                value={newWebhookUrl}
-                onChange={(e) => setNewWebhookUrl(e.target.value)}
-                className="font-lusail" 
-              />
-            </div>
-            <p className="text-xs text-muted-foreground mt-2">
-              سيتم استدعاء هذا الرابط بعد كل حجز ناجح لإرسال الفاتورة
-            </p>
-          </div>
 
           <Button onClick={handleSaveLogo} disabled={loading} className="font-lusail">
             <Upload className="w-4 h-4 ml-2" />
             {loading ? t("loading") : t("save")}
+          </Button>
+        </div>
+      </Card>
+
+      {/* Automation (n8n) and notifications — administrators only */}
+      <Card className="p-6">
+        <h3 className="text-lg font-semibold mb-4 font-lusail">الأتمتة والإشعارات (n8n)</h3>
+        <div className="space-y-4">
+          <div>
+            <Label htmlFor="webhook-url" className="font-lusail">رابط Webhook (n8n)</Label>
+            <Input
+              id="webhook-url"
+              type="url"
+              placeholder="https://your-n8n-instance.com/webhook/..."
+              value={newWebhookUrl}
+              onChange={(e) => setNewWebhookUrl(e.target.value)}
+              className="mt-2 font-lusail"
+              dir="ltr"
+            />
+            <p className="text-xs text-muted-foreground mt-2">
+              يُستدعى عند اكتمال الحجز (الدفع عند الحضور أو بعد تأكيد الدفع عبر سداد) لإرسال التذاكر والفاتورة. هذا الرابط سري ولا يظهر للزوار.
+            </p>
+          </div>
+
+          <div>
+            <Label htmlFor="admin-phone" className="font-lusail">رقم هاتف الإدارة</Label>
+            <Input
+              id="admin-phone"
+              type="tel"
+              placeholder="+974 XXXX XXXX"
+              value={newAdminPhone}
+              onChange={(e) => setNewAdminPhone(e.target.value)}
+              className="mt-2 font-lusail"
+              dir="ltr"
+            />
+            <p className="text-xs text-muted-foreground mt-2">
+              رقم هاتف المسؤول للتواصل (مثال: +974 12345678)
+            </p>
+          </div>
+
+          <Button onClick={handleSaveAutomation} disabled={savingAutomation} className="font-lusail">
+            {savingAutomation ? t("loading") : t("save")}
           </Button>
         </div>
       </Card>
@@ -625,58 +478,96 @@ export const SettingsTab = () => {
         <h3 className="text-lg font-semibold mb-4 font-lusail">{t("sadadPayment")}</h3>
         <div className="space-y-4">
           <div>
-            <Label htmlFor="sadad-merchant-id" className="font-lusail">معرف التاجر (Merchant ID)</Label>
-            <Input 
-              id="sadad-merchant-id" 
-              placeholder="أدخل معرف التاجر" 
+            <Label htmlFor="sadad-merchant-id" className="font-lusail">معرف التاجر (Sadad ID / Merchant ID)</Label>
+            <Input
+              id="sadad-merchant-id"
+              placeholder="أدخل معرف التاجر"
               value={sadadMerchantId}
               onChange={(e) => setSadadMerchantId(e.target.value)}
-              className="mt-2 font-lusail" 
+              className="mt-2 font-lusail"
+              dir="ltr"
             />
           </div>
-          
+
           <div>
-            <Label htmlFor="sadad-api-key" className="font-lusail">رقم الدعم (Support Pin Number)</Label>
-            <Input 
-              id="sadad-api-key" 
-              type="text" 
-              placeholder="أدخل رقم الدعم" 
-              value={sadadApiKey}
-              onChange={(e) => setSadadApiKey(e.target.value)}
-              className="mt-2 font-lusail" 
-            />
-            <p className="text-xs text-muted-foreground mt-2">
-              رقم الدعم الخاص بحساب سداد - Support Pin Number
-            </p>
-          </div>
-          
-          <div>
-            <Label htmlFor="sadad-secret" className="font-lusail">المفتاح السري</Label>
-            <Input 
-              id="sadad-secret" 
-              type="password" 
-              placeholder="أدخل المفتاح السري" 
+            <Label htmlFor="sadad-secret" className="font-lusail">المفتاح السري (Secret Key)</Label>
+            <Input
+              id="sadad-secret"
+              type="password"
+              autoComplete="off"
+              placeholder="أدخل المفتاح السري"
               value={sadadSecret}
               onChange={(e) => setSadadSecret(e.target.value)}
-              className="mt-2 font-lusail" 
-            />
-          </div>
-          
-          <div>
-            <Label htmlFor="sadad-website-domain" className="font-lusail">النطاق المسجل (Website Domain)</Label>
-            <Input 
-              id="sadad-website-domain" 
-              type="text" 
-              placeholder="مثال: qcamelmc.org أو www.qcamelmc.org" 
-              value={sadadWebsiteDomain}
-              onChange={(e) => setSadadWebsiteDomain(e.target.value)}
-              className="mt-2 font-lusail" 
+              className="mt-2 font-lusail"
+              dir="ltr"
             />
             <p className="text-xs text-muted-foreground mt-2">
-              يجب أن يطابق النطاق المسجل في لوحة سداد تماماً عند إنشاء المفتاح السري
+              مفتاح الاختبار يفتح بوابة الاختبار، ومفتاح الإنتاج يفتح بوابة الدفع الحقيقية. لا يظهر هذا المفتاح للزوار أبداً.
             </p>
           </div>
-          
+
+          <div>
+            <Label htmlFor="sadad-website-domain" className="font-lusail">النطاق المسجل (Website)</Label>
+            <Input
+              id="sadad-website-domain"
+              type="text"
+              placeholder="مثال: qcamelmc.org"
+              value={sadadWebsiteDomain}
+              onChange={(e) => setSadadWebsiteDomain(e.target.value)}
+              className="mt-2 font-lusail"
+              dir="ltr"
+            />
+            <p className="text-xs text-muted-foreground mt-2">
+              يجب أن يطابق النطاق المسجل في لوحة سداد عند إنشاء المفتاح السري (بدون https:// وبدون مسار).
+            </p>
+          </div>
+
+          <div>
+            <Label htmlFor="sadad-environment" className="font-lusail">بيئة سداد</Label>
+            <Select value={sadadEnvironment} onValueChange={(value) => setSadadEnvironment(value as SadadEnvironment)}>
+              <SelectTrigger id="sadad-environment" className="mt-2 font-lusail">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="auto">تلقائي (يكتشف الاختبار أو الإنتاج من المفتاح)</SelectItem>
+                <SelectItem value="sandbox">اختبار فقط (Sandbox)</SelectItem>
+                <SelectItem value="live">إنتاج فقط (Live)</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div>
+            <Label htmlFor="site-url" className="font-lusail">عنوان الموقع (اختياري)</Label>
+            <Input
+              id="site-url"
+              type="url"
+              placeholder="https://qcamelmc.org"
+              value={siteUrl}
+              onChange={(e) => setSiteUrl(e.target.value)}
+              className="mt-2 font-lusail"
+              dir="ltr"
+            />
+            <p className="text-xs text-muted-foreground mt-2">
+              إلى هذا العنوان يعود العميل بعد الدفع. اتركه فارغاً ليعود إلى العنوان الذي حجز منه.
+            </p>
+          </div>
+
+          <div>
+            <Label htmlFor="sadad-support-pin" className="font-lusail">رقم الدعم (Support Pin Number) — اختياري</Label>
+            <Input
+              id="sadad-support-pin"
+              type="text"
+              placeholder="أدخل رقم الدعم"
+              value={sadadSupportPin}
+              onChange={(e) => setSadadSupportPin(e.target.value)}
+              className="mt-2 font-lusail"
+              dir="ltr"
+            />
+            <p className="text-xs text-muted-foreground mt-2">
+              رقم الدعم الخاص بحساب سداد، للمراجعة فقط ولا يُستخدم في الدفع.
+            </p>
+          </div>
+
           <div className="flex gap-2 pt-4">
             <Button onClick={handleSaveSadad} disabled={savingSadad} className="font-lusail">
               {savingSadad ? t("loading") : t("save")}
@@ -685,101 +576,8 @@ export const SettingsTab = () => {
         </div>
       </Card>
 
-      {/* Sadad Diagnostic Tool */}
+      {/* Readiness check: credentials, live verification with Sadad, URLs to register */}
       <SadadDiagnostic />
-
-      {/* Sadad Troubleshooting Guide */}
-      <Card className="p-6 border-orange-200 bg-orange-50/50">
-        <h3 className="text-lg font-semibold mb-4 font-lusail text-orange-900">🔍 دليل استكشاف أخطاء سداد</h3>
-        <div className="space-y-4 text-sm">
-          <div className="bg-white p-4 rounded-lg border border-orange-100">
-            <h4 className="font-bold text-red-600 mb-2">❌ خطأ: "Checksumhash did not match"</h4>
-            <p className="text-gray-700 mb-3">
-              هذا الخطأ يحدث عندما لا تتطابق بيانات الطلب مع ما هو مسجل في لوحة سداد. الأسباب الشائعة:
-            </p>
-            
-            <div className="space-y-3">
-              <div className="bg-yellow-50 p-3 rounded border border-yellow-200">
-                <p className="font-bold text-yellow-900 mb-1">1️⃣ وضع الاختبار (Test Mode) غير مفعّل</p>
-                <p className="text-yellow-800 text-xs">
-                  يجب تفعيل وضع الاختبار من: لوحة التاجر → API → Test Mode (تبديل الزر)
-                </p>
-              </div>
-              
-              <div className="bg-blue-50 p-3 rounded border border-blue-200">
-                <p className="font-bold text-blue-900 mb-1">2️⃣ النطاق (Domain) غير متطابق</p>
-                <p className="text-blue-800 text-xs mb-2">
-                  يجب أن يطابق النطاق أعلاه ما هو مسجل في لوحة سداد عند إنشاء المفتاح السري
-                </p>
-                <p className="text-blue-700 text-xs font-mono bg-blue-100 p-2 rounded">
-                  النطاق الحالي: {sadadWebsiteDomain || "غير محدد"}
-                </p>
-                <p className="text-blue-800 text-xs mt-2">
-                  ⚠️ انتبه: الفرق بين "qcamelmc.org" و "www.qcamelmc.org" مهم!
-                </p>
-              </div>
-              
-              <div className="bg-purple-50 p-3 rounded border border-purple-200">
-                <p className="font-bold text-purple-900 mb-1">3️⃣ المفتاح السري غير صحيح</p>
-                <p className="text-purple-800 text-xs">
-                  جرب إعادة توليد المفتاح السري من: لوحة التاجر → API → Generate New Test Key
-                </p>
-              </div>
-              
-              <div className="bg-green-50 p-3 rounded border border-green-200">
-                <p className="font-bold text-green-900 mb-1">4️⃣ Web Checkout 2.2 غير مفعّل</p>
-                <p className="text-green-800 text-xs">
-                  إذا لم يعمل بعد التحقق من النقاط السابقة، اتصل بدعم سداد لتفعيل Web Checkout 2.2
-                </p>
-              </div>
-            </div>
-          </div>
-          
-          <div className="bg-white p-4 rounded-lg border border-orange-100">
-            <h4 className="font-bold text-gray-800 mb-2">✅ خطوات التحقق السريع:</h4>
-            <ol className="list-decimal list-inside space-y-2 text-gray-700 text-xs">
-              <li>افتح <a href="https://webpanel.sadad.qa/authentication/login" target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">لوحة التاجر سداد</a></li>
-              <li>اذهب إلى قسم "API" من القائمة الجانبية</li>
-              <li>تأكد أن زر "Test Mode" مفعّل (أخضر)</li>
-              <li>تحقق من أن "Sadad ID" = <span className="font-mono bg-gray-100 px-2 py-1 rounded">{sadadMerchantId || "؟؟؟"}</span></li>
-              <li>انسخ المفتاح السري الموجود والصقه أعلاه (بدون مسافات)</li>
-              <li>تحقق من النطاق المسجل عند إنشاء المفتاح السري</li>
-              <li>احفظ الإعدادات وجرب الدفع مرة أخرى</li>
-            </ol>
-          </div>
-          
-          <div className="bg-gray-50 p-3 rounded border border-gray-200">
-            <p className="text-xs text-gray-600">
-              💡 <strong>نصيحة:</strong> تحقق من سجلات Edge Function للحصول على تفاصيل أكثر عن الخطأ
-            </p>
-          </div>
-        </div>
-      </Card>
-
-      {/* Admin Phone Number */}
-      <Card className="p-6">
-        <h3 className="text-lg font-semibold mb-4 font-lusail">رقم هاتف الإدارة</h3>
-        <div className="space-y-4">
-          <div>
-            <Label htmlFor="admin-phone" className="font-lusail">رقم الهاتف</Label>
-            <Input 
-              id="admin-phone" 
-              type="tel" 
-              placeholder="+974 XXXX XXXX"
-              value={newAdminPhone}
-              onChange={(e) => setNewAdminPhone(e.target.value)}
-              className="mt-2 font-lusail" 
-            />
-            <p className="text-xs text-muted-foreground mt-2">
-              رقم هاتف المسؤول للتواصل (مثال: +974 12345678)
-            </p>
-          </div>
-          
-          <Button onClick={handleSaveAdminPhone} disabled={savingPhone} className="font-lusail">
-            {savingPhone ? t("loading") : t("save")}
-          </Button>
-        </div>
-      </Card>
 
       {/* Delete Customer Button Visibility */}
       <Card className="p-6">

@@ -1,0 +1,11 @@
+{
+  "extends": "./tsconfig.app.json",
+  "compilerOptions": {
+    "types": ["node"],
+    "allowImportingTsExtensions": true,
+    "noEmit": true,
+    "strict": true
+  },
+  "include": ["tests", "supabase/functions/_shared", "supabase/functions/*/handler.ts", "supabase/functions/*/_shared"],
+  "exclude": ["supabase/functions/*/index.ts"]
+}

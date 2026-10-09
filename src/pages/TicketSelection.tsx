@@ -25,8 +25,11 @@ interface Ticket {
 
 interface TicketSelection {
   ticketId: string;
+  /** The event the customer is booking, so checkout can send them back to it. */
+  eventId: string;
   type: string;
   quantity: number;
+  /** Display only: the server always prices the order itself. */
   price: number;
 }
 
@@ -225,6 +228,7 @@ const TicketSelection = () => {
       .filter(ticket => selections[ticket.id] > 0)
       .map(ticket => ({
         ticketId: ticket.id,
+        eventId: ticket.event_id,
         type: ticket.type,
         quantity: selections[ticket.id],
         price: ticket.price

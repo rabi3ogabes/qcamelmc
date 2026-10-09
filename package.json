@@ -8,7 +8,16 @@
     "build": "vite build",
     "build:dev": "vite build --mode development",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "typecheck": "tsc -p tsconfig.app.json --noEmit && tsc -p tsconfig.tests.json",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:db": "node scripts/db-test.mjs",
+    "sync:functions": "node scripts/sync-edge-shared.mjs",
+    "check:functions": "node scripts/sync-edge-shared.mjs --check",
+    "check:deno": "node scripts/deno-check.mjs",
+    "smoke:qr": "npx deno run -A --no-lock scripts/qr-smoke.ts",
+    "check": "npm run lint && npm run typecheck && npm run check:functions && npm test && npm run test:db && npm run check:deno"
   },
   "dependencies": {
     "@capacitor/android": "^7.4.3",
@@ -48,7 +57,6 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",
-    "date-fns": "^4.1.0",
     "embla-carousel-react": "^8.6.0",
     "html5-qrcode": "^2.3.8",
     "i18next": "^25.5.3",
@@ -71,22 +79,32 @@
     "zod": "^3.25.76"
   },
   "devDependencies": {
+    "@electric-sql/pglite": "^0.5.8",
     "@eslint/js": "^9.32.0",
     "@tailwindcss/typography": "^0.5.16",
+    "@testing-library/dom": "^10.4.2",
+    "@testing-library/react": "^16.3.3",
     "@types/node": "^22.16.5",
+    "@types/pngjs": "^6.0.5",
     "@types/react": "^18.3.23",
     "@types/react-dom": "^18.3.7",
     "@vitejs/plugin-react-swc": "^3.11.0",
     "autoprefixer": "^10.4.21",
+    "date-fns": "^3.6.0",
+    "deno": "^2.9.6",
     "eslint": "^9.32.0",
     "eslint-plugin-react-hooks": "^5.2.0",
     "eslint-plugin-react-refresh": "^0.4.20",
     "globals": "^15.15.0",
+    "jsdom": "^30.1.2",
+    "jsqr": "^1.4.0",
     "lovable-tagger": "^1.1.10",
+    "pngjs": "^7.0.0",
     "postcss": "^8.5.6",
     "tailwindcss": "^3.4.17",
     "typescript": "^5.8.3",
     "typescript-eslint": "^8.38.0",
-    "vite": "^5.4.19"
+    "vite": "^5.4.19",
+    "vitest": "^2.1.9"
   }
 }

@@ -1,1 +1,11 @@
 project_id = "cdyycdboudurnhvqlrcb"
+
+# Sadad calls these two itself (server to server, and the customer's browser coming
+# back from the payment page), so they cannot carry a Supabase login token. They are
+# safe without one: nothing they receive is trusted — every payment is verified with
+# Sadad's own API before an order changes (see supabase/functions/_shared/payment-decision.ts).
+[functions.sadad-callback]
+verify_jwt = false
+
+[functions.sadad-webhook]
+verify_jwt = false

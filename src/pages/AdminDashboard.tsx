@@ -36,7 +36,6 @@ const AdminDashboard = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    checkAuth();
     fetchOrders();
     fetchSettings();
 
@@ -51,7 +50,6 @@ const AdminDashboard = () => {
           table: 'orders'
         },
         () => {
-          console.log('Order changed, refreshing...');
           fetchOrders();
         }
       )
@@ -82,13 +80,6 @@ const AdminDashboard = () => {
     }
   };
 
-  const checkAuth = async () => {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) {
-      navigate("/admin/login");
-    }
-  };
-
   const fetchOrders = async () => {
     try {
       const { data, error } = await supabase
@@ -97,7 +88,7 @@ const AdminDashboard = () => {
         .order("created_at", { ascending: false });
 
       if (error) throw error;
-      setOrders(data || []);
+      setOrders((data ?? []) as unknown as Order[]);
     } catch (error) {
       console.error("Failed to load orders:", error);
     } finally {

@@ -10,6 +10,7 @@ import { ArrowRight, ShoppingCart, Trash2, Plus, Minus, Maximize, Minimize } fro
 import { useToast } from "@/hooks/use-toast";
 import { useTranslation } from "react-i18next";
 import { TicketAddItem } from "@/components/admin/TicketAddItem";
+import { api, apiErrorMessage, type ApiError } from "@/lib/api";
 
 interface Ticket {
   id: string;
@@ -388,103 +389,54 @@ const AdminPOS = () => {
       return;
     }
 
+    // One event per order (the server enforces this too)
+    if (new Set(cart.map((item) => item.eventId)).size > 1) {
+      toast({
+        title: "خطأ",
+        description: "لا يمكن الجمع بين تذاكر فعاليات مختلفة في طلب واحد",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Each holder belongs to the cart line of their ticket type
+    const holders = ticketHolders.flatMap((holder) => {
+      const line = cart.find((item) => item.ticketType === holder.ticketType);
+      return line
+        ? [{
+            ticket_id: line.ticketId,
+            name: holder.name.trim(),
+            phone: (holder.phone || customerPhone).trim(),
+            nationality: holder.nationality,
+            id_number: holder.idNumber.trim(),
+          }]
+        : [];
+    });
+
     setProcessing(true);
 
     try {
-      // Create customer
-      const { data: customerData, error: customerError } = await supabase
-        .from("customers")
-        .insert({
-          name: customerName,
-          email: customerEmail,
-          phone: customerPhone,
+      // Prices, stock, the confirmed status and the QR codes are all decided by the server
+      const result = await api.createOrder({
+        source: "pos",
+        payment_method: "cash_pos",
+        customer: {
+          name: customerName.trim(),
+          email: customerEmail.trim(),
+          phone: customerPhone.trim(),
+          country_code: "+974",
           nationality: customerNationality,
-        })
-        .select()
-        .single();
+          id_number: (customerIdNumber || ticketHolders[0]?.idNumber || "").trim(),
+        },
+        items: cart.map((item) => ({ ticket_id: item.ticketId, quantity: item.quantity })),
+        holders,
+      });
 
-      if (customerError) throw customerError;
-
-      // Create a single order with all tickets
-      const totalAmount = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
-      const bookingRef = `POS-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-      
-      const { data: orderData, error: orderError } = await supabase
-        .from("orders")
-        .insert({
-          customer_id: customerData.id,
-          event_id: cart[0].eventId,
-          ticket_type: cart[0].ticketType as "vip" | "normal" | "parking",
-          quantity: cart.reduce((sum, item) => sum + item.quantity, 0),
-          total_amount: totalAmount,
-          payment_method: "cash_pos" as const,
-          payment_status: "confirmed" as const,
-          booking_reference: bookingRef,
-        })
-        .select()
-        .single();
-
-      if (orderError) throw orderError;
-
-      // Create ticket holders with QR codes
-      const holdersToInsert = await Promise.all(ticketHolders.map(async (holder, index) => {
-        const ticketRef = `${bookingRef}-TKT${(index + 1).toString().padStart(2, '0')}`;
-        
-        // Generate QR code and upload to storage
-        try {
-          const { data: qrData, error: qrError } = await supabase.functions.invoke('generate-qr-code', {
-            body: { text: ticketRef, filename: ticketRef }
-          });
-
-          return {
-            order_id: orderData.id,
-            name: holder.name,
-            phone: holder.phone || customerPhone,
-            country_code: '+974',
-            nationality: holder.nationality,
-            ticket_type: holder.ticketType,
-            qr_code: qrData?.url || ticketRef,
-            id_number: holder.idNumber
-          };
-        } catch (error) {
-          console.error('QR generation failed:', error);
-          return {
-            order_id: orderData.id,
-            name: holder.name,
-            phone: holder.phone || customerPhone,
-            country_code: '+974',
-            nationality: holder.nationality,
-            ticket_type: holder.ticketType,
-            qr_code: ticketRef,
-            id_number: holder.idNumber
-          };
-        }
-      }));
-
-      const { error: holdersError } = await supabase
-        .from("ticket_holders")
-        .insert(holdersToInsert);
-
-      if (holdersError) throw holdersError;
-
-      // Update ticket sold quantities
-      for (const item of cart) {
-        const ticket = tickets.find(t => t.id === item.ticketId);
-        if (ticket) {
-          const { error: updateError } = await supabase
-            .from("tickets")
-            .update({
-              sold_quantity: (ticket.sold_quantity || 0) + item.quantity,
-            })
-            .eq("id", item.ticketId);
-
-          if (updateError) throw updateError;
-        }
-      }
+      if (result.ok === false) throw result.error;
 
       toast({
         title: "نجح",
-        description: "تم إنشاء الطلبات بنجاح",
+        description: `تم إنشاء الطلب ${result.data.order.booking_reference} بنجاح`,
       });
 
       // Reset form
@@ -496,20 +448,19 @@ const AdminPOS = () => {
       setCustomerNationality("");
       setCustomerIdNumber("");
       setShowAllNationalities(false);
-      
+
       fetchTickets();
     } catch (error) {
       console.error("Error creating orders:", error);
       toast({
         title: "خطأ",
-        description: "فشل إنشاء الطلبات",
+        description: apiErrorMessage(error as ApiError, t),
         variant: "destructive",
       });
     } finally {
       setProcessing(false);
     }
   };
-
   return (
     <div className="min-h-screen bg-background font-lusail" dir="rtl">
       {/* Header */}

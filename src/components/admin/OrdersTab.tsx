@@ -7,9 +7,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { CheckCircle, MapPin, Calendar, Eye, QrCode, Loader2, XCircle, Printer, Trash2 } from "lucide-react";
+import { CheckCircle, MapPin, Calendar, Eye, QrCode, Loader2, XCircle, Printer, Trash2, ShieldCheck, Undo2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { supabase } from "@/integrations/supabase/client";
+import { api, apiErrorMessage } from "@/lib/api";
 import { toast } from "sonner";
 import QRCodeLib from "qrcode";
 import { format } from "date-fns";
@@ -19,7 +20,10 @@ interface TicketHolder {
   phone: string;
   nationality: string;
   ticket_type: string;
+  /** The scannable ticket code. */
   qr_code: string | null;
+  /** Stored picture of the code, if one exists. */
+  qr_image_url?: string | null;
   is_present: boolean | null;
 }
 interface Order {
@@ -31,6 +35,8 @@ interface Order {
   quantity: number;
   total_amount: number;
   created_at: string;
+  /** Why the order is in its state (e.g. "paid_after_expiry_no_stock"). */
+  payment_note?: string | null;
   customers: {
     name: string;
     email: string;
@@ -63,29 +69,27 @@ export const OrdersTab = ({
   const [orderToDelete, setOrderToDelete] = useState<string | null>(null);
   const [showDeleteButton, setShowDeleteButton] = useState(false);
   const [showGenerateQrButton, setShowGenerateQrButton] = useState(false);
+  const [verifying, setVerifying] = useState<string | null>(null);
 
-  // Generate QR code image when selectedHolder changes
+  // The QR shown for a ticket: its stored picture, otherwise the code drawn here
   useEffect(() => {
-    if (selectedHolder?.qr_code) {
-      // Check if it's already a URL
-      if (selectedHolder.qr_code.startsWith('http')) {
-        setQrCodeImage(selectedHolder.qr_code);
-      } else {
-        // Generate QR code from text
-        QRCodeLib.toDataURL(selectedHolder.qr_code, {
-          width: 800,
-          margin: 2,
-          errorCorrectionLevel: 'H'
-        }).then(url => setQrCodeImage(url)).catch(err => {
-          console.error('Error generating QR code:', err);
-          toast.error('Failed to generate QR code');
-        });
-      }
-    } else {
+    if (!selectedHolder?.qr_code) {
       setQrCodeImage(null);
+      return;
     }
+    if (selectedHolder.qr_image_url) {
+      setQrCodeImage(selectedHolder.qr_image_url);
+      return;
+    }
+    QRCodeLib.toDataURL(selectedHolder.qr_code, {
+      width: 800,
+      margin: 2,
+      errorCorrectionLevel: 'H'
+    }).then(url => setQrCodeImage(url)).catch(err => {
+      console.error('Error generating QR code:', err);
+      toast.error('Failed to generate QR code');
+    });
   }, [selectedHolder]);
-
   useEffect(() => {
     fetchSettings();
   }, []);
@@ -99,8 +103,8 @@ export const OrdersTab = ({
 
       if (error) throw error;
       if (data) {
-        setShowDeleteButton(data.show_delete_customer_button || false);
-        setShowGenerateQrButton(data.show_generate_qr_button || false);
+        setShowDeleteButton(data.show_delete_customer_button ?? false);
+        setShowGenerateQrButton(data.show_generate_qr_button ?? false);
       }
     } catch (error) {
       console.error("Error fetching settings:", error);
@@ -119,7 +123,7 @@ export const OrdersTab = ({
           table: 'ticket_holders'
         },
         (payload) => {
-          console.log('Ticket holder updated:', payload);
+
           
           // Update the ticket holders list if viewing details
           if (selectedOrder) {
@@ -167,7 +171,7 @@ export const OrdersTab = ({
         error
       } = await supabase.from("ticket_holders").select("*").eq("order_id", orderId);
       if (error) throw error;
-      console.log("Ticket holders data:", data);
+
       setTicketHolders(data || []);
     } catch (error) {
       console.error("Error fetching ticket holders:", error);
@@ -191,182 +195,102 @@ export const OrdersTab = ({
 
   const togglePaymentStatus = async (orderId: string, currentStatus: string) => {
     try {
-      console.log('=== Starting togglePaymentStatus ===');
-      console.log('Order ID:', orderId);
-      console.log('Current Status:', currentStatus);
-      
       const newStatus = currentStatus === "confirmed" ? "pending" : "confirmed";
-      console.log('New Status:', newStatus);
-      
-      // Fetch full order details before updating
-      console.log('Fetching order data...');
-      const { data: orderData, error: fetchError } = await supabase
-        .from("orders")
-        .select(`
-          *,
-          customers(*),
-          events(*),
-          ticket_holders(*)
-        `)
-        .eq("id", orderId)
-        .single();
-      
-      if (fetchError) {
-        console.error('Error fetching order data:', fetchError);
-        throw fetchError;
-      }
-      
-      console.log('Order data fetched successfully');
-      
-      // Get current admin user ID
       const { data: { user } } = await supabase.auth.getUser();
-      
-      // Update the order status with confirmed_at and confirmed_by
-      console.log('Updating order status...');
-      const updateData: any = { payment_status: newStatus };
-      
-      if (newStatus === "confirmed") {
-        updateData.confirmed_at = new Date().toISOString();
-        updateData.confirmed_by = user?.id || null;
-      } else {
-        // Clear confirmation fields when changing to pending
-        updateData.confirmed_at = null;
-        updateData.confirmed_by = null;
-      }
-      
-      const { error } = await supabase
+      const now = new Date().toISOString();
+
+      // The database keeps stock right: re-activating a cancelled/failed order
+      // re-reserves its seats, or is refused if they are gone.
+      const { data: order, error } = await supabase
         .from("orders")
-        .update(updateData)
-        .eq("id", orderId);
-      
+        .update(
+          newStatus === "confirmed"
+            ? { payment_status: "confirmed", confirmed_at: now, confirmed_by: user?.id ?? null, paid_at: now, payment_note: null }
+            : { payment_status: "pending", confirmed_at: null, confirmed_by: null },
+        )
+        .eq("id", orderId)
+        .select("booking_reference")
+        .single();
+
       if (error) {
-        console.error('Error updating order:', error);
+        if (error.message.includes("insufficient_stock")) {
+          toast.error("لا توجد تذاكر كافية لإعادة تفعيل هذا الطلب");
+          return;
+        }
         throw error;
       }
-      
-      console.log('Order status updated successfully with confirmed_at and confirmed_by');
-      
-      // Also update ticket_holders with the same confirmation details
-      if (newStatus === "confirmed") {
-        const { error: ticketHoldersError } = await supabase
-          .from("ticket_holders")
-          .update({
-            confirmed_at: updateData.confirmed_at,
-            confirmed_by: updateData.confirmed_by
-          })
-          .eq("order_id", orderId);
-        
-        if (ticketHoldersError) {
-          console.error('Error updating ticket holders:', ticketHoldersError);
-        } else {
-          console.log('Ticket holders updated with confirmation details');
-        }
-        
-        // Generate QR code images for all ticket holders and WAIT for completion
-        console.log('Generating QR code images...');
-        const { data: qrResponse, error: qrError } = await supabase.functions.invoke('backfill-qr-codes');
-        
-        if (qrError) {
-          console.error('Error generating QR codes:', qrError);
-          toast.error('تم التأكيد لكن فشل توليد رموز QR');
-        } else {
-          console.log('QR codes generated successfully:', qrResponse);
-          
-          // Wait a moment for database to update
-          await new Promise(resolve => setTimeout(resolve, 1000));
-        }
-      } else {
-        // Clear ticket holders confirmation when changing to pending
-        const { error: ticketHoldersError } = await supabase
-          .from("ticket_holders")
-          .update({
-            confirmed_at: null,
-            confirmed_by: null
-          })
-          .eq("order_id", orderId);
-        
-        if (ticketHoldersError) {
-          console.error('Error clearing ticket holders confirmation:', ticketHoldersError);
-        }
-      }
-      
-      // Send to webhook with updated status
-      if (newStatus === "confirmed") {
-        try {
-          // Re-fetch order data with updated ticket_holders
-          const { data: updatedOrderData, error: refetchError } = await supabase
-            .from("orders")
-            .select(`
-              *,
-              customers (*),
-              events (*),
-              ticket_holders (*)
-            `)
-            .eq("id", orderId)
-            .single();
-          
-          if (refetchError) {
-            console.error('Error re-fetching order:', refetchError);
-            throw refetchError;
-          }
-          
-          const webhookData = {
-            ...updatedOrderData,
-            action: "payment_confirmed",
-            timestamp: new Date().toISOString()
-          };
-          
-          console.log('=== Sending to webhook ===');
-          
-          const { data: webhookResponse, error: webhookError } = await supabase.functions.invoke('send-to-webhook', {
-            body: webhookData
-          });
-          
-          if (webhookError) {
-            console.error('Webhook invocation error:', webhookError);
-            toast.error('تم تحديث الحالة لكن فشل الإرسال للنظام: ' + webhookError.message);
-          } else if (webhookResponse?.error) {
-            console.error('Webhook returned error:', webhookResponse);
-            
-            // Show specific error messages based on the response
-            if (webhookResponse.status === 404) {
-              toast.error('⚠️ تم تحديث الحالة لكن n8n webhook غير نشط!\n\nالحل: قم بتفعيل الـ workflow في n8n (اضغط على Toggle في أعلى الصفحة)', {
-                duration: 8000,
-              });
-            } else if (webhookResponse.solution) {
-              toast.error('تم تحديث الحالة لكن: ' + webhookResponse.solution, {
-                duration: 8000,
-              });
-            } else {
-              toast.error('تم تحديث الحالة لكن فشل الإرسال للنظام');
-            }
-          } else {
-            console.log('✅ Webhook response:', webhookResponse);
-            toast.success("تم تأكيد الحجز وإرساله للنظام بنجاح ✓");
-          }
-        } catch (webhookError: any) {
-          console.error('Exception sending to webhook:', webhookError);
-          toast.error('تم تحديث الحالة لكن حدث خطأ في الإرسال للنظام');
-        }
-      } else {
+
+      // Mirror the confirmation on the individual tickets
+      await supabase
+        .from("ticket_holders")
+        .update(newStatus === "confirmed" ? { confirmed_at: now, confirmed_by: user?.id ?? null } : { confirmed_at: null, confirmed_by: null })
+        .eq("order_id", orderId);
+
+      if (newStatus !== "confirmed") {
         toast.success("تم إلغاء تأكيد الحجز");
+        onRefresh();
+        return;
       }
-      
-      console.log('=== Finished togglePaymentStatus ===');
+
+      // Make sure every ticket has its QR picture (only fills in the missing ones)
+      const qr = await supabase.functions.invoke('backfill-qr-codes');
+      if (qr.error) toast.error('تم التأكيد لكن فشل توليد رموز QR');
+
+      // Tell the automation (WhatsApp tickets): the server builds the message from the database
+      const { data: webhook, error: webhookError } = await supabase.functions.invoke('send-to-webhook', {
+        body: { notify: "payment_confirmed", booking_reference: order.booking_reference },
+      });
+      if (webhookError) {
+        toast.error('تم تأكيد الحجز لكن فشل الإرسال للنظام: ' + webhookError.message);
+      } else if (webhook?.error) {
+        toast.error(
+          webhook.status === 404
+            ? '⚠️ تم تأكيد الحجز لكن n8n webhook غير نشط! قم بتفعيل الـ workflow في n8n.'
+            : 'تم تأكيد الحجز لكن فشل الإرسال للنظام',
+          { duration: 8000 },
+        );
+      } else {
+        toast.success("تم تأكيد الحجز وإرساله للنظام بنجاح ✓");
+      }
       onRefresh();
-    } catch (error: any) {
+    } catch (error) {
       console.error("Error toggling payment status:", error);
-      toast.error("فشل في تغيير حالة الحجز: " + (error?.message || 'خطأ غير معروف'));
+      toast.error("فشل في تغيير حالة الحجز: " + (error instanceof Error ? error.message : 'خطأ غير معروف'));
     }
   };
 
+  /** Ask Sadad directly whether this order was paid (for orders that could not be confirmed automatically). */
+  const verifyWithSadad = async (order: Order) => {
+    setVerifying(order.id);
+    const result = await api.verifyPayment(order.booking_reference);
+    setVerifying(null);
+    if (!result.ok) {
+      toast.error(apiErrorMessage(result.error, t));
+      return;
+    }
+    if (result.data.payment_status === "confirmed") toast.success("سداد أكّد الدفع — تم تأكيد الحجز ✓");
+    else toast.info("لم يُسجّل سداد دفعاً لهذا الحجز بعد");
+    onRefresh();
+  };
+
+  /** Cancel an unpaid booking and put its seats back on sale. */
+  const releaseOrder = async (order: Order) => {
+    if (!confirm(`إلغاء الحجز ${order.booking_reference} وإعادة تذاكره للبيع؟`)) return;
+    const result = await api.cancelOrder(order.id, "released by admin");
+    if (!result.ok) {
+      toast.error(apiErrorMessage(result.error, t));
+      return;
+    }
+    toast.success("تم إلغاء الحجز وإعادة التذاكر للبيع");
+    onRefresh();
+  };
   const deleteOrder = async () => {
     if (!orderToDelete) {
       console.error("No order selected for deletion");
       return;
     }
     
-    console.log("Deleting order:", orderToDelete);
+
     
     try {
       // First delete ticket holders
@@ -391,7 +315,7 @@ export const OrdersTab = ({
         throw orderError;
       }
 
-      console.log("Order deleted successfully");
+
       toast.success("تم حذف الطلب والتذاكر بنجاح");
       setOrderToDelete(null);
       onRefresh();
@@ -404,7 +328,7 @@ export const OrdersTab = ({
   const filterOrders = (status: string) => {
     if (status === "all") return orders;
     if (status === "success") return orders.filter(o => o.payment_status === "confirmed");
-    if (status === "failed") return orders.filter(o => o.payment_status === "failed");
+    if (status === "failed") return orders.filter(o => o.payment_status === "failed" || o.payment_status === "cancelled");
     if (status === "pending") return orders.filter(o => o.payment_status === "pending");
     return orders;
   };
@@ -441,9 +365,13 @@ export const OrdersTab = ({
         
         <div>
           <p className="text-sm text-muted-foreground mb-1">{t("status")}</p>
-          <Badge variant={order.payment_status === "confirmed" ? "default" : order.payment_status === "failed" ? "destructive" : "secondary"} className="font-lusail">
-            {order.payment_status === "confirmed" ? t("confirmed") : order.payment_status === "failed" ? t("failed") : t("pending")}
+          <Badge variant={order.payment_status === "confirmed" ? "default" : order.payment_status === "failed" || order.payment_status === "cancelled" ? "destructive" : "secondary"} className="font-lusail">
+            {order.payment_status === "confirmed" ? t("confirmed") : order.payment_status === "failed" ? t("failed") : order.payment_status === "cancelled" ? "ملغي" : t("pending")}
           </Badge>
+          {order.payment_note === "paid_after_expiry_no_stock" && (
+            <p className="mt-1 text-xs font-semibold text-destructive">⚠️ دُفع بعد انتهاء الحجز ولا توجد تذاكر — يلزم استرداد المبلغ</p>
+          )}
+          {order.payment_note === "expired" && <p className="mt-1 text-xs text-muted-foreground">انتهت مهلة الدفع</p>}
         </div>
         
         <div className="flex flex-col gap-2">
@@ -455,6 +383,18 @@ export const OrdersTab = ({
             {t("viewDetails")}
             <Eye className="w-4 h-4" />
           </Button>
+          {order.payment_method === "sadad" && order.payment_status !== "confirmed" && order.payment_status !== "cancelled" && (
+            <Button size="sm" variant="secondary" disabled={verifying === order.id} onClick={() => verifyWithSadad(order)} className="font-lusail flex items-center justify-center gap-2">
+              {verifying === order.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <ShieldCheck className="w-4 h-4" />}
+              تحقق من سداد
+            </Button>
+          )}
+          {order.payment_status === "pending" && (
+            <Button size="sm" variant="outline" onClick={() => releaseOrder(order)} className="font-lusail flex items-center justify-center gap-2">
+              <Undo2 className="w-4 h-4" />
+              إلغاء وإعادة للبيع
+            </Button>
+          )}
           <Button 
             size="sm" 
             variant={order.payment_status === "confirmed" ? "destructive" : "default"}
@@ -506,7 +446,7 @@ export const OrdersTab = ({
               variant="destructive" 
               onClick={(e) => {
                 e.stopPropagation();
-                console.log("Delete button clicked for order:", order.id);
+
                 setOrderToDelete(order.id);
               }}
               className="h-8 w-8"
@@ -522,7 +462,7 @@ export const OrdersTab = ({
   const stats = {
     total: orders.length,
     success: orders.filter(o => o.payment_status === "confirmed").length,
-    failed: orders.filter(o => o.payment_status === "failed").length,
+    failed: orders.filter(o => o.payment_status === "failed" || o.payment_status === "cancelled").length,
     pending: orders.filter(o => o.payment_status === "pending").length
   };
   return <div className="space-y-6">

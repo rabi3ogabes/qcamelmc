@@ -8,6 +8,8 @@ import { useTranslation } from "react-i18next";
 import { User, Phone, Mail, Ticket, Calendar, Send, MessageCircle, Edit, QrCode, Trash2, UserX, CreditCard } from "lucide-react";
 import { toast } from "sonner";
 import QRCode from "qrcode";
+import { api } from "@/lib/api";
+import { toWhatsAppNumber } from "@/lib/phone";
 import {
   Dialog,
   DialogContent,
@@ -40,7 +42,10 @@ interface Customer {
       country_code?: string;
       nationality: string;
       ticket_type: string;
+      /** The scannable ticket code. */
       qr_code?: string;
+      /** A stored picture of that code, once one has been generated. */
+      qr_image_url?: string | null;
       is_present: boolean;
       id_number?: string;
     }>;
@@ -117,6 +122,9 @@ const getCountryFlag = (nationality: string): string => {
   return countryFlags[normalized] || '🌐';
 };
 
+type CustomerOrder = Customer["orders"][number];
+type OrderHolder = CustomerOrder["ticket_holders"][number];
+
 export const CustomersTab = () => {
   const { t } = useTranslation();
   const [customers, setCustomers] = useState<Customer[]>([]);
@@ -151,9 +159,7 @@ export const CustomersTab = () => {
       return;
     }
 
-    if (data?.show_delete_customer_button !== undefined) {
-      setShowDeleteButton(data.show_delete_customer_button);
-    }
+    setShowDeleteButton(Boolean(data?.show_delete_customer_button));
   };
 
   // Generate QR codes for selected customer's ticket holders and orders
@@ -230,6 +236,7 @@ export const CustomersTab = () => {
               nationality,
               ticket_type,
               qr_code,
+              qr_image_url,
               is_present,
               id_number
             )
@@ -244,7 +251,7 @@ export const CustomersTab = () => {
         (customer) => customer.orders && customer.orders.length > 0
       ).map(customer => ({
         ...customer,
-        orders: customer.orders.map((order: any) => ({
+        orders: customer.orders.map((order) => ({
           ...order,
           event_title: order.events?.title || "",
           event_location: order.events?.location || "",
@@ -252,7 +259,7 @@ export const CustomersTab = () => {
         }))
       }));
 
-      setCustomers(customersWithOrders);
+      setCustomers(customersWithOrders as unknown as Customer[]);
     } catch (error) {
       console.error("Error fetching customers:", error);
     } finally {
@@ -283,9 +290,9 @@ export const CustomersTab = () => {
     setSendingInvoice(orderId);
     
     try {
-      // Fetch webhook URL from settings
+      // The webhook URL and admin phone are admin-only settings
       const { data: settings, error: settingsError } = await supabase
-        .from("settings")
+        .from("private_settings")
         .select("webhook_url, admin_phone")
         .maybeSingle();
 
@@ -303,21 +310,10 @@ export const CustomersTab = () => {
         return;
       }
 
-      // Send to n8n webhook
-      console.log("Sending invoice via n8n webhook:", settings.webhook_url);
-      // Format phone number: ensure 974 country code without +
-      let formattedAdminPhone = null;
-      if (settings.admin_phone) {
-        const cleanPhone = settings.admin_phone.replace(/[\+\s]/g, '');
-        formattedAdminPhone = cleanPhone.startsWith('974') ? cleanPhone : `974${cleanPhone}`;
-      }
-
-      // Format customer and ticket holder phones
-      const formatPhoneNumber = (phone: string | null | undefined) => {
-        if (!phone) return null;
-        const cleanPhone = phone.replace(/[\+\s]/g, '');
-        return cleanPhone.startsWith('974') ? cleanPhone : `974${cleanPhone}`;
-      };
+      // Send to n8n webhook (numbers keep their own country code)
+      const formattedAdminPhone = toWhatsAppNumber(settings.admin_phone);
+      const formatPhoneNumber = (phone: string | null | undefined, countryCode?: string | null) =>
+        toWhatsAppNumber(phone, countryCode);
 
       const formattedCustomer = {
         name: customer.name,
@@ -325,11 +321,11 @@ export const CustomersTab = () => {
         phone: formatPhoneNumber(customer.phone)
       };
 
-      const formattedHolders = order.ticket_holders?.map((holder: any) => ({
+      const formattedHolders = order.ticket_holders?.map((holder: OrderHolder) => ({
         ...holder,
-        phone: formatPhoneNumber(holder.phone)
+        phone: formatPhoneNumber(holder.phone, holder.country_code)
       })) || [];
-      
+
       const response = await fetch(settings.webhook_url, {
         method: "POST",
         headers: {
@@ -379,9 +375,9 @@ export const CustomersTab = () => {
     setSendingTicket(customer.id);
     
     try {
-      // Fetch webhook URL from settings
+      // The webhook URL and admin phone are admin-only settings
       const { data: settings, error: settingsError } = await supabase
-        .from("settings")
+        .from("private_settings")
         .select("webhook_url, admin_phone")
         .maybeSingle();
 
@@ -400,15 +396,15 @@ export const CustomersTab = () => {
       if (ticketsError) throw ticketsError;
 
       // Create a map of ticket type to price
-      const ticketPrices = new Map(
+      const ticketPrices = new Map<string, number>(
         tickets?.map((ticket) => [ticket.type, ticket.price]) || []
       );
 
-      // Generate QR codes for ticket holders with 500x500 size and upload to storage
+      // Use each ticket's stored QR picture; draw and upload one only if it has none yet
       const holdersWithQrImages = await Promise.all(
-        (latestOrder.ticket_holders || []).map(async (holder: any) => {
-          let qrCodeImageUrl = null;
-          if (holder.qr_code) {
+        (latestOrder.ticket_holders || []).map(async (holder: OrderHolder) => {
+          let qrCodeImageUrl: string | null = holder.qr_image_url ?? null;
+          if (!qrCodeImageUrl && holder.qr_code) {
             try {
               // Generate QR code as canvas
               const canvas = document.createElement('canvas');
@@ -452,21 +448,10 @@ export const CustomersTab = () => {
         })
       );
 
-      // Send to n8n webhook
-      console.log("Sending ticket via n8n webhook:", settings.webhook_url);
-      // Format phone number: ensure 974 country code without +
-      let formattedAdminPhone = null;
-      if (settings.admin_phone) {
-        const cleanPhone = settings.admin_phone.replace(/[\+\s]/g, '');
-        formattedAdminPhone = cleanPhone.startsWith('974') ? cleanPhone : `974${cleanPhone}`;
-      }
-
-      // Format customer and ticket holder phones
-      const formatPhoneNumber = (phone: string | null | undefined) => {
-        if (!phone) return null;
-        const cleanPhone = phone.replace(/[\+\s]/g, '');
-        return cleanPhone.startsWith('974') ? cleanPhone : `974${cleanPhone}`;
-      };
+      // Send to n8n webhook (numbers keep their own country code)
+      const formattedAdminPhone = toWhatsAppNumber(settings.admin_phone);
+      const formatPhoneNumber = (phone: string | null | undefined, countryCode?: string | null) =>
+        toWhatsAppNumber(phone, countryCode);
 
       const formattedCustomer = {
         name: customer.name,
@@ -474,9 +459,9 @@ export const CustomersTab = () => {
         phone: formatPhoneNumber(customer.phone)
       };
 
-      const formattedHolders = holdersWithQrImages.map((holder: any) => ({
+      const formattedHolders = holdersWithQrImages.map((holder) => ({
         name: holder.name,
-        phone: formatPhoneNumber(holder.phone),
+        phone: formatPhoneNumber(holder.phone, holder.country_code),
         nationality: holder.nationality,
         id_number: holder.id_number,
         ticket_type: holder.ticket_type,
@@ -628,7 +613,7 @@ export const CustomersTab = () => {
     }
   };
 
-  const handleEditTicketHolder = (holder: any) => {
+  const handleEditTicketHolder = (holder: OrderHolder) => {
     setEditingTicketHolder(holder.id);
     setTicketHolderEditForm({
       phone: holder.phone.replace(/^\+\d+\s*/, '').trim(),
@@ -678,12 +663,12 @@ export const CustomersTab = () => {
     }
   };
 
-  const sendSingleTicketToWhatsApp = async (holder: any, orderRef: string) => {
+  const sendSingleTicketToWhatsApp = async (holder: OrderHolder, orderRef: string) => {
     setSendingSingleTicket(holder.id);
     try {
-      // Fetch webhook URL from settings
+      // The webhook URL is an admin-only setting
       const { data: settings, error: settingsError } = await supabase
-        .from("settings")
+        .from("private_settings")
         .select("webhook_url")
         .maybeSingle();
 
@@ -694,11 +679,11 @@ export const CustomersTab = () => {
         return;
       }
 
-      // Convert QR code data URL to blob and upload to storage
-      let qrCodeImageUrl = "";
-      const qrDataUrl = qrCodes[holder.qr_code];
-      
-      if (qrDataUrl) {
+      // Use the ticket's stored QR picture; otherwise draw it here and upload it
+      let qrCodeImageUrl: string = holder.qr_image_url ?? "";
+      const qrDataUrl = holder.qr_code ? qrCodes[holder.qr_code] : undefined;
+
+      if (!qrCodeImageUrl && qrDataUrl) {
         try {
           // Convert data URL to blob
           const response = await fetch(qrDataUrl);
@@ -754,7 +739,8 @@ export const CustomersTab = () => {
         holder: {
           name: holder.name,
           phone: holder.phone.replace(/^\+\d+\s*/, '').trim(),
-          country_code: holder.country_code?.replace('+', '') || '974',
+          // the number's own "+code" is the truth (old records stored +974 for everyone)
+          country_code: /^\s*\+(\d{1,4})\s/.exec(holder.phone)?.[1] ?? (holder.country_code?.replace('+', '') || '974'),
           nationality: holder.nationality,
           id_number: holder.id_number,
           ticket_type: holder.ticket_type,
@@ -854,7 +840,7 @@ export const CustomersTab = () => {
     }
   };
 
-  const handleReturnTicket = async (order: any, e: React.MouseEvent) => {
+  const handleReturnTicket = async (order: CustomerOrder, e: React.MouseEvent) => {
     e.stopPropagation();
     
     if (!confirm(`هل أنت متأكد من إرجاع التذكرة للطلب ${order.booking_reference}؟ سيتم إعادة التذكرة للبيع مرة أخرى.`)) {
@@ -862,43 +848,15 @@ export const CustomersTab = () => {
     }
 
     try {
-      // Get the event_id and ticket_type from the order to restore availability
-      const { data: orderData, error: orderFetchError } = await supabase
-        .from("orders")
-        .select("event_id, ticket_type, quantity")
-        .eq("id", order.id)
-        .single();
-
-      if (orderFetchError) throw orderFetchError;
-
-      // Restore ticket availability
-      const { data: ticketData, error: ticketFetchError } = await supabase
-        .from("tickets")
-        .select("available_quantity, sold_quantity")
-        .eq("event_id", orderData.event_id)
-        .eq("type", orderData.ticket_type)
-        .single();
-
-      if (ticketFetchError) throw ticketFetchError;
-
-      const { error: ticketUpdateError } = await supabase
-        .from("tickets")
-        .update({
-          available_quantity: ticketData.available_quantity + orderData.quantity,
-          sold_quantity: Math.max(0, ticketData.sold_quantity - orderData.quantity)
-        })
-        .eq("event_id", orderData.event_id)
-        .eq("type", orderData.ticket_type);
-
-      if (ticketUpdateError) throw ticketUpdateError;
-
-      // Mark order as cancelled (ticket returned) instead of deleting
-      const { error: orderUpdateError } = await supabase
-        .from("orders")
-        .update({ payment_status: 'cancelled' })
-        .eq("id", order.id);
-
-      if (orderUpdateError) throw orderUpdateError;
+      // One atomic server-side step: cancels the order and puts exactly the seats it
+      // held (per ticket type) back on sale. Safe to click twice.
+      const result = await api.cancelOrder(order.id, "returned by admin");
+      if (!result.ok) throw new Error(result.error.message);
+      if (result.data.result === "already_inactive") {
+        toast.info("هذا الطلب ملغي مسبقاً");
+        fetchCustomers();
+        return;
+      }
 
       toast.success("تم إرجاع التذكرة وإعادتها للبيع بنجاح");
       fetchCustomers();

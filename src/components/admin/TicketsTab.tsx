@@ -2,10 +2,11 @@ import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Ticket, Edit } from "lucide-react";
+import { Ticket, Edit, RefreshCw } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { api, apiErrorMessage } from "@/lib/api";
 import { EditTicketDialog } from "@/components/admin/EditTicketDialog";
 
 interface TicketType {
@@ -37,6 +38,7 @@ export const TicketsTab = () => {
   const [loading, setLoading] = useState(true);
   const [editingTicket, setEditingTicket] = useState<TicketType | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [recounting, setRecounting] = useState(false);
 
   useEffect(() => {
     fetchTickets();
@@ -71,7 +73,7 @@ export const TicketsTab = () => {
 
       // Group by date and ticket type
       const grouped = (data || []).reduce((acc: Record<string, DailyBooking>, order) => {
-        const date = new Date(order.created_at).toLocaleDateString('en-CA');
+        const date = new Date(order.created_at ?? Date.now()).toLocaleDateString('en-CA');
         const key = `${date}-${order.ticket_type}`;
         
         if (!acc[key]) {
@@ -112,8 +114,9 @@ export const TicketsTab = () => {
     }
   };
 
-  const getAvailabilityColor = (available: number, sold: number) => {
-    const percentage = (sold / (available + sold)) * 100;
+  // available_quantity is the total capacity, so the share sold is sold / capacity
+  const getAvailabilityColor = (capacity: number, sold: number) => {
+    const percentage = capacity > 0 ? (sold / capacity) * 100 : 100;
     if (percentage >= 90) return "text-red-600";
     if (percentage >= 70) return "text-yellow-600";
     return "text-green-600";
@@ -124,13 +127,32 @@ export const TicketsTab = () => {
     setEditDialogOpen(true);
   };
 
+  /** Recompute every "sold" counter from the bookings that really hold seats (fixes historic drift). */
+  const handleRecount = async () => {
+    setRecounting(true);
+    const result = await api.recountStock();
+    setRecounting(false);
+    if (!result.ok) {
+      toast.error(apiErrorMessage(result.error, t));
+      return;
+    }
+    toast.success(result.data > 0 ? `تم تصحيح عدّاد ${result.data} نوع تذكرة` : "عدّادات التذاكر صحيحة بالفعل");
+    fetchTickets();
+  };
+
   const handleTicketUpdated = () => {
     fetchTickets();
   };
 
   return (
     <div className="space-y-8">
-      <h2 className="text-2xl font-bold font-lusail">{t("ticketManagement")}</h2>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h2 className="text-2xl font-bold font-lusail">{t("ticketManagement")}</h2>
+        <Button variant="outline" onClick={handleRecount} disabled={recounting} className="font-lusail" title="يعيد حساب المباع من الحجوزات الفعلية">
+          <RefreshCw className={`ml-2 h-4 w-4 ${recounting ? "animate-spin" : ""}`} />
+          إعادة حساب المخزون
+        </Button>
+      </div>
 
       {/* Daily Bookings Statistics */}
       <Card className="p-6">

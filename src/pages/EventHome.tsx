@@ -16,7 +16,7 @@ import { useSettings } from "@/contexts/SettingsContext";
 interface Event {
   id: string;
   title: string;
-  description: string;
+  description: string | null;
   event_date: string;
   location: string;
   image_url: string | null;

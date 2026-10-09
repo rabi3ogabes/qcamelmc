@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { supabase } from "@/integrations/supabase/client";
@@ -9,8 +9,11 @@ import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { CreditCard, Banknote, Loader2, Plus, Minus, X } from "lucide-react";
+import { CreditCard, Banknote, Loader2, Plus, Minus } from "lucide-react";
 import { Footer } from "@/components/Footer";
+import { useSettings } from "@/contexts/SettingsContext";
+import { api, apiErrorMessage, type OrderInput } from "@/lib/api";
+import { redirectToSadad, rememberOrder } from "@/lib/payment";
 
 const ARABIC_COUNTRIES = [
   "السعودية",
@@ -84,14 +87,18 @@ const COUNTRY_CODES: Record<string, string> = {
   "فلسطين": "+970"
 };
 
+
 interface TicketSelection {
   ticketId: string;
+  eventId?: string;
   type: string;
   quantity: number;
+  /** Display only: the server prices the order from the database. */
   price: number;
 }
 
 interface TicketHolder {
+  ticketId: string;
   name: string;
   phone: string;
   nationality: string;
@@ -99,8 +106,56 @@ interface TicketHolder {
   idNumber: string;
 }
 
+// Same limits the server enforces (the server is the authority; this is for fast feedback).
+const MAX_ADMISSION_TICKETS = 5; // vip + normal combined
+const MAX_PARKING_TICKETS = 5;
+const MIN_ONLINE_AMOUNT = 3; // QAR, Sadad minimum
+
+/** Read the cart from the browser, refusing anything that is not a well-formed cart. */
+function readSelections(): TicketSelection[] | null {
+  try {
+    const parsed = JSON.parse(localStorage.getItem("ticketSelection") ?? "null");
+    if (!Array.isArray(parsed) || parsed.length === 0) return null;
+    const valid = parsed.every(
+      (s) =>
+        s &&
+        typeof s.ticketId === "string" &&
+        typeof s.type === "string" &&
+        Number.isInteger(s.quantity) &&
+        s.quantity >= 1 &&
+        s.quantity <= 20 &&
+        Number.isFinite(s.price),
+    );
+    return valid ? (parsed as TicketSelection[]) : null;
+  } catch {
+    return null;
+  }
+}
+
+const newHolder = (s: TicketSelection): TicketHolder => ({
+  ticketId: s.ticketId,
+  name: "",
+  phone: "",
+  nationality: "",
+  ticketType: s.type,
+  idNumber: "",
+});
+
+const buildHolders = (selections: TicketSelection[]): TicketHolder[] =>
+  selections.flatMap((s) => Array.from({ length: s.quantity }, () => newHolder(s)));
+
+/** The part of a phone number after its "+974 " style prefix, digits only. */
+const nationalDigits = (phone: string) => phone.replace(/^\s*\+\d{1,4}\s*/, "").replace(/\D/g, "");
+
+const exceedsLimits = (selections: TicketSelection[]) => {
+  const admission = selections.filter((s) => s.type === "vip" || s.type === "normal").reduce((n, s) => n + s.quantity, 0);
+  const parking = selections.filter((s) => s.type === "parking").reduce((n, s) => n + s.quantity, 0);
+  return admission > MAX_ADMISSION_TICKETS || parking > MAX_PARKING_TICKETS;
+};
+
 const Checkout = () => {
   const { t } = useTranslation();
+  const { settings } = useSettings();
   const [selections, setSelections] = useState<TicketSelection[]>([]);
   const [paymentMethod, setPaymentMethod] = useState<"sadad" | "cash_pos">("sadad");
   const [customerInfo, setCustomerInfo] = useState({
@@ -113,140 +168,22 @@ const Checkout = () => {
   });
   const [ticketHolders, setTicketHolders] = useState<TicketHolder[]>([]);
   const [loading, setLoading] = useState(false);
-  const [showPaymentSection, setShowPaymentSection] = useState(false);
-  const [paymentFormData, setPaymentFormData] = useState<any>(null);
-  const [logoUrl, setLogoUrl] = useState<string | null>(null);
-  const [headerBgColor, setHeaderBgColor] = useState<string>("hsl(var(--card) / 0.5)");
   const navigate = useNavigate();
-  const iframeRef = useRef<HTMLIFrameElement>(null);
 
-  // Listen for payment completion and errors in iframe
-  useEffect(() => {
-    const handleMessage = (event: MessageEvent) => {
-      console.log('=== IFRAME MESSAGE RECEIVED ===');
-      console.log('Event origin:', event.origin);
-      console.log('Event data:', event.data);
-      console.log('Event data type:', typeof event.data);
-      
-      // Try to parse if it's a string
-      let parsedData = event.data;
-      if (typeof event.data === 'string') {
-        try {
-          parsedData = JSON.parse(event.data);
-          console.log('Parsed data:', parsedData);
-        } catch (e) {
-          console.log('Could not parse as JSON, raw string:', event.data);
-        }
-      }
-      
-      // Check for any error indicators in the data
-      const dataStr = JSON.stringify(parsedData || event.data).toLowerCase();
-      if (dataStr.includes('error') || dataStr.includes('fail') || dataStr.includes('checksum')) {
-        console.error('=== POTENTIAL ERROR DETECTED IN MESSAGE ===');
-        console.error('Full data:', parsedData || event.data);
-        console.error('=== END ERROR ===');
-        
-        toast.error('خطأ في معالجة الدفع - يرجى التحقق من إعدادات سداد');
-      }
-      console.log('=== END MESSAGE ===');
-      
-      // Handle messages from Sadad iframe
-      if (parsedData && parsedData.type === 'SADAD_PAYMENT_COMPLETE') {
-        setShowPaymentSection(false);
-        setPaymentFormData(null);
-        toast.success('تم إتمام عملية الدفع بنجاح');
-        navigate('/confirmation');
-      }
-      
-      // Log any error messages
-      if (parsedData && (parsedData.error || parsedData.RESPCODE !== '1')) {
-        console.error('=== SADAD ERROR DETAILS ===');
-        console.error('Error:', parsedData.error || parsedData.RESPMSG);
-        console.error('Error Code:', parsedData.errorCode || parsedData.RESPCODE);
-        console.error('Error Details:', parsedData.errorDetails || parsedData);
-        console.error('=== END ERROR ===');
-      }
-    };
-
-    window.addEventListener('message', handleMessage);
-    return () => window.removeEventListener('message', handleMessage);
-  }, [navigate]);
-
-  // Monitor iframe for callback URL redirect
-  useEffect(() => {
-    if (!iframeRef.current || !showPaymentSection) return;
-
-    const checkIframeUrl = setInterval(() => {
-      try {
-        const iframe = iframeRef.current;
-        if (iframe && iframe.contentWindow) {
-          const iframeUrl = iframe.contentWindow.location.href;
-          // Check if iframe redirected to callback page
-          if (iframeUrl.includes('/sadad-callback')) {
-            clearInterval(checkIframeUrl);
-            setShowPaymentSection(false);
-            setPaymentFormData(null);
-            // Let the callback page handle the rest
-          }
-        }
-      } catch (e) {
-        // Cross-origin errors are expected, ignore them
-      }
-    }, 500);
-
-    return () => clearInterval(checkIframeUrl);
-  }, [showPaymentSection]);
+  const logoUrl = settings?.logo_url ?? null;
+  const headerBgColor = settings?.header_bg_color ?? "hsl(var(--card) / 0.5)";
+  // back to the event the customer was booking (older carts without it go home)
+  const backLink = selections[0]?.eventId ? `/tickets/${selections[0].eventId}` : "/";
 
   useEffect(() => {
-    const stored = localStorage.getItem("ticketSelection");
+    const stored = readSelections();
     if (!stored) {
-      navigate("/tickets");
+      navigate("/", { replace: true });
       return;
     }
-    const parsedSelections = JSON.parse(stored);
-    setSelections(parsedSelections);
-    
-    // Initialize ticket holders array based on total quantity
-    const totalTickets = parsedSelections.reduce((total: number, item: TicketSelection) => 
-      total + item.quantity, 0);
-    
-    const holders: TicketHolder[] = [];
-    parsedSelections.forEach((selection: TicketSelection) => {
-      for (let i = 0; i < selection.quantity; i++) {
-        holders.push({
-          name: "",
-          phone: "",
-          nationality: "",
-          ticketType: selection.type,
-          idNumber: ""
-        });
-      }
-    });
-    setTicketHolders(holders);
-    
-    // Fetch logo
-    fetchSettings();
+    setSelections(stored);
+    setTicketHolders(buildHolders(stored));
   }, [navigate]);
-
-  const fetchSettings = async () => {
-    const { data, error } = await supabase
-      .from("settings")
-      .select("logo_url, header_bg_color")
-      .maybeSingle();
-
-    if (error) {
-      console.error("Error fetching settings:", error);
-      return;
-    }
-
-    if (data?.logo_url) {
-      setLogoUrl(data.logo_url);
-    }
-    
-    if (data?.header_bg_color) {
-      setHeaderBgColor(data.header_bg_color);
-    }
-  };
 
   const calculateTotal = () => {
     return selections.reduce((total, item) => {
@@ -260,9 +197,9 @@ const Checkout = () => {
       const updated = [...ticketHolders];
       const fullPhone = `${customerInfo.countryCode} ${customerInfo.phone}`;
       // Update first ticket holder with all customer info
-      updated[0] = { 
-        ...updated[0], 
-        name: customerInfo.name, 
+      updated[0] = {
+        ...updated[0],
+        name: customerInfo.name,
         phone: fullPhone,
         nationality: customerInfo.nationality,
         idNumber: customerInfo.idNumber
@@ -296,298 +233,172 @@ const Checkout = () => {
     setTicketHolders(updated);
   };
 
+  /** Apply a new cart: persist it and rebuild the per-ticket holder forms. */
+  const applySelections = (next: TicketSelection[]) => {
+    setSelections(next);
+    localStorage.setItem("ticketSelection", JSON.stringify(next));
+    setTicketHolders(buildHolders(next));
+  };
+
   const handleIncreaseQuantity = (index: number) => {
-    const updated = [...selections];
-    updated[index] = { ...updated[index], quantity: updated[index].quantity + 1 };
-    setSelections(updated);
-    localStorage.setItem("ticketSelection", JSON.stringify(updated));
-    
-    // Rebuild ticket holders array
-    const holders: TicketHolder[] = [];
-    updated.forEach((selection: TicketSelection) => {
-      for (let i = 0; i < selection.quantity; i++) {
-        holders.push({
-          name: "",
-          phone: "",
-          nationality: "",
-          ticketType: selection.type,
-          idNumber: ""
-        });
-      }
-    });
-    setTicketHolders(holders);
+    const next = selections.map((s, i) => (i === index ? { ...s, quantity: s.quantity + 1 } : s));
+    if (exceedsLimits(next)) {
+      toast.error(t("maxTicketsError"));
+      return;
+    }
+    applySelections(next);
     toast.success("تم زيادة الكمية");
   };
 
   const handleDecreaseQuantity = (index: number) => {
     const item = selections[index];
-    
+
     if (item.quantity === 1) {
       // If quantity is 1, remove the item entirely
-      const confirmed = confirm(`هل تريد حذف ${item.type} من الطلب؟`);
-      
-      if (confirmed) {
-        const updated = selections.filter((_, i) => i !== index);
-        
-        if (updated.length === 0) {
-          localStorage.removeItem("ticketSelection");
-          toast.info("تم حذف جميع التذاكر، سيتم إعادتك إلى صفحة التذاكر");
-          navigate("/tickets");
-          return;
-        }
-        
-        setSelections(updated);
-        localStorage.setItem("ticketSelection", JSON.stringify(updated));
-        
-        // Rebuild ticket holders array
-        const holders: TicketHolder[] = [];
-        updated.forEach((selection: TicketSelection) => {
-          for (let i = 0; i < selection.quantity; i++) {
-            holders.push({
-              name: "",
-              phone: "",
-              nationality: "",
-              ticketType: selection.type,
-              idNumber: ""
-            });
-          }
-        });
-        setTicketHolders(holders);
-        toast.success("تم حذف التذكرة");
-      }
-    } else {
-      const updated = [...selections];
-      updated[index] = { ...updated[index], quantity: updated[index].quantity - 1 };
-      setSelections(updated);
-      localStorage.setItem("ticketSelection", JSON.stringify(updated));
-      
-      // Rebuild ticket holders array
-      const holders: TicketHolder[] = [];
-      updated.forEach((selection: TicketSelection) => {
-        for (let i = 0; i < selection.quantity; i++) {
-          holders.push({
-            name: "",
-            phone: "",
-            nationality: "",
-            ticketType: selection.type,
-            idNumber: ""
-          });
-        }
-      });
-      setTicketHolders(holders);
-      toast.success("تم تقليل الكمية");
-    }
-  };
+      if (!confirm(`هل تريد حذف ${item.type} من الطلب؟`)) return;
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    // Validate minimum amount for Sadad payment (3 QAR minimum)
-    const totalAmount = calculateTotal();
-    if (paymentMethod === "sadad" && totalAmount < 3) {
-      toast.error("الحد الأدنى للدفع عبر سداد هو 3 ريال قطري");
+      const next = selections.filter((_, i) => i !== index);
+      if (next.length === 0) {
+        localStorage.removeItem("ticketSelection");
+        toast.info("تم حذف جميع التذاكر، سيتم إعادتك إلى صفحة التذاكر");
+        navigate(backLink);
+        return;
+      }
+      applySelections(next);
+      toast.success("تم حذف التذكرة");
       return;
     }
-    
-    if (!customerInfo.name || !customerInfo.phone || !customerInfo.nationality || !customerInfo.idNumber) {
+
+    applySelections(selections.map((s, i) => (i === index ? { ...s, quantity: s.quantity - 1 } : s)));
+    toast.success("تم تقليل الكمية");
+  };
+
+  /**
+   * Compare the cart with the live ticket list before creating an order, so a
+   * price change or a sell-out is explained here instead of after the fact.
+   * Returns true when it is fine to continue.
+   */
+  const cartIsCurrent = async (): Promise<boolean> => {
+    const { data, error } = await supabase
+      .from("tickets")
+      .select("id, price, available_quantity, sold_quantity")
+      .in("id", selections.map((s) => s.ticketId));
+    if (error || !data) return true; // cannot check: the server will
+
+    const live = new Map(data.map((row) => [row.id, row]));
+
+    const missing = selections.find((s) => !live.has(s.ticketId));
+    if (missing) {
+      toast.error(apiErrorMessage({ code: "invalid_tickets", message: "" }, t));
+      return false;
+    }
+
+    const soldOut = selections.find((s) => {
+      const row = live.get(s.ticketId)!;
+      return row.available_quantity - row.sold_quantity < s.quantity;
+    });
+    if (soldOut) {
+      toast.error(apiErrorMessage({ code: "insufficient_stock", message: "", details: { ticket_type: soldOut.type } }, t));
+      return false;
+    }
+
+    const repriced = selections.some((s) => Number(live.get(s.ticketId)!.price) !== s.price);
+    if (repriced) {
+      applySelectionsKeepingHolders(selections.map((s) => ({ ...s, price: Number(live.get(s.ticketId)!.price) })));
+      toast.info("تم تحديث أسعار التذاكر. يرجى مراجعة الإجمالي ثم المتابعة.");
+      return false;
+    }
+    return true;
+  };
+
+  const applySelectionsKeepingHolders = (next: TicketSelection[]) => {
+    setSelections(next);
+    localStorage.setItem("ticketSelection", JSON.stringify(next));
+  };
+
+  const handleSubmit = async (e?: React.FormEvent) => {
+    e?.preventDefault();
+    if (loading) return;
+
+    // Validate minimum amount for Sadad payment
+    if (paymentMethod === "sadad" && calculateTotal() < MIN_ONLINE_AMOUNT) {
+      toast.error(apiErrorMessage({ code: "below_minimum_amount", message: "" }, t));
+      return;
+    }
+
+    if (!customerInfo.name.trim() || !customerInfo.phone.trim() || !customerInfo.nationality || !customerInfo.idNumber.trim()) {
       toast.error("Please fill in all customer information");
+      return;
+    }
+    if (customerInfo.phone.replace(/\D/g, "").length < 5) {
+      toast.error("رقم الهاتف غير صحيح");
       return;
     }
 
     // Validate all ticket holders - all must have complete information
-    const allHoldersFilled = ticketHolders.every((holder, index) => {
-      return holder.name && holder.phone && holder.nationality && holder.idNumber;
-    });
-    
-    if (!allHoldersFilled) {
+    const holdersComplete = ticketHolders.every(
+      (holder) => holder.name.trim() && nationalDigits(holder.phone).length >= 5 && holder.nationality && holder.idNumber.trim(),
+    );
+    if (!holdersComplete) {
       toast.error("Please fill in information for all ticket holders");
       return;
     }
 
     setLoading(true);
-
     try {
-      // Create customer
-      const { data: customer, error: customerError } = await supabase
-        .from("customers")
-        .insert({
-          name: customerInfo.name,
-          email: customerInfo.email,
-          phone: customerInfo.phone,
+      if (!(await cartIsCurrent())) {
+        setLoading(false);
+        return;
+      }
+
+      const input: OrderInput = {
+        customer: {
+          name: customerInfo.name.trim(),
+          email: customerInfo.email.trim(),
+          phone: customerInfo.phone.trim(),
+          country_code: customerInfo.countryCode,
           nationality: customerInfo.nationality,
-          id_number: customerInfo.idNumber
-        })
-        .select()
-        .single();
-
-      if (customerError) throw customerError;
-
-      // Get event ID
-      const { data: event, error: eventError } = await supabase
-        .from("events")
-        .select("id")
-        .eq("is_active", true)
-        .order("event_date", { ascending: true })
-        .limit(1)
-        .single();
-
-      if (eventError) throw eventError;
-
-      // Create order
-      const bookingRef = `QTR-${Math.random().toString(36).substring(2, 10).toUpperCase()}`;
-      const totalQuantity = selections.reduce((sum, s) => sum + s.quantity, 0);
-      
-      const orderData = {
-        customer_id: customer.id,
-        event_id: event.id,
-        ticket_type: selections[0].type as "vip" | "normal" | "parking",
-        quantity: totalQuantity,
-        total_amount: calculateTotal(),
+          id_number: customerInfo.idNumber.trim(),
+        },
+        items: selections.map((s) => ({ ticket_id: s.ticketId, quantity: s.quantity })),
+        holders: ticketHolders.map((h) => ({
+          ticket_id: h.ticketId,
+          name: h.name.trim(),
+          phone: h.phone.trim(),
+          nationality: h.nationality,
+          id_number: h.idNumber.trim(),
+        })),
         payment_method: paymentMethod,
-        booking_reference: bookingRef,
       };
 
-      const { data: order, error: orderError } = await supabase
-        .from("orders")
-        .insert(orderData)
-        .select()
-        .single();
-
-      if (orderError) throw orderError;
-
-      // Create ticket holders first without QR codes for faster processing
-      const holdersToInsert = ticketHolders.map((holder, index) => {
-        const ticketRef = `${bookingRef}-TKT${(index + 1).toString().padStart(2, '0')}`;
-        return {
-          order_id: order.id,
-          name: holder.name,
-          phone: holder.phone,
-          country_code: '+974',
-          nationality: holder.nationality,
-          ticket_type: holder.ticketType,
-          qr_code: ticketRef, // Temporary placeholder
-          id_number: holder.idNumber
-        };
-      });
-
-      const { data: insertedHolders, error: holdersError } = await supabase
-        .from("ticket_holders")
-        .insert(holdersToInsert)
-        .select();
-
-      if (holdersError) throw holdersError;
-
-      // Generate QR codes asynchronously in the background (non-blocking)
-      if (insertedHolders) {
-        Promise.all(insertedHolders.map(async (holder, index) => {
-          try {
-            const ticketRef = `${bookingRef}-TKT${(index + 1).toString().padStart(2, '0')}`;
-            const { data: qrData } = await supabase.functions.invoke('generate-qr-code', {
-              body: { text: ticketRef, filename: ticketRef }
-            });
-
-            if (qrData?.url) {
-              await supabase
-                .from("ticket_holders")
-                .update({ qr_code: qrData.url })
-                .eq('id', holder.id);
-            }
-          } catch (error) {
-            console.error('Background QR generation failed for ticket:', error);
-          }
-        })).catch(err => console.error('QR batch generation error:', err));
+      const result = await api.createOrder(input);
+      if (!result.ok) {
+        toast.error(apiErrorMessage(result.error, t));
+        setLoading(false);
+        return;
       }
 
-      // If Sadad payment, show embedded iframe
-      if (paymentMethod === "sadad") {
-        try {
-          const { data: sadadData, error: sadadError } = await supabase.functions.invoke('sadad-payment', {
-            body: {
-              orderId: bookingRef,
-              orderData: {
-                customer_email: customerInfo.email,
-                customer_phone: customerInfo.phone,
-                total_amount: calculateTotal(),
-                items: selections.map(s => ({
-                  name: `تذكرة ${s.type}`,
-                  price: s.price,
-                  quantity: s.quantity
-                }))
-              }
-            }
-          });
-
-          if (sadadError) throw sadadError;
-
-          if (sadadData.success && sadadData.paymentData) {
-            // Store payment data and show payment section on same page
-            setPaymentFormData({
-              paymentData: sadadData.paymentData,
-              sadadUrl: sadadData.sadadUrl
-            });
-            setShowPaymentSection(true);
-            setLoading(false);
-            
-            // Auto-submit form to iframe after it's rendered
-            setTimeout(() => {
-              const form = document.getElementById('sadad-iframe-form') as HTMLFormElement;
-              if (form) {
-                form.submit();
-              }
-            }, 500);
-            return;
-          }
-        } catch (sadadError) {
-          console.error('Sadad payment error:', sadadError);
-          toast.error('فشل الاتصال ببوابة الدفع. يرجى المحاولة مرة أخرى.');
-          setLoading(false);
-          return;
-        }
-      }
-
-      // For cash/POS, proceed directly
-      localStorage.setItem("orderIds", JSON.stringify([order.id]));
+      const { order, payment } = result.data;
+      rememberOrder(order.booking_reference);
       localStorage.removeItem("ticketSelection");
 
-      // Call webhook asynchronously (non-blocking)
-      (async () => {
+      if (payment) {
+        // Hand over to Sadad's secure payment page; it brings the customer back to /payment/result.
+        toast.info("جاري تحويلك إلى بوابة الدفع الآمنة...");
         try {
-          const { data: settings } = await supabase
-            .from("settings")
-            .select("webhook_url, admin_phone")
-            .maybeSingle();
-
-          if (settings?.webhook_url) {
-            const formatPhoneNumber = (phone: string | null | undefined) => {
-              if (!phone) return null;
-              const cleanPhone = phone.replace(/[\+\s]/g, '');
-              return cleanPhone.startsWith('974') ? cleanPhone : `974${cleanPhone}`;
-            };
-
-            await fetch(settings.webhook_url, {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                customer: { ...customer, phone: formatPhoneNumber(customer.phone) },
-                order,
-                ticketHolders: holdersToInsert.map(h => ({ ...h, phone: formatPhoneNumber(h.phone) })),
-                bookingReference: bookingRef,
-                adminPhone: formatPhoneNumber(settings.admin_phone),
-                timestamp: new Date().toISOString(),
-              }),
-            });
-          }
+          redirectToSadad(payment);
         } catch (error) {
-          console.error("Webhook call failed:", error);
+          console.error("Could not open the payment page:", error);
+          navigate(`/payment/result?ref=${encodeURIComponent(order.booking_reference)}`);
         }
-      })();
+        return; // keep the button disabled while the browser navigates away
+      }
 
-      toast.success(t('bookingCreated'));
+      toast.success(t("bookingCreated"));
       navigate("/confirmation");
     } catch (error) {
       console.error("Error creating booking:", error);
-      toast.error("Failed to create booking. Please try again.");
-    } finally {
+      toast.error(apiErrorMessage({ code: "network_error", message: "" }, t));
       setLoading(false);
     }
   };
@@ -842,7 +653,7 @@ const Checkout = () => {
             {/* Payment Method */}
             <Card className="p-4 sm:p-5 md:p-6">
               <h3 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4">{t('selectPaymentMethod')}</h3>
-              <RadioGroup value={paymentMethod} onValueChange={(value: any) => setPaymentMethod(value)} className="space-y-3" dir="rtl">
+              <RadioGroup value={paymentMethod} onValueChange={(value: string) => setPaymentMethod(value as "sadad" | "cash_pos")} className="space-y-3" dir="rtl">
                 <div className="flex items-center gap-3 p-3 sm:p-4 border rounded-lg hover:bg-accent cursor-pointer">
                   <RadioGroupItem value="sadad" id="sadad" />
                   <Label htmlFor="sadad" className="flex items-center gap-2 cursor-pointer flex-1">
@@ -936,127 +747,13 @@ const Checkout = () => {
             </Card>
 
             <div className="text-center mt-4 sm:mt-6">
-              <Button variant="ghost" onClick={() => navigate("/tickets")} className="w-full text-sm sm:text-base bg-yellow-500 hover:bg-yellow-600 text-black">
+              <Button variant="ghost" onClick={() => navigate(backLink)} className="w-full text-sm sm:text-base bg-yellow-500 hover:bg-yellow-600 text-black">
                 {t('backToTickets')}
               </Button>
             </div>
           </div>
         </div>
       </div>
-      
-      {/* Sadad Payment Section - Embedded on Page */}
-      {showPaymentSection && (
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6">
-          <Card className="overflow-hidden">
-            <div className="bg-primary/10 p-4 border-b flex justify-between items-center">
-              <h2 className="text-xl font-bold">إتمام عملية الدفع</h2>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => {
-                  setShowPaymentSection(false);
-                  setPaymentFormData(null);
-                  toast.info("تم إلغاء عملية الدفع");
-                }}
-              >
-                <X className="w-4 h-4 ml-2" />
-                إلغاء
-              </Button>
-            </div>
-            
-            <div className="relative w-full" style={{ height: '700px' }}>
-              {/* Loading overlay */}
-              {!paymentFormData && (
-                <div className="absolute inset-0 flex items-center justify-center bg-background">
-                  <Loader2 className="w-12 h-12 animate-spin text-primary" />
-                </div>
-              )}
-              
-              {/* Payment iframe */}
-              {paymentFormData && (
-                <>
-                  <iframe
-                    ref={iframeRef}
-                    name="sadad-payment-frame"
-                    className="w-full h-full border-0"
-                    title="Sadad Payment"
-                    onLoad={() => {
-                      console.log('=== SADAD IFRAME LOADED ===');
-                      console.log('Payment Data Sent:', paymentFormData.paymentData);
-                      console.log('Sadad URL:', paymentFormData.sadadUrl);
-                      
-                      // Try to access iframe content (will fail due to CORS, but worth trying)
-                      try {
-                        const iframeDoc = iframeRef.current?.contentDocument || iframeRef.current?.contentWindow?.document;
-                        if (iframeDoc) {
-                          console.log('✓ Iframe document accessible');
-                          console.log('Iframe title:', iframeDoc.title);
-                          
-                          const bodyText = iframeDoc.body?.textContent?.toLowerCase() || '';
-                          console.log('Body text (first 300 chars):', bodyText.substring(0, 300));
-                          
-                          // Check for error indicators
-                          if (bodyText.includes('error') || bodyText.includes('checksum') || bodyText.includes('fail')) {
-                            console.error('=== ⚠️ ERROR DETECTED IN IFRAME CONTENT ===');
-                            console.error('Full error text:', bodyText);
-                            console.error('=== END ERROR ===');
-                            toast.error('خطأ في التحقق من البيانات - يرجى مراجعة إعدادات سداد');
-                          }
-                        }
-                      } catch (e) {
-                        console.log('⚠️ Cannot access iframe content (CORS restriction)');
-                        console.log('This is normal for cross-origin iframes');
-                      }
-                      
-                      console.log('=== END IFRAME LOAD ===');
-                    }}
-                    onError={(e) => {
-                      console.error('=== ❌ IFRAME LOAD ERROR ===');
-                      console.error('Error event:', e);
-                      console.error('Error type:', e.type);
-                      console.error('Error target:', e.target);
-                      console.error('=== END IFRAME ERROR ===');
-                      toast.error('خطأ في تحميل صفحة الدفع');
-                    }}
-                  />
-                  
-                  {/* Hidden form to submit to iframe */}
-                  <form
-                    id="sadad-iframe-form"
-                    method="POST"
-                    action={paymentFormData.sadadUrl}
-                    target="sadad-payment-frame"
-                    style={{ display: 'none' }}
-                  >
-                    {Object.entries(paymentFormData.paymentData).map(([key, value]) => {
-                      if (key === 'productdetail' && Array.isArray(value)) {
-                        return value.map((product: any, index: number) =>
-                          Object.entries(product).map(([pKey, pValue]) => (
-                            <input
-                              key={`${key}-${index}-${pKey}`}
-                              type="hidden"
-                              name={`productdetail[${index}][${pKey}]`}
-                              value={String(pValue)}
-                            />
-                          ))
-                        );
-                      }
-                      return (
-                        <input
-                          key={key}
-                          type="hidden"
-                          name={key}
-                          value={String(value)}
-                        />
-                      );
-                    })}
-                  </form>
-                </>
-              )}
-            </div>
-          </Card>
-        </div>
-      )}
       
       <Footer />
     </div>

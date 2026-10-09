@@ -1,177 +1,85 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { supabase } from "@/integrations/supabase/client";
-import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { CheckCircle, Clock } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 import { Footer } from "@/components/Footer";
+import { OrderSummary, TicketList } from "@/components/OrderSummary";
+import { useSettings } from "@/contexts/SettingsContext";
+import { api, type OrderStatus } from "@/lib/api";
+import { recallOrders } from "@/lib/payment";
 
-interface Order {
-  id: string;
-  booking_reference: string;
-  payment_status: string;
-  payment_method: string;
-  ticket_type: string;
-  quantity: number;
-  total_amount: number;
-}
-
+/** Booking received (cash at venue): reference, details and the tickets' QR codes. */
 const Confirmation = () => {
   const { t } = useTranslation();
-  const [orders, setOrders] = useState<Order[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [logoUrl, setLogoUrl] = useState<string | null>(null);
-  const [headerBgColor, setHeaderBgColor] = useState<string>("hsl(var(--card) / 0.5)");
   const navigate = useNavigate();
+  const { settings } = useSettings();
+  const [orders, setOrders] = useState<OrderStatus[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchOrders();
-    fetchSettings();
-  }, []);
-
-  const fetchSettings = async () => {
-    const { data, error } = await supabase
-      .from("settings")
-      .select("logo_url, header_bg_color")
-      .maybeSingle();
-
-    if (error) {
-      console.error("Error fetching settings:", error);
+    const refs = recallOrders();
+    if (refs.length === 0) {
+      navigate("/", { replace: true });
       return;
     }
-
-    if (data?.logo_url) {
-      setLogoUrl(data.logo_url);
-    }
-    
-    if (data?.header_bg_color) {
-      setHeaderBgColor(data.header_bg_color);
-    }
-  };
-
-  const fetchOrders = async () => {
-    try {
-      const orderIds = JSON.parse(localStorage.getItem("orderIds") || "[]");
-      
-      if (orderIds.length === 0) {
-        navigate("/");
-        return;
-      }
-
-      const { data, error } = await supabase
-        .from("orders")
-        .select("*")
-        .in("id", orderIds);
-
-      if (error) throw error;
-      setOrders(data || []);
-      localStorage.removeItem("orderIds");
-    } catch (error) {
-      console.error("Error fetching orders:", error);
-    } finally {
+    api.getOrderStatuses(refs).then((result) => {
+      if (result.ok && result.data.length > 0) setOrders(result.data);
+      else navigate("/", { replace: true });
       setLoading(false);
-    }
-  };
+    });
+  }, [navigate]);
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center font-lusail">
-        <div className="animate-pulse text-lg">{t('loading')}</div>
+      <div className="flex min-h-screen items-center justify-center font-lusail">
+        <div className="animate-pulse text-lg">{t("loading")}</div>
       </div>
     );
   }
 
+  const allPaid = orders.every((o) => o.payment_status === "confirmed");
+
   return (
-    <div className="min-h-screen bg-background py-12 px-4 font-lusail">
-      <div className="max-w-3xl mx-auto">
-        {logoUrl && (
-          <div className="flex justify-center mb-8">
-            <img src={logoUrl} alt="Logo" className="h-16 object-contain" />
+    <div className="min-h-screen bg-background px-4 py-12 font-lusail">
+      <div className="mx-auto max-w-3xl">
+        {settings?.logo_url && (
+          <div className="mb-8 flex justify-center">
+            <img src={settings.logo_url} alt="Logo" className="h-16 object-contain" />
           </div>
         )}
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-secondary/20 rounded-full mb-4">
-            <Clock className="w-8 h-8 text-secondary" />
+
+        <div className="mb-8 text-center">
+          <div className="mb-4 inline-flex h-16 w-16 items-center justify-center rounded-full bg-secondary/20">
+            {allPaid ? <CheckCircle className="h-8 w-8 text-secondary" /> : <Clock className="h-8 w-8 text-secondary" />}
           </div>
-          <h1 className="text-4xl font-bold mb-4">{t('bookingReceived')}</h1>
-          <p className="text-lg text-muted-foreground">
-            {t('bookingPending')}
-          </p>
+          <h1 className="mb-4 text-4xl font-bold">{allPaid ? t("paymentSuccessTitle") : t("cashBookingTitle")}</h1>
+          <p className="text-lg text-muted-foreground">{allPaid ? t("paymentSuccessDesc") : t("cashBookingDesc")}</p>
         </div>
 
-        <Card className="p-8 mb-8">
-          <div className="space-y-6">
-            <div className="bg-accent/50 p-6 rounded-lg border-l-4 border-secondary">
-              <h3 className="font-semibold text-lg mb-2">{t('paymentPendingTitle')}</h3>
-              <p className="text-muted-foreground">
-                {t('paymentPendingDesc')}
-              </p>
-            </div>
+        {orders.map((order) => (
+          <Card key={order.booking_reference} className="mb-6 space-y-8 p-6 sm:p-8">
+            <OrderSummary order={order} />
+            {order.payment_status !== "failed" && order.payment_status !== "cancelled" && <TicketList tickets={order.tickets} />}
+          </Card>
+        ))}
 
-            <div>
-              <h3 className="text-xl font-semibold mb-4">{t('bookingDetails')}</h3>
-              {orders.map((order, index) => (
-                <div key={order.id} className="mb-4 pb-4 border-b last:border-b-0">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <p className="text-sm text-muted-foreground">{t('bookingReference')}</p>
-                      <p className="font-mono font-semibold text-lg">{order.booking_reference}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-muted-foreground">{t('ticketType')}</p>
-                      <p className="font-semibold capitalize">{order.ticket_type}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-muted-foreground">{t('quantity')}</p>
-                      <p className="font-semibold">{order.quantity}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-muted-foreground">{t('amount')}</p>
-                      <p className="font-semibold">{order.total_amount.toFixed(2)} {t('qar')}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-muted-foreground">{t('paymentMethod')}</p>
-                      <p className="font-semibold capitalize">
-                        {order.payment_method === "sadad" ? t('sadadOnline') : t('cashAtVenue')}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-muted-foreground">{t('status')}</p>
-                      <p className="font-semibold text-secondary capitalize">{order.payment_status}</p>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            <div className="bg-muted p-4 rounded-lg">
-              <h4 className="font-semibold mb-2">{t('nextSteps')}</h4>
-              <ul className="space-y-2 text-sm text-muted-foreground">
-                <li className="flex items-start gap-2">
-                  <CheckCircle className="w-4 h-4 mt-0.5 text-secondary shrink-0" />
-                  <span>{t('saveReference')}</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <CheckCircle className="w-4 h-4 mt-0.5 text-secondary shrink-0" />
-                  <span>{t('adminReview')}</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <CheckCircle className="w-4 h-4 mt-0.5 text-secondary shrink-0" />
-                  <span>{t('receiveEmail')}</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <CheckCircle className="w-4 h-4 mt-0.5 text-secondary shrink-0" />
-                  <span>{t('presentQR')}</span>
-                </li>
-              </ul>
-            </div>
-          </div>
+        <Card className="mb-8 p-6">
+          <h4 className="mb-2 font-semibold">{t("nextSteps")}</h4>
+          <ul className="space-y-2 text-sm text-muted-foreground">
+            {["saveReference", "presentQR"].map((key) => (
+              <li key={key} className="flex items-start gap-2">
+                <CheckCircle className="mt-0.5 h-4 w-4 shrink-0 text-secondary" />
+                <span>{t(key)}</span>
+              </li>
+            ))}
+          </ul>
         </Card>
 
         <div className="text-center">
           <Button size="lg" onClick={() => navigate("/")}>
-            {t('returnToHome')}
+            {t("returnToHome")}
           </Button>
         </div>
       </div>
