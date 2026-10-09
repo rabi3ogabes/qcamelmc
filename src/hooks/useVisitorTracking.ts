@@ -187,11 +187,25 @@ export const useVisitorTracking = () => {
         last_seen_at: new Date().toISOString(),
       };
 
-      const { error } = await supabase
-        .from("active_visitors")
-        .upsert(visitorData, { onConflict: "session_id" });
+      // Plain insert first: an upsert would need to read the existing row on
+      // conflict, but SELECT on this table is admin-only, so upserts fail RLS.
+      const { error } = await supabase.from("active_visitors").insert(visitorData);
 
-      if (error) console.error("Error tracking visitor:", error);
+      if (error) {
+        if (error.code === "23505") {
+          // Session row already exists — refresh it instead.
+          const { error: updateError } = await supabase
+            .from("active_visitors")
+            .update({
+              current_page: visitorData.current_page,
+              last_seen_at: visitorData.last_seen_at,
+            })
+            .eq("session_id", sessionId);
+          if (updateError) console.error("Error tracking visitor:", updateError);
+        } else {
+          console.error("Error tracking visitor:", error);
+        }
+      }
 
       if (lastPageRef.current !== window.location.pathname) {
         lastPageRef.current = window.location.pathname;

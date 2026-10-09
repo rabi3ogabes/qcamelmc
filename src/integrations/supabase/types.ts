@@ -10,7 +10,7 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "13.0.5"
+    PostgrestVersion: "14.5"
   }
   public: {
     Tables: {
@@ -387,11 +387,6 @@ export type Database = {
       }
       orders: {
         Row: {
-          last_payment_check_at: string | null
-          paid_at: string | null
-          payment_expires_at: string | null
-          payment_note: string | null
-          return_origin: string | null
           booking_reference: string
           confirmed_at: string | null
           confirmed_by: string | null
@@ -416,11 +411,6 @@ export type Database = {
           total_amount: number
         }
         Insert: {
-          last_payment_check_at?: string | null
-          paid_at?: string | null
-          payment_expires_at?: string | null
-          payment_note?: string | null
-          return_origin?: string | null
           booking_reference: string
           confirmed_at?: string | null
           confirmed_by?: string | null
@@ -445,11 +435,6 @@ export type Database = {
           total_amount: number
         }
         Update: {
-          last_payment_check_at?: string | null
-          paid_at?: string | null
-          payment_expires_at?: string | null
-          payment_note?: string | null
-          return_origin?: string | null
           booking_reference?: string
           confirmed_at?: string | null
           confirmed_by?: string | null
@@ -641,53 +626,6 @@ export type Database = {
         }
         Relationships: []
       }
-      payment_events: {
-        Row: {
-          api_result: string | null
-          booking_reference: string | null
-          checksum_valid: boolean | null
-          created_at: string
-          decision: string | null
-          id: number
-          order_id: string | null
-          outcome: string | null
-          payload: Json | null
-          source: string
-        }
-        Insert: {
-          api_result?: string | null
-          booking_reference?: string | null
-          checksum_valid?: boolean | null
-          created_at?: string
-          decision?: string | null
-          id?: never
-          order_id?: string | null
-          outcome?: string | null
-          payload?: Json | null
-          source: string
-        }
-        Update: {
-          api_result?: string | null
-          booking_reference?: string | null
-          checksum_valid?: boolean | null
-          created_at?: string
-          decision?: string | null
-          id?: never
-          order_id?: string | null
-          outcome?: string | null
-          payload?: Json | null
-          source?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "payment_events_order_id_fkey"
-            columns: ["order_id"]
-            isOneToOne: false
-            referencedRelation: "orders"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       pos_receipts: {
         Row: {
           amount_qar: number | null
@@ -765,8 +703,6 @@ export type Database = {
       }
       settings: {
         Row: {
-          sadad_environment: string
-          site_url: string | null
           admin_email: string | null
           admin_phone: string | null
           auto_invoice_interval_seconds: number | null
@@ -791,6 +727,7 @@ export type Database = {
           logo_url: string | null
           payment_failed_email_enabled: boolean
           sadad_api_key: string | null
+          sadad_environment: string
           sadad_merchant_id: string | null
           sadad_secret: string | null
           sadad_website_domain: string | null
@@ -798,13 +735,12 @@ export type Database = {
           show_delete_event_button: boolean | null
           show_delete_ticket_button: boolean
           show_generate_qr_button: boolean | null
+          site_url: string | null
           updated_at: string | null
           webhook_enabled: boolean
           webhook_url: string | null
         }
         Insert: {
-          sadad_environment?: string
-          site_url?: string | null
           admin_email?: string | null
           admin_phone?: string | null
           auto_invoice_interval_seconds?: number | null
@@ -829,6 +765,7 @@ export type Database = {
           logo_url?: string | null
           payment_failed_email_enabled?: boolean
           sadad_api_key?: string | null
+          sadad_environment?: string
           sadad_merchant_id?: string | null
           sadad_secret?: string | null
           sadad_website_domain?: string | null
@@ -836,13 +773,12 @@ export type Database = {
           show_delete_event_button?: boolean | null
           show_delete_ticket_button?: boolean
           show_generate_qr_button?: boolean | null
+          site_url?: string | null
           updated_at?: string | null
           webhook_enabled?: boolean
           webhook_url?: string | null
         }
         Update: {
-          sadad_environment?: string
-          site_url?: string | null
           admin_email?: string | null
           admin_phone?: string | null
           auto_invoice_interval_seconds?: number | null
@@ -867,6 +803,7 @@ export type Database = {
           logo_url?: string | null
           payment_failed_email_enabled?: boolean
           sadad_api_key?: string | null
+          sadad_environment?: string
           sadad_merchant_id?: string | null
           sadad_secret?: string | null
           sadad_website_domain?: string | null
@@ -874,6 +811,7 @@ export type Database = {
           show_delete_event_button?: boolean | null
           show_delete_ticket_button?: boolean
           show_generate_qr_button?: boolean | null
+          site_url?: string | null
           updated_at?: string | null
           webhook_enabled?: boolean
           webhook_url?: string | null
@@ -931,7 +869,6 @@ export type Database = {
       }
       ticket_holders: {
         Row: {
-          qr_image_url: string | null
           confirmed_at: string | null
           confirmed_by: string | null
           confirmed_by_name: string | null
@@ -948,7 +885,6 @@ export type Database = {
           ticket_type: string
         }
         Insert: {
-          qr_image_url?: string | null
           confirmed_at?: string | null
           confirmed_by?: string | null
           confirmed_by_name?: string | null
@@ -965,7 +901,6 @@ export type Database = {
           ticket_type: string
         }
         Update: {
-          qr_image_url?: string | null
           confirmed_at?: string | null
           confirmed_by?: string | null
           confirmed_by_name?: string | null
@@ -999,7 +934,7 @@ export type Database = {
           event_id: string
           id: string
           price: number
-          sold_quantity: number
+          sold_quantity: number | null
           type: Database["public"]["Enums"]["ticket_type"]
         }
         Insert: {
@@ -1119,10 +1054,6 @@ export type Database = {
       }
     }
     Functions: {
-      cancel_order: { Args: { p_note?: string; p_order_id: string }; Returns: Json }
-      get_order_status: { Args: { p_refs: string[] }; Returns: Json }
-      recount_ticket_stock: { Args: never; Returns: number }
-      release_expired_holds: { Args: { p_event: string }; Returns: number }
       bin_ticket_holder: { Args: { p_holder_id: string }; Returns: Json }
       cleanup_login_attempts: { Args: never; Returns: undefined }
       cleanup_stale_visitors: { Args: never; Returns: undefined }
@@ -1148,6 +1079,7 @@ export type Database = {
         }
         Returns: Json
       }
+      expire_stale_orders: { Args: { p_event?: string }; Returns: number }
       generate_booking_reference: { Args: never; Returns: string }
       generate_ticket_holder_reference: { Args: never; Returns: string }
       get_event_ticket_counts: {
@@ -1216,6 +1148,7 @@ export type Database = {
         Returns: boolean
       }
       is_admin: { Args: { user_id: string }; Returns: boolean }
+      release_expired_holds: { Args: { p_event: string }; Returns: number }
       reserve_tickets: {
         Args: { p_event_id: string; p_quantity: number; p_ticket_type: string }
         Returns: Json
