@@ -396,15 +396,20 @@ export type Database = {
           id: string
           invoice_email_sent_at: string | null
           is_present: boolean | null
+          last_payment_check_at: string | null
           n8n_responded_at: string | null
           n8n_response_message: string | null
+          paid_at: string | null
           payment_error_reason: string | null
+          payment_expires_at: string | null
           payment_id: string | null
           payment_method: Database["public"]["Enums"]["payment_method"]
+          payment_note: string | null
           payment_status: Database["public"]["Enums"]["payment_status"] | null
           pos_user_id: string | null
           qr_code: string | null
           quantity: number
+          return_origin: string | null
           sadad_manually_verified: boolean | null
           send_attempt_count: number | null
           ticket_type: Database["public"]["Enums"]["ticket_type"]
@@ -420,15 +425,20 @@ export type Database = {
           id?: string
           invoice_email_sent_at?: string | null
           is_present?: boolean | null
+          last_payment_check_at?: string | null
           n8n_responded_at?: string | null
           n8n_response_message?: string | null
+          paid_at?: string | null
           payment_error_reason?: string | null
+          payment_expires_at?: string | null
           payment_id?: string | null
           payment_method: Database["public"]["Enums"]["payment_method"]
+          payment_note?: string | null
           payment_status?: Database["public"]["Enums"]["payment_status"] | null
           pos_user_id?: string | null
           qr_code?: string | null
           quantity: number
+          return_origin?: string | null
           sadad_manually_verified?: boolean | null
           send_attempt_count?: number | null
           ticket_type: Database["public"]["Enums"]["ticket_type"]
@@ -444,15 +454,20 @@ export type Database = {
           id?: string
           invoice_email_sent_at?: string | null
           is_present?: boolean | null
+          last_payment_check_at?: string | null
           n8n_responded_at?: string | null
           n8n_response_message?: string | null
+          paid_at?: string | null
           payment_error_reason?: string | null
+          payment_expires_at?: string | null
           payment_id?: string | null
           payment_method?: Database["public"]["Enums"]["payment_method"]
+          payment_note?: string | null
           payment_status?: Database["public"]["Enums"]["payment_status"] | null
           pos_user_id?: string | null
           qr_code?: string | null
           quantity?: number
+          return_origin?: string | null
           sadad_manually_verified?: boolean | null
           send_attempt_count?: number | null
           ticket_type?: Database["public"]["Enums"]["ticket_type"]
@@ -589,6 +604,53 @@ export type Database = {
           },
           {
             foreignKeyName: "payment_errors_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      payment_events: {
+        Row: {
+          api_result: string | null
+          booking_reference: string | null
+          checksum_valid: boolean | null
+          created_at: string
+          decision: string | null
+          id: number
+          order_id: string | null
+          outcome: string | null
+          payload: Json | null
+          source: string
+        }
+        Insert: {
+          api_result?: string | null
+          booking_reference?: string | null
+          checksum_valid?: boolean | null
+          created_at?: string
+          decision?: string | null
+          id?: never
+          order_id?: string | null
+          outcome?: string | null
+          payload?: Json | null
+          source: string
+        }
+        Update: {
+          api_result?: string | null
+          booking_reference?: string | null
+          checksum_valid?: boolean | null
+          created_at?: string
+          decision?: string | null
+          id?: never
+          order_id?: string | null
+          outcome?: string | null
+          payload?: Json | null
+          source?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payment_events_order_id_fkey"
             columns: ["order_id"]
             isOneToOne: false
             referencedRelation: "orders"
@@ -882,6 +944,7 @@ export type Database = {
           order_id: string
           phone: string
           qr_code: string | null
+          qr_image_url: string | null
           ticket_type: string
         }
         Insert: {
@@ -898,6 +961,7 @@ export type Database = {
           order_id: string
           phone: string
           qr_code?: string | null
+          qr_image_url?: string | null
           ticket_type: string
         }
         Update: {
@@ -914,6 +978,7 @@ export type Database = {
           order_id?: string
           phone?: string
           qr_code?: string | null
+          qr_image_url?: string | null
           ticket_type?: string
         }
         Relationships: [
@@ -934,7 +999,7 @@ export type Database = {
           event_id: string
           id: string
           price: number
-          sold_quantity: number | null
+          sold_quantity: number
           type: Database["public"]["Enums"]["ticket_type"]
         }
         Insert: {
@@ -944,7 +1009,7 @@ export type Database = {
           event_id: string
           id?: string
           price: number
-          sold_quantity?: number | null
+          sold_quantity?: number
           type: Database["public"]["Enums"]["ticket_type"]
         }
         Update: {
@@ -954,7 +1019,7 @@ export type Database = {
           event_id?: string
           id?: string
           price?: number
-          sold_quantity?: number | null
+          sold_quantity?: number
           type?: Database["public"]["Enums"]["ticket_type"]
         }
         Relationships: [
@@ -1054,9 +1119,44 @@ export type Database = {
       }
     }
     Functions: {
+      _order_held_seats: {
+        Args: { p_order: string }
+        Returns: {
+          seats: number
+          ticket_type: string
+        }[]
+      }
+      _recount_ticket_stock: { Args: never; Returns: number }
+      _release_order_stock: { Args: { p_order: string }; Returns: undefined }
+      _reserve_order_stock: { Args: { p_order: string }; Returns: boolean }
       bin_ticket_holder: { Args: { p_holder_id: string }; Returns: Json }
+      cancel_order: {
+        Args: { p_note?: string; p_order_id: string }
+        Returns: Json
+      }
+      claim_payment_check: {
+        Args: { p_booking_reference: string; p_min_interval_seconds?: number }
+        Returns: Json
+      }
       cleanup_login_attempts: { Args: never; Returns: undefined }
       cleanup_stale_visitors: { Args: never; Returns: undefined }
+      confirm_order_payment: {
+        Args: { p_booking_reference: string; p_transaction_number: string }
+        Returns: Json
+      }
+      create_order: {
+        Args: {
+          p_actor?: string
+          p_customer: Json
+          p_holders: Json
+          p_items: Json
+          p_payment_method: Database["public"]["Enums"]["payment_method"]
+          p_pos_user?: string
+          p_return_origin?: string
+          p_source?: string
+        }
+        Returns: Json
+      }
       create_pos_booking: {
         Args: {
           p_booking_reference: string
@@ -1081,6 +1181,10 @@ export type Database = {
       }
       expire_stale_orders: { Args: { p_event?: string }; Returns: number }
       generate_booking_reference: { Args: never; Returns: string }
+      generate_reference: {
+        Args: { p_event_date?: string; p_prefix?: string }
+        Returns: string
+      }
       generate_ticket_holder_reference: { Args: never; Returns: string }
       get_event_ticket_counts: {
         Args: { p_event_id: string }
@@ -1096,6 +1200,7 @@ export type Database = {
           total: number
         }[]
       }
+      get_order_status: { Args: { p_refs: string[] }; Returns: Json }
       get_page_view_stats: {
         Args: { end_date: string; start_date: string }
         Returns: {
@@ -1148,6 +1253,11 @@ export type Database = {
         Returns: boolean
       }
       is_admin: { Args: { user_id: string }; Returns: boolean }
+      mark_order_payment_failed: {
+        Args: { p_booking_reference: string; p_note?: string }
+        Returns: Json
+      }
+      recount_ticket_stock: { Args: never; Returns: number }
       release_expired_holds: { Args: { p_event: string }; Returns: number }
       reserve_tickets: {
         Args: { p_event_id: string; p_quantity: number; p_ticket_type: string }
