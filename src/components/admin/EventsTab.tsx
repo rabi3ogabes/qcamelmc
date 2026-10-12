@@ -28,6 +28,16 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 
+const QATAR_TZ = "Asia/Qatar";
+/** Calendar parts (month 0-based) of an instant as seen in Qatar. */
+const qatarParts = (iso: string) => {
+  const parts = new Intl.DateTimeFormat("en-CA", { timeZone: QATAR_TZ, year: "numeric", month: "2-digit", day: "2-digit" })
+    .formatToParts(new Date(iso));
+  const get = (t: string) => Number(parts.find((p) => p.type === t)?.value);
+  return { year: get("year"), month: get("month") - 1, day: get("day") };
+};
+const qatarDayKey = (iso: string) => new Date(iso).toLocaleDateString("en-CA", { timeZone: QATAR_TZ });
+
 interface Event {
   id: string;
   title: string;
@@ -183,24 +193,24 @@ export const EventsTab = () => {
 
   const filteredEvents = filterDate
     ? events.filter(event => {
-        const eventDate = new Date(event.event_date);
+        const d = qatarParts(event.event_date);
         return (
-          eventDate.getFullYear() === filterDate.getFullYear() &&
-          eventDate.getMonth() === filterDate.getMonth() &&
-          eventDate.getDate() === filterDate.getDate()
+          d.year === filterDate.getFullYear() &&
+          d.month === filterDate.getMonth() &&
+          d.day === filterDate.getDate()
         );
       })
     : events;
 
   // Group events into season "folders", merging consecutive months (e.g. يناير - فبراير 2026)
   const monthIndex = (iso: string) => {
-    const d = new Date(iso);
-    return d.getFullYear() * 12 + d.getMonth();
+    const d = qatarParts(iso);
+    return d.year * 12 + d.month;
   };
   const monthName = (iso: string) =>
-    new Date(iso).toLocaleDateString("ar-u-nu-latn", { month: "long" });
+    new Date(iso).toLocaleDateString("ar-u-nu-latn", { month: "long", timeZone: QATAR_TZ });
   const monthYearLabel = (iso: string) =>
-    new Date(iso).toLocaleDateString("ar-u-nu-latn", { month: "long", year: "numeric" });
+    new Date(iso).toLocaleDateString("ar-u-nu-latn", { month: "long", year: "numeric", timeZone: QATAR_TZ });
 
   const byMonth = new Map<number, Event[]>();
   filteredEvents.forEach((event) => {
@@ -348,15 +358,17 @@ export const EventsTab = () => {
                     {new Date(event.event_date).toLocaleDateString('en-US', {
                       year: 'numeric',
                       month: 'long',
-                      day: 'numeric'
+                      day: 'numeric',
+                      timeZone: QATAR_TZ,
                     })}
-                    {event.end_date && new Date(event.end_date).toDateString() !== new Date(event.event_date).toDateString() && (
+                    {event.end_date && qatarDayKey(event.end_date) !== qatarDayKey(event.event_date) && (
                       <>
                         {" — "}
                         {new Date(event.end_date).toLocaleDateString('en-US', {
                           year: 'numeric',
                           month: 'long',
-                          day: 'numeric'
+                          day: 'numeric',
+                          timeZone: QATAR_TZ,
                         })}
                       </>
                     )}

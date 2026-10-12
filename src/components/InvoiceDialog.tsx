@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
+import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 import { Loader2, SearchX } from "lucide-react";
 import { InvoiceCard } from "@/components/InvoiceCard";
 import { useSettings } from "@/contexts/SettingsContext";
@@ -92,6 +93,10 @@ const InvoiceDialog = ({
         dir="rtl"
         className="max-h-[90vh] max-w-3xl overflow-y-auto"
       >
+        <VisuallyHidden>
+          <DialogTitle>الفاتورة</DialogTitle>
+          <DialogDescription>تفاصيل الحجز والتذاكر</DialogDescription>
+        </VisuallyHidden>
         {loading ? (
           <div className="flex items-center justify-center py-20">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
