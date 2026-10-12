@@ -24,17 +24,26 @@ const shouldTrackPage = (): boolean => {
   return !EXCLUDED_PATHS.some(excluded => path.startsWith(excluded));
 };
 
-const generateSessionId = (): string =>
-  `${Date.now()}-${Math.random().toString(36).substring(2, 15)}`;
+const TOKEN_KEY = "visitor_visit_token";
 
-const getSessionId = (): string => {
-  let sessionId = sessionStorage.getItem(SESSION_KEY);
-  if (!sessionId) {
-    sessionId = generateSessionId();
-    sessionStorage.setItem(SESSION_KEY, sessionId);
-  }
-  return sessionId;
+/** 32 random hex characters — unguessable. */
+const randomCode = (): string => {
+  const bytes = new Uint8Array(16);
+  crypto.getRandomValues(bytes);
+  return Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
 };
+
+const getStored = (key: string): string => {
+  let value = sessionStorage.getItem(key);
+  if (!value || value.length < 32) {
+    value = randomCode();
+    sessionStorage.setItem(key, value);
+  }
+  return value;
+};
+
+const getSessionId = (): string => getStored(SESSION_KEY);
+const getVisitToken = (): string => getStored(TOKEN_KEY);
 
 const isNewVisitor = (): boolean => {
   const isReturning = localStorage.getItem(VISITOR_KEY);
@@ -163,6 +172,7 @@ export const useVisitorTracking = () => {
     if (!shouldTrackPage()) return;
 
     const sessionId = sessionIdRef.current;
+    const visitToken = getVisitToken();
     let isMounted = true;
 
     const initTracking = async () => {
@@ -187,23 +197,22 @@ export const useVisitorTracking = () => {
         last_seen_at: new Date().toISOString(),
       };
 
-      // Plain insert first: an upsert would need to read the existing row on
-      // conflict, but SELECT on this table is admin-only, so upserts fail RLS.
-      const { error } = await supabase.from("active_visitors").insert(visitorData);
+      // Plain insert first (SELECT is admin-only); an existing row is refreshed
+      // through the server, which checks the secret visit code.
+      const { error } = await supabase
+        .from("active_visitors")
+        .insert({ ...visitorData, visit_token: visitToken });
 
       if (error) {
         if (error.code === "23505") {
-          // Session row already exists — refresh it instead.
-          const { error: updateError } = await supabase
-            .from("active_visitors")
-            .update({
-              current_page: visitorData.current_page,
-              last_seen_at: visitorData.last_seen_at,
-            })
-            .eq("session_id", sessionId);
-          if (updateError) console.error("Error tracking visitor:", updateError);
+          const { error: updateError } = await supabase.rpc("touch_active_visit", {
+            p_session_id: sessionId,
+            p_token: visitToken,
+            p_page: visitorData.current_page,
+          });
+          if (updateError) console.warn("Visitor refresh failed:", updateError.message);
         } else {
-          console.error("Error tracking visitor:", error);
+          console.warn("Visitor tracking failed:", error.message);
         }
       }
 
@@ -215,18 +224,13 @@ export const useVisitorTracking = () => {
 
     const updateActivity = async () => {
       if (!shouldTrackPage()) return;
+      const { error } = await supabase.rpc("touch_active_visit", {
+        p_session_id: sessionId,
+        p_token: visitToken,
+        p_page: window.location.pathname,
+      });
+      if (error) console.warn("Visitor activity update failed:", error.message);
 
-      const { error } = await supabase
-        .from("active_visitors")
-        .update({
-          current_page: window.location.pathname,
-          last_seen_at: new Date().toISOString(),
-        })
-        .eq("session_id", sessionId);
-
-      if (error) console.error("Error updating visitor activity:", error);
-
-      // Record page view only if page actually changed, using cached geo
       if (lastPageRef.current !== window.location.pathname) {
         lastPageRef.current = window.location.pathname;
         const geoInfo = geoRef.current || await fetchGeoInfo();
@@ -235,8 +239,6 @@ export const useVisitorTracking = () => {
     };
 
     initTracking();
-
-    // Update activity every 2 minutes (was 30 seconds)
     intervalRef.current = setInterval(updateActivity, ACTIVITY_INTERVAL_MS);
 
     const handlePopState = () => updateActivity();
@@ -246,7 +248,7 @@ export const useVisitorTracking = () => {
       isMounted = false;
       if (intervalRef.current) clearInterval(intervalRef.current);
       window.removeEventListener("popstate", handlePopState);
-      supabase.from("active_visitors").delete().eq("session_id", sessionId).then(() => {});
+      supabase.rpc("end_active_visit", { p_session_id: sessionId, p_token: visitToken }).then(() => {});
     };
   }, []);
 };
