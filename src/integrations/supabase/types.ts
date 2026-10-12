@@ -32,6 +32,7 @@ export type Database = {
           session_id: string
           traffic_source: string | null
           user_agent: string | null
+          visit_token: string | null
         }
         Insert: {
           browser?: string | null
@@ -50,6 +51,7 @@ export type Database = {
           session_id: string
           traffic_source?: string | null
           user_agent?: string | null
+          visit_token?: string | null
         }
         Update: {
           browser?: string | null
@@ -68,6 +70,7 @@ export type Database = {
           session_id?: string
           traffic_source?: string | null
           user_agent?: string | null
+          visit_token?: string | null
         }
         Relationships: []
       }
@@ -412,6 +415,7 @@ export type Database = {
           return_origin: string | null
           sadad_manually_verified: boolean | null
           send_attempt_count: number | null
+          source: string
           ticket_type: Database["public"]["Enums"]["ticket_type"]
           total_amount: number
         }
@@ -441,6 +445,7 @@ export type Database = {
           return_origin?: string | null
           sadad_manually_verified?: boolean | null
           send_attempt_count?: number | null
+          source?: string
           ticket_type: Database["public"]["Enums"]["ticket_type"]
           total_amount: number
         }
@@ -470,6 +475,7 @@ export type Database = {
           return_origin?: string | null
           sadad_manually_verified?: boolean | null
           send_attempt_count?: number | null
+          source?: string
           ticket_type?: Database["public"]["Enums"]["ticket_type"]
           total_amount?: number
         }
@@ -1179,6 +1185,10 @@ export type Database = {
         }
         Returns: Json
       }
+      end_active_visit: {
+        Args: { p_session_id: string; p_token: string }
+        Returns: undefined
+      }
       expire_stale_orders: { Args: { p_event?: string }; Returns: number }
       generate_booking_reference: { Args: never; Returns: string }
       generate_reference: {
@@ -1264,6 +1274,10 @@ export type Database = {
         Returns: Json
       }
       restore_ticket_holder: { Args: { p_bin_id: string }; Returns: Json }
+      touch_active_visit: {
+        Args: { p_page: string; p_session_id: string; p_token: string }
+        Returns: boolean
+      }
     }
     Enums: {
       app_role: "admin" | "moderator"
