@@ -30,7 +30,7 @@ const InvoicePage = lazy(() => import("./pages/InvoicePage"));
 const PaymentResult = lazy(() => import("./pages/PaymentResult"));
 const AdminLogin = lazy(() => import("./pages/AdminLogin"));
 const AdminDashboard = lazy(() => import("./pages/AdminDashboard"));
-const LiveBookings = lazy(() => import("./pages/LiveBookings"));
+const LiveBookingsGate = lazy(() => import("./components/LiveBookingsGate"));
 const LiveVisitors = lazy(() => import("./pages/LiveVisitors"));
 const QRScanner = lazy(() => import("./pages/QRScanner"));
 const AdminPOS = lazy(() => import("./pages/AdminPOS"));
