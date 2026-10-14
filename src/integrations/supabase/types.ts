@@ -128,6 +128,54 @@ export type Database = {
         }
         Relationships: []
       }
+      app_errors: {
+        Row: {
+          fingerprint: string
+          first_seen_at: string
+          id: string
+          kind: string
+          last_seen_at: string
+          message: string
+          occurrences: number
+          page: string | null
+          resolved_at: string | null
+          resolved_by: string | null
+          source: string
+          stack: string | null
+          user_agent: string | null
+        }
+        Insert: {
+          fingerprint: string
+          first_seen_at?: string
+          id?: string
+          kind: string
+          last_seen_at?: string
+          message: string
+          occurrences?: number
+          page?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          source?: string
+          stack?: string | null
+          user_agent?: string | null
+        }
+        Update: {
+          fingerprint?: string
+          first_seen_at?: string
+          id?: string
+          kind?: string
+          last_seen_at?: string
+          message?: string
+          occurrences?: number
+          page?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          source?: string
+          stack?: string | null
+          user_agent?: string | null
+        }
+        Relationships: []
+      }
       customers: {
         Row: {
           country_code: string | null
@@ -1263,6 +1311,16 @@ export type Database = {
         Returns: boolean
       }
       is_admin: { Args: { user_id: string }; Returns: boolean }
+      log_app_error: {
+        Args: {
+          p_kind: string
+          p_message: string
+          p_page?: string
+          p_source?: string
+          p_stack?: string
+        }
+        Returns: undefined
+      }
       mark_order_payment_failed: {
         Args: { p_booking_reference: string; p_note?: string }
         Returns: Json

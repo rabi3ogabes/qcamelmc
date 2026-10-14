@@ -50,6 +50,13 @@
       "when": 1791969286688,
       "tag": "0006_admin_cleanup_stale_visitors",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1792002914635,
+      "tag": "0007_app_error_log",
+      "breakpoints": true
     }
   ]
 }
