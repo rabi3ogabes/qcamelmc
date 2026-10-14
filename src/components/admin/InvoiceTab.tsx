@@ -309,10 +309,9 @@ export const InvoiceTab = () => {
         from += PAGE;
       }
 
-      if (error) throw error;
-      
+
       // Filter out orders from November 6, 7, 8, 2025
-      const filteredData = (data || []).filter(order => {
+      const filteredData = (allData || []).filter(order => {
         const orderDate = new Date(order.created_at);
         const year = orderDate.getFullYear();
         const month = orderDate.getMonth(); // 0-indexed (10 = November)
