@@ -1169,6 +1169,19 @@ export const InvoiceTab = () => {
               </TableBody>
             </Table>
           </div>
+          {filteredOrders.length > visibleCount && (
+            <div className="flex justify-center py-3">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setVisibleCount((c) => c + 200)}
+                className="gap-2"
+              >
+                <ChevronDown className="w-4 h-4" />
+                عرض المزيد ({filteredOrders.length - visibleCount} متبقية)
+              </Button>
+            </div>
+          )}
           </TabsContent>
         </Tabs>
       </Card>
