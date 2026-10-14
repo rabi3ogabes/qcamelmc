@@ -120,7 +120,7 @@ const App = () => (
                       <Route path="reports" element={<ReportsPage />} />
                       <Route path="activity-logs" element={<ActivityLogsPage />} />
                       <Route path="payment-errors" element={<PaymentErrorsPage />} />
-                      <Route path="error-log" element={<ErrorLogPage />} />
+                      <Route path="error-log" element={<ErrorLogPage />} /> {/* admin-only error log */}
                       <Route path="attendance" element={<AttendancePage />} />
                       <Route path="visitors-vs-scans" element={<VisitorsVsScansPage />} />
                       <Route path="staff-accounts" element={<StaffAccountsPage />} />
