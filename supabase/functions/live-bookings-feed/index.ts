@@ -69,7 +69,8 @@ Deno.serve(async (req) => {
       const { data, error } = await admin.from("events").select("id, event_date").eq("is_active", true)
         .order("event_date", { ascending: true });
       if (error) throw error;
-      return json({ data });
+      const { data: st } = await admin.from("settings").select("live_refresh_mode").limit(1).maybeSingle();
+      return json({ data, mode: st?.live_refresh_mode ?? "always" });
     }
 
     if (action === "bookings") {
