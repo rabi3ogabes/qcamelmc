@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Send, Loader2, CheckCircle, Clock, RotateCcw, CalendarX, PauseCircle, FileDown, Mail, MailCheck, History, Archive } from "lucide-react";
+import { Send, Loader2, CheckCircle, Clock, RotateCcw, CalendarX, PauseCircle, FileDown, Mail, MailCheck, History, Archive, ChevronDown } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { EmailDeliveryTimeline } from "@/components/admin/EmailDeliveryTimeline";
 import { generateInvoicePdf } from "@/lib/generateInvoicePdf";
@@ -102,6 +102,7 @@ export const InvoiceTab = () => {
   const [sendingIndividual, setSendingIndividual] = useState<string | null>(null);
   const [sendingEmail, setSendingEmail] = useState<string | null>(null);
   const [timelineOrder, setTimelineOrder] = useState<Order | null>(null);
+  const [visibleCount, setVisibleCount] = useState<number>(100);
 
   useEffect(() => {
     fetchOrders();
@@ -290,17 +291,28 @@ export const InvoiceTab = () => {
 
   const fetchOrders = async () => {
     try {
-      const { data, error } = await supabase
-        .from("orders")
-        .select("*, customers(name, email, phone, country_code, nationality), events(title, event_date, location, is_archived), ticket_holders(qr_code, ticket_type)")
-        .eq("payment_method", "sadad")
-        .eq("payment_status", "confirmed")
-        .order("created_at", { ascending: false });
+      // Loop with .range() to bypass the 1000-row response cap
+      const PAGE = 1000;
+      let allData: any[] = [];
+      let from = 0;
+      for (;;) {
+        const { data, error } = await supabase
+          .from("orders")
+          .select("*, customers(name, email, phone, country_code, nationality), events(title, event_date, location, is_archived), ticket_holders(qr_code, ticket_type)")
+          .eq("payment_method", "sadad")
+          .eq("payment_status", "confirmed")
+          .order("created_at", { ascending: false })
+          .range(from, from + PAGE - 1);
+        if (error) throw error;
+        const rows = data || [];
+        allData = allData.concat(rows);
+        if (rows.length < PAGE) break;
+        from += PAGE;
+      }
 
-      if (error) throw error;
-      
+
       // Filter out orders from November 6, 7, 8, 2025
-      const filteredData = (data || []).filter(order => {
+      const filteredData = (allData || []).filter(order => {
         const orderDate = new Date(order.created_at);
         const year = orderDate.getFullYear();
         const month = orderDate.getMonth(); // 0-indexed (10 = November)
@@ -930,7 +942,7 @@ export const InvoiceTab = () => {
                   </TableCell>
                 </TableRow>
               ) : (
-                filteredOrders.map((order) => (
+                filteredOrders.slice(0, visibleCount).map((order) => (
                 <TableRow key={order.id}>
                     <TableCell>
                       {(() => {
@@ -1157,6 +1169,19 @@ export const InvoiceTab = () => {
               </TableBody>
             </Table>
           </div>
+          {filteredOrders.length > visibleCount && (
+            <div className="flex justify-center py-3">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setVisibleCount((c) => c + 200)}
+                className="gap-2"
+              >
+                <ChevronDown className="w-4 h-4" />
+                عرض المزيد ({filteredOrders.length - visibleCount} متبقية)
+              </Button>
+            </div>
+          )}
           </TabsContent>
         </Tabs>
       </Card>
