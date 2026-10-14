@@ -1,3 +1,4 @@
+import "../_shared/track-install.ts";
 import { createEmailWebhookHandler } from 'npm:@lovable.dev/email-js@0.1.0'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.58.0'
 
