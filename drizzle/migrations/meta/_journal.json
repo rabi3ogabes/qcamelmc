@@ -43,6 +43,13 @@
       "when": 1791969150267,
       "tag": "0005_ticket_limit_message_existing_count",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1791969286688,
+      "tag": "0006_admin_cleanup_stale_visitors",
+      "breakpoints": true
     }
   ]
 }
