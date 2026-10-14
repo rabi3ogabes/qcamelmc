@@ -18,6 +18,7 @@ import { canPurchaseTickets } from "@/lib/eventUtils";
 import { CapacityNotificationBanner } from "@/components/admin/CapacityNotificationBanner";
 import { useLifetimeTicketTotals } from "@/hooks/useLifetimeTicketTotals";
 import { fetchLiveFeed } from "@/lib/liveBookingsAccess";
+import { isLiveNow, type LiveRefreshMode } from "@/lib/liveSchedule";
 
 const QATAR_TIMEZONE = "Asia/Qatar";
 
@@ -388,6 +389,9 @@ const LiveBookings = ({ viewerPassword }: { viewerPassword?: string | null } = {
   }>({});
   const [, forceUpdate] = useState(0);
   const [isDateInitialized, setIsDateInitialized] = useState(false);
+  const [liveMode, setLiveMode] = useState<LiveRefreshMode>("always");
+  const [eventDates, setEventDates] = useState<string[]>([]);
+  const [isLive, setIsLive] = useState(false);
   const [dailySalesDialogOpen, setDailySalesDialogOpen] = useState(false);
   const [dailySummaries, setDailySummaries] = useState<DailySummary[]>([]);
   
@@ -482,18 +486,25 @@ const LiveBookings = ({ viewerPassword }: { viewerPassword?: string | null } = {
   useEffect(() => {
     const fetchUpcomingEvent = async () => {
       try {
-        const { data, error } = viewerPassword
-          ? { data: (await fetchLiveFeed(viewerPassword, "active_events")).data as any[], error: null }
-          : await supabase
-              .from("events")
-              .select("id, event_date")
-              .eq("is_active", true)
-              .order("event_date", { ascending: true });
+        let data: any[] | null = null;
+        let error: any = null;
+        if (viewerPassword) {
+          const res = await fetchLiveFeed(viewerPassword, "active_events");
+          data = res.data;
+          setLiveMode(res.mode === "event_hours" ? "event_hours" : "always");
+        } else {
+          const r = await supabase.from("events").select("id, event_date").eq("is_active", true)
+            .order("event_date", { ascending: true });
+          data = r.data; error = r.error;
+          const { data: st } = await supabase.from("settings").select("live_refresh_mode").limit(1).maybeSingle();
+          if ((st as any)?.live_refresh_mode) setLiveMode((st as any).live_refresh_mode);
+        }
 
         if (error) {
           console.error("Error fetching upcoming event:", error);
           throw error;
         }
+        setEventDates((data || []).map((e: any) => e.event_date));
         
         // Find the first event that still allows viewing (upcoming or today)
         const availableEvent = data?.find(event => canPurchaseTickets(event.event_date));
@@ -526,13 +537,30 @@ const LiveBookings = ({ viewerPassword }: { viewerPassword?: string | null } = {
     fetchSettings();
   }, []);
 
-  // Setup realtime subscription after date is initialized
+  // Re-check the live schedule every minute (08:00/17:00 boundaries)
   useEffect(() => {
-    if (!isDateInitialized) return;
-    
+    const tick = () => setIsLive(isLiveNow(liveMode, eventDates));
+    tick();
+    const timer = setInterval(tick, 60000);
+    return () => clearInterval(timer);
+  }, [liveMode, eventDates]);
+
+  // Live updates only while the schedule says so; otherwise the page sleeps
+  useEffect(() => {
+    if (!isDateInitialized || !isLive) return;
+    fetchBookings(true); // catch up on anything missed while asleep
     const cleanup = setupRealtimeSubscription();
     return cleanup;
-  }, [isDateInitialized]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isDateInitialized, isLive]);
+
+  const saveLiveMode = async (mode: LiveRefreshMode) => {
+    const prev = liveMode;
+    setLiveMode(mode);
+    const { error } = await supabase.from("settings").update({ live_refresh_mode: mode } as any).not("id", "is", null);
+    if (error) { setLiveMode(prev); toast.error("تعذر حفظ وضع التحديث"); }
+    else toast.success(mode === "always" ? "التحديث المباشر دائمًا" : "التحديث المباشر يوم الفعالية من 8 ص إلى 5 م");
+  };
 
   useEffect(() => {
     // Only fetch bookings after date has been initialized to prevent showing unfiltered data first
@@ -890,7 +918,7 @@ const LiveBookings = ({ viewerPassword }: { viewerPassword?: string | null } = {
   const setupRealtimeSubscription = () => {
     if (viewerPassword) {
       // Password-only screens can't subscribe to private tables: poll the feed instead.
-      const timer = setInterval(() => fetchBookings(true), 15000);
+      const timer = setInterval(() => fetchBookings(true), 5000);
       return () => clearInterval(timer);
     }
     let debounceTimer: ReturnType<typeof setTimeout>;
@@ -1292,6 +1320,34 @@ const LiveBookings = ({ viewerPassword }: { viewerPassword?: string | null } = {
 
   return (
     <div className="min-h-screen bg-background font-lusail flex flex-col" dir="rtl">
+      <div className="flex flex-wrap items-center justify-center gap-3 px-4 py-2 border-b border-primary/20 bg-card/80 text-sm">
+        {isLive ? (
+          <span className="flex items-center gap-2 font-semibold text-primary">
+            <span className="relative flex h-2.5 w-2.5">
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-75" />
+              <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-primary" />
+            </span>
+            مباشر — التحديث لحظي
+          </span>
+        ) : (
+          <span className="flex items-center gap-2 text-muted-foreground">
+            <Clock className="h-4 w-4" />
+            {eventDates.length === 0 ? "وضع السكون — لا توجد فعالية نشطة" : "وضع السكون — التحديث المباشر من 8 صباحًا إلى 5 مساءً يوم الفعالية"}
+          </span>
+        )}
+        <Button size="sm" variant="outline" className="h-7" onClick={() => fetchBookings(true)}>تحديث الآن</Button>
+        {!viewerPassword && (
+          <select
+            aria-label="وضع التحديث المباشر"
+            value={liveMode}
+            onChange={(e) => saveLiveMode(e.target.value as LiveRefreshMode)}
+            className="h-7 rounded-md border border-input bg-background px-2 text-xs"
+          >
+            <option value="always">مباشر دائمًا</option>
+            <option value="event_hours">يوم الفعالية فقط (8 ص – 5 م)</option>
+          </select>
+        )}
+      </div>
       {/* Capacity Increase Notification Banner */}
       {showCapacityNotification && capacityNotification && (
         <CapacityNotificationBanner
