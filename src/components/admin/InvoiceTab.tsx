@@ -942,7 +942,7 @@ export const InvoiceTab = () => {
                   </TableCell>
                 </TableRow>
               ) : (
-                filteredOrders.map((order) => (
+                filteredOrders.slice(0, visibleCount).map((order) => (
                 <TableRow key={order.id}>
                     <TableCell>
                       {(() => {
