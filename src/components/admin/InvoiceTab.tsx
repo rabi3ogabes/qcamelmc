@@ -51,6 +51,7 @@ interface Order {
   n8n_response_message: string | null;
   n8n_responded_at: string | null;
   send_attempt_count: number | null;
+  invoice_email_sent_at?: string | null;
   customers: {
     name: string;
     email: string;
