@@ -98,7 +98,7 @@ const App = () => (
                     {/* Old return address from Sadad: same page, same behaviour */}
                     <Route path="/sadad-callback" element={<PaymentResult />} />
                     <Route path="/sadad-redirect" element={<Navigate to="/checkout" replace />} />
-                    <Route path="/live-bookings" element={<RequireAdmin><LiveBookings /></RequireAdmin>} />
+                    <Route path="/live-bookings" element={<LiveBookingsGate />} />
                     <Route path="/live-visitors" element={<RequireAdmin adminOnly><LiveVisitors /></RequireAdmin>} />
                     <Route path="/staff" element={<RequireAdmin><StaffHub /></RequireAdmin>} />
                     <Route path="/staff/attendance" element={<RequireAdmin><StaffAttendance /></RequireAdmin>} />
