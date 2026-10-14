@@ -91,7 +91,9 @@ export const ApiTrafficTab = () => {
     const n = 24, span = RANGES[range] * 864e5, now = Date.now();
     const b = Array.from({ length: n }, () => ({ ok: 0, err: 0 }));
     scoped.forEach((r) => {
-      const i = Math.floor((now - new Date(r.created_at).getTime()) / (span / n));
+      const t = Date.parse(String(r.created_at).replace(" ", "T").replace(/([+-]\d{2})$/, "$1:00"));
+      if (Number.isNaN(t)) return;
+      const i = Math.floor((now - t) / (span / n));
       if (i >= 0 && i < n) r.status >= 400 ? b[n - 1 - i].err++ : b[n - 1 - i].ok++;
     });
     return b;
