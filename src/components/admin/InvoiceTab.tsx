@@ -1043,16 +1043,25 @@ export const InvoiceTab = () => {
                             variant="ghost"
                             size="sm"
                             onClick={() => sendEmailInvoice(order)}
-                            disabled={sendingEmail === order.id || sending}
-                            className="h-6 w-6 p-0 shrink-0"
-                            title="إرسال الفاتورة عبر البريد الرسمي (notify@qcamelmc.org)"
+                            disabled={sendingEmail === order.id || sending || order.payment_status !== "confirmed"}
+                            className={`h-6 w-6 p-0 shrink-0 ${order.invoice_email_sent_at ? "text-primary" : ""}`}
+                            title={order.invoice_email_sent_at
+                              ? `أُرسلت بالبريد ${format(new Date(order.invoice_email_sent_at), "dd/MM/yyyy HH:mm")} — اضغط لإعادة الإرسال`
+                              : "إرسال الفاتورة عبر البريد الرسمي (notify@qcamelmc.org)"}
                           >
                             {sendingEmail === order.id ? (
                               <Loader2 className="w-3 h-3 animate-spin" />
+                            ) : order.invoice_email_sent_at ? (
+                              <MailCheck className="w-3.5 h-3.5" />
                             ) : (
                               <Mail className="w-3 h-3" />
                             )}
                           </Button>
+                          {order.invoice_email_sent_at && (
+                            <span className="inline-flex items-center rounded-full border border-primary/40 bg-primary/10 px-1.5 py-0.5 text-[10px] font-semibold text-primary whitespace-nowrap">
+                              أُرسلت ✓
+                            </span>
+                          )}
                         </div>
                       ) : (
                         <span className="text-muted-foreground">-</span>
