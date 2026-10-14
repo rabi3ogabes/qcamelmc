@@ -13,6 +13,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { isEventExpired } from "@/lib/eventUtils";
+import { availableInvoiceEventIds } from "@/lib/invoiceScope";
 
 const COUNTRY_FLAGS: Record<string, string> = {
   "السعودية": "🇸🇦",
