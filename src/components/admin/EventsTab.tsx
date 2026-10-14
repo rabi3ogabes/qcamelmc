@@ -28,15 +28,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 
-const QATAR_TZ = "Asia/Qatar";
-/** Calendar parts (month 0-based) of an instant as seen in Qatar. */
-const qatarParts = (iso: string) => {
-  const parts = new Intl.DateTimeFormat("en-CA", { timeZone: QATAR_TZ, year: "numeric", month: "2-digit", day: "2-digit" })
-    .formatToParts(new Date(iso));
-  const get = (t: string) => Number(parts.find((p) => p.type === t)?.value);
-  return { year: get("year"), month: get("month") - 1, day: get("day") };
-};
-const qatarDayKey = (iso: string) => new Date(iso).toLocaleDateString("en-CA", { timeZone: QATAR_TZ });
+import { QATAR_TZ, qatarDayKey, qatarParts } from "@/lib/qatarTime";
 
 interface Event {
   id: string;

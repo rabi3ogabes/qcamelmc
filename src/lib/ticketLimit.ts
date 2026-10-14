@@ -14,6 +14,8 @@ export interface LimitViolation {
   existing: number;
   requested: number;
   remaining: number;
+  /** The check itself could not run (network/server error). */
+  checkFailed?: true;
 }
 
 const personKey = (idNumber?: string | null, phone?: string | null) => {
