@@ -26,6 +26,7 @@ import {
   BarChart3,
   ClipboardCheck,
   ChevronDown,
+  Activity,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { CapacityAlert } from "@/components/admin/CapacityAlert";
@@ -194,6 +195,7 @@ const AdminDashboard = () => {
         { to: "/admin/dashboard/activity-logs", label: "سجلات النشاط", icon: FileText },
         { to: "/admin/dashboard/payment-errors", label: "أخطاء الدفع", icon: AlertTriangle },
         { to: "/admin/dashboard/error-log", label: "سجل الأخطاء", icon: AlertTriangle }, // admin only
+        { to: "/admin/dashboard/api-traffic", label: "حركة الـ API", icon: Activity }, // admin only
       ],
     },
     {

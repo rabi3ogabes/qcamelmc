@@ -57,6 +57,7 @@ const ReportsPage = lazy(() => import("./pages/admin/ReportsPage"));
 const ActivityLogsPage = lazy(() => import("./pages/admin/ActivityLogsPage"));
 const PaymentErrorsPage = lazy(() => import("./pages/admin/PaymentErrorsPage"));
 const ErrorLogPage = lazy(() => import("./pages/admin/ErrorLogPage"));
+const ApiTrafficPage = lazy(() => import("./pages/admin/ApiTrafficPage"));
 const AttendancePage = lazy(() => import("./pages/admin/AttendancePage"));
 const VisitorsVsScansPage = lazy(() => import("./pages/admin/VisitorsVsScansPage"));
 const StaffAccountsPage = lazy(() => import("./pages/admin/StaffAccountsPage"));
@@ -121,6 +122,7 @@ const App = () => (
                       <Route path="activity-logs" element={<ActivityLogsPage />} />
                       <Route path="payment-errors" element={<PaymentErrorsPage />} />
                       <Route path="error-log" element={<ErrorLogPage />} /> {/* admin-only error log */}
+                      <Route path="api-traffic" element={<ApiTrafficPage />} />
                       <Route path="attendance" element={<AttendancePage />} />
                       <Route path="visitors-vs-scans" element={<VisitorsVsScansPage />} />
                       <Route path="staff-accounts" element={<StaffAccountsPage />} />

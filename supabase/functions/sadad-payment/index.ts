@@ -1,3 +1,4 @@
+import "../_shared/track-install.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.58.0";
 import { sadadPaymentHandler } from "./handler.ts";
 import { createRepo, type SupabaseLike } from "../_shared/repo.ts";

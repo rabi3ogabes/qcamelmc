@@ -1,3 +1,4 @@
+import "../_shared/track-install.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.58.0";
 import { sendTemplateEmail } from "../_shared/transactional-email-templates/send-email.ts";
 

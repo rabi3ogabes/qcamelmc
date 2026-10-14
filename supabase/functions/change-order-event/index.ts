@@ -1,4 +1,5 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import "../_shared/track-install.ts";
+
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.58.0";
 import { isAdminAuthorized, unauthorizedResponse } from "../_shared/staffAuth.ts";
 import { makeQrGenerator } from "../_shared/qr.ts";
@@ -16,7 +17,7 @@ function generateQRCode(): string {
   return `QR-${Date.now()}-${random}`.toUpperCase();
 }
 
-serve(async (req) => {
+Deno.serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });

@@ -57,6 +57,13 @@
       "when": 1792002914635,
       "tag": "0007_app_error_log",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1792004489839,
+      "tag": "0008_api_calls_tracking",
+      "breakpoints": true
     }
   ]
 }
