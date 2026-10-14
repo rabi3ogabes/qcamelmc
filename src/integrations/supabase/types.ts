@@ -128,6 +128,48 @@ export type Database = {
         }
         Relationships: []
       }
+      api_calls: {
+        Row: {
+          caller: string | null
+          country: string | null
+          created_at: string
+          duration_ms: number
+          fn: string
+          id: number
+          ip: string | null
+          method: string
+          origin: string | null
+          status: number
+          user_agent: string | null
+        }
+        Insert: {
+          caller?: string | null
+          country?: string | null
+          created_at?: string
+          duration_ms?: number
+          fn: string
+          id?: never
+          ip?: string | null
+          method: string
+          origin?: string | null
+          status?: number
+          user_agent?: string | null
+        }
+        Update: {
+          caller?: string | null
+          country?: string | null
+          created_at?: string
+          duration_ms?: number
+          fn?: string
+          id?: never
+          ip?: string | null
+          method?: string
+          origin?: string | null
+          status?: number
+          user_agent?: string | null
+        }
+        Relationships: []
+      }
       app_errors: {
         Row: {
           fingerprint: string
