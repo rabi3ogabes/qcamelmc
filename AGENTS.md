@@ -2,3 +2,4 @@
 - Guarded-page access is decided by src/lib/accessDecision.ts (used by RequireAdmin) — keeps the role rule unit-tested.
 - Visitor rows are refreshed/removed only via visitor_heartbeat / visitor_leave keyed by a random session id — browsers have no UPDATE/DELETE on visitor tables.
 - Site crashes are reported only via the log_app_error RPC (src/lib/errorReporter.ts); causes are classified in src/lib/errorCauses.ts — browsers can write the error log but never read it.
+- Edge-function traffic is recorded by importing supabase/functions/_shared/track-install.ts first in each index.ts (wraps Deno.serve, writes public.api_calls, admin-read only) — one place to monitor every API.
