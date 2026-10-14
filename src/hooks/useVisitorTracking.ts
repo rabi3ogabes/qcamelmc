@@ -2,6 +2,7 @@ import { useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
 const SESSION_KEY = "visitor_session_id";
+const REGISTERED_KEY = "visitor_session_registered";
 const VISITOR_KEY = "is_returning_visitor";
 const GEO_CACHE_KEY = "visitor_geo_cache";
 const GEO_CACHE_TTL = 30 * 60 * 1000; // 30 minutes
@@ -185,22 +186,23 @@ export const useVisitorTracking = () => {
         last_seen_at: new Date().toISOString(),
       };
 
-      // Plain insert first (SELECT is admin-only); an existing row is refreshed
-      // through the server, which checks the secret visit code.
-      const { error } = await supabase
-        .from("active_visitors")
-        .insert(visitorData);
-
-      if (error) {
-        if (error.code === "23505") {
-          const { error: updateError } = await supabase.rpc("visitor_heartbeat", {
-            p_session_id: sessionId,
-            p_page: visitorData.current_page,
-          });
-          if (updateError) console.warn("Visitor refresh failed:", updateError.message);
-        } else {
-          console.warn("Visitor tracking failed:", error.message);
-        }
+      // Already registered in this tab: just refresh it (avoids a duplicate insert).
+      let registered = false;
+      if (sessionStorage.getItem(REGISTERED_KEY) === sessionId) {
+        const { data } = await supabase.rpc("visitor_heartbeat", {
+          p_session_id: sessionId,
+          p_page: visitorData.current_page,
+        });
+        registered = data === true;
+      }
+      if (!registered) {
+        // Plain insert (SELECT is admin-only, so no upsert); on 23505 the row exists: heartbeat.
+        const { error } = await supabase.from("active_visitors").insert(visitorData);
+        if (!error) sessionStorage.setItem(REGISTERED_KEY, sessionId);
+        else if (error.code === "23505") {
+          sessionStorage.setItem(REGISTERED_KEY, sessionId);
+          await supabase.rpc("visitor_heartbeat", { p_session_id: sessionId, p_page: visitorData.current_page });
+        } else console.warn("Visitor tracking failed:", error.message);
       }
 
       if (lastPageRef.current !== window.location.pathname) {
