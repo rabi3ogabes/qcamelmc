@@ -154,7 +154,7 @@ export const ApiTrafficTab = () => {
         </div>
         <div className="flex items-end gap-1 h-28" dir="ltr">
           {buckets.map((b, i) => (
-            <div key={i} className="flex-1 flex flex-col justify-end" title={`${b.ok + b.err}`}>
+            <div key={i} className="flex-1 h-full flex flex-col justify-end" title={`${b.ok + b.err}`}>
               <div className="bg-destructive/80 rounded-t-sm" style={{ height: `${(b.err / peak) * 100}%` }} />
               <div className="bg-primary/80" style={{ height: `${(b.ok / peak) * 100}%` }} />
             </div>
