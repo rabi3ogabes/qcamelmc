@@ -918,7 +918,7 @@ const LiveBookings = ({ viewerPassword }: { viewerPassword?: string | null } = {
   const setupRealtimeSubscription = () => {
     if (viewerPassword) {
       // Password-only screens can't subscribe to private tables: poll the feed instead.
-      const timer = setInterval(() => fetchBookings(true), 15000);
+      const timer = setInterval(() => fetchBookings(true), 5000);
       return () => clearInterval(timer);
     }
     let debounceTimer: ReturnType<typeof setTimeout>;
