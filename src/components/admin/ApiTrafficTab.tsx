@@ -154,11 +154,11 @@ export const ApiTrafficTab = () => {
           <span>{selected ? `${FN_LABEL[selected] ?? selected}` : "كل الخدمات"} — الحركة عبر الزمن</span>
           <span className="flex gap-3"><span className="flex items-center gap-1"><i className="w-2 h-2 rounded-full bg-primary inline-block" />ناجح</span><span className="flex items-center gap-1"><i className="w-2 h-2 rounded-full bg-destructive inline-block" />خطأ</span></span>
         </div>
-        <div className="flex items-end gap-1 h-28" dir="ltr">
+        <div className="flex items-end gap-1" style={{ height: 112 }} dir="ltr" data-chart="api-timeline">
           {buckets.map((b, i) => (
-            <div key={i} className="flex-1 h-full flex flex-col justify-end" title={`${b.ok + b.err}`}>
-              <div className="bg-destructive/80 rounded-t-sm" style={{ height: `${(b.err / peak) * 100}%` }} />
-              <div className="bg-primary/80" style={{ height: `${(b.ok / peak) * 100}%` }} />
+            <div key={i} className="flex-1 flex flex-col justify-end rounded-t-sm overflow-hidden bg-muted/40" style={{ height: Math.max(2, ((b.ok + b.err) / peak) * 112) }} title={`${b.ok + b.err} استدعاء`}>
+              <div className="bg-destructive/80" style={{ flexGrow: b.err }} />
+              <div className="bg-primary/80" style={{ flexGrow: b.ok }} />
             </div>
           ))}
         </div>
