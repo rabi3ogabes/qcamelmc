@@ -22,6 +22,13 @@
       "when": 1791830542786,
       "tag": "0002_order_source_visits_log_limits",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1791956584601,
+      "tag": "0003_visitor_heartbeat_storage_listing",
+      "breakpoints": true
     }
   ]
 }
