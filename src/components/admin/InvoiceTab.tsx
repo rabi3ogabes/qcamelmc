@@ -102,6 +102,7 @@ export const InvoiceTab = () => {
   const [sendingIndividual, setSendingIndividual] = useState<string | null>(null);
   const [sendingEmail, setSendingEmail] = useState<string | null>(null);
   const [timelineOrder, setTimelineOrder] = useState<Order | null>(null);
+  const [visibleCount, setVisibleCount] = useState<number>(100);
 
   useEffect(() => {
     fetchOrders();
