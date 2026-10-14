@@ -1,0 +1,1 @@
+ALTER TABLE public.settings ADD COLUMN IF NOT EXISTS live_refresh_mode text NOT NULL DEFAULT 'always' CHECK (live_refresh_mode IN ('always','event_hours'));

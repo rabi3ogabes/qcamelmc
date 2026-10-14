@@ -882,6 +882,7 @@ export type Database = {
           invoice_send_delay_max: number | null
           invoice_send_delay_min: number | null
           last_invoice_sent_at: string | null
+          live_refresh_mode: string
           logo_url: string | null
           payment_failed_email_enabled: boolean
           sadad_api_key: string | null
@@ -920,6 +921,7 @@ export type Database = {
           invoice_send_delay_max?: number | null
           invoice_send_delay_min?: number | null
           last_invoice_sent_at?: string | null
+          live_refresh_mode?: string
           logo_url?: string | null
           payment_failed_email_enabled?: boolean
           sadad_api_key?: string | null
@@ -958,6 +960,7 @@ export type Database = {
           invoice_send_delay_max?: number | null
           invoice_send_delay_min?: number | null
           last_invoice_sent_at?: string | null
+          live_refresh_mode?: string
           logo_url?: string | null
           payment_failed_email_enabled?: boolean
           sadad_api_key?: string | null
