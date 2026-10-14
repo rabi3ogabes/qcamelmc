@@ -290,12 +290,24 @@ export const InvoiceTab = () => {
 
   const fetchOrders = async () => {
     try {
-      const { data, error } = await supabase
-        .from("orders")
-        .select("*, customers(name, email, phone, country_code, nationality), events(title, event_date, location, is_archived), ticket_holders(qr_code, ticket_type)")
-        .eq("payment_method", "sadad")
-        .eq("payment_status", "confirmed")
-        .order("created_at", { ascending: false });
+      // Loop with .range() to bypass the 1000-row response cap
+      const PAGE = 1000;
+      let allData: any[] = [];
+      let from = 0;
+      for (;;) {
+        const { data, error } = await supabase
+          .from("orders")
+          .select("*, customers(name, email, phone, country_code, nationality), events(title, event_date, location, is_archived), ticket_holders(qr_code, ticket_type)")
+          .eq("payment_method", "sadad")
+          .eq("payment_status", "confirmed")
+          .order("created_at", { ascending: false })
+          .range(from, from + PAGE - 1);
+        if (error) throw error;
+        const rows = data || [];
+        allData = allData.concat(rows);
+        if (rows.length < PAGE) break;
+        from += PAGE;
+      }
 
       if (error) throw error;
       
