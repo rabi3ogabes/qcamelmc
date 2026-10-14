@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Send, Loader2, CheckCircle, Clock, RotateCcw, CalendarX, PauseCircle, FileDown, Mail, MailCheck, History, Archive, ChevronDown } from "lucide-react";
+import { Send, Loader2, CheckCircle, Clock, RotateCcw, CalendarX, PauseCircle, FileDown, Mail, MailCheck, History, ChevronDown } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { EmailDeliveryTimeline } from "@/components/admin/EmailDeliveryTimeline";
 import { generateInvoicePdf } from "@/lib/generateInvoicePdf";
@@ -98,7 +98,6 @@ export const InvoiceTab = () => {
   const [delayMin, setDelayMin] = useState<number>(300);
   const [delayMax, setDelayMax] = useState<number>(600);
   const [filterTab, setFilterTab] = useState<"all" | "pending" | "sent" | "eventDone" | "onHold">("all");
-  const [view, setView] = useState<"current" | "archived">("current");
   const [sendingIndividual, setSendingIndividual] = useState<string | null>(null);
   const [sendingEmail, setSendingEmail] = useState<string | null>(null);
   const [timelineOrder, setTimelineOrder] = useState<Order | null>(null);
@@ -165,10 +164,9 @@ export const InvoiceTab = () => {
     return attemptCount >= 2 && isPending;
   };
 
-  // Scope orders to the selected view (current season vs archived seasons)
-  const scopedOrders = orders.filter((order) =>
-    view === "archived" ? order.events?.is_archived === true : order.events?.is_archived !== true
-  );
+  // Scope: only available invoices are ever loaded (fetchOrders skips archived
+  // seasons), so the whole list is in scope — nothing from the archive is here.
+  const scopedOrders = orders;
 
   // Calculate pending orders count - orders that are truly pending AND event not done AND not on hold
   const pendingOrdersCount = scopedOrders.filter(o => 
@@ -291,6 +289,18 @@ export const InvoiceTab = () => {
 
   const fetchOrders = async () => {
     try {
+      // Available events only: invoices of an archived season are never loaded.
+      const { data: seasonEvents, error: seasonError } = await supabase
+        .from("events")
+        .select("id, is_archived");
+      if (seasonError) throw seasonError;
+
+      const liveEventIds = availableInvoiceEventIds(seasonEvents || []);
+      if (liveEventIds.length === 0) {
+        setOrders([]);
+        return;
+      }
+
       // Loop with .range() to bypass the 1000-row response cap
       const PAGE = 1000;
       let allData: any[] = [];
@@ -301,6 +311,7 @@ export const InvoiceTab = () => {
           .select("*, customers(name, email, phone, country_code, nationality), events(title, event_date, location, is_archived), ticket_holders(qr_code, ticket_type)")
           .eq("payment_method", "sadad")
           .eq("payment_status", "confirmed")
+          .in("event_id", liveEventIds)
           .order("created_at", { ascending: false })
           .range(from, from + PAGE - 1);
         if (error) throw error;
@@ -780,25 +791,9 @@ export const InvoiceTab = () => {
             <p className="text-sm md:text-base text-muted-foreground">
               إرسال يدوي للفواتير - قم بتفعيل العد التنازلي للإرسال التلقائي
             </p>
-            <div className="flex rounded-lg border p-1 bg-muted/40 w-fit mt-3">
-              <Button
-                variant={view === "current" ? "default" : "ghost"}
-                size="sm"
-                className="font-lusail"
-                onClick={() => setView("current")}
-              >
-                الحالية
-              </Button>
-              <Button
-                variant={view === "archived" ? "default" : "ghost"}
-                size="sm"
-                className="font-lusail gap-1"
-                onClick={() => setView("archived")}
-              >
-                <Archive className="w-4 h-4" />
-                الأرشيف
-              </Button>
-            </div>
+            <p className="text-xs text-muted-foreground mt-3">
+              تُعرض فواتير الفعاليات المتاحة فقط — فواتير المواسم المؤرشفة مخفية.
+            </p>
           </div>
           
           {/* Mobile & Tablet Layout */}
@@ -938,7 +933,7 @@ export const InvoiceTab = () => {
                     {filterTab === "sent" && "لا توجد طلبات تم إرسالها"}
                     {filterTab === "eventDone" && "لا توجد طلبات انتهت فعاليتها"}
                     {filterTab === "onHold" && "لا توجد طلبات موقوفة"}
-                    {filterTab === "all" && "لا توجد طلبات مدفوعة عبر سداد"}
+                    {filterTab === "all" && "لا توجد فواتير متوفرة — فواتير المواسم المؤرشفة لا تُعرض هنا"}
                   </TableCell>
                 </TableRow>
               ) : (
