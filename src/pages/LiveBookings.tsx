@@ -17,6 +17,7 @@ import { Footer } from "@/components/Footer";
 import { canPurchaseTickets } from "@/lib/eventUtils";
 import { CapacityNotificationBanner } from "@/components/admin/CapacityNotificationBanner";
 import { useLifetimeTicketTotals } from "@/hooks/useLifetimeTicketTotals";
+import { fetchLiveFeed } from "@/lib/liveBookingsAccess";
 
 const QATAR_TIMEZONE = "Asia/Qatar";
 
@@ -347,7 +348,7 @@ interface Booking {
   ticket_holders?: TicketHolder[];
 }
 
-const LiveBookings = () => {
+const LiveBookings = ({ viewerPassword }: { viewerPassword?: string | null } = {}) => {
   const { t } = useTranslation();
   const { getTotal: getLifetimeTickets, refresh: refreshLifetimeTotals } = useLifetimeTicketTotals();
   const [bookings, setBookings] = useState<Booking[]>([]);
@@ -481,11 +482,13 @@ const LiveBookings = () => {
   useEffect(() => {
     const fetchUpcomingEvent = async () => {
       try {
-        const { data, error } = await supabase
-          .from("events")
-          .select("id, event_date")
-          .eq("is_active", true)
-          .order("event_date", { ascending: true });
+        const { data, error } = viewerPassword
+          ? { data: (await fetchLiveFeed(viewerPassword, "active_events")).data as any[], error: null }
+          : await supabase
+              .from("events")
+              .select("id, event_date")
+              .eq("is_active", true)
+              .order("event_date", { ascending: true });
 
         if (error) {
           console.error("Error fetching upcoming event:", error);
@@ -773,7 +776,19 @@ const LiveBookings = () => {
         dateStr = `${y}-${m}-${d}`;
       }
 
-      for (let from = 0; ; from += PAGE_SIZE) {
+      let nextDayStrForFeed: string | null = null;
+      if (dateStr && dateToUse) {
+        const nd = new Date(dateToUse);
+        nd.setDate(nd.getDate() + 1);
+        nextDayStrForFeed = `${nd.getFullYear()}-${String(nd.getMonth() + 1).padStart(2, '0')}-${String(nd.getDate()).padStart(2, '0')}`;
+      }
+      let feed: { orders: any[]; logs: any[]; capacities: any[] } | null = null;
+      if (viewerPassword) {
+        feed = await fetchLiveFeed(viewerPassword, "bookings", { dateStr, nextDayStr: nextDayStrForFeed });
+        allOrders.push(...feed!.orders);
+      }
+
+      for (let from = 0; !viewerPassword; from += PAGE_SIZE) {
         let query = supabase
           .from("orders")
           .select(`*, customers(name, email, phone, id_number, nationality), events!inner(title, event_date), ticket_holders(*), pos_users(name, icon)`)
@@ -783,10 +798,7 @@ const LiveBookings = () => {
 
         // Apply server-side date range filter (event_date is timestamp, not date)
         if (dateStr) {
-          const nextDay = new Date(dateToUse!);
-          nextDay.setDate(nextDay.getDate() + 1);
-          const nextDayStr = `${nextDay.getFullYear()}-${String(nextDay.getMonth() + 1).padStart(2, '0')}-${String(nextDay.getDate()).padStart(2, '0')}`;
-          query = query.gte("events.event_date", dateStr).lt("events.event_date", nextDayStr);
+          query = query.gte("events.event_date", dateStr).lt("events.event_date", nextDayStrForFeed!);
         }
 
         const { data, error } = await query;
@@ -808,14 +820,16 @@ const LiveBookings = () => {
       calculateStats(allOrders, allTicketHolders);
 
       // Fetch invoice download logs
-      const { data: allDownloadLogs } = await supabase
-        .from('activity_logs')
-        .select('action_data')
-        .eq('activity_type', 'pos_form')
-        .limit(500);
+      const allDownloadLogs = feed
+        ? feed.logs
+        : (await supabase
+            .from('activity_logs')
+            .select('action_data')
+            .eq('activity_type', 'pos_form')
+            .limit(500)).data;
       
       const downloadedRefs = new Set<string>();
-      allDownloadLogs?.forEach(log => {
+      allDownloadLogs?.forEach((log: any) => {
         const data = log.action_data as any;
         if (data?.action === 'invoice_download' && data?.booking_reference) {
           downloadedRefs.add(data.booking_reference);
@@ -825,18 +839,23 @@ const LiveBookings = () => {
       
       // Fetch ticket capacities
       const eventId = allOrders[0]?.event_id;
-      if (eventId) {
+      if (feed) {
+        const capacities: { [key: string]: number } = {};
+        const capacitiesMap = new Map<string, number>();
+        feed.capacities.forEach((tk: any) => {
+          capacities[tk.type] = tk.available_quantity;
+          capacitiesMap.set(tk.type, tk.available_quantity);
+        });
+        setTicketCapacities(capacities);
+        previousTicketCapacitiesRef.current = capacitiesMap;
+      } else if (eventId) {
         await fetchTicketCapacities(eventId);
       } else if (dateStr && dateToUse) {
-        // No orders yet — find event by date range to show capacities
-        const nextDay = new Date(dateToUse);
-        nextDay.setDate(nextDay.getDate() + 1);
-        const nextDayStr = `${nextDay.getFullYear()}-${String(nextDay.getMonth() + 1).padStart(2, '0')}-${String(nextDay.getDate()).padStart(2, '0')}`;
         const { data: eventData } = await supabase
           .from("events")
           .select("id")
           .gte("event_date", dateStr)
-          .lt("event_date", nextDayStr)
+          .lt("event_date", nextDayStrForFeed!)
           .eq("is_active", true)
           .maybeSingle();
         if (eventData) {
@@ -869,6 +888,11 @@ const LiveBookings = () => {
   };
 
   const setupRealtimeSubscription = () => {
+    if (viewerPassword) {
+      // Password-only screens can't subscribe to private tables: poll the feed instead.
+      const timer = setInterval(() => fetchBookings(true), 15000);
+      return () => clearInterval(timer);
+    }
     let debounceTimer: ReturnType<typeof setTimeout>;
     
     // Debounced full refresh — fallback for edge cases
@@ -1027,7 +1051,7 @@ const LiveBookings = () => {
       const PAGE_SIZE = 1000;
       const allTicketHolders: any[] = [];
 
-      for (let from = 0; ; from += PAGE_SIZE) {
+      for (let from = 0; !viewerPassword; from += PAGE_SIZE) {
         const { data, error } = await supabase
           .from("ticket_holders")
           .select(
@@ -1058,11 +1082,19 @@ const LiveBookings = () => {
       }
 
       // Fetch all ticket prices
-      const { data: ticketPrices, error: ticketError } = await supabase
-        .from("tickets")
-        .select("event_id, type, price");
-
-      if (ticketError) throw ticketError;
+      let ticketPrices: any[] | null = null;
+      if (viewerPassword) {
+        const res = await fetchLiveFeed(viewerPassword, "daily_sales");
+        allTicketHolders.length = 0;
+        allTicketHolders.push(...res.holders);
+        ticketPrices = res.prices;
+      } else {
+        const { data, error: ticketError } = await supabase
+          .from("tickets")
+          .select("event_id, type, price");
+        if (ticketError) throw ticketError;
+        ticketPrices = data;
+      }
 
       // Create a map of ticket prices by event_id and type
       const priceMap = (ticketPrices || []).reduce((acc, ticket) => {
