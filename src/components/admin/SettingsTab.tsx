@@ -804,6 +804,22 @@ export const SettingsTab = () => {
     }
   };
 
+  const handleSaveLiveMode = async (mode: "always" | "event_hours") => {
+    const prev = liveRefreshMode;
+    setLiveRefreshMode(mode);
+    setSavingLiveMode(true);
+    try {
+      await updateSettingsRow({ live_refresh_mode: mode } as any);
+      toast.success(mode === "always" ? "التحديث المباشر دائمًا" : "التحديث المباشر يوم الفعالية من 8 ص إلى 5 م");
+    } catch (error) {
+      setLiveRefreshMode(prev);
+      console.error("Error saving live refresh mode:", error);
+      toast.error("تعذر حفظ وضع التحديث");
+    } finally {
+      setSavingLiveMode(false);
+    }
+  };
+
   const handleSaveSadad = async () => {
     setSavingSadad(true);
     try {
@@ -1377,6 +1393,29 @@ export const SettingsTab = () => {
         </TabsList>
 
         <TabsContent value="design" className="space-y-6 mt-6">
+
+      {/* Live bookings refresh mode */}
+      <Card className="p-6">
+        <h3 className="text-lg font-semibold mb-2 font-lusail">التحديث المباشر لصفحة الحجوزات المباشرة</h3>
+        <p className="text-sm text-muted-foreground font-lusail mb-4">
+          اختر متى تعمل صفحة الحجوزات المباشرة بالتحديث اللحظي — خارج هذه الأوقات تدخل الصفحة في وضع السكون ويظل زر «تحديث الآن» متاحًا.
+        </p>
+        <div className="max-w-sm">
+          <Select
+            value={liveRefreshMode}
+            onValueChange={(v) => handleSaveLiveMode(v as "always" | "event_hours")}
+            disabled={savingLiveMode}
+          >
+            <SelectTrigger className="font-lusail">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="always" className="font-lusail">مباشر دائمًا</SelectItem>
+              <SelectItem value="event_hours" className="font-lusail">يوم الفعالية فقط (8 ص – 5 م بتوقيت قطر)</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </Card>
 
       {/* Hero Background Image */}
       <Card className="p-6">
