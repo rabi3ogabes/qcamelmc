@@ -24,26 +24,15 @@ const shouldTrackPage = (): boolean => {
   return !EXCLUDED_PATHS.some(excluded => path.startsWith(excluded));
 };
 
-const TOKEN_KEY = "visitor_visit_token";
-
-/** 32 random hex characters — unguessable. */
-const randomCode = (): string => {
-  const bytes = new Uint8Array(16);
-  crypto.getRandomValues(bytes);
-  return Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
-};
-
-const getStored = (key: string): string => {
-  let value = sessionStorage.getItem(key);
+/** A random, unguessable visit code — the only key that can refresh or remove this visit. */
+const getSessionId = (): string => {
+  let value = sessionStorage.getItem(SESSION_KEY);
   if (!value || value.length < 32) {
-    value = randomCode();
-    sessionStorage.setItem(key, value);
+    value = crypto.randomUUID();
+    sessionStorage.setItem(SESSION_KEY, value);
   }
   return value;
 };
-
-const getSessionId = (): string => getStored(SESSION_KEY);
-const getVisitToken = (): string => getStored(TOKEN_KEY);
 
 const isNewVisitor = (): boolean => {
   const isReturning = localStorage.getItem(VISITOR_KEY);
@@ -172,7 +161,6 @@ export const useVisitorTracking = () => {
     if (!shouldTrackPage()) return;
 
     const sessionId = sessionIdRef.current;
-    const visitToken = getVisitToken();
     let isMounted = true;
 
     const initTracking = async () => {
@@ -201,13 +189,12 @@ export const useVisitorTracking = () => {
       // through the server, which checks the secret visit code.
       const { error } = await supabase
         .from("active_visitors")
-        .insert({ ...visitorData, visit_token: visitToken });
+        .insert(visitorData);
 
       if (error) {
         if (error.code === "23505") {
-          const { error: updateError } = await supabase.rpc("touch_active_visit", {
+          const { error: updateError } = await supabase.rpc("visitor_heartbeat", {
             p_session_id: sessionId,
-            p_token: visitToken,
             p_page: visitorData.current_page,
           });
           if (updateError) console.warn("Visitor refresh failed:", updateError.message);
@@ -224,9 +211,8 @@ export const useVisitorTracking = () => {
 
     const updateActivity = async () => {
       if (!shouldTrackPage()) return;
-      const { error } = await supabase.rpc("touch_active_visit", {
+      const { error } = await supabase.rpc("visitor_heartbeat", {
         p_session_id: sessionId,
-        p_token: visitToken,
         p_page: window.location.pathname,
       });
       if (error) console.warn("Visitor activity update failed:", error.message);
@@ -248,7 +234,7 @@ export const useVisitorTracking = () => {
       isMounted = false;
       if (intervalRef.current) clearInterval(intervalRef.current);
       window.removeEventListener("popstate", handlePopState);
-      supabase.rpc("end_active_visit", { p_session_id: sessionId, p_token: visitToken }).then(() => {});
+      supabase.rpc("visitor_leave", { p_session_id: sessionId }).then(() => {});
     };
   }, []);
 };
