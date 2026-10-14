@@ -66,7 +66,9 @@ export const checkTicketLimits = async (
 
       if (error) {
         console.error("Ticket limit check failed:", error);
-        return; // the database trigger remains the hard guard
+        // Do not let the form continue unchecked: tell the user (the database still enforces the limit).
+        violations.push({ name: group.name, existing: 0, requested: group.requested, remaining: 0, checkFailed: true });
+        return;
       }
 
       const existing = Number(data) || 0;
@@ -86,7 +88,9 @@ export const checkTicketLimits = async (
 };
 
 export const formatLimitViolation = (v: LimitViolation) =>
-  v.remaining === 0
+  v.checkFailed
+    ? `تعذّر التحقق من حد التذاكر لـ ${v.name}. تحقق من الاتصال ثم حاول مرة أخرى.`
+    : v.remaining === 0
     ? `${v.name} بلغ الحد الأقصى (${MAX_TICKETS_PER_PERSON} تذاكر) لهذه الفعالية`
     : `${v.name} لديه ${v.existing} تذكرة — يمكنه إضافة ${v.remaining} فقط (طلب ${v.requested})`;
 
