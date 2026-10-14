@@ -14,7 +14,6 @@ import { toZonedTime, fromZonedTime } from "date-fns-tz";
 import { Footer } from "@/components/Footer";
 import { isEventExpired } from "@/lib/eventUtils";
 import { useSettings } from "@/contexts/SettingsContext";
-import { toZonedTime } from "date-fns-tz";
 import { QATAR_TZ } from "@/lib/qatarTime";
 
 interface Ticket {
