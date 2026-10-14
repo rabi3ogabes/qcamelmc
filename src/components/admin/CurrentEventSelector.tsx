@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Star, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { formatQatarDate } from "@/lib/qatarTime";
 
 const NONE = "__all__";
 
@@ -103,7 +104,7 @@ export const CurrentEventSelector = ({ onChanged }: CurrentEventSelectorProps) =
               </SelectItem>
               {events.map((event) => (
                 <SelectItem key={event.id} value={event.id} className="font-lusail">
-                  {event.title} — {new Date(event.event_date).toLocaleDateString("en-US")}
+                  {event.title} — {formatQatarDate(event.event_date, { year: "numeric", month: "short", day: "numeric" })}
                 </SelectItem>
               ))}
             </SelectContent>

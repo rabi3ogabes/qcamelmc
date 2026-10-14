@@ -14,6 +14,8 @@ import { toZonedTime, fromZonedTime } from "date-fns-tz";
 import { Footer } from "@/components/Footer";
 import { isEventExpired } from "@/lib/eventUtils";
 import { useSettings } from "@/contexts/SettingsContext";
+import { toZonedTime } from "date-fns-tz";
+import { QATAR_TZ } from "@/lib/qatarTime";
 
 interface Ticket {
   id: string;
@@ -419,7 +421,7 @@ const TicketSelection = () => {
           <div className="text-center mb-6 sm:mb-10 lg:mb-12">
             <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold mb-2 sm:mb-3 lg:mb-4 px-2">{event.title}</h1>
             <p className="text-xs sm:text-sm lg:text-base text-muted-foreground mb-2 hidden">
-              {format(new Date(event.event_date), "EEEE، d MMMM، yyyy - h:mm a", { locale: ar })}
+              {format(toZonedTime(event.event_date, QATAR_TZ), "EEEE، d MMMM، yyyy - h:mm a", { locale: ar })}
             </p>
             <p className="text-xs sm:text-sm lg:text-base text-muted-foreground px-2">{event.location}</p>
           </div>

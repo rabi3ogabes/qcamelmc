@@ -13,6 +13,8 @@ import { Footer } from "@/components/Footer";
 import { WhatsAppButton } from "@/components/WhatsAppButton";
 import { useSettings } from "@/contexts/SettingsContext";
 import { canPurchaseTickets } from "@/lib/eventUtils";
+import { toZonedTime } from "date-fns-tz";
+import { QATAR_TZ } from "@/lib/qatarTime";
 
 interface Event {
   id: string;
@@ -241,7 +243,7 @@ const EventHome = () => {
                           <div>
                             <p className="font-semibold">{t('eventDateTime')}</p>
                             <p className="text-sm text-muted-foreground">
-                              {format(new Date(event.event_date), "EEEE، d MMMM، yyyy", { locale: ar })}
+                              {format(toZonedTime(event.event_date, QATAR_TZ), "EEEE، d MMMM، yyyy", { locale: ar })}
                             </p>
                           </div>
                         </div>
