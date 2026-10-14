@@ -75,6 +75,8 @@ export const SettingsTab = () => {
   const [savingDeleteTicketButton, setSavingDeleteTicketButton] = useState(false);
   const [autoInvoiceInterval, setAutoInvoiceInterval] = useState(60);
   const [savingAutoInvoice, setSavingAutoInvoice] = useState(false);
+  const [liveRefreshMode, setLiveRefreshMode] = useState<"always" | "event_hours">("always");
+  const [savingLiveMode, setSavingLiveMode] = useState(false);
   const [invoiceBatchMin, setInvoiceBatchMin] = useState(1);
   const [invoiceBatchMax, setInvoiceBatchMax] = useState(10);
   const [savingBatchSettings, setSavingBatchSettings] = useState(false);
@@ -221,7 +223,7 @@ export const SettingsTab = () => {
   const fetchSettings = async () => {
     const { data, error } = await supabase
       .from("settings")
-      .select("logo_url, hero_image_url, before_footer_image_url, header_bg_color, header_bg_image_url, hero_text, copyright_text, webhook_url, email_webhook_url, webhook_enabled, email_webhook_enabled, admin_phone, admin_email, payment_failed_email_enabled, clarity_project_id, clarity_enabled, sadad_merchant_id, sadad_api_key, sadad_secret, sadad_website_domain, sadad_environment, site_url, show_delete_customer_button, show_generate_qr_button, show_delete_event_button, show_delete_ticket_button, auto_invoice_interval_seconds, invoice_batch_min, invoice_batch_max, invoice_send_delay_min, invoice_send_delay_max")
+      .select("logo_url, hero_image_url, before_footer_image_url, header_bg_color, header_bg_image_url, hero_text, copyright_text, webhook_url, email_webhook_url, webhook_enabled, email_webhook_enabled, admin_phone, admin_email, payment_failed_email_enabled, clarity_project_id, clarity_enabled, sadad_merchant_id, sadad_api_key, sadad_secret, sadad_website_domain, sadad_environment, site_url, show_delete_customer_button, show_generate_qr_button, show_delete_event_button, show_delete_ticket_button, auto_invoice_interval_seconds, invoice_batch_min, invoice_batch_max, invoice_send_delay_min, invoice_send_delay_max, live_refresh_mode")
       .maybeSingle();
 
     if (error) {
@@ -288,6 +290,7 @@ export const SettingsTab = () => {
     }
 
     if (data?.clarity_project_id) setClarityProjectId(data.clarity_project_id);
+    if ((data as any)?.live_refresh_mode) setLiveRefreshMode((data as any).live_refresh_mode);
     if (data?.clarity_enabled !== undefined && data?.clarity_enabled !== null) {
       setClarityEnabled(data.clarity_enabled);
     }
@@ -798,6 +801,22 @@ export const SettingsTab = () => {
       toast.error("فشل في حفظ إعدادات Clarity");
     } finally {
       setSavingClarity(false);
+    }
+  };
+
+  const handleSaveLiveMode = async (mode: "always" | "event_hours") => {
+    const prev = liveRefreshMode;
+    setLiveRefreshMode(mode);
+    setSavingLiveMode(true);
+    try {
+      await updateSettingsRow({ live_refresh_mode: mode } as any);
+      toast.success(mode === "always" ? "التحديث المباشر دائمًا" : "التحديث المباشر يوم الفعالية من 8 ص إلى 5 م");
+    } catch (error) {
+      setLiveRefreshMode(prev);
+      console.error("Error saving live refresh mode:", error);
+      toast.error("تعذر حفظ وضع التحديث");
+    } finally {
+      setSavingLiveMode(false);
     }
   };
 
@@ -1374,6 +1393,29 @@ export const SettingsTab = () => {
         </TabsList>
 
         <TabsContent value="design" className="space-y-6 mt-6">
+
+      {/* Live bookings refresh mode */}
+      <Card className="p-6">
+        <h3 className="text-lg font-semibold mb-2 font-lusail">التحديث المباشر لصفحة الحجوزات المباشرة</h3>
+        <p className="text-sm text-muted-foreground font-lusail mb-4">
+          اختر متى تعمل صفحة الحجوزات المباشرة بالتحديث اللحظي — خارج هذه الأوقات تدخل الصفحة في وضع السكون ويظل زر «تحديث الآن» متاحًا.
+        </p>
+        <div className="max-w-sm">
+          <Select
+            value={liveRefreshMode}
+            onValueChange={(v) => handleSaveLiveMode(v as "always" | "event_hours")}
+            disabled={savingLiveMode}
+          >
+            <SelectTrigger className="font-lusail">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="always" className="font-lusail">مباشر دائمًا</SelectItem>
+              <SelectItem value="event_hours" className="font-lusail">يوم الفعالية فقط (8 ص – 5 م بتوقيت قطر)</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </Card>
 
       {/* Hero Background Image */}
       <Card className="p-6">

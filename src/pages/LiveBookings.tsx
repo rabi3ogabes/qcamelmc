@@ -554,13 +554,6 @@ const LiveBookings = ({ viewerPassword }: { viewerPassword?: string | null } = {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isDateInitialized, isLive]);
 
-  const saveLiveMode = async (mode: LiveRefreshMode) => {
-    const prev = liveMode;
-    setLiveMode(mode);
-    const { error } = await supabase.from("settings").update({ live_refresh_mode: mode } as any).not("id", "is", null);
-    if (error) { setLiveMode(prev); toast.error("تعذر حفظ وضع التحديث"); }
-    else toast.success(mode === "always" ? "التحديث المباشر دائمًا" : "التحديث المباشر يوم الفعالية من 8 ص إلى 5 م");
-  };
 
   useEffect(() => {
     // Only fetch bookings after date has been initialized to prevent showing unfiltered data first
@@ -1336,17 +1329,6 @@ const LiveBookings = ({ viewerPassword }: { viewerPassword?: string | null } = {
           </span>
         )}
         <Button size="sm" variant="outline" className="h-7" onClick={() => fetchBookings(true)}>تحديث الآن</Button>
-        {!viewerPassword && (
-          <select
-            aria-label="وضع التحديث المباشر"
-            value={liveMode}
-            onChange={(e) => saveLiveMode(e.target.value as LiveRefreshMode)}
-            className="h-7 rounded-md border border-input bg-background px-2 text-xs"
-          >
-            <option value="always">مباشر دائمًا</option>
-            <option value="event_hours">يوم الفعالية فقط (8 ص – 5 م)</option>
-          </select>
-        )}
       </div>
       {/* Capacity Increase Notification Banner */}
       {showCapacityNotification && capacityNotification && (
