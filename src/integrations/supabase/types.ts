@@ -1278,6 +1278,11 @@ export type Database = {
         Args: { p_page: string; p_session_id: string; p_token: string }
         Returns: boolean
       }
+      visitor_heartbeat: {
+        Args: { p_page: string; p_session_id: string }
+        Returns: boolean
+      }
+      visitor_leave: { Args: { p_session_id: string }; Returns: undefined }
     }
     Enums: {
       app_role: "admin" | "moderator"

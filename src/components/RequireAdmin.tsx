@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { getStaffPasscode, hasStaffAccess } from "@/lib/staffAccess";
 import { tryConsumeStaffHandoff } from "@/lib/staffHandoff";
+import { decideAccess } from "@/lib/accessDecision";
 import UnifiedLoginCard from "@/components/auth/UnifiedLoginCard";
 
 
@@ -26,56 +27,34 @@ const RequireAdmin = ({
     let active = true;
 
     const check = async () => {
-      // Staff access counts only when the accepted passcode is stored,
-      // so staff-only edge functions can still authorize the request.
-      if (hasStaffAccess() && getStaffPasscode()) {
-        if (active) setStatus("allowed");
-        return;
-      }
-
-      // A link opened from the team hub can carry a one-time token so the
-      // new tab inherits access instead of asking for the password again.
-      if (await tryConsumeStaffHandoff()) {
-        if (active) setStatus("allowed");
-        return;
-      }
-
-
+      let hasPasscode = hasStaffAccess() && Boolean(getStaffPasscode());
       const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.user) {
-        if (active) setStatus("denied");
-        return;
-      }
-
-      const { data: roleRows } = await supabase
-        .from("user_roles")
-        .select("role")
-        .eq("user_id", session.user.id);
-      const roles = (roleRows || []).map((r: { role: string }) => r.role);
-
-      if (roles.includes("moderator") && !roles.includes("admin")) {
-        if (!active) return;
-        if (adminOnly) {
-          navigate("/staff", { replace: true });
-          return;
+      let isAdmin = false;
+      let isModerator = false;
+      if (session?.user) {
+        const { data: roleRows } = await supabase
+          .from("user_roles")
+          .select("role")
+          .eq("user_id", session.user.id);
+        const roles = (roleRows || []).map((r: { role: string }) => r.role);
+        isModerator = roles.includes("moderator");
+        isAdmin = roles.includes("admin");
+        if (!isAdmin) {
+          const { data } = await supabase.from("admin_users").select("id").eq("id", session.user.id).maybeSingle();
+          isAdmin = Boolean(data);
         }
-        setStatus("allowed");
+      }
+      // A link opened from the team hub can carry a one-time token so the new tab inherits access.
+      if (!isAdmin && !hasPasscode && !isModerator && (await tryConsumeStaffHandoff())) hasPasscode = true;
+
+      const decision = decideAccess({ adminOnly, hasPasscode, signedIn: Boolean(session?.user), isAdmin, isModerator });
+      if (!active) return;
+      if (decision === "staff_hub") {
+        navigate("/staff", { replace: true });
         return;
       }
-
-      if (roles.includes("admin")) {
-        if (active) setStatus("allowed");
-        return;
-      }
-
-      const { data } = await supabase
-        .from("admin_users")
-        .select("id")
-        .eq("id", session.user.id)
-        .maybeSingle();
-      if (active) setStatus(data ? "allowed" : "denied");
+      setStatus(decision === "allowed" ? "allowed" : "denied");
     };
-
 
     check();
     const { data: sub } = supabase.auth.onAuthStateChange(() => check());
