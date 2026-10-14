@@ -26,6 +26,7 @@ import {
   BarChart3,
   ClipboardCheck,
   ChevronDown,
+  Activity,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { CapacityAlert } from "@/components/admin/CapacityAlert";
