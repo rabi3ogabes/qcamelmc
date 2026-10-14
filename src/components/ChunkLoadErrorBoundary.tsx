@@ -1,5 +1,6 @@
 import React from "react";
 import { Button } from "@/components/ui/button";
+import { reportError } from "@/lib/errorReporter";
 
 type Props = {
   children: React.ReactNode;
@@ -47,6 +48,10 @@ export default class ChunkLoadErrorBoundary extends React.Component<Props, State
 
   static getDerivedStateFromError(error: Error): State {
     return { hasError: true, error };
+  }
+
+  componentDidCatch(error: Error, info: React.ErrorInfo) {
+    reportError("تعطل عرض الصفحة", error?.message ?? String(error), `${error?.stack ?? ""}\n${info.componentStack ?? ""}`);
   }
 
   componentDidUpdate() {
