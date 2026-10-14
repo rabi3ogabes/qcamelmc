@@ -675,69 +675,54 @@ export const InvoiceTab = () => {
     }
   };
 
+  // Email invoices always go through the built-in branded email (notify@qcamelmc.org),
+  // never through the n8n email workflow.
   const sendEmailInvoice = async (order: Order) => {
-    if (!emailWebhookUrl) {
-      toast.error("لم يتم تكوين رابط الويب هوك للبريد الإلكتروني. يرجى إضافته في الإعدادات");
+    const email = order.customers.email?.trim();
+    if (!email) {
+      toast.error("لا يوجد بريد إلكتروني لهذا العميل");
       return;
     }
-    if (!order.customers.email) {
-      toast.error("لا يوجد بريد إلكتروني لهذا العميل");
+    if (order.payment_status !== "confirmed") {
+      toast.error("لا يمكن إرسال الفاتورة قبل تأكيد الدفع");
       return;
     }
 
     setSendingEmail(order.id);
+    const toastId = toast.loading(`جارٍ إرسال الفاتورة إلى ${email}…`);
     try {
-      const countryCode = order.customers.country_code?.replace('+', '') || '974';
-      const fullPhone = `${countryCode}${order.customers.phone}`;
-      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-      const ticketQrCodes = order.ticket_holders?.map(holder => {
-        if (!holder.qr_code) return null;
-        if (holder.qr_code.startsWith('http')) return holder.qr_code;
-        return `${supabaseUrl}/storage/v1/object/public/qr-codes/${holder.qr_code}.png`;
-      }).filter(Boolean) || [];
-      const ticketTypes = order.ticket_holders?.map(holder => holder.ticket_type) || [];
-
-      const payload = {
-        action: 'send_email',
-        order_id: order.id,
-        booking_reference: order.booking_reference,
-        customer_name: order.customers.name,
-        customer_phone: order.customers.phone,
-        customer_phone_whatsapp: fullPhone,
-        customer_email: order.customers.email,
-        nationality: order.customers.nationality,
-        ticket_type: order.ticket_type,
-        quantity: order.quantity,
-        total_amount: order.total_amount,
-        payment_status: order.payment_status,
-        qr_codes: ticketQrCodes,
-        ticket_types: ticketTypes,
-        event_title: order.events?.title,
-        event_date: order.events?.event_date,
-        event_location: order.events?.location,
-        created_at: order.created_at,
-        customers: order.customers,
-      };
-
-      const { data, error } = await supabase.functions.invoke('send-to-webhook', {
-        body: payload,
+      const { data, error } = await supabase.functions.invoke('send-invoice-email', {
+        body: { order_id: order.id, force: true },
       });
 
-      if (error) {
-        toast.error(`خطأ في إرسال البريد: ${error.message}`);
+      if (error || data?.error) {
+        toast.error("تعذّر إرسال الفاتورة بالبريد", {
+          id: toastId,
+          description: data?.error || error?.message,
+        });
         return;
       }
 
-      if (data?.error) {
-        toast.error(`خطأ: ${data.error}`);
-        return;
+      if (data?.sent) {
+        toast.success(`✉️ أُرسلت الفاتورة إلى ${order.customers.name}`, {
+          id: toastId,
+          description: `${email} — عبر البريد الرسمي للنظام`,
+        });
+      } else {
+        const reasons: Record<string, string> = {
+          recipient_suppressed: "هذا البريد أوقف استقبال الرسائل أو ارتدّ سابقًا",
+          no_email: "البريد الإلكتروني غير صالح",
+          not_confirmed: "الطلب غير مؤكد الدفع",
+        };
+        toast.warning("لم تُرسل الفاتورة", {
+          id: toastId,
+          description: reasons[data?.reason] || data?.reason || "سبب غير معروف",
+        });
       }
-
-      toast.success(`تم إرسال الفاتورة بالبريد لـ ${order.customers.name}`);
-      fetchOrders(); // Refresh to track n8n callback response
+      fetchOrders();
     } catch (error) {
       console.error("Error sending email invoice:", error);
-      toast.error("حدث خطأ أثناء إرسال البريد");
+      toast.error("حدث خطأ أثناء إرسال البريد", { id: toastId });
     } finally {
       setSendingEmail(null);
     }
@@ -1059,7 +1044,7 @@ export const InvoiceTab = () => {
                             onClick={() => sendEmailInvoice(order)}
                             disabled={sendingEmail === order.id || sending}
                             className="h-6 w-6 p-0 shrink-0"
-                            title="إرسال الفاتورة بالبريد"
+                            title="إرسال الفاتورة عبر البريد الرسمي (notify@qcamelmc.org)"
                           >
                             {sendingEmail === order.id ? (
                               <Loader2 className="w-3 h-3 animate-spin" />
