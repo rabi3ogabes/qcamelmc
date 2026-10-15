@@ -1,5 +1,11 @@
 # Task Roadmap
 
+## Public quality audit
+- [ ] Improve public mobile layout and not-found recovery; remove purple-gradient styling.
+- [ ] Add working footer legal links, privacy and terms pages, search/share metadata and sitemap.
+- [ ] Audit private-key exposure, AI limits and JavaScript loading; fix confirmed issues.
+- [ ] Verify public flows on desktop and mobile and run relevant tests.
+
 1. ✅ Remove "الدخول كفريق / روابط سريعة" button from `/admin/login`
 2. ✅ Add list/grid view toggle to admin notifications page
 3. ✅ Change booking reference format to include event date:
