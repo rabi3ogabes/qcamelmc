@@ -9,3 +9,7 @@ Disallow: /confirmation
 Disallow: /invoice/
 Disallow: /payment/
 Disallow: /sadad-callback
+Disallow: /sadad-redirect
+Disallow: /.lovable/
+
+Sitemap: https://qcamelmc.org/sitemap.xml
