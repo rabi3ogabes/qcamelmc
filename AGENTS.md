@@ -7,3 +7,4 @@
 - Customer pages share PublicHeader, Footer and scoped public-site tokens; legal pages are informational drafts for operator review, not invented commercial policies.
 - The public sitemap lists only stable, non-sensitive customer pages; hosting supplies absolute share-image metadata when none is statically configured.
 - Receipt AI quotas are enforced atomically by server-only database functions; shared-passcode callers share a quota, and each active reading holds a bounded lease.
+- Keep spreadsheet, scanner and chart code in separate production chunks; load receipt spreadsheet export only on demand to avoid loading export code on page entry.
