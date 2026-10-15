@@ -1,11 +1,11 @@
 import { useEffect, useState, useMemo } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Calendar, MapPin, Ticket, Lock, ChevronLeft, ChevronRight } from "lucide-react";
+import { Calendar, MapPin, Ticket, ChevronLeft, ChevronRight } from "lucide-react";
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
 import heroImage from "@/assets/qatar-event-hero.jpg";
@@ -15,6 +15,7 @@ import { useSettings } from "@/contexts/SettingsContext";
 import { canPurchaseTickets } from "@/lib/eventUtils";
 import { toZonedTime } from "date-fns-tz";
 import { QATAR_TZ } from "@/lib/qatarTime";
+import { PublicHeader } from "@/components/PublicHeader";
 
 interface Event {
   id: string;
@@ -123,251 +124,49 @@ const EventHome = () => {
   };
 
   return (
-    <div className="min-h-screen font-lusail" style={{ backgroundColor: '#F5EFE7' }}>
-      
-      {/* Header */}
-      <header 
-        className="border-b backdrop-blur-sm sticky top-0 z-10 relative overflow-hidden" 
-        style={{ 
-          backgroundColor: settings?.header_bg_color || "#D4B78A", 
-          borderColor: '#A85740',
-          ...(settings?.header_bg_image_url && {
-            backgroundImage: `linear-gradient(to top, rgba(212,183,138,0.8), rgba(212,183,138,0.4)), url(${settings.header_bg_image_url})`,
-            backgroundRepeat: 'repeat-x',
-            backgroundSize: 'auto 100%',
-            backgroundPosition: 'center'
-          })
-        }}
-      >
-        <div className="container mx-auto px-4 py-2 flex justify-between items-center relative z-[1]">
-          {settings?.logo_url ? (
-            <img 
-              src={settings.logo_url} 
-              alt="Logo" 
-              className="h-[53px] object-contain" 
-              loading="eager"
-              decoding="async"
-            />
-          ) : (
-            <h1 className="text-2xl font-bold" style={{ color: '#6B4E3D' }}>فعاليات قطر</h1>
-          )}
-          <div className="flex gap-2">
-            <Link to="/live-bookings" className="hidden">
-              <Button variant="outline" size="sm" style={{ borderColor: '#A85740', color: '#6B4E3D', backgroundColor: 'transparent' }}>
-                <Calendar className="w-4 h-4 ml-2" />
-                {t('liveBookings')}
-              </Button>
-            </Link>
-            <Link to="/admin/login" className="hidden">
-              <Button variant="outline" size="sm" style={{ borderColor: '#A85740', color: '#6B4E3D', backgroundColor: 'transparent' }}>
-                <Lock className="w-4 h-4 ml-2" />
-                {t('adminLoginBtn')}
-              </Button>
-            </Link>
+    <div className="public-site min-h-screen font-lusail" dir="rtl">
+      <PublicHeader />
+      <main>
+        <section className="relative min-h-[360px] overflow-hidden sm:min-h-[480px]" aria-labelledby="festival-title">
+          <img src={settings?.hero_image_url || heroImage} alt="فعاليات مهرجان قطر للإبل" className="absolute inset-0 h-full w-full object-cover" loading="eager" decoding="async" fetchPriority="high" />
+          <div className="public-hero-shade absolute inset-0" />
+          <div className="public-hero-text relative mx-auto flex min-h-[360px] max-w-7xl flex-col justify-end px-5 py-12 sm:min-h-[480px] sm:px-8 sm:py-16">
+            <p className="mb-4 text-sm font-semibold">الفعاليات والتذاكر · قطر</p>
+            <h1 id="festival-title" className="max-w-3xl text-3xl font-bold leading-tight sm:text-5xl">مهرجان قطر للإبل</h1>
+            {settings?.hero_text && <p className="mt-5 max-w-2xl whitespace-pre-line text-lg leading-8">{settings.hero_text}</p>}
           </div>
-        </div>
-      </header>
-
-      {loading ? (
-        <div className="py-16 px-4">
-          <div className="max-w-7xl mx-auto">
-            <Skeleton className="h-[70vh] w-full mb-16" />
-            <div className="flex flex-wrap justify-center gap-8">
-              {[1, 2, 3].map((i) => (
-                <div key={i} className="w-full md:w-[calc(50%-1rem)] lg:w-[calc(33.333%-1.334rem)]">
-                  <Skeleton className="h-64 w-full mb-4" />
-                  <Skeleton className="h-8 w-3/4 mx-auto mb-2" />
-                  <Skeleton className="h-4 w-full mb-4" />
-                  <Skeleton className="h-12 w-full" />
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      ) : events.length === 0 ? (
-        <div className="flex items-center justify-center min-h-screen">
-          <p className="text-lg" style={{ color: '#6B4E3D' }}>{t('noActiveEvents')}</p>
-        </div>
-      ) : (
-        <>
-          {/* Hero Section */}
-          <div className="relative overflow-hidden">
-            <img
-              src={settings?.hero_image_url || heroImage}
-              alt="Hero Image"
-              className="w-full h-auto object-contain"
-              loading="eager"
-              decoding="async"
-            />
-            <div className="absolute inset-0" style={{ background: 'linear-gradient(to bottom, rgba(168, 87, 64, 0.6), rgba(168, 87, 64, 0.4), #F5EFE7)' }} />
-            
-            <div className="relative h-full flex items-center justify-center px-4">
-              {settings?.hero_text && (
-                <div className="text-center z-10">
-                  <h1 className="text-4xl md:text-6xl font-bold text-white mb-4 mt-12 drop-shadow-lg whitespace-pre-line">
-                    {settings.hero_text}
-                  </h1>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Events Grid */}
-          <div className="pt-0 pb-6 px-4 -mt-24 md:-mt-32 relative z-[2]">
-            <div className="max-w-7xl mx-auto">
-
-              <div className="flex flex-wrap justify-center gap-8">
-                {events
-                  .slice((currentPage - 1) * EVENTS_PER_PAGE, currentPage * EVENTS_PER_PAGE)
-                  .map((event) => (
-                <Card key={event.id} className="overflow-hidden hover:shadow-2xl transition-shadow flex flex-col w-full md:w-[calc(50%-1rem)] lg:w-[calc(33.333%-1.334rem)]" style={{ backgroundColor: '#FFFFFF', borderColor: '#D4B78A' }}>
-                    <div className="h-2" style={{ backgroundColor: settings?.header_bg_color || "#A85740" }} />
-                    {event.image_url && (
-                      <div className="relative h-64 overflow-hidden">
-                        <img 
-                          src={event.image_url} 
-                          alt={event.title}
-                          className="w-full h-full object-cover"
-                          loading="lazy"
-                        />
-                      </div>
-                    )}
-                    
-                    <div className="p-8 flex-1">
-                      <h2 className="text-3xl font-bold mb-4 text-center" style={{ color: '#6B4E3D' }}>{event.title}</h2>
-                      <p className="font-bold mb-6 line-clamp-3 text-center" style={{ color: '#6B4E3D' }}>{event.description}</p>
-                      
-                      <div className="space-y-4">
-                        <div className="hidden">
-                          <Calendar className="w-5 h-5 text-primary mt-1" />
-                          <div>
-                            <p className="font-semibold">{t('eventDateTime')}</p>
-                            <p className="text-sm text-muted-foreground">
-                              {format(toZonedTime(event.event_date, QATAR_TZ), "EEEE، d MMMM، yyyy", { locale: ar })}
-                            </p>
-                          </div>
-                        </div>
-                        
-                        {(event.start_time || event.end_time) && (
-                          <div className="flex items-start gap-3">
-                            <Calendar className="w-5 h-5 mt-1" style={{ color: '#A85740' }} />
-                            <div>
-                              <p className="font-semibold" style={{ color: '#6B4E3D' }}>التوقيت</p>
-                              <p className="text-sm" style={{ color: '#8B6F47' }}>
-                                {event.start_time && `وقت البداية: ${formatTime12Hour(event.start_time)}`}
-                                {event.start_time && event.end_time && " | "}
-                                {event.end_time && `وقت النهاية: ${formatTime12Hour(event.end_time)}`}
-                              </p>
-                            </div>
-                          </div>
-                        )}
-                        
-                        <div className="flex items-start gap-3">
-                          <MapPin className="w-5 h-5 mt-1" style={{ color: '#A85740' }} />
-                          <div>
-                            <p className="font-semibold" style={{ color: '#6B4E3D' }}>{t('location')}</p>
-                            <p className="text-sm" style={{ color: '#8B6F47' }}>{event.location}</p>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                    
-                    <div className="p-6 pt-0">
-                      {canPurchaseTickets(event.event_date) ? (
-                        <Button 
-                          className="w-full"
-                          size="lg"
-                          onClick={() => navigate(`/tickets/${event.id}`)}
-                          style={{ backgroundColor: '#A85740', color: '#FFFFFF', border: 'none' }}
-                        >
-                          <Ticket className="w-5 h-5 ml-2" />
-                          {t('bookTicketsNow')}
-                        </Button>
-                      ) : (
-                        <Button 
-                          className="w-full"
-                          size="lg"
-                          disabled
-                          style={{ backgroundColor: '#6B4E3D', color: '#FFFFFF', border: 'none', opacity: 0.6 }}
-                        >
-                          <Lock className="w-5 h-5 ml-2" />
-                          انتهى وقت الحجز
-                        </Button>
-                      )}
-                    </div>
-                  </Card>
-                ))}
-              </div>
-
-              {/* Pagination Controls */}
-              {events.length > EVENTS_PER_PAGE && (
-                <div className="flex flex-col items-center gap-4 mt-12">
-                  <p style={{ color: '#6B4E3D' }}>
-                    صفحة {currentPage} من {Math.ceil(events.length / EVENTS_PER_PAGE)}
-                  </p>
-                  <div className="flex justify-center items-center gap-4">
-                    <Button
-                      variant="outline"
-                      onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                      disabled={currentPage === 1}
-                      style={{ borderColor: '#A85740', color: '#6B4E3D' }}
-                    >
-                      <ChevronRight className="w-5 h-5" />
-                      السابق
-                    </Button>
-                    
-                    <div className="flex gap-2">
-                      {Array.from({ length: Math.ceil(events.length / EVENTS_PER_PAGE) }, (_, i) => i + 1).map((page) => (
-                        <Button
-                          key={page}
-                          variant={currentPage === page ? "default" : "outline"}
-                          onClick={() => setCurrentPage(page)}
-                          className="w-10 h-10"
-                          style={currentPage === page 
-                            ? { backgroundColor: '#A85740', color: '#FFFFFF' }
-                            : { borderColor: '#A85740', color: '#6B4E3D' }
-                          }
-                        >
-                          {page}
-                        </Button>
-                      ))}
-                    </div>
-                    
-                    <Button
-                      variant="outline"
-                      onClick={() => setCurrentPage(prev => Math.min(prev + 1, Math.ceil(events.length / EVENTS_PER_PAGE)))}
-                      disabled={currentPage === Math.ceil(events.length / EVENTS_PER_PAGE)}
-                      style={{ borderColor: '#A85740', color: '#6B4E3D' }}
-                    >
-                      التالي
-                      <ChevronLeft className="w-5 h-5" />
-                    </Button>
+        </section>
+        <section className="mx-auto max-w-7xl px-5 py-10 sm:px-8 sm:py-14" aria-labelledby="events-title">
+          <div className="mb-8 flex items-center gap-3"><Ticket className="h-6 w-6 public-gold" /><h2 id="events-title" className="text-2xl font-bold">الفعاليات المتاحة</h2></div>
+          {loading ? <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3" aria-label="جار تحميل الفعاليات">{[1,2,3].map(i => <Skeleton key={i} className="h-72 w-full" />)}</div>
+          : events.length === 0 ? <div className="border-y border-border py-12 text-center"><Calendar className="mx-auto mb-5 h-9 w-9 text-muted-foreground" /><p className="text-xl font-semibold">{t('noActiveEvents')}</p><p className="mt-3 text-base text-muted-foreground">تُعرض هنا التذاكر عند إتاحة الفعالية القادمة.</p></div>
+          : <>
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+              {events.slice((currentPage - 1) * EVENTS_PER_PAGE, currentPage * EVENTS_PER_PAGE).map(event => <Card key={event.id} className="flex min-w-0 flex-col overflow-hidden border-border bg-card shadow-sm">
+                {event.image_url && <img src={event.image_url} alt={event.title} className="aspect-[4/3] w-full object-cover" loading="lazy" decoding="async" />}
+                <div className="flex flex-1 flex-col p-5 sm:p-6">
+                  <h3 className="break-words text-2xl font-bold text-foreground">{event.title}</h3>
+                  {event.description && <p className="mt-3 line-clamp-3 text-base leading-7 text-muted-foreground">{event.description}</p>}
+                  <div className="my-6 space-y-3 text-sm text-muted-foreground">
+                    <p className="flex items-start gap-2"><Calendar className="h-4 w-4 shrink-0 mt-1" />{format(toZonedTime(event.event_date, QATAR_TZ), "EEEE، d MMMM، yyyy", { locale: ar })}</p>
+                    {(event.start_time || event.end_time) && <p>{event.start_time && formatTime12Hour(event.start_time)}{event.start_time && event.end_time && ' – '}{event.end_time && formatTime12Hour(event.end_time)}</p>}
+                    <p className="flex items-start gap-2"><MapPin className="h-4 w-4 shrink-0 mt-1" /><span className="break-words">{event.location}</span></p>
                   </div>
+                  <Button className="mt-auto w-full" size="lg" disabled={!canPurchaseTickets(event.event_date)} onClick={() => navigate(`/tickets/${event.id}`)}><Ticket className="ml-2 h-5 w-5" />{canPurchaseTickets(event.event_date) ? t('bookTicketsNow') : 'انتهى وقت الحجز'}</Button>
                 </div>
-              )}
+              </Card>)}
             </div>
-          </div>
-
-          {/* Before Footer Image */}
-          {settings?.before_footer_image_url && (
-            <div className="relative w-full">
-              <div 
-                className="absolute inset-0 pointer-events-none"
-                style={{ background: 'linear-gradient(to bottom, rgba(245, 239, 231, 0.8), rgba(245, 239, 231, 0.4))' }}
-              />
-              <img
-                src={settings.before_footer_image_url}
-                alt="Before Footer"
-                className="w-full h-auto object-contain"
-                loading="lazy"
-              />
-            </div>
-          )}
-
-          <Footer />
-          <WhatsAppButton />
-        </>
-      )}
+            {events.length > EVENTS_PER_PAGE && <nav aria-label="صفحات الفعاليات" className="mt-10 flex flex-wrap items-center justify-center gap-4">
+              <Button variant="outline" aria-label="الصفحة السابقة" disabled={currentPage === 1} onClick={() => setCurrentPage(p => Math.max(1, p - 1))}><ChevronRight className="h-5 w-5" /></Button>
+              <span className="text-sm">صفحة {currentPage} من {Math.ceil(events.length / EVENTS_PER_PAGE)}</span>
+              <Button variant="outline" aria-label="الصفحة التالية" disabled={currentPage === Math.ceil(events.length / EVENTS_PER_PAGE)} onClick={() => setCurrentPage(p => Math.min(Math.ceil(events.length / EVENTS_PER_PAGE), p + 1))}><ChevronLeft className="h-5 w-5" /></Button>
+            </nav>}
+          </>}
+        </section>
+        {settings?.before_footer_image_url && <img src={settings.before_footer_image_url} alt="مهرجان قطر للإبل" className="w-full h-auto" loading="lazy" decoding="async" />}
+      </main>
+      <Footer />
+      <WhatsAppButton />
     </div>
   );
 };
