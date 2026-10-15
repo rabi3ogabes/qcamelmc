@@ -6,7 +6,6 @@ import { Camera, FileDown, Trash2, Loader2, X, ArrowRight, ImageIcon } from "luc
 import { supabase } from "@/integrations/supabase/client";
 import { getStaffPasscode } from "@/lib/staffAccess";
 import { toast } from "sonner";
-import XLSX from "xlsx-js-style";
 import { useNavigate } from "react-router-dom";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
@@ -33,6 +32,7 @@ const POSReceiptPage = () => {
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const galleryInputRef = useRef<HTMLInputElement>(null);
+  const processingRef = useRef(false); // Prevent overlapping uploads and AI requests.
 
   useEffect(() => {
     fetchReceipts();
@@ -86,7 +86,12 @@ const POSReceiptPage = () => {
 
   const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (!file) return;
+    if (!file || processingRef.current) return;
+    if (!file.type.startsWith("image/") || file.size > 5_000_000) {
+      toast.error("اختر صورة بحجم لا يتجاوز 5 ميجابايت");
+      event.target.value = "";
+      return;
+    }
 
     const reader = new FileReader();
     reader.onload = async (e) => {
@@ -100,6 +105,8 @@ const POSReceiptPage = () => {
   };
 
   const processReceipt = async (imageBase64: string, file: File) => {
+    if (processingRef.current) return;
+    processingRef.current = true;
     setIsProcessing(true);
     try {
       // First, upload the image to storage
@@ -129,7 +136,15 @@ const POSReceiptPage = () => {
         body: { imageBase64, passcode: getStaffPasscode() },
       });
 
-      if (error) throw error;
+      if (error) {
+        const response = (error as { context?: Response }).context;
+        if (response?.status === 429) {
+          const details = await response.json().catch(() => null);
+          toast.error(details?.error || "وصلت إلى حد الاستخدام، حاول لاحقًا");
+          return;
+        }
+        throw error;
+      }
 
       if (data.error) {
         toast.error(data.error);
@@ -157,6 +172,7 @@ const POSReceiptPage = () => {
       console.error("Error processing receipt:", error);
       toast.error("Failed to process receipt");
     } finally {
+      processingRef.current = false;
       setIsProcessing(false);
       if (cameraInputRef.current) cameraInputRef.current.value = "";
       if (galleryInputRef.current) galleryInputRef.current.value = "";
@@ -223,12 +239,13 @@ const POSReceiptPage = () => {
   const grandTotalTickets = totals.normal + totals.vip + totals.parking;
   const grandTotalAmount = totalAmounts.normal + totalAmounts.vip + totalAmounts.parking;
 
-  const handleExportToExcel = () => {
+  const handleExportToExcel = async () => {
     if (receipts.length === 0) {
       toast.error("No data to export");
       return;
     }
 
+    const { default: XLSX } = await import("xlsx-js-style");
     const today = new Date().toLocaleDateString("en-GB", {
       year: "numeric",
       month: "2-digit",

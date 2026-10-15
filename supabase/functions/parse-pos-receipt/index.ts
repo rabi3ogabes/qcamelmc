@@ -1,7 +1,7 @@
 import "../_shared/track-install.ts";
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.58.0";
-import { isStaffAuthorized, unauthorizedResponse } from "../_shared/staffAuth.ts";
+import { staffIdentity, unauthorizedResponse } from "../_shared/staffAuth.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -13,14 +13,19 @@ Deno.serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  let releaseSlot: (() => Promise<void>) | undefined;
   try {
     const { imageBase64, passcode } = await req.json();
 
     // Every call costs AI credits: staff only (administrator, moderator or the team passcode).
-    const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!, {
+    const url = Deno.env.get("SUPABASE_URL");
+    const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+    if (!url || !serviceKey) throw new Error("Service unavailable");
+    const admin = createClient(url, serviceKey, {
       auth: { persistSession: false, autoRefreshToken: false },
     });
-    if (!(await isStaffAuthorized(req, admin, passcode))) return unauthorizedResponse(corsHeaders);
+    const identity = await staffIdentity(req, admin, passcode);
+    if (!identity) return unauthorizedResponse(corsHeaders);
 
     if (typeof imageBase64 === "string" && imageBase64.length > 8_000_000) {
       return new Response(
@@ -29,7 +34,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    if (!imageBase64) {
+    if (typeof imageBase64 !== "string" || !/^[A-Za-z0-9+/]+={0,2}$/.test(imageBase64)) {
       return new Response(
         JSON.stringify({ error: "No image provided" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -40,6 +45,21 @@ Deno.serve(async (req) => {
     if (!LOVABLE_API_KEY) {
       throw new Error("LOVABLE_API_KEY is not configured");
     }
+
+    const subject = identity.userId ? `user:${identity.userId}` : "shared:passcode";
+    const lease = crypto.randomUUID();
+    const { data: slot, error: slotError } = await admin.rpc("acquire_receipt_ai_slot", { p_subject: subject, p_lease: lease });
+    if (slotError) throw new Error("Usage verification unavailable");
+    if (!slot?.allowed) {
+      const retry = String(slot?.retry_after || 60);
+      return new Response(JSON.stringify({ error: slot?.reason === "busy" ? "توجد قراءة قيد التنفيذ، حاول بعد قليل" : "وصلت إلى حد 10 قراءات خلال 10 دقائق، حاول لاحقًا", retry_after: Number(retry) }), {
+        status: 429, headers: { ...corsHeaders, "Content-Type": "application/json", "Retry-After": retry },
+      });
+    }
+    releaseSlot = async () => {
+      const { error } = await admin.rpc("release_receipt_ai_slot", { p_subject: subject, p_lease: lease });
+      if (error) console.warn("Receipt AI lease release failed");
+    };
 
     const systemPrompt = `You are an AI specialized in reading POS receipt images.
 
@@ -69,7 +89,9 @@ Extraction rules:
         Authorization: `Bearer ${LOVABLE_API_KEY}`,
         "Content-Type": "application/json",
       },
+      signal: AbortSignal.timeout(60000),
       body: JSON.stringify({
+        max_tokens: 500,
         model: "google/gemini-2.5-flash",
         messages: [
           { role: "system", content: systemPrompt },
@@ -146,8 +168,10 @@ Extraction rules:
   } catch (error) {
     console.error("Error in parse-pos-receipt:", error);
     return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : "Unknown error" }),
+      JSON.stringify({ error: "تعذرت قراءة الإيصال، يرجى المحاولة لاحقًا" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
+  } finally {
+    if (releaseSlot) await releaseSlot().catch(() => console.warn("Receipt AI lease release unavailable"));
   }
 });

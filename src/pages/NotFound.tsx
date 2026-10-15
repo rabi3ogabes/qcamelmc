@@ -1,24 +1,18 @@
-import { useLocation } from "react-router-dom";
-import { useEffect } from "react";
+import { Link } from "react-router-dom";
+import { ArrowRight, Ticket } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { PublicHeader } from "@/components/PublicHeader";
+import { Footer } from "@/components/Footer";
 
-const NotFound = () => {
-  const location = useLocation();
-
-  useEffect(() => {
-    console.error("404 Error: User attempted to access non-existent route:", location.pathname);
-  }, [location.pathname]);
-
-  return (
-    <div className="flex min-h-screen items-center justify-center bg-background px-4">
-      <div className="text-center">
-        <h1 className="mb-4 text-4xl sm:text-5xl md:text-6xl font-bold text-foreground">404</h1>
-        <p className="mb-4 text-lg sm:text-xl text-muted-foreground">عذراً! الصفحة غير موجودة</p>
-        <a href="/" className="text-primary underline hover:text-primary/80 transition-colors">
-          العودة للرئيسية
-        </a>
-      </div>
-    </div>
-  );
-};
-
+const NotFound = () => <div className="public-site min-h-screen font-lusail" dir="rtl">
+  <PublicHeader />
+  <main className="mx-auto flex min-h-[55vh] max-w-2xl flex-col items-center justify-center px-5 py-16 text-center">
+    <Ticket className="mb-6 h-12 w-12 public-gold" aria-hidden="true" />
+    <p className="mb-4 text-sm font-semibold text-muted-foreground" aria-label="رمز الصفحة 404">404</p>
+    <h1 className="text-3xl font-bold sm:text-4xl">هذه الصفحة غير موجودة</h1>
+    <p className="mt-5 max-w-md text-base leading-8 text-muted-foreground">قد يكون الرابط قد تغير أو لم يعد متاحًا. يمكنك العودة إلى الفعاليات المتاحة.</p>
+    <Button asChild size="lg" className="mt-8"><Link to="/"><ArrowRight className="ml-2 h-5 w-5" />العودة إلى الفعاليات</Link></Button>
+  </main>
+  <Footer />
+</div>;
 export default NotFound;

@@ -41,6 +41,7 @@ const StaffAttendance = lazy(() => import("./pages/StaffAttendance"));
 const StaffGateBoard = lazy(() => import("./pages/StaffGateBoard"));
 const OAuthConsent = lazy(() => import("./pages/OAuthConsent"));
 const NotFound = lazy(() => import("./pages/NotFound"));
+const LegalPage = lazy(() => import("./pages/LegalPage"));
 
 // Admin dashboard sub-pages
 const NotificationsPage = lazy(() => import("./pages/admin/NotificationsPage"));
@@ -89,6 +90,8 @@ const App = () => (
                 >
                   <Routes>
                     <Route path="/" element={<EventHome />} />
+                    <Route path="/privacy" element={<LegalPage kind="privacy" />} />
+                    <Route path="/terms" element={<LegalPage kind="terms" />} />
                     <Route path="/tickets/:eventId" element={<TicketSelection />} />
                     <Route path="/checkout" element={<Checkout />} />
                     <Route path="/confirmation" element={<Confirmation />} />

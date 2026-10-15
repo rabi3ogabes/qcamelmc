@@ -123,6 +123,30 @@ All colors MUST be HSL.
 }
 
 @layer base {
+  .public-site {
+    --background: 0 0% 100%;
+    --foreground: 180 6% 14%;
+    --card: 0 0% 100%;
+    --card-foreground: 180 6% 14%;
+    --primary: 345 69% 30%;
+    --primary-foreground: 0 0% 100%;
+    --muted: 160 9% 96%;
+    --muted-foreground: 180 4% 40%;
+    --border: 160 7% 88%;
+    --public-overlay: 180 8% 8%;
+    --public-gold: 42 65% 43%;
+    --gradient-primary: none;
+    --radius: 0.5rem;
+    background: hsl(var(--background));
+    color: hsl(var(--foreground));
+  }
+
+  .public-hero-shade { background: hsl(var(--public-overlay) / 0.48); }
+  .public-hero-text { color: hsl(var(--primary-foreground)); }
+  .public-footer { background: hsl(var(--foreground)); color: hsl(var(--background)); }
+  .public-footer-muted { color: hsl(var(--background) / 0.72); }
+  .public-gold { color: hsl(var(--public-gold)); }
+
   * {
     @apply border-border;
   }
