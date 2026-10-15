@@ -1,10 +1,10 @@
 # Task Roadmap
 
 ## Public quality audit
-- [ ] Improve public mobile layout and not-found recovery; remove purple-gradient styling.
-- [ ] Add working footer legal links, privacy and terms pages, search/share metadata and sitemap.
-- [ ] Audit private-key exposure, AI limits and JavaScript loading; fix confirmed issues.
-- [ ] Verify public flows on desktop and mobile and run relevant tests.
+- [x] Improve public mobile layout and not-found recovery; remove purple-gradient styling.
+- [x] Add working footer legal links, draft privacy and terms pages, search/share metadata and sitemap. Hosting supplies the share image; published-version verification requires publication.
+- [x] Audit private-key exposure, enforce receipt AI limits and separate heavy JavaScript chunks; public publishable keys are not secrets.
+- [x] Verify public flows on desktop and mobile, authenticated AI input rejection, and tests: 418 application tests and 221 database assertions passed.
 
 1. ✅ Remove "الدخول كفريق / روابط سريعة" button from `/admin/login`
 2. ✅ Add list/grid view toggle to admin notifications page
