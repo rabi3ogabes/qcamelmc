@@ -859,6 +859,30 @@ export type Database = {
         }
         Relationships: []
       }
+      receipt_ai_usage: {
+        Row: {
+          lease_id: string | null
+          lease_until: string | null
+          request_count: number
+          subject: string
+          window_started_at: string
+        }
+        Insert: {
+          lease_id?: string | null
+          lease_until?: string | null
+          request_count?: number
+          subject: string
+          window_started_at?: string
+        }
+        Update: {
+          lease_id?: string | null
+          lease_until?: string | null
+          request_count?: number
+          subject?: string
+          window_started_at?: string
+        }
+        Relationships: []
+      }
       settings: {
         Row: {
           admin_email: string | null
@@ -1228,6 +1252,10 @@ export type Database = {
       _recount_ticket_stock: { Args: never; Returns: number }
       _release_order_stock: { Args: { p_order: string }; Returns: undefined }
       _reserve_order_stock: { Args: { p_order: string }; Returns: boolean }
+      acquire_receipt_ai_slot: {
+        Args: { p_lease: string; p_subject: string }
+        Returns: Json
+      }
       bin_ticket_holder: { Args: { p_holder_id: string }; Returns: Json }
       cancel_order: {
         Args: { p_note?: string; p_order_id: string }
@@ -1372,6 +1400,10 @@ export type Database = {
       }
       recount_ticket_stock: { Args: never; Returns: number }
       release_expired_holds: { Args: { p_event: string }; Returns: number }
+      release_receipt_ai_slot: {
+        Args: { p_lease: string; p_subject: string }
+        Returns: undefined
+      }
       reserve_tickets: {
         Args: { p_event_id: string; p_quantity: number; p_ticket_type: string }
         Returns: Json
