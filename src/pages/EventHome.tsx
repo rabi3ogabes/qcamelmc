@@ -28,6 +28,7 @@ interface Event {
   end_time: string | null;
 }
 
+// Keep the public list light, including on small screens.
 const EVENTS_PER_PAGE = 9;
 const EVENTS_CACHE_KEY = "cached_events";
 const EVENTS_CACHE_TTL = 2 * 60 * 1000; // 2 minutes

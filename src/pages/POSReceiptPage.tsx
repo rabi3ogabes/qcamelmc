@@ -32,7 +32,7 @@ const POSReceiptPage = () => {
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const galleryInputRef = useRef<HTMLInputElement>(null);
-  const processingRef = useRef(false);
+  const processingRef = useRef(false); // Prevent overlapping uploads and AI requests.
 
   useEffect(() => {
     fetchReceipts();

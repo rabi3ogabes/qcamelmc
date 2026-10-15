@@ -8,7 +8,7 @@ import { useSettings } from "@/contexts/SettingsContext";
 
 export const Footer = () => {
   const { settings } = useSettings();
-  return <footer className="public-site public-footer mt-8" dir="rtl">
+  return <footer className="public-site public-footer mt-8" dir="rtl" aria-label="معلومات الموقع">
     <div className="mx-auto max-w-7xl px-5 py-10 sm:px-8">
       <div className="grid gap-8 sm:grid-cols-2">
         <div><p className="text-xl font-bold">مهرجان قطر للإبل</p><p className="public-footer-muted mt-3 text-sm">© {new Date().getFullYear()} {settings?.copyright_text || "جميع الحقوق محفوظة"}</p></div>
