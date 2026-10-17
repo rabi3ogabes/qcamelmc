@@ -2,6 +2,21 @@
 @tailwind components;
 @tailwind utilities;
 
+/* The guideline PDF contains print subsets, not distributable webfonts.
+   Use a locally installed licensed Adapter face, with the existing Arabic fallback. */
+@font-face {
+  font-family: "Festival Adapter";
+  src: local("Adapter Arabic Text"), local("Adapter Arab"), local("AdapterArabicText-Regular");
+  font-weight: 400;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Festival Adapter";
+  src: local("Adapter Arabic Text Semibold"), local("AdapterArabicText-Semibold");
+  font-weight: 600 900;
+  font-display: swap;
+}
+
 /* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
 All colors MUST be HSL.
 */
@@ -125,27 +140,55 @@ All colors MUST be HSL.
 @layer base {
   .public-site {
     --background: 0 0% 100%;
-    --foreground: 180 6% 14%;
+    --foreground: 207 58% 28%;
     --card: 0 0% 100%;
-    --card-foreground: 180 6% 14%;
-    --primary: 345 69% 30%;
+    --card-foreground: 207 58% 28%;
+    --primary: 183 63% 34%;
     --primary-foreground: 0 0% 100%;
-    --muted: 160 9% 96%;
-    --muted-foreground: 180 4% 40%;
-    --border: 160 7% 88%;
+    --secondary: 36 78% 71%;
+    --secondary-foreground: 207 58% 28%;
+    --accent: 183 51% 95%;
+    --accent-foreground: 183 63% 28%;
+    --muted: 183 22% 97%;
+    --muted-foreground: 207 16% 41%;
+    --border: 183 15% 88%;
+    --input: 183 15% 83%;
+    --ring: 183 61% 40%;
+    --festival-turquoise: 183 63% 40%;
+    --festival-red: 355 62% 50%;
+    --festival-burgundy: 329 58% 27%;
+    --festival-clay: 17 64% 54%;
+    --ticket-normal: 183 63% 34%;
+    --ticket-vip: 36 78% 71%;
+    --ticket-parking: 207 58% 28%;
     --public-overlay: 180 8% 8%;
-    --public-gold: 42 65% 43%;
+    --public-gold: 36 78% 71%;
     --gradient-primary: none;
     --radius: 0.5rem;
     background: hsl(var(--background));
     color: hsl(var(--foreground));
+    font-family: "Festival Adapter", "Tajawal", sans-serif;
+    letter-spacing: 0;
   }
+
+  .public-site .font-lusail { font-family: inherit; }
+  .public-heritage-strip {
+    height: 20px;
+    background-color: hsl(var(--background));
+    background-image: url('/__l5e/assets-v1/1d02c041-4099-4a40-adba-3abdf9ddb5b5/mafareed-heritage.webp');
+    background-size: 164px auto;
+    background-position: center 27%;
+    border-block: 1px solid hsl(var(--border));
+  }
+  .public-heritage-divider { width: 108px; height: 18px; object-fit: contain; }
+  .public-logo { width: 140px; height: auto; max-height: 88px; object-fit: contain; }
+  .public-ticket-banner { background: hsl(var(--primary)); color: hsl(var(--primary-foreground)); }
 
   .public-hero-shade { background: hsl(var(--public-overlay) / 0.48); }
   .public-hero-text { color: hsl(var(--primary-foreground)); }
   .public-footer { background: hsl(var(--foreground)); color: hsl(var(--background)); }
   .public-footer-muted { color: hsl(var(--background) / 0.72); }
-  .public-gold { color: hsl(var(--public-gold)); }
+  .public-gold { color: hsl(var(--festival-turquoise)); }
 
   * {
     @apply border-border;

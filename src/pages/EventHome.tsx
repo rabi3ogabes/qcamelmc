@@ -16,6 +16,7 @@ import { canPurchaseTickets } from "@/lib/eventUtils";
 import { toZonedTime } from "date-fns-tz";
 import { QATAR_TZ } from "@/lib/qatarTime";
 import { PublicHeader } from "@/components/PublicHeader";
+import heritageDivider from "@/assets/mafareed-divider.webp.asset.json";
 
 interface Event {
   id: string;
@@ -138,7 +139,7 @@ const EventHome = () => {
           </div>
         </section>
         <section className="mx-auto max-w-7xl px-5 py-10 sm:px-8 sm:py-14" aria-labelledby="events-title">
-          <div className="mb-8 flex items-center gap-3"><Ticket className="h-6 w-6 public-gold" /><h2 id="events-title" className="text-2xl font-bold">الفعاليات المتاحة</h2></div>
+          <div className="mb-8 flex flex-wrap items-center gap-3"><Ticket className="h-6 w-6 public-gold" /><h2 id="events-title" className="text-2xl font-bold">الفعاليات المتاحة</h2><img src={heritageDivider.url} alt="" aria-hidden="true" className="public-heritage-divider mr-auto" /></div>
           {loading ? <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3" aria-label="جار تحميل الفعاليات">{[1,2,3].map(i => <Skeleton key={i} className="h-72 w-full" />)}</div>
           : events.length === 0 ? <div className="border-y border-border py-12 text-center"><Calendar className="mx-auto mb-5 h-9 w-9 text-muted-foreground" /><p className="text-xl font-semibold">{t('noActiveEvents')}</p><p className="mt-3 text-base text-muted-foreground">تُعرض هنا التذاكر عند إتاحة الفعالية القادمة.</p></div>
           : <>
