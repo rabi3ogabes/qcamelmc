@@ -195,12 +195,12 @@ All colors MUST be HSL.
     background-color: hsl(17.5 53.1% 55.69%);
     color: hsl(var(--background));
   }
-  /* Full camels row: the whole artwork once, full width, half its natural height */
+  /* Camels row shown once, full width, at its natural 2526:331 proportions — never stretched */
   .public-footer::after {
     content: "";
     display: block;
     width: 100%;
-    aspect-ratio: 2526 / 166;
+    aspect-ratio: 2526 / 331;
     background-image: url('https://www.qcamelmc.org/__l5e/assets-v1/877c4398-4960-4fb8-ac6d-7b253ecf9c9f/mafareed-footer-camels.webp');
     background-repeat: no-repeat;
     background-size: 100% 100%;
