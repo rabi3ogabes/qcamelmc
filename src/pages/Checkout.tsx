@@ -14,6 +14,7 @@ import { toast } from "sonner";
 import { CreditCard, Banknote, Loader2, Plus, Minus, X, AlertTriangle } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Footer } from "@/components/Footer";
+import { PublicHeader } from "@/components/PublicHeader";
 import { useSettings } from "@/contexts/SettingsContext";
 import { bookingGuardMessage, checkTicketLimits, formatLimitViolation, isTicketLimitError, ticketLimitErrorMessage } from "@/lib/ticketLimit";
 import { classifyPaymentError, logPaymentError } from "@/lib/paymentErrors";
@@ -641,20 +642,8 @@ const Checkout = () => {
         <div className="animate-pulse text-lg">{t('loading')}</div>
       </div>;
   }
-  return <div className="min-h-screen font-lusail" style={{ backgroundColor: '#F5EFE7' }}>
-      {/* Header */}
-      <header className="border-b backdrop-blur-sm sticky top-0 z-10 mb-4 sm:mb-6 md:mb-8" style={{
-      backgroundColor: headerBgColor
-    }}>
-        <div className="container mx-auto px-3 sm:px-4 py-3 sm:py-4 flex justify-between items-center gap-2">
-          {logoUrl ? <img src={logoUrl} alt="Logo" className="h-8 sm:h-10 md:h-12 object-contain cursor-pointer" onClick={() => navigate("/")} /> : <h1 className="text-lg sm:text-xl md:text-2xl font-bold cursor-pointer" onClick={() => navigate("/")}>
-              فعاليات قطر
-            </h1>}
-          <Button variant="ghost" onClick={() => navigate("/")} className="text-xs sm:text-sm text-white hover:text-white">
-            {t('backToHome') || 'العودة للرئيسية'}
-          </Button>
-        </div>
-      </header>
+  return <div className="public-site min-h-screen font-lusail" dir="rtl">
+      <PublicHeader />
 
       <div className="w-full py-4 sm:py-6 md:py-12 px-3 sm:px-4 md:px-8 lg:px-12 xl:px-16">
         <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-4 sm:mb-6 md:mb-8 text-center">{t('checkoutTitle')}</h1>
@@ -1106,10 +1095,6 @@ const Checkout = () => {
       {/* Before Footer Image */}
       {settings?.before_footer_image_url && (
         <div className="relative w-full">
-          <div 
-            className="absolute inset-0 pointer-events-none"
-            style={{ background: 'linear-gradient(to bottom, rgba(245, 239, 231, 0.8), rgba(245, 239, 231, 0.4))' }}
-          />
           <img
             src={settings.before_footer_image_url}
             alt="Before Footer"
