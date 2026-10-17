@@ -158,6 +158,8 @@ All colors MUST be HSL.
     --festival-red: 355.08 61.58% 50.52%;
     --festival-burgundy: 329 58% 27%;
     --festival-clay: 17 64% 54%;
+    --footer-clay: 17.36 53.78% 55.88%;
+    --footer-ink: 208 50% 16%;
     --ticket-normal: 182.72 63.36% 40.52%;
     --ticket-vip: 33.91 76.02% 71.06%;
     --ticket-parking: 208.48 49.66% 28.27%;
@@ -189,8 +191,14 @@ All colors MUST be HSL.
       linear-gradient(to top, hsl(var(--foreground) / 0.94) 0%, hsl(var(--foreground) / 0.72) 26%, hsl(var(--festival-turquoise) / 0.52) 62%, hsl(var(--festival-turquoise) / 0.18) 100%);
   }
   .public-hero-text { color: hsl(var(--primary-foreground)); }
-  .public-footer { background: hsl(var(--foreground)); color: hsl(var(--background)); }
-  .public-footer-muted { color: hsl(var(--background) / 0.72); }
+  .public-footer { background: hsl(var(--footer-clay)); color: hsl(var(--background)); }
+  .public-footer-muted { color: hsl(var(--footer-ink)); }
+  .public-footer-logo { width: 190px; height: auto; display: block; }
+  .public-footer-camels { display: block; width: 100%; height: 110px; object-fit: cover; object-position: center bottom; }
+  @media (min-width: 640px) {
+    .public-footer-logo { width: 220px; }
+    .public-footer-camels { height: 150px; }
+  }
   .public-gold { color: hsl(var(--festival-turquoise)); }
 
   * {
