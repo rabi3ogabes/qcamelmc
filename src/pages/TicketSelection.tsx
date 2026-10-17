@@ -12,6 +12,7 @@ import { format } from "date-fns";
 import { ar } from "date-fns/locale";
 import { toZonedTime, fromZonedTime } from "date-fns-tz";
 import { Footer } from "@/components/Footer";
+import { PublicHeader } from "@/components/PublicHeader";
 import { isEventExpired } from "@/lib/eventUtils";
 import { useSettings } from "@/contexts/SettingsContext";
 import { QATAR_TZ } from "@/lib/qatarTime";
@@ -324,7 +325,7 @@ const TicketSelection = () => {
       case "normal":
         return <Users className="w-8 h-8 text-primary" />;
       case "parking":
-        return <Car className="w-8 h-8 text-accent" />;
+        return <Car className="w-8 h-8 text-foreground" />;
       default:
         return null;
     }
@@ -399,21 +400,8 @@ const TicketSelection = () => {
   }
 
   return (
-    <div className="min-h-screen font-lusail" style={{ backgroundColor: '#F5EFE7' }}>
-      
-      {/* Header */}
-      <header className="backdrop-blur-sm sticky top-0 z-10 bg-background" style={{ backgroundColor: headerBgColor }}>
-        <div className="container mx-auto px-3 sm:px-4 py-3 sm:py-4 flex justify-center items-center">
-          {logoUrl && (
-            <img 
-              src={logoUrl} 
-              alt="Logo" 
-              className="h-10 sm:h-12 lg:h-[53px] object-contain cursor-pointer" 
-              onClick={() => navigate("/")}
-            />
-          )}
-        </div>
-      </header>
+    <div className="public-site min-h-screen font-lusail" dir="rtl">
+      <PublicHeader />
 
       <div className="max-w-7xl mx-auto py-4 sm:py-8 lg:py-12 px-3 sm:px-4 lg:px-6">
         {event && (
@@ -446,8 +434,8 @@ const TicketSelection = () => {
             return (
             <Card key={ticket.id} className={`overflow-hidden shadow-md hover:shadow-lg transition-shadow flex flex-col min-h-[160px] sm:min-h-[180px] border-0 ${isSoldOut ? 'opacity-60' : ''}`}>
               {/* Header Banner */}
-              <div className="px-3 sm:px-4 py-2 flex items-center justify-center gap-2" style={{ backgroundColor: headerBgColor }}>
-                <h3 className="text-sm sm:text-base lg:text-lg font-bold text-white text-center">
+              <div className="public-ticket-banner px-3 sm:px-4 py-2 flex items-center justify-center gap-2">
+                <h3 className="text-sm sm:text-base lg:text-lg font-bold text-primary-foreground text-center">
                   {getTicketTitle(ticket.type)}
                 </h3>
                 {isSoldOut && (
@@ -549,9 +537,8 @@ const TicketSelection = () => {
           </Button>
         </Card>
 
-        {/* 250px spacing between buttons */}
-        <div className="text-center" style={{ marginTop: '250px' }}>
-          <Button variant="ghost" onClick={() => navigate("/")} className="bg-yellow-500 hover:bg-yellow-600 text-black text-sm sm:text-base px-4 sm:px-6 py-2 sm:py-3">
+        <div className="mt-10 text-center">
+          <Button variant="outline" onClick={() => navigate("/")} className="text-sm sm:text-base px-4 sm:px-6 py-2 sm:py-3">
             {t('backToEvent')}
           </Button>
         </div>
@@ -560,10 +547,6 @@ const TicketSelection = () => {
       {/* Before Footer Image */}
       {settings?.before_footer_image_url && (
         <div className="relative w-full">
-          <div 
-            className="absolute inset-0 pointer-events-none"
-            style={{ background: 'linear-gradient(to bottom, rgba(245, 239, 231, 0.8), rgba(245, 239, 231, 0.4))' }}
-          />
           <img
             src={settings.before_footer_image_url}
             alt="Before Footer"
