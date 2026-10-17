@@ -2,6 +2,8 @@
 
 ## Public camel artwork
 - [x] Reduce footer artwork height without cropping or distortion; add supplied illustration as a faint central public-page background and verify both on desktop/mobile.
+- [x] Tile the footer camel artwork horizontally at its unchanged height using the seamless 6-period tile; verified seamless at 1280px and 390px.
+
 
 ## Festival guideline styling
 - [x] Apply visually verified guideline colors and original heritage artwork to existing public layouts.
