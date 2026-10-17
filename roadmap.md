@@ -1,5 +1,10 @@
 # Task Roadmap
 
+## Festival guideline styling
+- [ ] Apply visually verified guideline colors and original heritage artwork to existing public layouts.
+- [ ] Apply approved typography where licensed webfont assets are available; identify missing assets honestly.
+- [ ] Preserve booking behavior and verify public pages and ticket controls on desktop and mobile.
+
 ## Public quality audit
 - [x] Improve public mobile layout and not-found recovery; remove purple-gradient styling.
 - [x] Add working footer legal links, draft privacy and terms pages, search/share metadata and sitemap. Hosting supplies the share image; published-version verification requires publication.
