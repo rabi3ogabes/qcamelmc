@@ -175,11 +175,11 @@ All colors MUST be HSL.
   }
 
   .public-site .font-lusail { font-family: inherit; }
-  .public-site:has(> header) {
+  .public-site:has(> header) > :is(main, div) {
     position: relative;
     isolation: isolate;
   }
-  .public-site:has(> header)::before {
+  .public-site:has(> header) > :is(main, div)::before {
     content: "";
     position: absolute;
     inset: 0;
@@ -187,7 +187,7 @@ All colors MUST be HSL.
     pointer-events: none;
     background-image: url('/__l5e/assets-v1/5d817b16-68cc-4525-9a8f-d75b204c6476/mafareed-page-background.png');
     background-repeat: no-repeat;
-    background-position: center 55%;
+    background-position: center;
     background-size: min(480px, 80%) auto;
     opacity: var(--public-artwork-opacity);
   }
