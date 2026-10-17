@@ -5,7 +5,6 @@ import mastercardLogo from "@/assets/mastercard-logo.png";
 import applePayLogo from "@/assets/applepay-logo.png";
 import sadadLogo from "@/assets/sadad-logo.png";
 import footerLogo from "@/assets/mafareed-footer-logo.png.asset.json";
-import footerCamels from "@/assets/mafareed-footer-camels.webp.asset.json";
 import { useSettings } from "@/contexts/SettingsContext";
 
 export const Footer = () => {
@@ -30,6 +29,6 @@ export const Footer = () => {
       </div>
       <p className="public-footer-muted mt-7 text-center text-sm">© {new Date().getFullYear()} {settings?.copyright_text || "جميع الحقوق محفوظة"}</p>
     </div>
-    <img src={new URL(footerCamels.url, "https://www.qcamelmc.org").href} alt="" aria-hidden="true" className="public-footer-camels" loading="lazy" decoding="async" />
+    <div aria-hidden="true" className="public-footer-camels" />
   </footer>;
 };
