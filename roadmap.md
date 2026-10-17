@@ -1,7 +1,7 @@
 # Task Roadmap
 
 ## Public camel artwork
-- [ ] Reduce footer artwork height without cropping or distortion; add supplied illustration as a faint central public-page background and verify both.
+- [x] Reduce footer artwork height without cropping or distortion; add supplied illustration as a faint central public-page background and verify both on desktop/mobile.
 
 ## Festival guideline styling
 - [x] Apply visually verified guideline colors and original heritage artwork to existing public layouts.
