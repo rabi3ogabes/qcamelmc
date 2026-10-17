@@ -194,8 +194,8 @@ All colors MUST be HSL.
   .public-footer {
     background-color: hsl(17.5 53.1% 55.69%);
     background-image: url('https://www.qcamelmc.org/__l5e/assets-v1/48c5ba0e-6fb3-4a26-8f43-0643affa7fe6/mafareed-footer-camels-tile.webp');
-    background-repeat: repeat-x;
-    background-size: auto 200px;
+    background-repeat: no-repeat;
+    background-size: 100% auto;
     background-position: center bottom;
     color: hsl(var(--background));
   }
