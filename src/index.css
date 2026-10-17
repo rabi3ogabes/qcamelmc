@@ -160,6 +160,7 @@ All colors MUST be HSL.
     --festival-clay: 17 64% 54%;
     --footer-clay: 17.36 53.78% 55.88%;
     --footer-ink: 208 50% 16%;
+    --public-artwork-opacity: 0.07;
     --ticket-normal: 182.72 63.36% 40.52%;
     --ticket-vip: 33.91 76.02% 71.06%;
     --ticket-parking: 208.48 49.66% 28.27%;
@@ -174,6 +175,22 @@ All colors MUST be HSL.
   }
 
   .public-site .font-lusail { font-family: inherit; }
+  .public-site:has(> header) {
+    position: relative;
+    isolation: isolate;
+  }
+  .public-site:has(> header)::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    background-image: url('/__l5e/assets-v1/5d817b16-68cc-4525-9a8f-d75b204c6476/mafareed-page-background.png');
+    background-repeat: no-repeat;
+    background-position: center 55%;
+    background-size: min(480px, 80%) auto;
+    opacity: var(--public-artwork-opacity);
+  }
   .public-heritage-strip {
     height: 20px;
     background-color: hsl(var(--background));
@@ -192,18 +209,19 @@ All colors MUST be HSL.
   }
   .public-hero-text { color: hsl(var(--primary-foreground)); }
   .public-footer {
-    background-color: hsl(17.5 53.1% 55.69%);
+    background-color: hsl(var(--footer-clay));
     color: hsl(var(--background));
   }
-  /* Camels row shown once, full width, at its natural 2526:331 proportions — never stretched */
+  /* Half-width artwork gives half the previous height, retaining every camel. */
   .public-footer::after {
     content: "";
     display: block;
-    width: 100%;
+    width: 50%;
+    margin-inline: auto;
     aspect-ratio: 2526 / 331;
     background-image: url('https://www.qcamelmc.org/__l5e/assets-v1/877c4398-4960-4fb8-ac6d-7b253ecf9c9f/mafareed-footer-camels.webp');
     background-repeat: no-repeat;
-    background-size: 100% 100%;
+    background-size: contain;
     background-position: center bottom;
   }
   .public-footer-muted { color: hsl(var(--footer-ink)); }
