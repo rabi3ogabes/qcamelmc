@@ -1,5 +1,8 @@
 # Task Roadmap
 
+## Public camel artwork
+- [ ] Reduce footer artwork height without cropping or distortion; add supplied illustration as a faint central public-page background and verify both.
+
 ## Festival guideline styling
 - [x] Apply visually verified guideline colors and original heritage artwork to existing public layouts.
 - [ ] Load Adapter Arab for all visitors — awaiting licensed WOFF/WOFF2 files; local licensed font detection and existing Arabic fallback are in place.
