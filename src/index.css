@@ -193,11 +193,18 @@ All colors MUST be HSL.
   .public-hero-text { color: hsl(var(--primary-foreground)); }
   .public-footer {
     background-color: hsl(17.5 53.1% 55.69%);
-    background-image: url('https://www.qcamelmc.org/__l5e/assets-v1/48c5ba0e-6fb3-4a26-8f43-0643affa7fe6/mafareed-footer-camels-tile.webp');
-    background-repeat: repeat-x;
-    background-size: auto 88px;
-    background-position: center bottom;
     color: hsl(var(--background));
+  }
+  /* Full camels row: the whole artwork once, full width, half its natural height */
+  .public-footer::after {
+    content: "";
+    display: block;
+    width: 100%;
+    aspect-ratio: 2526 / 166;
+    background-image: url('https://www.qcamelmc.org/__l5e/assets-v1/877c4398-4960-4fb8-ac6d-7b253ecf9c9f/mafareed-footer-camels.webp');
+    background-repeat: no-repeat;
+    background-size: 100% 100%;
+    background-position: center bottom;
   }
   .public-footer-muted { color: hsl(var(--footer-ink)); }
   .public-footer-logo { width: 190px; height: auto; display: block; }
