@@ -1,15 +1,12 @@
 import { Link } from "react-router-dom";
-import { useSettings } from "@/contexts/SettingsContext";
+import mafareedLogo from "@/assets/mafareed-logo.png.asset.json";
 
 export const PublicHeader = () => {
-  const { settings } = useSettings();
   return (
     <header className="border-b border-border bg-background">
-      <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-5 py-4 sm:px-8">
-        <Link to="/" aria-label="مهرجان قطر للإبل — الرئيسية" className="flex min-w-0 items-center gap-3">
-          {settings?.logo_url && <img src={settings.logo_url} alt="مهرجان قطر للإبل" className="public-logo shrink-0" decoding="async" />}
-          <span className="hidden text-lg font-bold text-foreground sm:block">مهرجان قطر للإبل</span>
-          {!settings?.logo_url && <span className="text-lg font-bold text-foreground sm:hidden">مهرجان قطر للإبل</span>}
+      <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-5 py-3 sm:px-8">
+        <Link to="/" aria-label="مهرجان التحدي للمفاريد — الرئيسية" className="flex min-w-0 items-center gap-3">
+          <img src={mafareedLogo.url} alt="مهرجان التحدي للمفاريد 2026" className="h-16 w-auto min-w-[110px] shrink-0 object-contain sm:h-20" decoding="async" />
         </Link>
         <Link to="/" className="shrink-0 text-sm font-semibold text-primary underline-offset-4 hover:underline">الفعاليات والتذاكر</Link>
       </div>
