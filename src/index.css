@@ -140,13 +140,13 @@ All colors MUST be HSL.
 @layer base {
   .public-site {
     --background: 0 0% 100%;
-    --foreground: 207 58% 28%;
+    --foreground: 208.48 49.66% 28.27%;
     --card: 0 0% 100%;
-    --card-foreground: 207 58% 28%;
-    --primary: 183 63% 34%;
+    --card-foreground: 208.48 49.66% 28.27%;
+    --primary: 182.72 63.36% 40.52%;
     --primary-foreground: 0 0% 100%;
-    --secondary: 36 78% 71%;
-    --secondary-foreground: 207 58% 28%;
+    --secondary: 33.91 76.02% 71.06%;
+    --secondary-foreground: 208.48 49.66% 28.27%;
     --accent: 183 51% 95%;
     --accent-foreground: 183 63% 28%;
     --muted: 183 22% 97%;
@@ -154,15 +154,15 @@ All colors MUST be HSL.
     --border: 183 15% 88%;
     --input: 183 15% 83%;
     --ring: 183 61% 40%;
-    --festival-turquoise: 183 63% 40%;
-    --festival-red: 355 62% 50%;
+    --festival-turquoise: 182.72 63.36% 40.52%;
+    --festival-red: 355.08 61.58% 50.52%;
     --festival-burgundy: 329 58% 27%;
     --festival-clay: 17 64% 54%;
-    --ticket-normal: 183 63% 34%;
-    --ticket-vip: 36 78% 71%;
-    --ticket-parking: 207 58% 28%;
+    --ticket-normal: 182.72 63.36% 40.52%;
+    --ticket-vip: 33.91 76.02% 71.06%;
+    --ticket-parking: 208.48 49.66% 28.27%;
     --public-overlay: 180 8% 8%;
-    --public-gold: 36 78% 71%;
+    --public-gold: 33.91 76.02% 71.06%;
     --gradient-primary: none;
     --radius: 0.5rem;
     background: hsl(var(--background));
@@ -175,14 +175,14 @@ All colors MUST be HSL.
   .public-heritage-strip {
     height: 20px;
     background-color: hsl(var(--background));
-    background-image: url('/__l5e/assets-v1/1d02c041-4099-4a40-adba-3abdf9ddb5b5/mafareed-heritage.webp');
+    background-image: url('https://www.qcamelmc.org/__l5e/assets-v1/1d02c041-4099-4a40-adba-3abdf9ddb5b5/mafareed-heritage.webp');
     background-size: 164px auto;
     background-position: center 27%;
     border-block: 1px solid hsl(var(--border));
   }
   .public-heritage-divider { width: 108px; height: 18px; object-fit: contain; }
   .public-logo { width: 140px; height: auto; max-height: 88px; object-fit: contain; }
-  .public-ticket-banner { background: hsl(var(--primary)); color: hsl(var(--primary-foreground)); }
+  .public-site .bg-primary, .public-ticket-banner { background: hsl(var(--foreground)); color: hsl(var(--primary-foreground)); }
 
   .public-hero-shade { background: hsl(var(--public-overlay) / 0.48); }
   .public-hero-text { color: hsl(var(--primary-foreground)); }
