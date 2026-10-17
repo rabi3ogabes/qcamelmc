@@ -1,9 +1,10 @@
 # Task Roadmap
 
 ## Festival guideline styling
-- [ ] Apply visually verified guideline colors and original heritage artwork to existing public layouts.
-- [ ] Apply approved typography where licensed webfont assets are available; identify missing assets honestly.
-- [ ] Preserve booking behavior and verify public pages and ticket controls on desktop and mobile.
+- [x] Apply visually verified guideline colors and original heritage artwork to existing public layouts.
+- [ ] Load Adapter Arab for all visitors — awaiting licensed WOFF/WOFF2 files; local licensed font detection and existing Arabic fallback are in place.
+- [x] Preserve booking logic; public desktop/mobile pages and legal links verified without overflow or runtime errors; 14 ticket/payment/time tests passed.
+- [ ] Verify a real booking after styling — blocked because no event is currently available for sale; no test events or orders created.
 
 ## Public quality audit
 - [x] Improve public mobile layout and not-found recovery; remove purple-gradient styling.
