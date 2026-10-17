@@ -29,6 +29,5 @@ export const Footer = () => {
       </div>
       <p className="public-footer-muted mt-7 text-center text-sm">© {new Date().getFullYear()} {settings?.copyright_text || "جميع الحقوق محفوظة"}</p>
     </div>
-    <div aria-hidden="true" className="public-footer-camels" />
   </footer>;
 };
