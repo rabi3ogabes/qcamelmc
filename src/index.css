@@ -185,7 +185,7 @@ All colors MUST be HSL.
     inset: 0;
     z-index: -1;
     pointer-events: none;
-    background-image: url('/__l5e/assets-v1/5d817b16-68cc-4525-9a8f-d75b204c6476/mafareed-page-background.png');
+    background-image: url('https://www.qcamelmc.org/__l5e/assets-v1/5d817b16-68cc-4525-9a8f-d75b204c6476/mafareed-page-background.png');
     background-repeat: no-repeat;
     background-position: center 75%;
     background-size: min(480px, 80%) auto;
