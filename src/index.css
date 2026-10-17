@@ -184,7 +184,10 @@ All colors MUST be HSL.
   .public-logo { width: 140px; height: auto; max-height: 88px; object-fit: contain; }
   .public-site .bg-primary, .public-ticket-banner { background: hsl(var(--foreground)); color: hsl(var(--primary-foreground)); }
 
-  .public-hero-shade { background: hsl(var(--public-overlay) / 0.48); }
+  .public-hero-shade {
+    background:
+      linear-gradient(to top, hsl(var(--foreground) / 0.94) 0%, hsl(var(--foreground) / 0.72) 26%, hsl(var(--festival-turquoise) / 0.52) 62%, hsl(var(--festival-turquoise) / 0.18) 100%);
+  }
   .public-hero-text { color: hsl(var(--primary-foreground)); }
   .public-footer { background: hsl(var(--foreground)); color: hsl(var(--background)); }
   .public-footer-muted { color: hsl(var(--background) / 0.72); }
