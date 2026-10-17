@@ -5,7 +5,6 @@ import mastercardLogo from "@/assets/mastercard-logo.png";
 import applePayLogo from "@/assets/applepay-logo.png";
 import sadadLogo from "@/assets/sadad-logo.png";
 import footerLogo from "@/assets/mafareed-footer-logo.png.asset.json";
-import footerCamels from "@/assets/mafareed-footer-camels.webp.asset.json";
 import { useSettings } from "@/contexts/SettingsContext";
 
 export const Footer = () => {
