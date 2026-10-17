@@ -193,8 +193,8 @@ All colors MUST be HSL.
   .public-hero-text { color: hsl(var(--primary-foreground)); }
   .public-footer {
     background-color: hsl(17.5 53.1% 55.69%);
-    background-image: url('https://www.qcamelmc.org/__l5e/assets-v1/877c4398-4960-4fb8-ac6d-7b253ecf9c9f/mafareed-footer-camels.webp');
-    background-repeat: repeat;
+    background-image: url('https://www.qcamelmc.org/__l5e/assets-v1/48c5ba0e-6fb3-4a26-8f43-0643affa7fe6/mafareed-footer-camels-tile.webp');
+    background-repeat: repeat-x;
     background-size: auto 200px;
     background-position: center bottom;
     color: hsl(var(--background));
