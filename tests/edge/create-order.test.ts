@@ -76,7 +76,7 @@ describe("create-order handler", () => {
       EMAIL: "ahmed@example.com",
       txnDate: "2026-10-09",
     });
-    expect(fields.signature).toMatch(/^[0-9A-F]{64}$/);
+    expect(fields.signature).toMatch(/^[0-9a-f]{64}$/);
     expect(JSON.stringify(body)).not.toContain("S3CR3T");
   });
 
