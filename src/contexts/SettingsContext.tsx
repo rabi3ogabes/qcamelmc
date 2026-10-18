@@ -8,6 +8,8 @@ interface Settings {
   logo_url: string | null;
   hero_image_url: string | null;
   before_footer_image_url: string | null;
+  before_footer_image_repeat: "repeat-x" | "repeat-y";
+  before_footer_image_opacity: number;
   header_bg_color: string;
   header_bg_image_url: string | null;
   hero_text: string;
@@ -25,6 +27,8 @@ const DEFAULT_SETTINGS: Settings = {
   logo_url: null,
   hero_image_url: null,
   before_footer_image_url: null,
+  before_footer_image_repeat: "repeat-x",
+  before_footer_image_opacity: 100,
   header_bg_color: "#D4B78A",
   header_bg_image_url: null,
   hero_text: "",
@@ -84,13 +88,16 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
     try {
       const { data, error } = await supabase
         .from("public_settings")
-        .select("logo_url, hero_image_url, before_footer_image_url, header_bg_color, header_bg_image_url, hero_text, copyright_text, admin_phone, current_event_id")
+        .select("logo_url, hero_image_url, before_footer_image_url, before_footer_image_repeat, before_footer_image_opacity, header_bg_color, header_bg_image_url, hero_text, copyright_text, admin_phone, current_event_id")
         .maybeSingle();
+      if (error) throw error;
 
       const resolved: Settings = {
         logo_url: data?.logo_url || null,
         hero_image_url: data?.hero_image_url || null,
         before_footer_image_url: data?.before_footer_image_url || null,
+        before_footer_image_repeat: data?.before_footer_image_repeat === "repeat-y" ? "repeat-y" : "repeat-x",
+        before_footer_image_opacity: data?.before_footer_image_opacity ?? 100,
         header_bg_color: data?.header_bg_color || "#D4B78A",
         header_bg_image_url: data?.header_bg_image_url || null,
         hero_text: data?.hero_text || "",

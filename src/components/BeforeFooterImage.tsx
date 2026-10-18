@@ -1,10 +1,14 @@
 import { useEffect, useState } from "react";
+import { useSettings } from "@/contexts/SettingsContext";
+import { preFooterDisplay } from "@/lib/preFooterDisplay";
 
 /**
  * Pre-footer image: rendered at its natural size (no stretching or cropping)
- * and tiled horizontally across the full row width.
+ * with dashboard-controlled repetition and opacity.
  */
 export const BeforeFooterImage = ({ src, alt }: { src: string; alt: string }) => {
+  const { settings } = useSettings();
+  const display = preFooterDisplay(settings?.before_footer_image_repeat, settings?.before_footer_image_opacity);
   const [dims, setDims] = useState<{ w: number; h: number } | null>(null);
 
   useEffect(() => {
@@ -28,7 +32,10 @@ export const BeforeFooterImage = ({ src, alt }: { src: string; alt: string }) =>
       className="public-pre-footer w-full"
       style={{
         backgroundImage: `url(${src})`,
-        height: `${dims.h}px`,
+        backgroundRepeat: display.repeat,
+        backgroundSize: `${dims.w}px ${dims.h}px`,
+        opacity: display.opacity,
+        height: `${dims.h * (display.repeat === "repeat-y" ? 2 : 1)}px`,
       }}
     />
   );

@@ -5,6 +5,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Upload, Image as ImageIcon, Download, Trash2, AlertTriangle } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
+import { Slider } from "@/components/ui/slider";
+import { preFooterDisplay, type ImageRepeat } from "@/lib/preFooterDisplay";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useTranslation } from "react-i18next";
@@ -30,6 +32,9 @@ export const SettingsTab = () => {
   const [newHeroImageUrl, setNewHeroImageUrl] = useState("");
   const [beforeFooterImageUrl, setBeforeFooterImageUrl] = useState("");
   const [newBeforeFooterImageUrl, setNewBeforeFooterImageUrl] = useState("");
+  const [beforeFooterRepeat, setBeforeFooterRepeat] = useState<ImageRepeat>("repeat-x");
+  const [beforeFooterOpacity, setBeforeFooterOpacity] = useState(100);
+  const [savingBeforeFooterDisplay, setSavingBeforeFooterDisplay] = useState(false);
   const [headerBgImageUrl, setHeaderBgImageUrl] = useState("");
   const [newHeaderBgImageUrl, setNewHeaderBgImageUrl] = useState("");
   const [headerBgColor, setHeaderBgColor] = useState("hsl(var(--card) / 0.5)");
@@ -220,10 +225,26 @@ export const SettingsTab = () => {
     fetchSettings();
   }, []);
 
+  const saveBeforeFooterDisplay = async () => {
+    setSavingBeforeFooterDisplay(true);
+    try {
+      const { data, error } = await supabase.from("settings")
+        .update({ before_footer_image_repeat: beforeFooterRepeat, before_footer_image_opacity: beforeFooterOpacity })
+        .not("id", "is", null).select("id");
+      if (error) throw error;
+      if (!data?.length) throw new Error("Settings unavailable");
+      toast.success("تم حفظ تكرار الصورة وشفافيتها");
+    } catch {
+      toast.error("تعذّر حفظ إعدادات الصورة، حاول مرة أخرى");
+    } finally {
+      setSavingBeforeFooterDisplay(false);
+    }
+  };
+
   const fetchSettings = async () => {
     const { data, error } = await supabase
       .from("settings")
-      .select("logo_url, hero_image_url, before_footer_image_url, header_bg_color, header_bg_image_url, hero_text, copyright_text, webhook_url, email_webhook_url, webhook_enabled, email_webhook_enabled, admin_phone, admin_email, payment_failed_email_enabled, clarity_project_id, clarity_enabled, sadad_merchant_id, sadad_api_key, sadad_secret, sadad_website_domain, sadad_environment, site_url, show_delete_customer_button, show_generate_qr_button, show_delete_event_button, show_delete_ticket_button, auto_invoice_interval_seconds, invoice_batch_min, invoice_batch_max, invoice_send_delay_min, invoice_send_delay_max, live_refresh_mode")
+      .select("logo_url, hero_image_url, before_footer_image_url, before_footer_image_repeat, before_footer_image_opacity, header_bg_color, header_bg_image_url, hero_text, copyright_text, webhook_url, email_webhook_url, webhook_enabled, email_webhook_enabled, admin_phone, admin_email, payment_failed_email_enabled, clarity_project_id, clarity_enabled, sadad_merchant_id, sadad_api_key, sadad_secret, sadad_website_domain, sadad_environment, site_url, show_delete_customer_button, show_generate_qr_button, show_delete_event_button, show_delete_ticket_button, auto_invoice_interval_seconds, invoice_batch_min, invoice_batch_max, invoice_send_delay_min, invoice_send_delay_max, live_refresh_mode")
       .maybeSingle();
 
     if (error) {
@@ -245,6 +266,8 @@ export const SettingsTab = () => {
       setBeforeFooterImageUrl(data.before_footer_image_url);
       setNewBeforeFooterImageUrl(data.before_footer_image_url);
     }
+    setBeforeFooterRepeat(preFooterDisplay(data?.before_footer_image_repeat, data?.before_footer_image_opacity).repeat);
+    setBeforeFooterOpacity(data?.before_footer_image_opacity ?? 100);
 
     if (data?.header_bg_image_url) {
       setHeaderBgImageUrl(data.header_bg_image_url);
@@ -1472,7 +1495,7 @@ export const SettingsTab = () => {
             <Label className="font-lusail">الصورة الحالية</Label>
             <div className="mt-2 p-8 border-2 border-dashed rounded-lg flex items-center justify-center bg-muted/50">
               {beforeFooterImageUrl ? (
-                <img src={beforeFooterImageUrl} alt="Before Footer" className="max-h-48 object-contain rounded" />
+                <img src={beforeFooterImageUrl} alt="Before Footer" className="max-h-48 object-contain rounded" style={{ opacity: beforeFooterOpacity / 100 }} />
               ) : (
                 <ImageIcon className="w-16 h-16 text-muted-foreground" />
               )}
@@ -1495,6 +1518,25 @@ export const SettingsTab = () => {
               </p>
             </div>
           </div>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-2">
+              <Label htmlFor="before-footer-repeat">اتجاه التكرار</Label>
+              <Select value={beforeFooterRepeat} onValueChange={(value) => setBeforeFooterRepeat(preFooterDisplay(value, 100).repeat)} disabled={savingBeforeFooterDisplay}>
+                <SelectTrigger id="before-footer-repeat"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="repeat-x">أفقي (X)</SelectItem>
+                  <SelectItem value="repeat-y">عمودي (Y)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-3">
+              <Label htmlFor="before-footer-opacity">شفافية الصورة — {beforeFooterOpacity}%</Label>
+              <Slider id="before-footer-opacity" aria-label="شفافية الصورة" min={0} max={100} step={1} value={[beforeFooterOpacity]} onValueChange={([value]) => setBeforeFooterOpacity(value ?? 100)} disabled={savingBeforeFooterDisplay} />
+            </div>
+          </div>
+          <Button onClick={saveBeforeFooterDisplay} disabled={savingBeforeFooterDisplay}>
+            {savingBeforeFooterDisplay ? "جارٍ الحفظ..." : "حفظ إعدادات الصورة"}
+          </Button>
         </div>
       </Card>
 
