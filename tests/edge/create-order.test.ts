@@ -71,8 +71,10 @@ describe("create-order handler", () => {
       ORDER_ID: "QTR-AAAAAAAAAAAA",
       TXN_AMOUNT: "200.00",
       WEBSITE: "example.qa",
-      CALLBACK_URL: `${SUPABASE_URL}/functions/v1/sadad-callback`,
-      MOBILE_NO: "97455512345",
+      CALLBACK_URL: "https://example.qa/sadad-callback",
+      CUST_ID: "ahmed@example.com",
+      SADAD_WEBCHECKOUT_PAGE_LANGUAGE: "Arb",
+      MOBILE_NO: "55512345",
       EMAIL: "ahmed@example.com",
       txnDate: expect.stringMatching(/^2026-10-09 \d{2}:\d{2}:\d{2}$/),
     });
