@@ -72,13 +72,12 @@ describe("create-order handler", () => {
       TXN_AMOUNT: "200.00",
       WEBSITE: "example.qa",
       CALLBACK_URL: "https://example.qa/sadad-callback",
-      CUST_ID: "ahmed@example.com",
       SADAD_WEBCHECKOUT_PAGE_LANGUAGE: "Arb",
       MOBILE_NO: "55512345",
       EMAIL: "ahmed@example.com",
       txnDate: expect.stringMatching(/^2026-10-09 \d{2}:\d{2}:\d{2}$/),
     });
-    expect(fields.signature).toMatch(/^[0-9A-F]{64}$/);
+    expect(fields.signature).toMatch(/^[0-9a-f]{64}$/);
     expect(JSON.stringify(body)).not.toContain("S3CR3T");
   });
 

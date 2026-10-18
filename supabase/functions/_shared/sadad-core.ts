@@ -39,20 +39,14 @@ function valuesByKey(params: Record<string, unknown>, skip: (key: string) => boo
     .join("");
 }
 
-// Only the mandatory fields in Sadad's published Checkout 2.1 signature example.
-// Optional presentation/customer/product fields are still posted, but never signed.
-const SIGNED_REQUEST_FIELDS = new Set([
-  "CALLBACK_URL", "EMAIL", "MOBILE_NO", "ORDER_ID", "TXN_AMOUNT",
-  "WEBSITE", "merchant_id", "txnDate",
-]);
-
 /**
- * Request signature: SHA256(secret + mandatory values sorted by key), UPPERCASE hex.
- * https://developer.sadad.qa/web-checkout_2.1/signature-generation
- * This allowlist applies only to requests; callback verification signs all fields.
+ * Request signature (Sadad "Signature Generation", Web Checkout 2.1):
+ * SHA256(secret + values of every posted field sorted by key), lowercase hex.
+ * Only productdetail[...] and the signature itself are excluded.
+ * Matches Sadad's official demo form (test_post_demo_ENG) exactly.
  */
 export async function signRequest(params: Record<string, string>, secret: string): Promise<string> {
-  return (await sha256Hex(secret + valuesByKey(params, (key) => !SIGNED_REQUEST_FIELDS.has(key)))).toUpperCase();
+  return sha256Hex(secret + valuesByKey(params, (key) => key === "signature" || key.startsWith("productdetail")));
 }
 
 /**
@@ -126,7 +120,7 @@ export interface CheckoutRequestInput {
   email: string;
   now?: Date;
   items?: CheckoutItem[];
-  /** Optional unsigned customer id; defaults to the email. */
+  /** Ignored: CUST_ID is not part of Sadad Web Checkout 2.1. */
   custId?: string;
 }
 
@@ -151,7 +145,6 @@ export async function buildCheckoutRequest(input: CheckoutRequestInput): Promise
     CALLBACK_URL: input.callbackUrl,
     MOBILE_NO: input.mobile,
     EMAIL: input.email,
-    CUST_ID: input.custId || input.email,
     SADAD_WEBCHECKOUT_PAGE_LANGUAGE: "Arb",
     txnDate: txnDateOf(input.now ?? new Date()),
   };

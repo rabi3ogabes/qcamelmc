@@ -16,7 +16,7 @@ const SECRET = "S3CR3T";
 // SHA256(secret + mandatory values sorted by key), uppercase hex.
 const referenceSignature = (params: Record<string, string>, secret: string) => {
   const s = secret + Object.keys(params).sort().map((k) => params[k]).join("");
-  return createHash("sha256").update(s).digest("hex").toUpperCase();
+  return createHash("sha256").update(s).digest("hex");
 };
 
 const signedFields = {
@@ -40,7 +40,7 @@ describe("signRequest", () => {
       EMAIL: "user@example.com", merchant_id: "123456", txnDate: "2025-12-16",
     };
     expect(await signRequest(example, "YOUR_TEST_SECRET_KEY")).toBe(
-      "700299E620B51D0AE487FCE61FAFF6DCC0CBE122B2E21B728890CF1A1103361E",
+      "700299E620B51D0AE487FCE61FAFF6DCC0CBE122B2E21B728890CF1A1103361E".toLowerCase(),
     );
   });
 
@@ -51,13 +51,13 @@ describe("signRequest", () => {
       EMAIL: "example@gmail.com", txnDate: "2022-01-15 20:12:40",
     };
     expect(await signRequest(example, "T1ds45#sGQfkodf5")).toBe(
-      "800B260A628CAF0EB1CF76AFEC63ACF58BD7E455808A3547525B8014C6A1892D",
+      "800b260a628caf0eb1cf76afec63acf58bd7e455808a3547525b8014c6a1892d",
     );
   });
 
   it("matches the independent regression vector", async () => {
     expect(await signRequest(signedFields, SECRET)).toBe(
-      "6A6D258727B321A8EC7C02CAFD96B2F14D754BA1627029F2920D27E11F4D0B49",
+      "6A6D258727B321A8EC7C02CAFD96B2F14D754BA1627029F2920D27E11F4D0B49".toLowerCase(),
     );
   });
 
@@ -87,9 +87,14 @@ describe("signRequest", () => {
     expect(await signRequest(withExtras, SECRET)).toBe(await signRequest(signedFields, SECRET));
   });
 
-  it.each(["CUST_ID", "SADAD_WEBCHECKOUT_PAGE_LANGUAGE"])("excludes optional %s from the signature", async (key) => {
-    expect(await signRequest({ ...signedFields, [key]: "optional-value" }, SECRET)).toBe(
-      await signRequest(signedFields, SECRET),
+  it("reproduces Sadad's official demo form, language field included", async () => {
+    const demo = {
+      CALLBACK_URL: "https://www.dsmtechbd.com/callback", EMAIL: "mohib@dsmtechbd.com", MOBILE_NO: "77778888",
+      ORDER_ID: "1002", SADAD_WEBCHECKOUT_PAGE_LANGUAGE: "ENG", TXN_AMOUNT: "200.00",
+      WEBSITE: "www.dsmtechbd.com", merchant_id: "7015085", txnDate: "2024-08-25 10:50:40",
+    };
+    expect(await signRequest(demo, "LjJ36Oc6hNhh8I3L")).toBe(
+      "e9580ae9742492c8010c26bcf0fd961c1eef706fc0fe99bc26f475b13504e78b",
     );
   });
 
@@ -126,18 +131,16 @@ describe("buildCheckoutRequest", () => {
     expect(fields.txnDate).toBe("2026-10-09 10:00:00");
     const { signature, ...rest } = fields;
     const signed = Object.fromEntries(Object.entries(rest).filter(([k]) =>
-      !k.startsWith("productdetail") && k !== "CUST_ID" && k !== "SADAD_WEBCHECKOUT_PAGE_LANGUAGE"));
+      !k.startsWith("productdetail")));
     expect(signature).toBe(referenceSignature(signed, SECRET));
   });
 
-  it("posts optional customer/language fields without including them in the hash", async () => {
-    const first = await buildCheckoutRequest({ ...input, custId: "customer-one" });
-    const second = await buildCheckoutRequest({ ...input, custId: "customer-two" });
-    expect(first.fields.CUST_ID).toBe("customer-one");
-    expect(second.fields.CUST_ID).toBe("customer-two");
-    expect(first.fields.SADAD_WEBCHECKOUT_PAGE_LANGUAGE).toBe("Arb");
-    expect(first.fields.signature).toBe(second.fields.signature);
+  it("signs the language field and sends no CUST_ID", async () => {
+    const { fields } = await buildCheckoutRequest(input);
+    expect(fields.SADAD_WEBCHECKOUT_PAGE_LANGUAGE).toBe("Arb");
+    expect(fields.CUST_ID).toBeUndefined();
   });
+
 
   it("uses UTC date and time for txnDate, like the last accepted request", async () => {
     const late = await buildCheckoutRequest({ ...input, now: new Date("2026-10-09T21:30:00Z") });
