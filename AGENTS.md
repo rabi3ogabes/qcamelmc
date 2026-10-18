@@ -12,3 +12,4 @@
 - Receipt AI quotas are enforced atomically by server-only database functions; shared-passcode callers share a quota, and each active reading holds a bounded lease.
 - Keep spreadsheet, scanner and chart code in separate production chunks; load receipt spreadsheet export only on demand to avoid loading export code on page entry.
 - Sadad transaction details load private settings through createRepo and sadadCredentialsFromSettings, rejecting missing credentials — keeps merchant login aligned with checkout without alternate credential sources.
+- Sadad diagnostics trace only outbound login method, endpoint and HTTP status, and always report checkout acceptance as unverified — merchant API authentication cannot certify a payment signature.

@@ -52,10 +52,24 @@ export function sadadDiagnoseHandler(deps: DiagnoseDeps) {
       }
 
       let environment: "live" | "sandbox" | null = null;
+      let apiLogin: "accepted" | "rejected" | "unavailable" | "not_configured" = "not_configured";
       const creds = sadadCredentialsFromSettings(settings);
       if (creds) {
-        const login = await detectEnvironment({ fetch: deps.fetch, creds, environment: settings.environment });
+        // Trace only request structure and HTTP outcomes. Never retain body values or tokens.
+        const attempts: string[] = [];
+        const tracedFetch: typeof fetch = async (input, init) => {
+          const url = String(input);
+          const response = await deps.fetch(input, init);
+          if (url.endsWith("/api/userbusinesses/login")) {
+            attempts.push(`${init?.method ?? "GET"} ${url} → HTTP ${response.status}`);
+          }
+          return response;
+        };
+        const login = await detectEnvironment({ fetch: tracedFetch, creds, environment: settings.environment });
+        add("api_request", "ok", "مصدر البيانات: الإعدادات فقط. الطلب JSON؛ الحقول: sadadId (number)، secretKey (string)، domain (string). Content-Type وAccept: application/json. لا يُرسل توقيع Checkout في هذا الطلب. التوثيق: https://developer.sadad.qa/API/Authentication");
+        add("api_response", login.ok ? "ok" : "error", attempts.join(" | ") || "لم تصل استجابة HTTP من سداد.");
         if (login.ok) {
+          apiLogin = "accepted";
           environment = login.environment;
           add("api_login", "ok", `Sadad API login works (${login.environment === "sandbox" ? "TEST/sandbox" : "LIVE"} credentials)`);
           const lookup = await lookupTransaction({
@@ -67,14 +81,15 @@ export function sadadDiagnoseHandler(deps: DiagnoseDeps) {
           if (lookup.kind === "unavailable") add("api_lookup", "error", `Sadad transaction lookup failed (${lookup.error})`);
           else add("api_lookup", "ok", "Payment verification (transaction lookup) works");
         } else {
-          const sadadSays = login.details.length ? ` Sadad says: ${login.details.join(" | ")}.` : "";
-          add("api_login", "error", `Sadad API login refused (${login.errors.join(", ")}) using only the credentials and domain saved in settings.${sadadSays} Review the saved merchant ID, secret key and domain with Sadad. This does not by itself prove the checkout key is wrong.`);
+          apiLogin = login.errors.every((error) => /_401$/.test(error)) ? "rejected" : "unavailable";
+          add("api_login", "error", `لم يُقبل تسجيل الدخول إلى API (${login.errors.join(", ")}). هذا الفحص يخص صلاحية الوصول لواجهة التاجر فقط؛ لا يثبت صحة أو خطأ مفتاح Checkout أو توقيع الدفع. راجع مع سداد تفعيل واجهة التاجر وبيئة الحساب والنطاق وبيانات الدخول المحفوظة.`);
         }
         add(
           "checkout_signature",
-          "ok",
-          "Checkout signing follows Sadad Web Checkout 2.1 (SHA256 of secret + mandatory values sorted by key, uppercase; product details excluded). This cannot be tested without a real checkout: if Sadad shows \"Checksumhash did not match\", the secret key saved here is not the one Sadad holds for this merchant ID and mode (test key vs live key).",
+          "warn",
+          "قبول توقيع الدفع غير متحقق؛ لم يُرسل طلب Checkout في هذا الفحص. يوجد اختلافان عن التوثيق الحالي: التنفيذ ينتج hex صغيرة بينما التوثيق يطلب UPPERCASE، ويوقّع CUST_ID وSADAD_WEBCHECKOUT_PAGE_LANGUAGE مع أنهما ليسا ضمن الحقول الإلزامية الموثقة. ترتيب القيم وSHA256 واستبعاد productdetail يوافق القاعدة المنشورة. هذه اختلافات تحتاج معالجة مستقلة، وليست تفسيرًا لرفض API برمز 401؛ ولا تثبت خطأ المفتاح. لم يُغيّر توقيع الدفع بهذا الفحص. https://developer.sadad.qa/web-checkout_2.1/signature-generation | https://developer.sadad.qa/web-checkout_2.1/payment-form",
         );
+        add("checkout_format", "warn", "تنسيق txnDate غير متسق بين صفحات توثيق سداد: جدول الحقول يذكر YYYY-MM-DD، بينما نموذج الدفع الرسمي يعرض التاريخ والوقت مثل التنفيذ الحالي. يلزم تأكيد سداد قبل تغيير هذا التنسيق. Checkout يستخدم رابط webpurchase نفسه للاختبار والإنتاج، والبيئة يحددها المفتاح؛ اختيار بيئة API لا يثبت بيئة Checkout.");
       } else {
         add("api_login", "error", "Skipped: complete the settings above first");
       }
@@ -91,7 +106,9 @@ export function sadadDiagnoseHandler(deps: DiagnoseDeps) {
 
       return json({
         success: true,
-        ready: !checks.some((c) => c.status === "error"),
+        ready: false, // A login diagnostic never establishes checkout acceptance.
+        apiLogin,
+        checkout: "unverified",
         environment,
         callbackUrl,
         webhookUrl,
