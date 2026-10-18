@@ -16,6 +16,7 @@ import { canPurchaseTickets } from "@/lib/eventUtils";
 import { toZonedTime } from "date-fns-tz";
 import { QATAR_TZ } from "@/lib/qatarTime";
 import { PublicHeader } from "@/components/PublicHeader";
+import { BeforeFooterImage } from "@/components/BeforeFooterImage";
 import heritageDivider from "@/assets/mafareed-divider.webp.asset.json";
 
 interface Event {
