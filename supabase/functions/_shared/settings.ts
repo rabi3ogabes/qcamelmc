@@ -2,7 +2,7 @@
 // credentials, automation URLs) plus a few helpers. A webhook the admin switched
 // off in the settings screen comes through as null.
 
-import type { SadadEnvironment } from "./sadad-api.ts";
+import type { SadadCredentials, SadadEnvironment } from "./sadad-api.ts";
 
 export interface PrivateSettings {
   webhookUrl: string | null;
@@ -19,6 +19,15 @@ export interface PrivateSettings {
 
 export function isSadadConfigured(s: PrivateSettings): boolean {
   return Boolean(s.merchantId?.trim() && s.secret?.trim() && s.websiteDomain?.trim());
+}
+
+/** Merchant login must use the same saved credentials as checkout, with no fallback. */
+export function sadadCredentialsFromSettings(s: PrivateSettings): SadadCredentials | null {
+  const sadadId = s.merchantId?.trim();
+  const secretKey = s.secret?.trim();
+  const domain = s.websiteDomain?.trim();
+  if (!sadadId || !secretKey || !domain) return null;
+  return { sadadId, secretKey, domain };
 }
 
 /** Where Sadad sends the customer back: the shop's own /sadad-callback page on the registered domain (as when payments last succeeded); the page forwards the result to the sadad-callback function. */
