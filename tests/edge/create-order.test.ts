@@ -72,7 +72,6 @@ describe("create-order handler", () => {
       TXN_AMOUNT: "200.00",
       WEBSITE: "example.qa",
       CALLBACK_URL: "https://example.qa/sadad-callback",
-      CUST_ID: "ahmed@example.com",
       SADAD_WEBCHECKOUT_PAGE_LANGUAGE: "Arb",
       MOBILE_NO: "55512345",
       EMAIL: "ahmed@example.com",
