@@ -109,9 +109,9 @@ describe("buildCheckoutRequest", () => {
     );
   });
 
-  it("uses the Qatar calendar date (UTC+3) for txnDate", async () => {
+  it("uses the Qatar date and time (UTC+3) for txnDate", async () => {
     const late = await buildCheckoutRequest({ ...input, now: new Date("2026-10-09T21:30:00Z") });
-    expect(late.fields.txnDate).toBe("2026-10-10");
+    expect(late.fields.txnDate).toBe("2026-10-10 00:30:00");
   });
 
   it("flattens product lines into unsigned productdetail fields", async () => {
