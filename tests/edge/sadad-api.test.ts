@@ -82,6 +82,23 @@ describe("detectEnvironment", () => {
     if (!result.ok) expect(result.errors).toEqual(["login_live_401", "login_sandbox_401"]);
   });
 
+  it("returns Sadad's own error text with the secret scrubbed", async () => {
+    const f = fakeSadad({ loginOk: { live: false, sandbox: false } });
+    const result = await detectEnvironment({ fetch: f.fetchImpl, creds, environment: "live" });
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.details).toEqual(["live: Invalid credentials"]);
+      expect(result.details.join()).not.toContain(creds.secretKey);
+    }
+  });
+
+  it("sends the login exactly as documented (no extra Origin header)", async () => {
+    const f = fakeSadad({ loginOk: { live: true } });
+    await detectEnvironment({ fetch: f.fetchImpl, creds, environment: "live" });
+    expect(f.calls[0].headers.Origin).toBeUndefined();
+    expect(JSON.parse(f.calls[0].body!)).toEqual({ sadadId: 1664851, secretKey: "S3CR3T", domain: "example.qa" });
+  });
+
   it("respects an explicitly configured environment", async () => {
     const f = fakeSadad({ loginOk: { live: false, sandbox: true } });
     expect((await detectEnvironment({ fetch: f.fetchImpl, creds, environment: "live" })).ok).toBe(false);

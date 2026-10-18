@@ -98,7 +98,7 @@ async function login(
   opts: Pick<LookupOptions, "fetch" | "creds">,
   env: Env,
   timeoutMs: number,
-): Promise<{ token: string } | { error: string }> {
+): Promise<{ token: string } | { error: string; detail?: string }> {
   try {
     const res = await call(
       opts.fetch,
@@ -108,7 +108,6 @@ async function login(
         headers: {
           "Content-Type": "application/json",
           Accept: "application/json",
-          Origin: `https://${opts.creds.domain}`,
         },
         body: JSON.stringify({
           sadadId: Number(opts.creds.sadadId),
@@ -118,7 +117,7 @@ async function login(
       },
       timeoutMs,
     );
-    if (!res.ok) return { error: `login_${env}_${res.status}` };
+    if (!res.ok) return { error: `login_${env}_${res.status}`, detail: await safeDetail(res, opts.creds.secretKey) };
     const body = (await res.json()) as { accessToken?: string };
     return body.accessToken ? { token: body.accessToken } : { error: `login_${env}_no_token` };
   } catch (error) {
@@ -126,9 +125,27 @@ async function login(
   }
 }
 
+/** Sadad's own short error text, with the secret scrubbed, for admin diagnostics only. */
+async function safeDetail(res: Response, secret: string): Promise<string | undefined> {
+  try {
+    const text = await res.text();
+    let message = text;
+    try {
+      const body = JSON.parse(text) as Record<string, unknown>;
+      const inner = (body.error ?? body.message ?? body.msg) as unknown;
+      message = typeof inner === "string" ? inner : typeof (inner as { message?: unknown })?.message === "string" ? String((inner as { message: string }).message) : text;
+    } catch { /* not JSON */ }
+    if (secret) message = message.split(secret).join("***");
+    message = message.replace(/[^\p{L}\p{N}\s.,:;'"()_\-/]/gu, "").trim().slice(0, 160);
+    return message || undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 export type EnvironmentCheck =
   | { ok: true; environment: "live" | "sandbox" }
-  | { ok: false; errors: string[] };
+  | { ok: false; errors: string[]; details: string[] };
 
 /** Which Sadad environment accepts these credentials? (Used by the admin diagnostics.) */
 export async function detectEnvironment(
@@ -136,12 +153,14 @@ export async function detectEnvironment(
 ): Promise<EnvironmentCheck> {
   const envs: Env[] = opts.environment === "auto" ? ["live", "sandbox"] : [opts.environment];
   const errors: string[] = [];
+  const details: string[] = [];
   for (const env of envs) {
     const session = await login(opts, env, opts.timeoutMs ?? 8000);
     if (!("error" in session)) return { ok: true, environment: env };
     errors.push(session.error);
+    if (session.detail) details.push(`${env}: ${session.detail}`);
   }
-  return { ok: false, errors };
+  return { ok: false, errors, details };
 }
 
 /**
