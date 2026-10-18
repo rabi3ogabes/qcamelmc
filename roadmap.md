@@ -1,5 +1,8 @@
 # Task Roadmap
 
+## Sadad credential source
+- [ ] Make all Sadad connections use admin settings exclusively; remove separate-secret and hardcoded merchant/domain fallbacks, test and deploy affected functions.
+
 ## Public camel artwork
 - [x] Apply a top-to-bottom opacity fade to the pre-footer image; browser verified saved opacity 32%, horizontal repetition, unchanged 312×290px tiles and smooth fade; build OK.
 - [x] Add saved admin controls for pre-footer horizontal/vertical repetition and opacity, preserving natural image size; authenticated save/reload and public vertical display at 35% verified, original settings restored; 3 tests passed.
