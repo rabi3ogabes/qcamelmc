@@ -205,6 +205,9 @@ All colors MUST be HSL.
     background-repeat: repeat-x;
     background-size: auto 100%;
     background-position: center;
+    --pre-footer-opacity-mask: linear-gradient(to bottom, transparent 0%, hsl(0 0% 0%) 100%);
+    -webkit-mask-image: var(--pre-footer-opacity-mask);
+    mask-image: var(--pre-footer-opacity-mask);
   }
   .public-logo { width: 140px; height: auto; max-height: 88px; object-fit: contain; }
   .public-site .bg-primary, .public-ticket-banner { background: hsl(var(--foreground)); color: hsl(var(--primary-foreground)); }

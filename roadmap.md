@@ -1,6 +1,7 @@
 # Task Roadmap
 
 ## Public camel artwork
+- [ ] Apply a top-to-bottom opacity fade to the pre-footer image, retaining saved opacity, repetition and natural size.
 - [x] Add saved admin controls for pre-footer horizontal/vertical repetition and opacity, preserving natural image size; authenticated save/reload and public vertical display at 35% verified, original settings restored; 3 tests passed.
 - [x] Reduce footer artwork height without cropping or distortion; add supplied illustration as a faint central public-page background and verify both on desktop/mobile.
 - [x] Tile the footer camel artwork horizontally at its unchanged height using the seamless 6-period tile; verified seamless at 1280px and 390px.
