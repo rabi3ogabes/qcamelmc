@@ -16,7 +16,7 @@ const SECRET = "S3CR3T";
 // SHA256(secret + values of all params sorted by key), uppercase hex.
 const referenceSignature = (params: Record<string, string>, secret: string) => {
   const s = secret + Object.keys(params).sort().map((k) => params[k]).join("");
-  return createHash("sha256").update(s).digest("hex").toUpperCase();
+  return createHash("sha256").update(s).digest("hex");
 };
 
 const signedFields = {
@@ -31,9 +31,20 @@ const signedFields = {
 };
 
 describe("signRequest", () => {
+  it("reproduces the worked example in Sadad's signature PDF", async () => {
+    const example = {
+      merchant_id: "1234567", WEBSITE: "www.example.com", TXN_AMOUNT: "200.00", ORDER_ID: "1002",
+      CALLBACK_URL: "https://www.example.com/callback", MOBILE_NO: "77778888",
+      EMAIL: "example@gmail.com", txnDate: "2022-01-15 20:12:40",
+    };
+    expect(await signRequest(example, "T1ds45#sGQfkodf5")).toBe(
+      "800b260a628caf0eb1cf76afec63acf58bd7e455808a3547525b8014c6a1892d",
+    );
+  });
+
   it("matches the published reference vector", async () => {
     expect(await signRequest(signedFields, SECRET)).toBe(
-      "6A6D258727B321A8EC7C02CAFD96B2F14D754BA1627029F2920D27E11F4D0B49",
+      "6a6d258727b321a8ec7c02cafd96b2f14d754ba1627029f2920d27e11f4d0b49",
     );
   });
 
@@ -93,14 +104,15 @@ describe("buildCheckoutRequest", () => {
   it("formats the amount with two decimals and signs the mandatory fields", async () => {
     const { fields } = await buildCheckoutRequest(input);
     expect(fields.TXN_AMOUNT).toBe("150.00");
-    expect(fields.signature).toBe(
-      "6A6D258727B321A8EC7C02CAFD96B2F14D754BA1627029F2920D27E11F4D0B49",
-    );
+    expect(fields.txnDate).toBe("2026-10-09 13:00:00");
+    const { signature, ...rest } = fields;
+    const signed = Object.fromEntries(Object.entries(rest).filter(([k]) => !k.startsWith("productdetail")));
+    expect(signature).toBe(referenceSignature(signed, SECRET));
   });
 
-  it("uses the Qatar calendar date (UTC+3) for txnDate", async () => {
+  it("uses the Qatar date and time (UTC+3) for txnDate", async () => {
     const late = await buildCheckoutRequest({ ...input, now: new Date("2026-10-09T21:30:00Z") });
-    expect(late.fields.txnDate).toBe("2026-10-10");
+    expect(late.fields.txnDate).toBe("2026-10-10 00:30:00");
   });
 
   it("flattens product lines into unsigned productdetail fields", async () => {

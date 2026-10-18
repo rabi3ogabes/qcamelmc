@@ -43,12 +43,12 @@ const isUnsignedRequestField = (key: string) =>
   key === "signature" || key === "checksumhash" || key.startsWith("productdetail");
 
 /**
- * Request signature: SHA256(secret + values sorted by key), uppercase hex.
+ * Request signature: SHA256(secret + values sorted by key), lowercase hex,
+ * exactly as in Sadad's "Signature Generation" PDF worked example.
  * `signature` and `productdetail[...]` fields are never part of the hash.
  */
 export async function signRequest(params: Record<string, string>, secret: string): Promise<string> {
-  const hex = await sha256Hex(secret + valuesByKey(params, isUnsignedRequestField));
-  return hex.toUpperCase();
+  return sha256Hex(secret + valuesByKey(params, isUnsignedRequestField));
 }
 
 /**
@@ -100,9 +100,9 @@ export function toSadadMobile(phone: string, countryCode: string): string {
   return cc + digits.replace(/^0+/, "");
 }
 
-/** Calendar date in Qatar (UTC+3) as YYYY-MM-DD. */
+/** Qatar (UTC+3) date and time as "YYYY-MM-DD HH:mm:ss", the format in Sadad's signature guide. */
 function qatarDate(now: Date): string {
-  return new Date(now.getTime() + 3 * 60 * 60 * 1000).toISOString().slice(0, 10);
+  return new Date(now.getTime() + 3 * 60 * 60 * 1000).toISOString().slice(0, 19).replace("T", " ");
 }
 
 export interface CheckoutItem {
