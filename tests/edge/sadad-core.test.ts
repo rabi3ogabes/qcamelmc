@@ -104,9 +104,10 @@ describe("buildCheckoutRequest", () => {
   it("formats the amount with two decimals and signs the mandatory fields", async () => {
     const { fields } = await buildCheckoutRequest(input);
     expect(fields.TXN_AMOUNT).toBe("150.00");
-    expect(fields.signature).toBe(
-      "6a6d258727b321a8ec7c02cafd96b2f14d754ba1627029f2920d27e11f4d0b49",
-    );
+    expect(fields.txnDate).toBe("2026-10-09 13:00:00");
+    const { signature, ...rest } = fields;
+    const signed = Object.fromEntries(Object.entries(rest).filter(([k]) => !k.startsWith("productdetail")));
+    expect(signature).toBe(referenceSignature(signed, SECRET));
   });
 
   it("uses the Qatar date and time (UTC+3) for txnDate", async () => {
