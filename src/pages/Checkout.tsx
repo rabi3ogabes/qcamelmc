@@ -14,6 +14,7 @@ import { toast } from "sonner";
 import { CreditCard, Banknote, Loader2, Plus, Minus, X, AlertTriangle } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Footer } from "@/components/Footer";
+import { BeforeFooterImage } from "@/components/BeforeFooterImage";
 import { PublicHeader } from "@/components/PublicHeader";
 import { useSettings } from "@/contexts/SettingsContext";
 import { bookingGuardMessage, checkTicketLimits, formatLimitViolation, isTicketLimitError, ticketLimitErrorMessage } from "@/lib/ticketLimit";
