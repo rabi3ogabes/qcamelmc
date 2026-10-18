@@ -28,6 +28,7 @@ const Checkout = lazy(() => import("./pages/Checkout"));
 const Confirmation = lazy(() => import("./pages/Confirmation"));
 const InvoicePage = lazy(() => import("./pages/InvoicePage"));
 const PaymentResult = lazy(() => import("./pages/PaymentResult"));
+const SadadReturn = lazy(() => import("./pages/SadadReturn"));
 const AdminLogin = lazy(() => import("./pages/AdminLogin"));
 const AdminDashboard = lazy(() => import("./pages/AdminDashboard"));
 const LiveBookingsGate = lazy(() => import("./components/LiveBookingsGate"));
@@ -99,7 +100,7 @@ const App = () => (
                     <Route path="/tickets" element={<Navigate to="/" replace />} />
                     <Route path="/payment/result" element={<PaymentResult />} />
                     {/* Old return address from Sadad: same page, same behaviour */}
-                    <Route path="/sadad-callback" element={<PaymentResult />} />
+                    <Route path="/sadad-callback" element={<SadadReturn />} />
                     <Route path="/sadad-redirect" element={<Navigate to="/checkout" replace />} />
                     <Route path="/live-bookings" element={<LiveBookingsGate />} />
                     <Route path="/live-visitors" element={<RequireAdmin adminOnly><LiveVisitors /></RequireAdmin>} />
