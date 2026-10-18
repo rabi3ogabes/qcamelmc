@@ -100,9 +100,9 @@ export function toSadadMobile(phone: string, countryCode: string): string {
   return cc + digits.replace(/^0+/, "");
 }
 
-/** Qatar (UTC+3) date and time as "YYYY-MM-DD HH:mm:ss", the format in Sadad's signature guide. */
-function qatarDate(now: Date): string {
-  return new Date(now.getTime() + 3 * 60 * 60 * 1000).toISOString().slice(0, 19).replace("T", " ");
+/** UTC date and time as "YYYY-MM-DD HH:mm:ss" — the format of the last request shape Sadad accepted. */
+function txnDateOf(now: Date): string {
+  return now.toISOString().slice(0, 19).replace("T", " ");
 }
 
 export interface CheckoutItem {
@@ -122,6 +122,8 @@ export interface CheckoutRequestInput {
   email: string;
   now?: Date;
   items?: CheckoutItem[];
+  /** Customer id sent (and signed) like the last accepted request; defaults to the email. */
+  custId?: string;
 }
 
 export interface CheckoutRequest {
@@ -145,7 +147,9 @@ export async function buildCheckoutRequest(input: CheckoutRequestInput): Promise
     CALLBACK_URL: input.callbackUrl,
     MOBILE_NO: input.mobile,
     EMAIL: input.email,
-    txnDate: qatarDate(input.now ?? new Date()),
+    CUST_ID: input.custId || input.email,
+    SADAD_WEBCHECKOUT_PAGE_LANGUAGE: "Arb",
+    txnDate: txnDateOf(input.now ?? new Date()),
   };
 
   const fields: Record<string, string> = { ...signed, signature: await signRequest(signed, input.secret) };

@@ -7,8 +7,8 @@
 
 import { HttpError, json, preflight, readJson, toErrorResponse } from "../_shared/http.ts";
 import type { Repo } from "../_shared/repo.ts";
-import { buildCheckoutRequest, toSadadMobile } from "../_shared/sadad-core.ts";
-import { callbackUrlFor, fallbackEmail, isSadadConfigured } from "../_shared/settings.ts";
+import { buildCheckoutRequest } from "../_shared/sadad-core.ts";
+import { siteCallbackUrl, fallbackEmail, isSadadConfigured } from "../_shared/settings.ts";
 
 export interface SadadPaymentDeps {
   repo: Repo;
@@ -60,8 +60,8 @@ export function sadadPaymentHandler(deps: SadadPaymentDeps) {
         orderId: order.booking_reference,
         amount: Number(order.total_amount),
         website: settings.websiteDomain as string,
-        callbackUrl: callbackUrlFor(deps.supabaseUrl),
-        mobile: toSadadMobile(String(customer.phone ?? ""), String(customer.country_code ?? "+974")),
+        callbackUrl: siteCallbackUrl(settings.websiteDomain as string),
+        mobile: String(customer.phone ?? "").replace(/\D/g, ""),
         email: String(customer.email ?? "").trim() || fallbackEmail(settings.websiteDomain),
         now: deps.now?.(),
         items,

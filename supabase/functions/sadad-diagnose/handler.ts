@@ -8,7 +8,7 @@ import { requireAdmin, type AuthDeps } from "../_shared/auth.ts";
 import { HttpError, json, preflight, toErrorResponse } from "../_shared/http.ts";
 import type { Repo } from "../_shared/repo.ts";
 import { detectEnvironment, lookupTransaction, type SadadCredentials } from "../_shared/sadad-api.ts";
-import { callbackUrlFor } from "../_shared/settings.ts";
+import { siteCallbackUrl } from "../_shared/settings.ts";
 
 export interface DiagnoseDeps {
   repo: Repo;
@@ -94,7 +94,7 @@ export function sadadDiagnoseHandler(deps: DiagnoseDeps) {
         add("api_login", "error", "Skipped: complete the settings above first");
       }
 
-      const callbackUrl = callbackUrlFor(deps.supabaseUrl);
+      const callbackUrl = settings.websiteDomain ? siteCallbackUrl(settings.websiteDomain) : "(set the website domain)";
       const webhookUrl = `${deps.supabaseUrl.replace(/\/+$/, "")}/functions/v1/sadad-webhook`;
       add("callback_url", "ok", `Customers return from Sadad to: ${callbackUrl}`);
       add("webhook_registration", "warn", `Register this webhook URL in the Sadad merchant panel (Payment Gateway → Webhook): ${webhookUrl}`);
