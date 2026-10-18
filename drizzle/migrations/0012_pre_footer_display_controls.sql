@@ -1,0 +1,3 @@
+ALTER TABLE public.settings ADD COLUMN before_footer_image_repeat text NOT NULL DEFAULT 'repeat-x' CHECK (before_footer_image_repeat IN ('repeat-x', 'repeat-y')), ADD COLUMN before_footer_image_opacity integer NOT NULL DEFAULT 100 CHECK (before_footer_image_opacity BETWEEN 0 AND 100);
+CREATE OR REPLACE VIEW public.public_settings AS SELECT id, logo_url, header_bg_color, header_bg_image_url, hero_image_url, hero_text, before_footer_image_url, copyright_text, admin_phone, current_event_id, show_delete_customer_button, show_generate_qr_button, show_delete_event_button, clarity_project_id, clarity_enabled, before_footer_image_repeat, before_footer_image_opacity FROM public.settings;
+GRANT SELECT ON public.public_settings TO anon, authenticated, service_role;
