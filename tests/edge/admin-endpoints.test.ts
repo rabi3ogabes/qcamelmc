@@ -233,4 +233,17 @@ describe("sadad-diagnose", () => {
       { sadadId: Number(settings.merchantId), secretKey: settings.secret, domain: settings.websiteDomain },
     ]);
   });
+
+  it("traces real HTTP outcomes without exposing credential values or raw provider errors", async () => {
+    const settings = configuredSettings();
+    const repo = makeRepo({ settings });
+    const fetchImpl = (async () => new Response(JSON.stringify({ error: { message: settings.secret } }), { status: 401 })) as typeof fetch;
+    const response = await sadadDiagnoseHandler({ repo, auth: repo, fetch: fetchImpl, supabaseUrl: SUPABASE_URL })(post(fn("sadad-diagnose"), {}, ADMIN));
+    const report = await response.json();
+    const trace = report.checks.find((check: { id: string }) => check.id === "api_response");
+    expect(trace.message).toBe("POST https://api-s.sadad.qa/api/userbusinesses/login → HTTP 401 | POST https://api-sandbox.sadad.qa/api/userbusinesses/login → HTTP 401");
+    expect(JSON.stringify(report)).not.toContain(settings.secret);
+    expect(report.checkout).toBe("unverified");
+    expect(report.ready).toBe(false);
+  });
 });

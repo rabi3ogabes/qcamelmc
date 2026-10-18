@@ -87,8 +87,9 @@ export function sadadDiagnoseHandler(deps: DiagnoseDeps) {
         add(
           "checkout_signature",
           "warn",
-          "قبول توقيع الدفع لدى سداد غير متحقق: لم يُرسل طلب دفع في هذا الفحص. التنفيذ الحالي يستخدم SHA256(secret + القيم مرتبة حسب أسماء الحقول)، بصيغة hex صغيرة، ويستبعد signature وchecksumhash وproductdetail. نجاح الاختبارات المحلية لا يثبت قبول سداد. خطأ Checksumhash قد يتعلق بالمفتاح أو الحقول الموقعة أو تنسيقها أو بيئة التكامل؛ لا يحدد السبب وحده. التوثيق: https://developer.sadad.qa/web-checkout_2.1/",
+          "قبول توقيع الدفع غير متحقق؛ لم يُرسل طلب Checkout في هذا الفحص. يوجد اختلافان عن التوثيق الحالي: التنفيذ ينتج hex صغيرة بينما التوثيق يطلب UPPERCASE، ويوقّع CUST_ID وSADAD_WEBCHECKOUT_PAGE_LANGUAGE مع أنهما ليسا ضمن الحقول الإلزامية الموثقة. ترتيب القيم وSHA256 واستبعاد productdetail يوافق القاعدة المنشورة. هذه اختلافات تحتاج معالجة مستقلة، وليست تفسيرًا لرفض API برمز 401؛ ولا تثبت خطأ المفتاح. لم يُغيّر توقيع الدفع بهذا الفحص. https://developer.sadad.qa/web-checkout_2.1/signature-generation | https://developer.sadad.qa/web-checkout_2.1/payment-form",
         );
+        add("checkout_format", "warn", "تنسيق txnDate غير متسق بين صفحات توثيق سداد: جدول الحقول يذكر YYYY-MM-DD، بينما نموذج الدفع الرسمي يعرض التاريخ والوقت مثل التنفيذ الحالي. يلزم تأكيد سداد قبل تغيير هذا التنسيق. Checkout يستخدم رابط webpurchase نفسه للاختبار والإنتاج، والبيئة يحددها المفتاح؛ اختيار بيئة API لا يثبت بيئة Checkout.");
       } else {
         add("api_login", "error", "Skipped: complete the settings above first");
       }
