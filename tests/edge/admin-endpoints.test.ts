@@ -213,4 +213,19 @@ describe("sadad-diagnose", () => {
   it("never reveals the secret", async () => {
     expect(JSON.stringify(await run())).not.toContain("S3CR3T");
   });
+
+  it("diagnoses only the saved domain and credentials, without trying alternate domains", async () => {
+    const settings = configuredSettings({ environment: "auto" });
+    const repo = makeRepo({ settings });
+    const calls: unknown[] = [];
+    const fetchImpl = (async (_input: RequestInfo | URL, init?: RequestInit) => {
+      calls.push(JSON.parse(String(init?.body)));
+      return new Response("{}", { status: 401 });
+    }) as typeof fetch;
+    await sadadDiagnoseHandler({ repo, auth: repo, fetch: fetchImpl, supabaseUrl: SUPABASE_URL })(post(fn("sadad-diagnose"), {}, ADMIN));
+    expect(calls).toEqual([
+      { sadadId: Number(settings.merchantId), secretKey: settings.secret, domain: settings.websiteDomain },
+      { sadadId: Number(settings.merchantId), secretKey: settings.secret, domain: settings.websiteDomain },
+    ]);
+  });
 });

@@ -2,6 +2,8 @@ import "../_shared/track-install.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 import { z } from "npm:zod@3";
+import { createRepo } from "../_shared/repo.ts";
+import { sadadCredentialsFromSettings } from "../_shared/settings.ts";
 
 const RequestSchema = z
   .object({
@@ -78,43 +80,22 @@ Deno.serve(async (req) => {
       return json({ error: "لا يوجد رقم عملية سداد لهذا الطلب" }, 400);
     }
 
-    const { data: settings } = await admin
-      .from("settings")
-      .select("sadad_merchant_id, sadad_website_domain")
-      .limit(1)
-      .maybeSingle();
-
-    const sadadId = settings?.sadad_merchant_id;
-    const domain = settings?.sadad_website_domain || "qcamelmc.org";
-
-    // API Login has a dedicated credential. Support PIN and checksum keys
-    // are intentionally never attempted because Sadad rejects both.
-    const apiLoginSecret = Deno.env.get("SADAD_API_SECRET_KEY")?.trim();
-
-    if (!sadadId || !apiLoginSecret) {
+    const settings = await createRepo(admin).getPrivateSettings();
+    const credentials = sadadCredentialsFromSettings(settings);
+    if (!credentials) {
       return json({
         success: false,
         code: "SADAD_API_LOGIN_NOT_CONFIGURED",
-        error: "تفاصيل العملية غير متاحة حالياً: مفتاح API Login الخاص بسداد غير مضبوط.",
+        error: "أكمل رقم التاجر والمفتاح السري والنطاق في إعدادات سداد لعرض تفاصيل العملية.",
       });
     }
-
-    console.log(
-      "Sadad API login:",
-      "credentialSet:",
-      true,
-      "sadadId:",
-      sadadId,
-      "domain:",
-      domain,
-    );
-
+    const { domain } = credentials;
 
     // 1) Authenticate with Sadad
     const loginRes = await fetch("https://api-s.sadad.qa/api/userbusinesses/login", {
       method: "POST",
       headers: { "Content-Type": "application/json", Accept: "application/json" },
-      body: JSON.stringify({ sadadId: Number(sadadId), secretKey: apiLoginSecret, domain }),
+      body: JSON.stringify({ ...credentials, sadadId: Number(credentials.sadadId) }),
     });
     const loginJson = await loginRes.json().catch(() => ({}));
     const accessToken = loginRes.ok && typeof loginJson?.accessToken === "string"
@@ -127,7 +108,7 @@ Deno.serve(async (req) => {
         {
           success: false,
           code: "SADAD_API_LOGIN_REJECTED",
-          error: `تعذر التحقق من بيانات API Login لدى سداد. تحقق من المفتاح المخصص للـ API والنطاق ${domain}.`,
+          error: "رفضت سداد بيانات الدخول المحفوظة. راجع رقم التاجر والمفتاح السري والنطاق في الإعدادات.",
         },
       );
     }
@@ -147,9 +128,9 @@ Deno.serve(async (req) => {
     });
     const tx = await txRes.json().catch(() => ({}));
     if (!txRes.ok || tx?.error) {
-      console.error("Sadad getTransaction failed", txRes.status, tx);
+      console.error("Sadad getTransaction failed", txRes.status);
       return json(
-        { error: tx?.error?.message || "تعذر جلب تفاصيل العملية من سداد" },
+        { error: "تعذر جلب تفاصيل العملية من سداد" },
         txRes.status === 404 ? 404 : 502,
       );
     }

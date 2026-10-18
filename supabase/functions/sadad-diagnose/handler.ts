@@ -7,8 +7,8 @@
 import { requireAdmin, type AuthDeps } from "../_shared/auth.ts";
 import { HttpError, json, preflight, toErrorResponse } from "../_shared/http.ts";
 import type { Repo } from "../_shared/repo.ts";
-import { detectEnvironment, lookupTransaction, type SadadCredentials } from "../_shared/sadad-api.ts";
-import { siteCallbackUrl } from "../_shared/settings.ts";
+import { detectEnvironment, lookupTransaction } from "../_shared/sadad-api.ts";
+import { sadadCredentialsFromSettings, siteCallbackUrl } from "../_shared/settings.ts";
 
 export interface DiagnoseDeps {
   repo: Repo;
@@ -40,7 +40,7 @@ export function sadadDiagnoseHandler(deps: DiagnoseDeps) {
       if (settings.merchantId) add("merchant_id", "ok", `Merchant ID: ${settings.merchantId}`);
       else add("merchant_id", "error", "Merchant (Sadad) ID is not set");
 
-      if (settings.secret) add("secret", "ok", `Secret key is set (${settings.secret.length} characters)`);
+      if (settings.secret) add("secret", "ok", "Secret key is set");
       else add("secret", "error", "Secret key is not set");
 
       if (!settings.websiteDomain) {
@@ -52,12 +52,8 @@ export function sadadDiagnoseHandler(deps: DiagnoseDeps) {
       }
 
       let environment: "live" | "sandbox" | null = null;
-      if (settings.merchantId && settings.secret && settings.websiteDomain) {
-        const creds: SadadCredentials = {
-          sadadId: settings.merchantId,
-          secretKey: settings.secret,
-          domain: settings.websiteDomain,
-        };
+      const creds = sadadCredentialsFromSettings(settings);
+      if (creds) {
         const login = await detectEnvironment({ fetch: deps.fetch, creds, environment: settings.environment });
         if (login.ok) {
           environment = login.environment;
@@ -71,19 +67,8 @@ export function sadadDiagnoseHandler(deps: DiagnoseDeps) {
           if (lookup.kind === "unavailable") add("api_lookup", "error", `Sadad transaction lookup failed (${lookup.error})`);
           else add("api_lookup", "ok", "Payment verification (transaction lookup) works");
         } else {
-          // Same key, other spelling of the domain? Tells the admin exactly what to fix.
-          const altDomain = settings.websiteDomain.startsWith("www.") ? settings.websiteDomain.slice(4) : `www.${settings.websiteDomain}`;
-          const alt = await detectEnvironment({ fetch: deps.fetch, creds: { ...creds, domain: altDomain }, environment: "auto" });
           const sadadSays = login.details.length ? ` Sadad says: ${login.details.join(" | ")}.` : "";
-          if (alt.ok) {
-            add("api_login", "error", `Sadad API login works only with the domain "${altDomain}" (${alt.environment}), not "${settings.websiteDomain}". Change the website domain in settings to "${altDomain}".`);
-          } else {
-            add(
-              "api_login",
-              "error",
-              `Sadad API login refused (${login.errors.join(", ")}), also with "${altDomain}" in live and test.${sadadSays} This proves Sadad does not accept this merchant ID + secret key + domain combination for its merchant API. It does not by itself prove the checkout key is wrong — but checkout uses the same secret key, so a checkout "Checksumhash did not match" with the same key points to the same cause.`,
-            );
-          }
+          add("api_login", "error", `Sadad API login refused (${login.errors.join(", ")}) using only the credentials and domain saved in settings.${sadadSays} Review the saved merchant ID, secret key and domain with Sadad. This does not by itself prove the checkout key is wrong.`);
         }
         add(
           "checkout_signature",
