@@ -1,6 +1,7 @@
 # Task Roadmap
 
 ## Sadad credential source
+- [ ] Correct Checkout uppercase/mandatory-field signing, test the official public example and payment-proof regressions, deploy affected functions; real payment acceptance remains unverified.
 - [x] Trace the actual merchant login safely and compare official documentation: live/sandbox returned HTTP 401 with documented request shape; diagnostics separate API outcome from unverified Checkout, flag lowercase/extra signed fields and conflicting date documentation; 109 tests and authenticated browser check passed. No payment signing changes or real charge performed.
 - [x] Make all Sadad connections use admin settings exclusively; transaction details and diagnostics deployed, alternate-secret/domain fallbacks removed, 150 tests passed and authenticated live diagnostic verified. Sadad still rejects the saved credentials; successful real payment remains unverified.
 

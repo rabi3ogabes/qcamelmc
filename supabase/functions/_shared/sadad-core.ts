@@ -39,16 +39,20 @@ function valuesByKey(params: Record<string, unknown>, skip: (key: string) => boo
     .join("");
 }
 
-const isUnsignedRequestField = (key: string) =>
-  key === "signature" || key === "checksumhash" || key.startsWith("productdetail");
+// Only the mandatory fields in Sadad's published Checkout 2.1 signature example.
+// Optional presentation/customer/product fields are still posted, but never signed.
+const SIGNED_REQUEST_FIELDS = new Set([
+  "CALLBACK_URL", "EMAIL", "MOBILE_NO", "ORDER_ID", "TXN_AMOUNT",
+  "WEBSITE", "merchant_id", "txnDate",
+]);
 
 /**
- * Request signature: SHA256(secret + values sorted by key), lowercase hex,
- * exactly as in Sadad's "Signature Generation" PDF worked example.
- * `signature` and `productdetail[...]` fields are never part of the hash.
+ * Request signature: SHA256(secret + mandatory values sorted by key), UPPERCASE hex.
+ * https://developer.sadad.qa/web-checkout_2.1/signature-generation
+ * This allowlist applies only to requests; callback verification signs all fields.
  */
 export async function signRequest(params: Record<string, string>, secret: string): Promise<string> {
-  return sha256Hex(secret + valuesByKey(params, isUnsignedRequestField));
+  return (await sha256Hex(secret + valuesByKey(params, (key) => !SIGNED_REQUEST_FIELDS.has(key)))).toUpperCase();
 }
 
 /**
@@ -122,7 +126,7 @@ export interface CheckoutRequestInput {
   email: string;
   now?: Date;
   items?: CheckoutItem[];
-  /** Customer id sent (and signed) like the last accepted request; defaults to the email. */
+  /** Optional unsigned customer id; defaults to the email. */
   custId?: string;
 }
 

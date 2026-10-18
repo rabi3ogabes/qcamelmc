@@ -13,10 +13,10 @@ import {
 const SECRET = "S3CR3T";
 
 // Independent implementation of the documented algorithm (Web Checkout 2.1):
-// SHA256(secret + values of all params sorted by key), uppercase hex.
+// SHA256(secret + mandatory values sorted by key), uppercase hex.
 const referenceSignature = (params: Record<string, string>, secret: string) => {
   const s = secret + Object.keys(params).sort().map((k) => params[k]).join("");
-  return createHash("sha256").update(s).digest("hex");
+  return createHash("sha256").update(s).digest("hex").toUpperCase();
 };
 
 const signedFields = {
@@ -31,20 +31,33 @@ const signedFields = {
 };
 
 describe("signRequest", () => {
-  it("reproduces the worked example in Sadad's signature PDF", async () => {
+  it("matches the official Checkout 2.1 PHP/Node/Python example in uppercase", async () => {
+    // Public documentation fixture, not a merchant credential:
+    // https://developer.sadad.qa/web-checkout_2.1/signature-generation
+    const example = {
+      CALLBACK_URL: "https://yoursite.com/callback", MOBILE_NO: "97412345678",
+      ORDER_ID: "ORD-20251216-001", TXN_AMOUNT: "150.00", WEBSITE: "MYSHOP",
+      EMAIL: "user@example.com", merchant_id: "123456", txnDate: "2025-12-16",
+    };
+    expect(await signRequest(example, "YOUR_TEST_SECRET_KEY")).toBe(
+      "700299E620B51D0AE487FCE61FAFF6DCC0CBE122B2E21B728890CF1A1103361E",
+    );
+  });
+
+  it("reproduces the older PDF example with the documented uppercase output", async () => {
     const example = {
       merchant_id: "1234567", WEBSITE: "www.example.com", TXN_AMOUNT: "200.00", ORDER_ID: "1002",
       CALLBACK_URL: "https://www.example.com/callback", MOBILE_NO: "77778888",
       EMAIL: "example@gmail.com", txnDate: "2022-01-15 20:12:40",
     };
     expect(await signRequest(example, "T1ds45#sGQfkodf5")).toBe(
-      "800b260a628caf0eb1cf76afec63acf58bd7e455808a3547525b8014c6a1892d",
+      "800B260A628CAF0EB1CF76AFEC63ACF58BD7E455808A3547525B8014C6A1892D",
     );
   });
 
-  it("matches the published reference vector", async () => {
+  it("matches the independent regression vector", async () => {
     expect(await signRequest(signedFields, SECRET)).toBe(
-      "6a6d258727b321a8ec7c02cafd96b2f14d754ba1627029f2920d27e11f4d0b49",
+      "6A6D258727B321A8EC7C02CAFD96B2F14D754BA1627029F2920D27E11F4D0B49",
     );
   });
 
@@ -72,6 +85,12 @@ describe("signRequest", () => {
       "productdetail[0][amount]": "1.00",
     };
     expect(await signRequest(withExtras, SECRET)).toBe(await signRequest(signedFields, SECRET));
+  });
+
+  it.each(["CUST_ID", "SADAD_WEBCHECKOUT_PAGE_LANGUAGE"])("excludes optional %s from the signature", async (key) => {
+    expect(await signRequest({ ...signedFields, [key]: "optional-value" }, SECRET)).toBe(
+      await signRequest(signedFields, SECRET),
+    );
   });
 
   it("changes when the secret or any value changes", async () => {
@@ -106,8 +125,18 @@ describe("buildCheckoutRequest", () => {
     expect(fields.TXN_AMOUNT).toBe("150.00");
     expect(fields.txnDate).toBe("2026-10-09 10:00:00");
     const { signature, ...rest } = fields;
-    const signed = Object.fromEntries(Object.entries(rest).filter(([k]) => !k.startsWith("productdetail")));
+    const signed = Object.fromEntries(Object.entries(rest).filter(([k]) =>
+      !k.startsWith("productdetail") && k !== "CUST_ID" && k !== "SADAD_WEBCHECKOUT_PAGE_LANGUAGE"));
     expect(signature).toBe(referenceSignature(signed, SECRET));
+  });
+
+  it("posts optional customer/language fields without including them in the hash", async () => {
+    const first = await buildCheckoutRequest({ ...input, custId: "customer-one" });
+    const second = await buildCheckoutRequest({ ...input, custId: "customer-two" });
+    expect(first.fields.CUST_ID).toBe("customer-one");
+    expect(second.fields.CUST_ID).toBe("customer-two");
+    expect(first.fields.SADAD_WEBCHECKOUT_PAGE_LANGUAGE).toBe("Arb");
+    expect(first.fields.signature).toBe(second.fields.signature);
   });
 
   it("uses UTC date and time for txnDate, like the last accepted request", async () => {
