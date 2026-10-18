@@ -188,7 +188,7 @@ describe("sadad-diagnose", () => {
     expect(status(body, "secret")).toBe("ok");
     expect(status(body, "api_login")).toBe("ok");
     expect(body.environment).toBe("live");
-    expect(body.callbackUrl).toBe(`${SUPABASE_URL}/functions/v1/sadad-callback`);
+    expect(body.callbackUrl).toBe("https://example.qa/sadad-callback");
     expect(body.webhookUrl).toBe(`${SUPABASE_URL}/functions/v1/sadad-webhook`);
   });
 
