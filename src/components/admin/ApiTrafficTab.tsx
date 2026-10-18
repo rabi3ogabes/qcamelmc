@@ -30,6 +30,31 @@ const FN_LABEL: Record<string, string> = {
   "auth-email-hook": "رسائل الحسابات", "staff-attendance": "حضور الفريق",
 };
 
+// Operational importance, not call volume: an infrequent payment callback is still essential.
+const IMPORTANT_APIS = new Set([
+  "create-order", "sadad-payment", "sadad-webhook", "sadad-callback", "verify-payment",
+  "ticket-checkin", "send-invoice-email", "send-to-webhook", "n8n-response", "login-guard",
+  "staff-auth", "gate-stats", "auth-email-hook", "staff-attendance", "manage-staff-users",
+  "live-bookings-feed", "staff-customer-lookup", "parse-pos-receipt", "auto-send-invoices",
+  "send-payment-failed-email", "notify-admin-sale", "handle-email-events", "change-order-event",
+  "generate-qr-code", "regenerate-booking-qr-codes", "backfill-qr-codes", "sadad-transaction", "mcp",
+]);
+
+function ApiImportance({ fn }: { fn: string }) {
+  const inactive = fn === "recover-pending-orders";
+  const important = IMPORTANT_APIS.has(fn);
+  const diagnostic = fn === "sadad-diagnose" || fn === "preview-transactional-email";
+  return (
+    <div className="space-y-1 min-w-[120px]">
+      <Badge variant={important ? "default" : "outline"}>
+        {important ? "مهم" : inactive || diagnostic ? "غير أساسي" : "غير مصنّف"}
+      </Badge>
+      {inactive && <p className="text-[11px] text-muted-foreground">المعالجة معطّلة حاليًا</p>}
+      {diagnostic && <p className="text-[11px] text-muted-foreground">للفحص والمعاينة فقط</p>}
+    </div>
+  );
+}
+
 const hostOf = (o: string | null) => {
   if (!o) return "مباشر / خادم";
   try { return new URL(o).host; } catch { return o; }
@@ -172,13 +197,14 @@ export const ApiTrafficTab = () => {
           </div>
           <table className="w-full text-sm">
             <thead className="text-muted-foreground text-xs"><tr className="text-right">
-              <th className="py-2">الخدمة</th><th>الاستدعاءات</th><th>الأخطاء</th><th>المتوسط</th><th>المصادر</th><th>آخر استدعاء</th>
+              <th className="py-2">الخدمة</th><th>الأهمية</th><th>الاستدعاءات</th><th>الأخطاء</th><th>المتوسط</th><th>المصادر</th><th>آخر استدعاء</th>
             </tr></thead>
             <tbody>
               {byFn.map(([fn, s]) => (
                 <tr key={fn} onClick={() => setSelected(fn === selected ? null : fn)}
                   className={`border-t border-border cursor-pointer hover:bg-muted/40 ${selected === fn ? "bg-primary/10" : ""}`}>
                   <td className="py-2"><div className="font-medium">{FN_LABEL[fn] ?? fn}</div><div className="text-[11px] text-muted-foreground" dir="ltr">{fn}</div></td>
+                   <td><ApiImportance fn={fn} /></td>
                   <td>
                     <div className="font-semibold">{s.calls}</div>
                     <div className="h-1 bg-muted rounded mt-1 w-20"><div className="h-1 bg-primary rounded" style={{ width: `${pct(s.calls, byFn[0][1].calls)}%` }} /></div>
@@ -189,7 +215,7 @@ export const ApiTrafficTab = () => {
                   <td className="text-xs whitespace-nowrap">{fmt(s.last)}</td>
                 </tr>
               ))}
-              {!byFn.length && !loading && <tr><td colSpan={6} className="py-8 text-center text-muted-foreground">لا توجد استدعاءات في هذه الفترة</td></tr>}
+              {!byFn.length && !loading && <tr><td colSpan={7} className="py-8 text-center text-muted-foreground">لا توجد استدعاءات في هذه الفترة</td></tr>}
             </tbody>
           </table>
         </Card>
@@ -226,13 +252,14 @@ export const ApiTrafficTab = () => {
         </div>
         <table className="w-full text-xs">
           <thead className="text-muted-foreground"><tr className="text-right">
-            <th className="py-2">الوقت</th><th>الخدمة</th><th>الحالة</th><th>المدة</th><th>المستدعي</th><th>المصدر</th><th>IP</th>
+            <th className="py-2">الوقت</th><th>الخدمة</th><th>الأهمية</th><th>الحالة</th><th>المدة</th><th>المستدعي</th><th>المصدر</th><th>IP</th>
           </tr></thead>
           <tbody>
             {recent.map((r) => (
               <tr key={r.id} className="border-t border-border">
                 <td className="py-1.5 whitespace-nowrap">{fmt(r.created_at)}</td>
                 <td dir="ltr" className="text-right">{r.method} {r.fn}</td>
+                 <td className="py-1.5"><ApiImportance fn={r.fn} /></td>
                 <td><Badge variant={r.status >= 400 ? "destructive" : "secondary"}>{r.status}</Badge></td>
                 <td>{r.duration_ms} ms</td>
                 <td>{CALLER_LABEL[r.caller ?? ""] ?? "—"}</td>
