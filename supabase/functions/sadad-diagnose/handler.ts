@@ -71,12 +71,25 @@ export function sadadDiagnoseHandler(deps: DiagnoseDeps) {
           if (lookup.kind === "unavailable") add("api_lookup", "error", `Sadad transaction lookup failed (${lookup.error})`);
           else add("api_lookup", "ok", "Payment verification (transaction lookup) works");
         } else {
-          add(
-            "api_login",
-            "error",
-            `Sadad API login failed (${login.errors.join(", ")}). Payments cannot be verified automatically: check the merchant ID, the secret/API key and that the website domain matches the one the key was generated for.`,
-          );
+          // Same key, other spelling of the domain? Tells the admin exactly what to fix.
+          const altDomain = settings.websiteDomain.startsWith("www.") ? settings.websiteDomain.slice(4) : `www.${settings.websiteDomain}`;
+          const alt = await detectEnvironment({ fetch: deps.fetch, creds: { ...creds, domain: altDomain }, environment: "auto" });
+          const sadadSays = login.details.length ? ` Sadad says: ${login.details.join(" | ")}.` : "";
+          if (alt.ok) {
+            add("api_login", "error", `Sadad API login works only with the domain "${altDomain}" (${alt.environment}), not "${settings.websiteDomain}". Change the website domain in settings to "${altDomain}".`);
+          } else {
+            add(
+              "api_login",
+              "error",
+              `Sadad API login refused (${login.errors.join(", ")}), also with "${altDomain}" in live and test.${sadadSays} This proves Sadad does not accept this merchant ID + secret key + domain combination for its merchant API. It does not by itself prove the checkout key is wrong — but checkout uses the same secret key, so a checkout "Checksumhash did not match" with the same key points to the same cause.`,
+            );
+          }
         }
+        add(
+          "checkout_signature",
+          "ok",
+          "Checkout signing follows Sadad Web Checkout 2.1 (SHA256 of secret + mandatory values sorted by key, uppercase; product details excluded). This cannot be tested without a real checkout: if Sadad shows \"Checksumhash did not match\", the secret key saved here is not the one Sadad holds for this merchant ID and mode (test key vs live key).",
+        );
       } else {
         add("api_login", "error", "Skipped: complete the settings above first");
       }
