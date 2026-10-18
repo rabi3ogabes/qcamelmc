@@ -7,6 +7,7 @@ import {
 import { makeQrGenerator, qrObjectName } from "../../supabase/functions/_shared/qr.ts";
 import {
   callbackUrlFor,
+  siteCallbackUrl,
   fallbackEmail,
   isSadadConfigured,
   resolveReturnBase,
@@ -35,6 +36,8 @@ describe("settings helpers", () => {
   });
 
   it("builds the callback url from the project url", () => {
+    expect(siteCallbackUrl("qcamelmc.org")).toBe("https://qcamelmc.org/sadad-callback");
+    expect(siteCallbackUrl("https://www.qcamelmc.org/")).toBe("https://www.qcamelmc.org/sadad-callback");
     expect(callbackUrlFor("https://abc.supabase.co")).toBe("https://abc.supabase.co/functions/v1/sadad-callback");
     expect(callbackUrlFor("https://abc.supabase.co/")).toBe("https://abc.supabase.co/functions/v1/sadad-callback");
   });

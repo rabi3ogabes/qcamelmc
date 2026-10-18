@@ -104,15 +104,15 @@ describe("buildCheckoutRequest", () => {
   it("formats the amount with two decimals and signs the mandatory fields", async () => {
     const { fields } = await buildCheckoutRequest(input);
     expect(fields.TXN_AMOUNT).toBe("150.00");
-    expect(fields.txnDate).toBe("2026-10-09 13:00:00");
+    expect(fields.txnDate).toBe("2026-10-09 10:00:00");
     const { signature, ...rest } = fields;
     const signed = Object.fromEntries(Object.entries(rest).filter(([k]) => !k.startsWith("productdetail")));
     expect(signature).toBe(referenceSignature(signed, SECRET));
   });
 
-  it("uses the Qatar date and time (UTC+3) for txnDate", async () => {
+  it("uses UTC date and time for txnDate, like the last accepted request", async () => {
     const late = await buildCheckoutRequest({ ...input, now: new Date("2026-10-09T21:30:00Z") });
-    expect(late.fields.txnDate).toBe("2026-10-10 00:30:00");
+    expect(late.fields.txnDate).toBe("2026-10-09 21:30:00");
   });
 
   it("flattens product lines into unsigned productdetail fields", async () => {

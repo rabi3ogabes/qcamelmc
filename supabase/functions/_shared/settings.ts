@@ -21,7 +21,13 @@ export function isSadadConfigured(s: PrivateSettings): boolean {
   return Boolean(s.merchantId?.trim() && s.secret?.trim() && s.websiteDomain?.trim());
 }
 
-/** Where Sadad POSTs the customer back to (a function, because it must accept a POST). */
+/** Where Sadad sends the customer back: the shop's own /sadad-callback page on the registered domain (as when payments last succeeded); the page forwards the result to the sadad-callback function. */
+export function siteCallbackUrl(websiteDomain: string): string {
+  const host = websiteDomain.trim().replace(/^https?:\/\//i, "").replace(/\/.*$/, "");
+  return `https://${host}/sadad-callback`;
+}
+
+/** The server endpoint that verifies a returned payment (GET or POST). */
 export function callbackUrlFor(supabaseUrl: string): string {
   return `${supabaseUrl.replace(/\/+$/, "")}/functions/v1/sadad-callback`;
 }

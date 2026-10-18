@@ -10,8 +10,8 @@ import { HttpError, json, preflight, readJson, toErrorResponse } from "../_share
 import { buildOrderCreatedPayload, postWebhook } from "../_shared/notify.ts";
 import { renderTicketQr } from "../_shared/qr-tools.ts";
 import type { QrStorage, Repo } from "../_shared/repo.ts";
-import { buildCheckoutRequest, toSadadMobile } from "../_shared/sadad-core.ts";
-import { callbackUrlFor, fallbackEmail, isSadadConfigured, safeOrigin } from "../_shared/settings.ts";
+import { buildCheckoutRequest } from "../_shared/sadad-core.ts";
+import { siteCallbackUrl, fallbackEmail, isSadadConfigured, safeOrigin } from "../_shared/settings.ts";
 import { parseCreateOrderInput } from "../_shared/validation.ts";
 
 export interface CreateOrderDeps {
@@ -156,8 +156,8 @@ export function createOrderHandler(deps: CreateOrderDeps) {
             orderId: created.booking_reference,
             amount: created.total_amount,
             website: settings.websiteDomain as string,
-            callbackUrl: callbackUrlFor(deps.supabaseUrl),
-            mobile: toSadadMobile(input.customer.phone, input.customer.country_code),
+            callbackUrl: siteCallbackUrl(settings.websiteDomain as string),
+            mobile: String(input.customer.phone ?? "").replace(/\D/g, ""),
             email: input.customer.email || fallbackEmail(settings.websiteDomain),
             now: deps.now?.(),
             items: created.items.map((item) => ({

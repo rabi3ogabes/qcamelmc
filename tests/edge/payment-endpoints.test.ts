@@ -307,7 +307,7 @@ describe("sadad-payment (restart payment for a pending order)", () => {
     expect(res.status).toBe(200);
     const { payment } = await res.json();
     expect(payment.url).toBe("https://sadadqa.com/webpurchase");
-    expect(payment.fields).toMatchObject({ ORDER_ID: REF, TXN_AMOUNT: "150.00", WEBSITE: "example.qa", MOBILE_NO: "97455512345" });
+    expect(payment.fields).toMatchObject({ ORDER_ID: REF, TXN_AMOUNT: "150.00", WEBSITE: "example.qa", MOBILE_NO: "55512345" });
     expect(payment.fields.signature).toMatch(/^[0-9a-f]{64}$/);
   });
 
