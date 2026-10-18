@@ -200,6 +200,12 @@ All colors MUST be HSL.
     border-block: 1px solid hsl(var(--border));
   }
   .public-heritage-divider { width: 108px; height: 18px; object-fit: contain; }
+  /* Pre-footer artwork: natural size, tiled horizontally, never stretched. */
+  .public-pre-footer {
+    background-repeat: repeat-x;
+    background-size: auto 100%;
+    background-position: center;
+  }
   .public-logo { width: 140px; height: auto; max-height: 88px; object-fit: contain; }
   .public-site .bg-primary, .public-ticket-banner { background: hsl(var(--foreground)); color: hsl(var(--primary-foreground)); }
 

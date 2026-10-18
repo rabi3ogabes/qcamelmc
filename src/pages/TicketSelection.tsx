@@ -15,6 +15,7 @@ import { Footer } from "@/components/Footer";
 import { PublicHeader } from "@/components/PublicHeader";
 import { isEventExpired } from "@/lib/eventUtils";
 import { useSettings } from "@/contexts/SettingsContext";
+import { BeforeFooterImage } from "@/components/BeforeFooterImage";
 import { QATAR_TZ } from "@/lib/qatarTime";
 
 interface Ticket {
@@ -546,14 +547,10 @@ const TicketSelection = () => {
 
       {/* Before Footer Image */}
       {settings?.before_footer_image_url && (
-        <div className="relative w-full">
-          <img
-            src={settings.before_footer_image_url}
-            alt="Before Footer"
-            className="w-full h-auto object-contain"
-            loading="lazy"
-          />
-        </div>
+        <BeforeFooterImage
+          src={settings.before_footer_image_url}
+          alt="Before Footer"
+        />
       )}
 
       <Footer />

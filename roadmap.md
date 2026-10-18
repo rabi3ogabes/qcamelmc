@@ -4,7 +4,7 @@
 - [x] Reduce footer artwork height without cropping or distortion; add supplied illustration as a faint central public-page background and verify both on desktop/mobile.
 - [x] Tile the footer camel artwork horizontally at its unchanged height using the seamless 6-period tile; verified seamless at 1280px and 390px.
 - [x] Remove all fixed footer text (site nav links, "دفع عبر سداد" badge, card logos, hardcoded year prefix); footer keeps only the logo and the dashboard-editable copyright line; verified desktop/mobile.
-- [x] Repeat the pre-footer illustration horizontally at its unchanged size; verified repeat-x across the full width at 1280px with no resize.
+- [x] Render the pre-footer image (settings.before_footer_image_url) at its natural size, tiled horizontally via the shared BeforeFooterImage component on home, tickets and checkout; verified 323px tall repeat-x at 1280px with no stretching.
 
 
 ## Festival guideline styling
