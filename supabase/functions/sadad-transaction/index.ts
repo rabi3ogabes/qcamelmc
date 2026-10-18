@@ -128,9 +128,9 @@ Deno.serve(async (req) => {
     });
     const tx = await txRes.json().catch(() => ({}));
     if (!txRes.ok || tx?.error) {
-      console.error("Sadad getTransaction failed", txRes.status, tx);
+      console.error("Sadad getTransaction failed", txRes.status);
       return json(
-        { error: tx?.error?.message || "تعذر جلب تفاصيل العملية من سداد" },
+        { error: "تعذر جلب تفاصيل العملية من سداد" },
         txRes.status === 404 ? 404 : 502,
       );
     }
