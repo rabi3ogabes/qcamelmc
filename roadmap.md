@@ -1,7 +1,7 @@
 # Task Roadmap
 
 ## Sadad credential source
-- [ ] Make all Sadad connections use admin settings exclusively; remove separate-secret and hardcoded merchant/domain fallbacks, test and deploy affected functions.
+- [x] Make all Sadad connections use admin settings exclusively; transaction details and diagnostics deployed, alternate-secret/domain fallbacks removed, 150 tests passed and authenticated live diagnostic verified. Sadad still rejects the saved credentials; successful real payment remains unverified.
 
 ## Public camel artwork
 - [x] Apply a top-to-bottom opacity fade to the pre-footer image; browser verified saved opacity 32%, horizontal repetition, unchanged 312×290px tiles and smooth fade; build OK.
