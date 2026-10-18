@@ -85,6 +85,13 @@
       "when": 1792048850428,
       "tag": "0011_receipt_ai_explicit_grants",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1792340885303,
+      "tag": "0012_pre_footer_display_controls",
+      "breakpoints": true
     }
   ]
 }

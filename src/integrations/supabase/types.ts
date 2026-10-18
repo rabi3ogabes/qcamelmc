@@ -888,6 +888,8 @@ export type Database = {
           admin_email: string | null
           admin_phone: string | null
           auto_invoice_interval_seconds: number | null
+          before_footer_image_opacity: number
+          before_footer_image_repeat: string
           before_footer_image_url: string | null
           clarity_enabled: boolean
           clarity_project_id: string | null
@@ -927,6 +929,8 @@ export type Database = {
           admin_email?: string | null
           admin_phone?: string | null
           auto_invoice_interval_seconds?: number | null
+          before_footer_image_opacity?: number
+          before_footer_image_repeat?: string
           before_footer_image_url?: string | null
           clarity_enabled?: boolean
           clarity_project_id?: string | null
@@ -966,6 +970,8 @@ export type Database = {
           admin_email?: string | null
           admin_phone?: string | null
           auto_invoice_interval_seconds?: number | null
+          before_footer_image_opacity?: number
+          before_footer_image_repeat?: string
           before_footer_image_url?: string | null
           clarity_enabled?: boolean
           clarity_project_id?: string | null
@@ -1181,6 +1187,8 @@ export type Database = {
       public_settings: {
         Row: {
           admin_phone: string | null
+          before_footer_image_opacity: number | null
+          before_footer_image_repeat: string | null
           before_footer_image_url: string | null
           clarity_enabled: boolean | null
           clarity_project_id: string | null
@@ -1198,6 +1206,8 @@ export type Database = {
         }
         Insert: {
           admin_phone?: string | null
+          before_footer_image_opacity?: number | null
+          before_footer_image_repeat?: string | null
           before_footer_image_url?: string | null
           clarity_enabled?: boolean | null
           clarity_project_id?: string | null
@@ -1215,6 +1225,8 @@ export type Database = {
         }
         Update: {
           admin_phone?: string | null
+          before_footer_image_opacity?: number | null
+          before_footer_image_repeat?: string | null
           before_footer_image_url?: string | null
           clarity_enabled?: boolean | null
           clarity_project_id?: string | null
