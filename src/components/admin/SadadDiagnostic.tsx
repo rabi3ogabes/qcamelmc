@@ -19,6 +19,7 @@ const TITLES: Record<string, string> = {
   website: "النطاق المسجل",
   api_login: "الاتصال بواجهة سداد",
   api_lookup: "التحقق من المدفوعات",
+  checkout_signature: "توقيع صفحة الدفع (Checkout)",
   callback_url: "رابط العودة بعد الدفع",
   webhook_registration: "تسجيل الـ Webhook في سداد",
   automation: "الأتمتة (n8n)",
