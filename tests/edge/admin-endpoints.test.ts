@@ -183,7 +183,9 @@ describe("sadad-diagnose", () => {
 
   it("reports a healthy setup and the URLs to register with Sadad", async () => {
     const body = await run();
-    expect(body.ready).toBe(true);
+    expect(body.ready).toBe(false);
+    expect(body.apiLogin).toBe("accepted");
+    expect(body.checkout).toBe("unverified");
     expect(status(body, "merchant_id")).toBe("ok");
     expect(status(body, "secret")).toBe("ok");
     expect(status(body, "api_login")).toBe("ok");
@@ -203,6 +205,9 @@ describe("sadad-diagnose", () => {
     const body = await run(configuredSettings(), false);
     expect(body.ready).toBe(false);
     expect(status(body, "api_login")).toBe("error");
+    expect(body.apiLogin).toBe("rejected");
+    expect(body.checkout).toBe("unverified");
+    expect(status(body, "checkout_signature")).toBe("warn");
   });
 
   it("warns when the website looks like a URL instead of the registered domain", async () => {

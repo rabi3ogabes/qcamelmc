@@ -1,6 +1,7 @@
 # Task Roadmap
 
 ## Sadad credential source
+- [ ] Trace the actual merchant login safely, compare official documentation, and separate API authentication from unverified checkout acceptance.
 - [x] Make all Sadad connections use admin settings exclusively; transaction details and diagnostics deployed, alternate-secret/domain fallbacks removed, 150 tests passed and authenticated live diagnostic verified. Sadad still rejects the saved credentials; successful real payment remains unverified.
 
 ## Public camel artwork

@@ -18,6 +18,8 @@ const TITLES: Record<string, string> = {
   secret: "المفتاح السري",
   website: "النطاق المسجل",
   api_login: "الاتصال بواجهة سداد",
+  api_request: "طلب تسجيل الدخول الفعلي",
+  api_response: "استجابة سداد للطلب",
   api_lookup: "التحقق من المدفوعات",
   checkout_signature: "توقيع صفحة الدفع (Checkout)",
   callback_url: "رابط العودة بعد الدفع",
@@ -90,7 +92,7 @@ export const SadadDiagnostic = () => {
       {report && (
         <div className="space-y-5">
           <div className="flex items-center gap-2">
-            <Badge variant={report.ready ? "default" : "destructive"}>{report.ready ? "جاهز للدفع" : "يحتاج إلى إصلاح"}</Badge>
+            <Badge variant="outline">قبول الدفع غير متحقق</Badge>
             {report.environment && (
               <Badge variant="outline">{report.environment === "sandbox" ? "بيئة الاختبار (Sandbox)" : "بيئة الإنتاج (Live)"}</Badge>
             )}
