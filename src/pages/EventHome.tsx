@@ -165,7 +165,7 @@ const EventHome = () => {
             </nav>}
           </>}
         </section>
-        {settings?.before_footer_image_url && <img src={settings.before_footer_image_url} alt="مهرجان قطر للإبل" className="w-full h-auto" loading="lazy" decoding="async" />}
+        {settings?.before_footer_image_url && <BeforeFooterImage src={settings.before_footer_image_url} alt="مهرجان قطر للإبل" />}
       </main>
       <Footer />
       <WhatsAppButton />

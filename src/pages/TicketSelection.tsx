@@ -546,14 +546,10 @@ const TicketSelection = () => {
 
       {/* Before Footer Image */}
       {settings?.before_footer_image_url && (
-        <div className="relative w-full">
-          <img
-            src={settings.before_footer_image_url}
-            alt="Before Footer"
-            className="w-full h-auto object-contain"
-            loading="lazy"
-          />
-        </div>
+        <BeforeFooterImage
+          src={settings.before_footer_image_url}
+          alt="Before Footer"
+        />
       )}
 
       <Footer />
