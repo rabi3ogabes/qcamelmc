@@ -4,159 +4,108 @@ import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 import { z } from "npm:zod@3";
 import { createRepo } from "../_shared/repo.ts";
 import { sadadCredentialsFromSettings } from "../_shared/settings.ts";
+import { fetchTransactionDetails, type SadadTransactionDetails } from "../_shared/sadad-api.ts";
+
+// Admin-only: Sadad transaction status, mode, amount and fees for one or many orders.
+// Docs: https://developer.sadad.qa/API/Get-Single-Transaction
 
 const RequestSchema = z
   .object({
     orderId: z.string().uuid().optional(),
-    transactionno: z.string().trim().min(1).max(100).optional(),
+    orderIds: z.array(z.string().uuid()).min(1).max(50).optional(),
   })
-  .refine((value) => value.orderId || value.transactionno, {
-    message: "يجب تحديد الطلب أو رقم عملية سداد",
-  });
+  .refine((v) => v.orderId || v.orderIds, { message: "يجب تحديد الطلب" });
 
 const STATUS_AR: Record<string, string> = {
   INPROGRESS: "قيد المعالجة",
-  "IN PROGRESS": "قيد المعالجة",
   FAILED: "فشلت",
   SUCCESS: "ناجحة",
   REFUND: "مستردة",
   REFUNDED: "مستردة",
   PENDING: "معلقة",
   ONHOLD: "موقوفة",
-  "ON HOLD": "موقوفة",
   REJECTED: "مرفوضة",
 };
+const MODE_AR: Record<string, string> = {
+  "CREDIT CARD": "بطاقة ائتمان",
+  "DEBIT CARD": "بطاقة خصم",
+  SADAD: "محفظة سداد",
+};
+
+const withArabic = (t: SadadTransactionDetails) => ({
+  ...t,
+  statusAr: STATUS_AR[t.status] ?? t.status,
+  modeAr: t.mode ? MODE_AR[t.mode] ?? t.mode : null,
+});
 
 Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response("ok", { headers: corsHeaders });
-  }
-
+  if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   const json = (body: unknown, status = 200) =>
-    new Response(JSON.stringify(body), {
-      status,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
   try {
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) return json({ error: "Unauthorized" }, 401);
-
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const userClient = createClient(supabaseUrl, Deno.env.get("SUPABASE_ANON_KEY")!, {
       global: { headers: { Authorization: authHeader } },
     });
-
     const { data: userData } = await userClient.auth.getUser();
     const user = userData?.user;
     if (!user) return json({ error: "Unauthorized" }, 401);
 
     const admin = createClient(supabaseUrl, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
-
     const { data: isAdmin } = await admin.rpc("is_admin", { user_id: user.id });
     if (!isAdmin) return json({ error: "Forbidden" }, 403);
 
-    const parsedBody = RequestSchema.safeParse(await req.json().catch(() => ({})));
-    if (!parsedBody.success) {
-      return json({ error: parsedBody.error.issues[0]?.message || "بيانات الطلب غير صالحة" }, 400);
-    }
-    const orderId = parsedBody.data.orderId;
-    let transactionNo = parsedBody.data.transactionno;
+    const parsed = RequestSchema.safeParse(await req.json().catch(() => ({})));
+    if (!parsed.success) return json({ error: parsed.error.issues[0]?.message || "بيانات الطلب غير صالحة" }, 400);
+    const single = !parsed.data.orderIds;
+    const ids = parsed.data.orderIds ?? [parsed.data.orderId!];
 
-    if (!transactionNo && orderId) {
-      const { data: order } = await admin
-        .from("orders")
-        .select("payment_id, payment_method")
-        .eq("id", orderId)
-        .maybeSingle();
-      if (!order) return json({ error: "الطلب غير موجود" }, 404);
-      if (order.payment_method !== "sadad") {
-        return json({ error: "هذا الطلب ليس عبر سداد" }, 400);
-      }
-      transactionNo = order.payment_id ?? undefined;
-    }
-
-    if (!transactionNo) {
-      return json({ error: "لا يوجد رقم عملية سداد لهذا الطلب" }, 400);
+    const { data: orders, error: ordersError } = await admin
+      .from("orders")
+      .select("id, booking_reference, payment_id, payment_method")
+      .in("id", ids);
+    if (ordersError) throw ordersError;
+    const sadadOrders = (orders ?? []).filter((o) => o.payment_method === "sadad");
+    if (single && sadadOrders.length === 0) {
+      return json({ error: orders?.length ? "هذا الطلب ليس عبر سداد" : "الطلب غير موجود" }, orders?.length ? 400 : 404);
     }
 
     const settings = await createRepo(admin).getPrivateSettings();
-    const credentials = sadadCredentialsFromSettings(settings);
-    if (!credentials) {
+    const creds = sadadCredentialsFromSettings(settings);
+    if (!creds) {
       return json({
         success: false,
         code: "SADAD_API_LOGIN_NOT_CONFIGURED",
         error: "أكمل رقم التاجر والمفتاح السري والنطاق في إعدادات سداد لعرض تفاصيل العملية.",
       });
     }
-    const { domain } = credentials;
 
-    // 1) Authenticate with Sadad
-    const loginRes = await fetch("https://api-s.sadad.qa/api/userbusinesses/login", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Accept: "application/json" },
-      body: JSON.stringify({ ...credentials, sadadId: Number(credentials.sadadId) }),
+    const results = await fetchTransactionDetails({
+      fetch,
+      creds,
+      environment: settings.environment,
+      items: sadadOrders.map((o) => ({ orderRef: o.booking_reference, transactionNumber: o.payment_id })),
     });
-    const loginJson = await loginRes.json().catch(() => ({}));
-    const accessToken = loginRes.ok && typeof loginJson?.accessToken === "string"
-      ? loginJson.accessToken
-      : undefined;
 
-    if (!accessToken) {
-      console.error("Sadad API login rejected", loginRes.status);
-      return json(
-        {
-          success: false,
-          code: "SADAD_API_LOGIN_REJECTED",
-          error: "رفضت سداد بيانات الدخول المحفوظة. راجع رقم التاجر والمفتاح السري والنطاق في الإعدادات.",
-        },
-      );
+    const byOrder: Record<string, unknown> = {};
+    sadadOrders.forEach((o, i) => {
+      const r = results[i];
+      byOrder[o.id] = r.kind === "found"
+        ? { found: true, transaction: withArabic(r.transaction) }
+        : { found: false, reason: r.kind === "not_found" ? "not_found" : "unavailable" };
+    });
+
+    if (single) {
+      const r = results[0];
+      if (r.kind === "found") return json({ success: true, transaction: withArabic(r.transaction) });
+      if (r.kind === "not_found") return json({ success: false, error: "لا توجد عملية لدى سداد لهذا الطلب بعد" });
+      console.error("sadad-transaction lookup unavailable", r.error);
+      return json({ success: false, error: "تعذر جلب تفاصيل العملية من سداد" });
     }
-
-
-    // 2) Fetch the transaction. A POST is required because Fetch forbids a
-    // request body on GET/HEAD and the Sadad endpoint expects JSON input.
-    const txRes = await fetch("https://api-s.sadad.qa/api/transactions/getTransaction", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Accept: "application/json",
-        Authorization: accessToken,
-        Origin: `https://${domain}`,
-      },
-      body: JSON.stringify({ transactionno: transactionNo }),
-    });
-    const tx = await txRes.json().catch(() => ({}));
-    if (!txRes.ok || tx?.error) {
-      console.error("Sadad getTransaction failed", txRes.status);
-      return json(
-        { error: "تعذر جلب تفاصيل العملية من سداد" },
-        txRes.status === 404 ? 404 : 502,
-      );
-    }
-
-    const statusName = String(tx?.transactionstatus?.name ?? "").toUpperCase();
-    const amount = Number(tx?.amount ?? 0);
-    const commission = Number(tx?.servicecharge ?? 0);
-    const refundCharge = Number(tx?.refundcharge ?? 0);
-
-    return json({
-      success: true,
-      transaction: {
-        transactionno: tx?.invoicenumber ?? transactionNo,
-        status: statusName || "UNKNOWN",
-        statusAr: STATUS_AR[statusName] ?? statusName ?? "غير معروف",
-        isRefund: Boolean(tx?.isRefund),
-        amount,
-        commission,
-        refundCharge,
-        netAmount: Number((amount - commission - refundCharge).toFixed(3)),
-        mode: tx?.transactionmode?.name ?? null,
-        entity: tx?.transactionentity?.name ?? null,
-        transactiondate: tx?.transactiondate ?? null,
-        websiteRefNo: tx?.website_ref_no ?? null,
-      },
-    });
+    return json({ success: true, results: byOrder });
   } catch (error) {
     console.error("sadad-transaction error", error);
     return json({ error: (error as Error).message || "خطأ غير متوقع" }, 500);
