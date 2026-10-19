@@ -10,6 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { CheckCircle, MapPin, Calendar, Eye, QrCode, Loader2, XCircle, Printer, Trash2, Grid3x3, List, Search, Banknote, CreditCard, AlertCircle, Ticket, Crown, Car, Copy, ReceiptText, ShieldCheck, Undo2 } from "lucide-react";
 import { EventShiftBadge } from "./EventShiftBadge";
 import { SadadTransactionDialog } from "./SadadTransactionDialog";
+import { SadadTxStrip, useSadadTransactions } from "./SadadTxStrip";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
@@ -165,6 +166,7 @@ export const OrdersTab = () => {
     pageSize: PAGE_SIZE
   });
 
+  const { data: sadadTx, loading: sadadTxLoading } = useSadadTransactions(orders);
   const isSearching = debouncedSearch.trim().length > 0;
   const totalPages = isSearching ? 1 : Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
 
@@ -706,6 +708,8 @@ export const OrdersTab = () => {
             {customer.email && <p className="text-xs text-muted-foreground truncate" dir="ltr">{customer.email}</p>}
           </div>
         </div>
+
+        {order.payment_method === "sadad" && <SadadTxStrip summary={sadadTx[order.id]} loading={sadadTxLoading} />}
 
         {/* Tickets */}
         <div className="rounded-lg border bg-muted/30 px-3 py-2 flex items-center justify-between gap-2">
