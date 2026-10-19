@@ -113,7 +113,7 @@ export function sadadDiagnoseHandler(deps: DiagnoseDeps) {
         add("webhook_registration", "warn", `لم يصل أي إشعار من سداد بعد. سجّل هذا الرابط في لوحة سداد (Payment Gateway → Webhook): ${webhookUrl}`);
       }
       if (settings.webhookUrl) add("automation", "ok", "Automation (n8n) webhook is configured");
-      else add("automation", "warn", "No automation (n8n) webhook is configured: tickets will not be sent automatically");
+      else add("automation", "ok", "لا يوجد ربط n8n (اختياري): الفواتير تُرسل بالبريد من النظام مباشرة؛ n8n مطلوب فقط لإرسال واتساب.");
 
       if (settings.siteUrl) add("site_url", "ok", `Customers are returned to ${settings.siteUrl}`);
       else add("site_url", "warn", "Site URL is not set: customers return to the address they ordered from (fine for a single site)");

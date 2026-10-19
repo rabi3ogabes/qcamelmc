@@ -93,7 +93,11 @@ export const SadadDiagnostic = () => {
       {report && (
         <div className="space-y-5">
           <div className="flex items-center gap-2">
-            <Badge variant="outline">قبول الدفع غير متحقق</Badge>
+            {(report as { checkout?: string }).checkout === "verified" ? (
+              <Badge className="bg-primary text-primary-foreground">الدفع يعمل ✓</Badge>
+            ) : (
+              <Badge variant="outline">قبول الدفع غير متحقق</Badge>
+            )}
             {report.environment && (
               <Badge variant="outline">{report.environment === "sandbox" ? "بيئة الاختبار (Sandbox)" : "بيئة الإنتاج (Live)"}</Badge>
             )}
