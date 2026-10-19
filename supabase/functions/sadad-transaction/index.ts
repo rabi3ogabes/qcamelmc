@@ -16,28 +16,11 @@ const RequestSchema = z
   })
   .refine((v) => v.orderId || v.orderIds, { message: "يجب تحديد الطلب" });
 
-const STATUS_AR: Record<string, string> = {
-  INPROGRESS: "قيد المعالجة",
-  FAILED: "فشلت",
-  SUCCESS: "ناجحة",
-  REFUND: "مستردة",
-  REFUNDED: "مستردة",
-  PENDING: "معلقة",
-  ONHOLD: "موقوفة",
-  REJECTED: "مرفوضة",
-};
-const MODE_AR: Record<string, string> = {
-  CREDITCARD: "بطاقة ائتمان",
-  DEBITCARD: "بطاقة خصم",
-  SADAD: "محفظة سداد",
-  GOOGLEPAY: "Google Pay",
-  APPLEPAY: "Apple Pay",
-};
-
-const withArabic = (t: SadadTransactionDetails) => ({
+// Sadad messages are shown exactly as Sadad sends them — no translation.
+const asSadadSends = (t: SadadTransactionDetails) => ({
   ...t,
-  statusAr: STATUS_AR[t.status] ?? t.status,
-  modeAr: t.mode ? MODE_AR[t.mode.replace(/\s+/g, "")] ?? t.mode : null,
+  statusAr: t.status,
+  modeAr: t.mode,
 });
 
 Deno.serve(async (req) => {
