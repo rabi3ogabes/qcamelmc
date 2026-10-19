@@ -84,6 +84,8 @@ export interface Repo extends AuthDeps {
   listBookingHolders(ref: string): Promise<{ id: string; qr_code: string }[] | null>;
   /** Most recent Sadad order confirmed with a provider transaction number (real proof checkout works). */
   lastVerifiedSadadPayment?(): Promise<{ booking_reference: string; paid_at: string } | null>;
+  /** When Sadad last delivered a webhook notice (proof the webhook URL is registered). */
+  lastWebhookAt?(): Promise<string | null>;
 }
 
 export interface QrStorage {
@@ -243,6 +245,18 @@ export function createRepo(sb: SupabaseLike): Repo {
     async logPaymentEvent(event) {
       const { error } = await sb.from("payment_events").insert(event);
       if (error) fail("payment event", error);
+    },
+
+    async lastWebhookAt() {
+      const { data, error } = await sb
+        .from("payment_events")
+        .select("created_at")
+        .eq("source", "webhook")
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (error) fail("last webhook", error);
+      return (data as { created_at: string } | null)?.created_at ?? null;
     },
 
     async markAutomationPending({ orderId, bookingReference, message }) {
