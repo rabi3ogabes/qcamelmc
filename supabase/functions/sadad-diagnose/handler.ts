@@ -93,7 +93,11 @@ export function sadadDiagnoseHandler(deps: DiagnoseDeps) {
         } else {
           add("checkout_signature", "warn", "صفحة الدفع لم تُثبَت بعد: لا توجد دفعة سداد مؤكَّدة حتى الآن. أجرِ دفعة حقيقية صغيرة للتأكد.");
         }
-        add("checkout_format", "warn", "تنسيق txnDate غير متسق بين صفحات توثيق سداد: جدول الحقول يذكر YYYY-MM-DD، بينما نموذج الدفع الرسمي يعرض التاريخ والوقت مثل التنفيذ الحالي. يلزم تأكيد سداد قبل تغيير هذا التنسيق. Checkout يستخدم رابط webpurchase نفسه للاختبار والإنتاج، والبيئة يحددها المفتاح؛ اختيار بيئة API لا يثبت بيئة Checkout.");
+        if (lastPaid) {
+          add("checkout_format", "ok", `تنسيق الدفع مُثبَت: سداد قبلت دفعة حقيقية بتنسيق التاريخ والوقت الحالي (txnDate)، وتم التحقق منها عبر واجهة سداد ${environment === "sandbox" ? "التجريبية" : "الفعلية (Live)"}؛ فالحساب يعمل على البيئة ${environment === "sandbox" ? "التجريبية" : "الفعلية"}.`);
+        } else {
+          add("checkout_format", "warn", "تنسيق الدفع لم يُثبَت بعد: لا توجد دفعة سداد مؤكَّدة. أجرِ دفعة حقيقية صغيرة؛ بيئة الدفع يحددها المفتاح السري.");
+        }
       } else {
         add("api_login", "error", "Skipped: complete the settings above first");
       }
