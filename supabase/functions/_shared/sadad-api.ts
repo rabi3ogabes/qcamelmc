@@ -300,9 +300,8 @@ export async function fetchTransactionDetails(opts: {
         if (res.ok) {
           const row = (await res.json()) as DetailRow;
           if (row && typeof row === "object" && row.invoicenumber) return { kind: "found", transaction: toTransactionDetails(row) };
-        } else if (res.status !== 404) {
-          return { kind: "unavailable", error: `single_${env}_${res.status}` };
         }
+        // Sadad answers 400 to this endpoint for some transactions; fall back to the by-reference list.
       }
       if (!SAFE_REF.test(item.orderRef)) return { kind: "not_found" };
       const res = await call(opts.fetch,

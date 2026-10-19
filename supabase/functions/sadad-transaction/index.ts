@@ -27,15 +27,17 @@ const STATUS_AR: Record<string, string> = {
   REJECTED: "مرفوضة",
 };
 const MODE_AR: Record<string, string> = {
-  "CREDIT CARD": "بطاقة ائتمان",
-  "DEBIT CARD": "بطاقة خصم",
+  CREDITCARD: "بطاقة ائتمان",
+  DEBITCARD: "بطاقة خصم",
   SADAD: "محفظة سداد",
+  GOOGLEPAY: "Google Pay",
+  APPLEPAY: "Apple Pay",
 };
 
 const withArabic = (t: SadadTransactionDetails) => ({
   ...t,
   statusAr: STATUS_AR[t.status] ?? t.status,
-  modeAr: t.mode ? MODE_AR[t.mode] ?? t.mode : null,
+  modeAr: t.mode ? MODE_AR[t.mode.replace(/\s+/g, "")] ?? t.mode : null,
 });
 
 Deno.serve(async (req) => {
@@ -93,9 +95,12 @@ Deno.serve(async (req) => {
     const byOrder: Record<string, unknown> = {};
     sadadOrders.forEach((o, i) => {
       const r = results[i];
+      if (r.kind === "unavailable") console.error("sadad-transaction unavailable", o.booking_reference, r.error);
       byOrder[o.id] = r.kind === "found"
         ? { found: true, transaction: withArabic(r.transaction) }
-        : { found: false, reason: r.kind === "not_found" ? "not_found" : "unavailable" };
+        : r.kind === "not_found"
+          ? { found: false, reason: "not_found" }
+          : { found: false, reason: "unavailable", error: r.error };
     });
 
     if (single) {
