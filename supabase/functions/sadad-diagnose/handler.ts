@@ -101,7 +101,13 @@ export function sadadDiagnoseHandler(deps: DiagnoseDeps) {
       const callbackUrl = settings.websiteDomain ? siteCallbackUrl(settings.websiteDomain) : "(set the website domain)";
       const webhookUrl = `${deps.supabaseUrl.replace(/\/+$/, "")}/functions/v1/sadad-webhook`;
       add("callback_url", "ok", `Customers return from Sadad to: ${callbackUrl}`);
-      add("webhook_registration", "warn", `Register this webhook URL in the Sadad merchant panel (Payment Gateway → Webhook): ${webhookUrl}`);
+      const lastHook = (await deps.repo.lastWebhookAt?.().catch(() => null)) ?? null;
+      if (lastHook) {
+        const when = new Date(lastHook).toLocaleString("ar-u-nu-latn", { timeZone: "Asia/Qatar", dateStyle: "medium", timeStyle: "short" });
+        add("webhook_registration", "ok", `الـ Webhook مسجّل ويعمل: آخر إشعار وصل من سداد بتاريخ ${when}.`);
+      } else {
+        add("webhook_registration", "warn", `لم يصل أي إشعار من سداد بعد. سجّل هذا الرابط في لوحة سداد (Payment Gateway → Webhook): ${webhookUrl}`);
+      }
       if (settings.webhookUrl) add("automation", "ok", "Automation (n8n) webhook is configured");
       else add("automation", "warn", "No automation (n8n) webhook is configured: tickets will not be sent automatically");
 
