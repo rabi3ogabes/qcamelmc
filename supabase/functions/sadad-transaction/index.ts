@@ -27,15 +27,17 @@ const STATUS_AR: Record<string, string> = {
   REJECTED: "مرفوضة",
 };
 const MODE_AR: Record<string, string> = {
-  "CREDIT CARD": "بطاقة ائتمان",
-  "DEBIT CARD": "بطاقة خصم",
+  CREDITCARD: "بطاقة ائتمان",
+  DEBITCARD: "بطاقة خصم",
   SADAD: "محفظة سداد",
+  GOOGLEPAY: "Google Pay",
+  APPLEPAY: "Apple Pay",
 };
 
 const withArabic = (t: SadadTransactionDetails) => ({
   ...t,
   statusAr: STATUS_AR[t.status] ?? t.status,
-  modeAr: t.mode ? MODE_AR[t.mode] ?? t.mode : null,
+  modeAr: t.mode ? MODE_AR[t.mode.replace(/\s+/g, "")] ?? t.mode : null,
 });
 
 Deno.serve(async (req) => {
