@@ -53,6 +53,7 @@ export function sadadDiagnoseHandler(deps: DiagnoseDeps) {
 
       let environment: "live" | "sandbox" | null = null;
       let apiLogin: "accepted" | "rejected" | "unavailable" | "not_configured" = "not_configured";
+      let checkoutVerified = false;
       const creds = sadadCredentialsFromSettings(settings);
       if (creds) {
         // Trace only request structure and HTTP outcomes. Never retain body values or tokens.
@@ -109,9 +110,10 @@ export function sadadDiagnoseHandler(deps: DiagnoseDeps) {
 
       return json({
         success: true,
-        ready: false, // A login diagnostic never establishes checkout acceptance.
+        // Only a real Sadad-confirmed payment proves checkout acceptance.
+        ready: checkoutVerified && apiLogin === "accepted",
         apiLogin,
-        checkout: "unverified",
+        checkout: checkoutVerified ? "verified" : "unverified",
         environment,
         callbackUrl,
         webhookUrl,
