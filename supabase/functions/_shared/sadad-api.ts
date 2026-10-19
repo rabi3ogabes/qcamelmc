@@ -182,8 +182,9 @@ export async function lookupTransaction(opts: LookupOptions): Promise<SadadApiRe
     const headers = { Authorization: session.token, Accept: "application/json", "Content-Type": "application/json" };
 
     try {
+      // Sadad requires every filter wrapped as filter[...] (else HTTP 400 "Please provide valid filter").
       const listUrl =
-        `${BASES[env]}/api/transactions/listTransactions?website_ref_no=${encodeURIComponent(opts.orderRef)}&skip=0&limit=50`;
+        `${BASES[env]}/api/transactions/listTransactions?filter[skip]=0&filter[limit]=50&filter[website_ref_no]=${encodeURIComponent(opts.orderRef)}`;
       const listRes = await call(opts.fetch, listUrl, { method: "GET", headers }, timeoutMs);
       if (!listRes.ok) return { kind: "unavailable", error: `list_${env}_${listRes.status}` };
       const rows = await listRes.json();
