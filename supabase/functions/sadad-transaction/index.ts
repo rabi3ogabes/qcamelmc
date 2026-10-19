@@ -80,7 +80,7 @@ Deno.serve(async (req) => {
       const r = results[i];
       if (r.kind === "unavailable") console.error("sadad-transaction unavailable", o.booking_reference, r.error);
       byOrder[o.id] = r.kind === "found"
-        ? { found: true, transaction: withArabic(r.transaction) }
+        ? { found: true, transaction: asSadadSends(r.transaction) }
         : r.kind === "not_found"
           ? { found: false, reason: "not_found" }
           : { found: false, reason: "unavailable", error: r.error };
@@ -88,7 +88,7 @@ Deno.serve(async (req) => {
 
     if (single) {
       const r = results[0];
-      if (r.kind === "found") return json({ success: true, transaction: withArabic(r.transaction) });
+      if (r.kind === "found") return json({ success: true, transaction: asSadadSends(r.transaction) });
       if (r.kind === "not_found") return json({ success: false, error: "لا توجد عملية لدى سداد لهذا الطلب بعد" });
       console.error("sadad-transaction lookup unavailable", r.error);
       return json({ success: false, error: "تعذر جلب تفاصيل العملية من سداد" });
