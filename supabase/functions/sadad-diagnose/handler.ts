@@ -84,11 +84,14 @@ export function sadadDiagnoseHandler(deps: DiagnoseDeps) {
           apiLogin = login.errors.every((error) => /_401$/.test(error)) ? "rejected" : "unavailable";
           add("api_login", "error", `لم يُقبل تسجيل الدخول إلى API (${login.errors.join(", ")}). هذا الفحص يخص صلاحية الوصول لواجهة التاجر فقط؛ لا يثبت صحة أو خطأ مفتاح Checkout أو توقيع الدفع. راجع مع سداد تفعيل واجهة التاجر وبيئة الحساب والنطاق وبيانات الدخول المحفوظة.`);
         }
-        add(
-          "checkout_signature",
-          "warn",
-          "توقيع Checkout يستخدم طريقة Signature Generation من سداد: SHA256 (حروف صغيرة) للمفتاح ثم قيم كل الحقول المرسلة مرتبة بالاسم، عدا productdetail؛ يطابق نموذج سداد الرسمي. قبول الدفع لدى سداد غير متحقق؛ لم يُرسل طلب Checkout في هذا الفحص. رفض API برمز 401 لا يثبت خطأ مفتاح Checkout، ومطابقة المثال الرسمي لا تثبت حصول دفع فعلي. https://developer.sadad.qa/web-checkout_2.1/signature-generation | https://developer.sadad.qa/web-checkout_2.1/payment-form",
-        );
+        const lastPaid = (await deps.repo.lastVerifiedSadadPayment?.().catch(() => null)) ?? null;
+        if (lastPaid) {
+          checkoutVerified = true;
+          const when = new Date(lastPaid.paid_at).toLocaleString("ar-u-nu-latn", { timeZone: "Asia/Qatar", dateStyle: "medium", timeStyle: "short" });
+          add("checkout_signature", "ok", `صفحة الدفع تعمل: سداد قبلت توقيع الدفع، وآخر دفعة مؤكَّدة من سداد كانت للحجز ${lastPaid.booking_reference} بتاريخ ${when}.`);
+        } else {
+          add("checkout_signature", "warn", "صفحة الدفع لم تُثبَت بعد: لا توجد دفعة سداد مؤكَّدة حتى الآن. أجرِ دفعة حقيقية صغيرة للتأكد.");
+        }
         add("checkout_format", "warn", "تنسيق txnDate غير متسق بين صفحات توثيق سداد: جدول الحقول يذكر YYYY-MM-DD، بينما نموذج الدفع الرسمي يعرض التاريخ والوقت مثل التنفيذ الحالي. يلزم تأكيد سداد قبل تغيير هذا التنسيق. Checkout يستخدم رابط webpurchase نفسه للاختبار والإنتاج، والبيئة يحددها المفتاح؛ اختيار بيئة API لا يثبت بيئة Checkout.");
       } else {
         add("api_login", "error", "Skipped: complete the settings above first");

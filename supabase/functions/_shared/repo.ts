@@ -82,6 +82,8 @@ export interface Repo extends AuthDeps {
   recordPaymentError(error: PaymentErrorRow): Promise<void>;
   listHoldersMissingQrImage(limit: number): Promise<{ id: string; qr_code: string }[]>;
   listBookingHolders(ref: string): Promise<{ id: string; qr_code: string }[] | null>;
+  /** Most recent Sadad order confirmed with a provider transaction number (real proof checkout works). */
+  lastVerifiedSadadPayment?(): Promise<{ booking_reference: string; paid_at: string } | null>;
 }
 
 export interface QrStorage {
@@ -296,6 +298,21 @@ export function createRepo(sb: SupabaseLike): Repo {
         .order("qr_code");
       if (holdersError) fail("list booking holders", holdersError);
       return (data ?? []) as { id: string; qr_code: string }[];
+    },
+
+    async lastVerifiedSadadPayment() {
+      const { data, error } = await sb
+        .from("orders")
+        .select("booking_reference, paid_at")
+        .eq("payment_method", "sadad")
+        .eq("payment_status", "confirmed")
+        .not("payment_id", "is", null)
+        .not("paid_at", "is", null)
+        .order("paid_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (error) fail("last sadad payment", error);
+      return (data ?? null) as { booking_reference: string; paid_at: string } | null;
     },
   };
 }
