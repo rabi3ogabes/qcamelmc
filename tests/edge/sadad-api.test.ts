@@ -121,7 +121,8 @@ describe("lookupTransaction", () => {
     expect(JSON.parse(login.body!)).toEqual({ sadadId: 1664851, secretKey: "S3CR3T", domain: "example.qa" });
     const list = f.calls[1];
     expect(list.url).toContain(`${LIVE}/api/transactions/listTransactions?`);
-    expect(list.url).toContain("website_ref_no=QTR-ABC123DEF456");
+    expect(list.url).toContain("filter[website_ref_no]=QTR-ABC123DEF456");
+    expect(list.url).toContain("filter[skip]=0&filter[limit]=50");
     expect(list.headers.Authorization).toBe("token-live");
   });
 
