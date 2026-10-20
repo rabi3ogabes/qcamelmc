@@ -273,11 +273,11 @@ All colors MUST be HSL.
    button. Written in the utilities layer so they reliably beat the shared
    bg-primary / text-foreground component classes. */
 @layer utilities {
-  .public-site .public-event-heading {
+  .public-site .public-event-heading,
+  .public-site .public-event-title {
     color: hsl(var(--festival-clay));
   }
-  /* Card lines the operator wants in plain black: title, date, time, place. */
-  .public-site .public-event-title,
+  /* Card lines the operator wants in plain black: subtitle, date, time, place. */
   .public-site .public-ticket-text {
     color: hsl(var(--ticket-text));
   }
