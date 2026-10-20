@@ -24,7 +24,11 @@ import flagBearer from "@/assets/flag-bearer.png.asset.json";
 import camelRider from "@/assets/camel-rider.png.asset.json";
 
 // Light background artwork for the ticket cards, cycled across the grid.
-const TICKET_ART = [camelHerd.url, camelHandler.url, flagBearer.url, camelRider.url];
+// Resolved against the public host so the artwork loads in preview and live alike.
+const CDN = "https://www.qcamelmc.org";
+const TICKET_ART = [camelHerd, camelHandler, flagBearer, camelRider].map(
+  (asset) => new URL(asset.url, CDN).href
+);
 
 interface Event {
   id: string;
