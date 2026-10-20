@@ -140,7 +140,7 @@ const EventHome = () => {
           </div>
         </section>
         <section className="mx-auto max-w-7xl px-5 py-10 sm:px-8 sm:py-14" aria-labelledby="events-title">
-          <div className="mb-8 flex flex-wrap items-center gap-3"><Ticket className="h-6 w-6 public-gold" /><h2 id="events-title" className="text-2xl font-bold">الفعاليات المتاحة</h2><img src={new URL(heritageDivider.url, "https://www.qcamelmc.org").href} alt="" aria-hidden="true" className="public-heritage-divider mr-auto" /></div>
+          <div className="mb-8 flex flex-wrap items-center gap-3"><Ticket className="h-6 w-6 public-event-heading" /><h2 id="events-title" className="text-2xl font-bold public-event-heading">الفعاليات المتاحة</h2><img src={new URL(heritageDivider.url, "https://www.qcamelmc.org").href} alt="" aria-hidden="true" className="public-heritage-divider mr-auto" /></div>
           {loading ? <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3" aria-label="جار تحميل الفعاليات">{[1,2,3].map(i => <Skeleton key={i} className="h-72 w-full" />)}</div>
           : events.length === 0 ? <div className="border-y border-border py-12 text-center"><Calendar className="mx-auto mb-5 h-9 w-9 text-muted-foreground" /><p className="text-xl font-semibold">{t('noActiveEvents')}</p><p className="mt-3 text-base text-muted-foreground">تُعرض هنا التذاكر عند إتاحة الفعالية القادمة.</p></div>
           : <>
@@ -148,14 +148,14 @@ const EventHome = () => {
               {events.slice((currentPage - 1) * EVENTS_PER_PAGE, currentPage * EVENTS_PER_PAGE).map(event => <Card key={event.id} className="flex min-w-0 flex-col overflow-hidden border-border bg-card shadow-sm">
                 {event.image_url && <img src={event.image_url} alt={event.title} className="aspect-[4/3] w-full object-cover" loading="lazy" decoding="async" />}
                 <div className="flex flex-1 flex-col p-5 sm:p-6">
-                  <h3 className="break-words text-2xl font-bold text-foreground">{event.title}</h3>
+                  <h3 className="break-words text-2xl font-bold public-event-title">{event.title}</h3>
                   {event.description && <p className="mt-3 line-clamp-3 text-base leading-7 text-muted-foreground">{event.description}</p>}
                   <div className="my-6 space-y-3 text-sm text-muted-foreground">
                     <p className="flex items-start gap-2"><Calendar className="h-4 w-4 shrink-0 mt-1" />{format(toZonedTime(event.event_date, QATAR_TZ), "EEEE، d MMMM، yyyy", { locale: ar })}</p>
                     {(event.start_time || event.end_time) && <p>{event.start_time && formatTime12Hour(event.start_time)}{event.start_time && event.end_time && ' – '}{event.end_time && formatTime12Hour(event.end_time)}</p>}
                     <p className="flex items-start gap-2"><MapPin className="h-4 w-4 shrink-0 mt-1" /><span className="break-words">{event.location}</span></p>
                   </div>
-                  <Button className="mt-auto w-full" size="lg" disabled={!canPurchaseTickets(event.event_date)} onClick={() => navigate(`/tickets/${event.id}`)}><Ticket className="ml-2 h-5 w-5" />{canPurchaseTickets(event.event_date) ? t('bookTicketsNow') : 'انتهى وقت الحجز'}</Button>
+                  <Button className="mt-auto w-full public-event-btn" size="lg" disabled={!canPurchaseTickets(event.event_date)} onClick={() => navigate(`/tickets/${event.id}`)}><Ticket className="ml-2 h-5 w-5" />{canPurchaseTickets(event.event_date) ? t('bookTicketsNow') : 'انتهى وقت الحجز'}</Button>
                 </div>
               </Card>)}
             </div>
