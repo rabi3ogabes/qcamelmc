@@ -160,13 +160,13 @@ const EventHome = () => {
                 {event.image_url && <img src={event.image_url} alt={event.title} className="aspect-[4/3] w-full object-cover" loading="lazy" decoding="async" />}
                 <div className="relative flex flex-1 flex-col p-5 sm:p-6">
                   <img src={TICKET_ART[i % TICKET_ART.length]} alt="" aria-hidden="true" loading="lazy" decoding="async" className="public-ticket-art pointer-events-none absolute inset-x-0 bottom-0 mx-auto h-[82%] w-auto max-w-[86%] object-contain" />
-                  <div className="relative z-10 flex flex-1 flex-col">
+                  <div className="relative z-10 flex flex-1 flex-col text-center">
                     <h3 className="break-words text-2xl font-bold public-event-title">{event.title}</h3>
-                    {event.description && <p className="mt-3 line-clamp-3 text-base leading-7 text-muted-foreground">{event.description}</p>}
-                    <div className="my-6 space-y-3 text-sm text-muted-foreground">
-                      <p className="flex items-start gap-2"><Calendar className="h-4 w-4 shrink-0 mt-1" />{format(toZonedTime(event.event_date, QATAR_TZ), "EEEE، d MMMM، yyyy", { locale: ar })}</p>
+                    {event.description && <p className="mt-3 line-clamp-3 text-base leading-7 public-ticket-text">{event.description}</p>}
+                    <div className="my-6 space-y-3 text-sm public-ticket-text">
+                      <p className="flex items-start justify-center gap-2"><Calendar className="h-4 w-4 shrink-0 mt-1" />{format(toZonedTime(event.event_date, QATAR_TZ), "EEEE، d MMMM، yyyy", { locale: ar })}</p>
                       {(event.start_time || event.end_time) && <p>{event.start_time && formatTime12Hour(event.start_time)}{event.start_time && event.end_time && ' – '}{event.end_time && formatTime12Hour(event.end_time)}</p>}
-                      <p className="flex items-start gap-2"><MapPin className="h-4 w-4 shrink-0 mt-1" /><span className="break-words">{event.location}</span></p>
+                      <p className="flex items-start justify-center gap-2"><MapPin className="h-4 w-4 shrink-0 mt-1" /><span className="break-words">{event.location}</span></p>
                     </div>
                     <Button className="mt-auto w-full public-event-btn" size="lg" disabled={!canPurchaseTickets(event.event_date)} onClick={() => navigate(`/tickets/${event.id}`)}><Ticket className="ml-2 h-5 w-5" />{canPurchaseTickets(event.event_date) ? t('bookTicketsNow') : 'انتهى وقت الحجز'}</Button>
                   </div>
