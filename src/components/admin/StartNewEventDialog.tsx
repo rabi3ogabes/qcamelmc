@@ -154,10 +154,14 @@ export const StartNewEventDialog = ({ onEventCreated }: StartNewEventDialogProps
 
       if (ticketsError) throw ticketsError;
 
-      // 3.5) Make the new event the one customers see
-      const { data: settingsRow } = await supabase.from("settings").select("id").maybeSingle();
-      if (settingsRow?.id) {
-        await supabase.from("settings").update({ current_event_id: event.id }).eq("id", settingsRow.id);
+      // 3.5) Only pin the new event as the single customer-facing event when
+      // a new season replaced the old events. Adding a day alongside existing
+      // events must keep every active event visible on the home page.
+      if (archiveOld) {
+        const { data: settingsRow } = await supabase.from("settings").select("id").maybeSingle();
+        if (settingsRow?.id) {
+          await supabase.from("settings").update({ current_event_id: event.id }).eq("id", settingsRow.id);
+        }
       }
 
       // 4) Log the season start
