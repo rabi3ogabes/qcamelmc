@@ -159,7 +159,7 @@ const EventHome = () => {
               {events.slice((currentPage - 1) * EVENTS_PER_PAGE, currentPage * EVENTS_PER_PAGE).map((event, i) => <Card key={event.id} className="relative flex min-w-0 flex-col overflow-hidden border-border bg-card shadow-sm">
                 {event.image_url && <img src={event.image_url} alt={event.title} className="aspect-[4/3] w-full object-cover" loading="lazy" decoding="async" />}
                 <div className="relative flex flex-1 flex-col p-5 sm:p-6">
-                  <img src={TICKET_ART[i % TICKET_ART.length]} alt="" aria-hidden="true" loading="lazy" decoding="async" className="public-ticket-art pointer-events-none absolute inset-x-0 bottom-0 mx-auto h-[82%] w-auto max-w-[86%] object-contain" />
+                  <img src={TICKET_ART[i % TICKET_ART.length]} alt="" aria-hidden="true" loading="lazy" decoding="async" className="public-ticket-art pointer-events-none absolute inset-x-0 bottom-0 mx-auto h-[94%] w-auto max-w-[98%] object-contain" />
                   <div className="relative z-10 flex flex-1 flex-col text-center">
                     <h3 className="break-words text-2xl font-bold public-event-title">{event.title}</h3>
                     {event.description && <p className="mt-3 line-clamp-3 text-base leading-7 public-ticket-text">{event.description}</p>}
