@@ -18,6 +18,13 @@ import { QATAR_TZ } from "@/lib/qatarTime";
 import { PublicHeader } from "@/components/PublicHeader";
 import { BeforeFooterImage } from "@/components/BeforeFooterImage";
 import heritageDivider from "@/assets/mafareed-divider.webp.asset.json";
+import camelHerd from "@/assets/camel-herd.png.asset.json";
+import camelHandler from "@/assets/camel-handler.png.asset.json";
+import flagBearer from "@/assets/flag-bearer.png.asset.json";
+import camelRider from "@/assets/camel-rider.png.asset.json";
+
+// Light background artwork for the ticket cards, cycled across the grid.
+const TICKET_ART = [camelHerd.url, camelHandler.url, flagBearer.url, camelRider.url];
 
 interface Event {
   id: string;
@@ -145,17 +152,20 @@ const EventHome = () => {
           : events.length === 0 ? <div className="border-y border-border py-12 text-center"><Calendar className="mx-auto mb-5 h-9 w-9 text-muted-foreground" /><p className="text-xl font-semibold">{t('noActiveEvents')}</p><p className="mt-3 text-base text-muted-foreground">تُعرض هنا التذاكر عند إتاحة الفعالية القادمة.</p></div>
           : <>
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-              {events.slice((currentPage - 1) * EVENTS_PER_PAGE, currentPage * EVENTS_PER_PAGE).map(event => <Card key={event.id} className="flex min-w-0 flex-col overflow-hidden border-border bg-card shadow-sm">
+              {events.slice((currentPage - 1) * EVENTS_PER_PAGE, currentPage * EVENTS_PER_PAGE).map((event, i) => <Card key={event.id} className="relative flex min-w-0 flex-col overflow-hidden border-border bg-card shadow-sm">
                 {event.image_url && <img src={event.image_url} alt={event.title} className="aspect-[4/3] w-full object-cover" loading="lazy" decoding="async" />}
-                <div className="flex flex-1 flex-col p-5 sm:p-6">
-                  <h3 className="break-words text-2xl font-bold public-event-title">{event.title}</h3>
-                  {event.description && <p className="mt-3 line-clamp-3 text-base leading-7 text-muted-foreground">{event.description}</p>}
-                  <div className="my-6 space-y-3 text-sm text-muted-foreground">
-                    <p className="flex items-start gap-2"><Calendar className="h-4 w-4 shrink-0 mt-1" />{format(toZonedTime(event.event_date, QATAR_TZ), "EEEE، d MMMM، yyyy", { locale: ar })}</p>
-                    {(event.start_time || event.end_time) && <p>{event.start_time && formatTime12Hour(event.start_time)}{event.start_time && event.end_time && ' – '}{event.end_time && formatTime12Hour(event.end_time)}</p>}
-                    <p className="flex items-start gap-2"><MapPin className="h-4 w-4 shrink-0 mt-1" /><span className="break-words">{event.location}</span></p>
+                <div className="relative flex flex-1 flex-col p-5 sm:p-6">
+                  <img src={TICKET_ART[i % TICKET_ART.length]} alt="" aria-hidden="true" loading="lazy" decoding="async" className="public-ticket-art pointer-events-none absolute inset-x-0 bottom-0 mx-auto h-[82%] w-auto max-w-[86%] object-contain" />
+                  <div className="relative z-10 flex flex-1 flex-col">
+                    <h3 className="break-words text-2xl font-bold public-event-title">{event.title}</h3>
+                    {event.description && <p className="mt-3 line-clamp-3 text-base leading-7 text-muted-foreground">{event.description}</p>}
+                    <div className="my-6 space-y-3 text-sm text-muted-foreground">
+                      <p className="flex items-start gap-2"><Calendar className="h-4 w-4 shrink-0 mt-1" />{format(toZonedTime(event.event_date, QATAR_TZ), "EEEE، d MMMM، yyyy", { locale: ar })}</p>
+                      {(event.start_time || event.end_time) && <p>{event.start_time && formatTime12Hour(event.start_time)}{event.start_time && event.end_time && ' – '}{event.end_time && formatTime12Hour(event.end_time)}</p>}
+                      <p className="flex items-start gap-2"><MapPin className="h-4 w-4 shrink-0 mt-1" /><span className="break-words">{event.location}</span></p>
+                    </div>
+                    <Button className="mt-auto w-full public-event-btn" size="lg" disabled={!canPurchaseTickets(event.event_date)} onClick={() => navigate(`/tickets/${event.id}`)}><Ticket className="ml-2 h-5 w-5" />{canPurchaseTickets(event.event_date) ? t('bookTicketsNow') : 'انتهى وقت الحجز'}</Button>
                   </div>
-                  <Button className="mt-auto w-full public-event-btn" size="lg" disabled={!canPurchaseTickets(event.event_date)} onClick={() => navigate(`/tickets/${event.id}`)}><Ticket className="ml-2 h-5 w-5" />{canPurchaseTickets(event.event_date) ? t('bookTicketsNow') : 'انتهى وقت الحجز'}</Button>
                 </div>
               </Card>)}
             </div>

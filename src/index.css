@@ -210,6 +210,8 @@ All colors MUST be HSL.
     -webkit-mask-image: var(--pre-footer-opacity-mask);
     mask-image: var(--pre-footer-opacity-mask);
   }
+  /* Ticket-card artwork: one faint copy per card, sitting behind the text. */
+  .public-ticket-art { opacity: 0.13; }
   .public-logo { width: 140px; height: auto; max-height: 88px; object-fit: contain; }
   .public-site .bg-primary, .public-ticket-banner { background: hsl(var(--foreground)); color: hsl(var(--primary-foreground)); }
 
