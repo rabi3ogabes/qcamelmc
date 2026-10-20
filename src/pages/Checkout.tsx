@@ -1012,28 +1012,24 @@ const Checkout = () => {
               </Card>}
 
             {/* Terms and Conditions */}
-            <Card className="p-4 sm:p-5 md:p-6 border-red-500 border-2 bg-red-50">
+            <Card className="checkout-terms p-4 sm:p-5 md:p-6 border-2">
               <div className="flex items-start gap-3 mb-4">
-                <AlertTriangle className="w-6 h-6 text-red-600 flex-shrink-0 mt-0.5" />
-                <h3 className="text-lg font-semibold text-red-600">التعليمات</h3>
+                <AlertTriangle className="checkout-terms-icon w-6 h-6 flex-shrink-0 mt-0.5" />
+                <h3 className="checkout-terms-title text-lg font-bold">التعليمات</h3>
               </div>
-              <ul className="space-y-2 text-red-600 text-sm sm:text-base mb-4 pr-4" dir="rtl">
+              <ul className="checkout-terms-list space-y-2 text-sm sm:text-base font-medium mb-4 pr-4" dir="rtl">
                 <li>1- التذكرة المباعة غير قابلة للتعديل او الإستبدال او إسترجاع قيمتها</li>
                 <li>2- ممنوع دخول الأطفال دون 10 سنوات</li>
                 <li>3- يكون إستخدام التذاكر للدخول مرة واحدة فقط</li>
               </ul>
-              <Button
+              <button
                 type="button"
-                variant="outline"
+                aria-pressed={termsAccepted}
                 onClick={() => setTermsAccepted(!termsAccepted)}
-                className={`w-full mt-2 py-6 text-base font-bold transition-all ${
-                  termsAccepted 
-                    ? "bg-green-600 hover:bg-green-700 text-white border-green-600" 
-                    : "bg-red-600 hover:bg-red-700 text-white border-red-600 animate-pulse"
-                }`}
+                className={`checkout-terms-btn w-full mt-2 py-4 px-4 rounded-lg text-base font-bold ${termsAccepted ? "is-accepted" : ""}`}
               >
-                {termsAccepted ? "✓ تم الموافقة على التعليمات" : "اضغط هنا للموافقة وإتمام عملية الدفع"}
-              </Button>
+                {termsAccepted ? "✓ تمت الموافقة على التعليمات" : "اضغط هنا للموافقة على التعليمات"}
+              </button>
             </Card>
 
             {/* Payment Method */}
@@ -1085,7 +1081,7 @@ const Checkout = () => {
           {/* Back to Tickets */}
           <div className="lg:col-span-1">
             <div className="text-center lg:sticky lg:top-20">
-              <Button variant="ghost" onClick={() => navigate(`/tickets/${localStorage.getItem("selectedEventId") || ""}`)} className="w-full text-sm sm:text-base bg-yellow-500 hover:bg-yellow-600 text-black">
+              <Button variant="ghost" onClick={() => navigate(`/tickets/${localStorage.getItem("selectedEventId") || ""}`)} className="w-full text-sm sm:text-base bg-secondary text-secondary-foreground hover:bg-secondary/80 hover:text-secondary-foreground font-bold">
                 {t('backToTickets')}
               </Button>
             </div>
