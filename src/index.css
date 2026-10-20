@@ -157,7 +157,7 @@ All colors MUST be HSL.
     --festival-turquoise: 182.72 63.36% 40.52%;
     --festival-red: 355.08 61.58% 50.52%;
     --festival-burgundy: 329 58% 27%;
-    --festival-clay: 17 64% 54%;
+    --festival-clay: 17.36 53.78% 55.88%;
     --footer-clay: 17.36 53.78% 55.88%;
     --footer-ink: 208 50% 16%;
     --public-artwork-opacity: 0.07;
@@ -262,6 +262,40 @@ All colors MUST be HSL.
 
   body {
     @apply bg-background text-foreground;
+  }
+
+/* Event cards: festival clay (#cb7552) for the event text and the booking
+   button. Written in the utilities layer so they reliably beat the shared
+   bg-primary / text-foreground component classes. */
+@layer utilities {
+  .public-site .public-event-heading,
+  .public-site .public-event-title {
+    color: hsl(var(--festival-clay));
+  }
+
+  .public-site .public-event-btn {
+    background-color: hsl(var(--festival-clay));
+    color: hsl(var(--primary-foreground));
+    border: 2px solid hsl(var(--festival-clay));
+    font-weight: 700;
+    box-shadow: 0 6px 18px -8px hsl(var(--festival-clay) / 0.6);
+    transition: background-color 0.2s, border-color 0.2s, transform 0.1s;
+  }
+  .public-site .public-event-btn:hover {
+    background-color: hsl(var(--festival-burgundy));
+    border-color: hsl(var(--festival-burgundy));
+    color: hsl(var(--primary-foreground));
+  }
+  .public-site .public-event-btn:active { transform: scale(0.98); }
+  .public-site .public-event-btn:focus-visible {
+    outline: 3px solid hsl(var(--foreground));
+    outline-offset: 2px;
+  }
+  .public-site .public-event-btn:disabled {
+    background-color: hsl(var(--muted));
+    border-color: hsl(var(--border));
+    color: hsl(var(--muted-foreground));
+    box-shadow: none;
   }
 }
 
