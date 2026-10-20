@@ -142,7 +142,7 @@ const EventHome = () => {
       <PublicHeader />
       <main>
         <section className="relative min-h-[440px] overflow-hidden sm:min-h-[600px]" aria-labelledby="festival-title">
-          <img src={settings?.hero_image_url || heroImage} alt="فعاليات مهرجان قطر للإبل" className="absolute inset-0 h-full w-full object-cover" loading="eager" decoding="async" fetchPriority="high" />
+          <img src={settings?.hero_image_url || heroImage} alt="فعاليات مهرجان قطر للإبل" className="absolute inset-0 h-full w-full object-cover" loading="eager" decoding="async" />
           <div className="public-hero-shade absolute inset-0" />
           <div className="public-hero-text relative mx-auto flex min-h-[440px] max-w-7xl flex-col justify-end px-5 py-14 sm:min-h-[600px] sm:px-8 sm:py-20">
             <p className="mb-4 text-sm font-semibold">الفعاليات والتذاكر · قطر</p>
