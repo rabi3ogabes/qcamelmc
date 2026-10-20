@@ -42,8 +42,30 @@ const Confirmation = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    fetchOrders();
+    let active = true;
+    let refreshing = false;
+    const refresh = async (initial = false) => {
+      if (refreshing || (!initial && document.visibilityState === "hidden")) return;
+      refreshing = true;
+      try {
+        await fetchOrders(initial, () => active);
+      } finally {
+        refreshing = false;
+      }
+    };
+    void refresh(true);
     fetchSettings();
+    // Public visitors cannot subscribe to protected ticket rows. Refresh only their own booking.
+    const timer = window.setInterval(() => void refresh(), 5000);
+    const onResume = () => void refresh();
+    window.addEventListener("focus", onResume);
+    document.addEventListener("visibilitychange", onResume);
+    return () => {
+      active = false;
+      window.clearInterval(timer);
+      window.removeEventListener("focus", onResume);
+      document.removeEventListener("visibilitychange", onResume);
+    };
   }, []);
 
   const fetchSettings = async () => {
@@ -62,7 +84,7 @@ const Confirmation = () => {
     }
   };
 
-  const fetchOrders = async () => {
+  const fetchOrders = async (initial = true, isActive = () => true) => {
     try {
       // The booking this browser just made. Its reference is unguessable, so holding it is the proof
       // that the booking is yours. (Older bookings kept their database id in "orderIds".)
@@ -79,6 +101,11 @@ const Confirmation = () => {
         ...legacyIds.map((id) => supabase.rpc("get_public_order", { p_order_id: id })),
       ]);
 
+      if (!isActive()) return;
+      // A failed refresh must not replace the last known ticket status with an empty invoice.
+      const failed = results.find((result) => result.error);
+      if (failed?.error) throw failed.error;
+
       const byId = new Map<string, Order>();
       for (const result of results) {
         const order = result.data as unknown as Order | null;
@@ -90,7 +117,7 @@ const Confirmation = () => {
       if (legacyIds.length > 0) localStorage.removeItem("orderIds");
 
       // Mark the session in Microsoft Clarity (public analytics only)
-      loaded.forEach((o) => {
+      if (initial) loaded.forEach((o) => {
         if (o.payment_status === "confirmed") {
           clarityTrackPurchase({
             bookingReference: o.booking_reference,
@@ -106,7 +133,7 @@ const Confirmation = () => {
     } catch (error) {
       console.error("Error fetching orders:", error);
     } finally {
-      setLoading(false);
+      if (initial && isActive()) setLoading(false);
     }
   };
 
