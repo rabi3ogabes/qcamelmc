@@ -1081,7 +1081,7 @@ const Checkout = () => {
           {/* Back to Tickets */}
           <div className="lg:col-span-1">
             <div className="text-center lg:sticky lg:top-20">
-              <Button variant="ghost" onClick={() => navigate(`/tickets/${localStorage.getItem("selectedEventId") || ""}`)} className="w-full text-sm sm:text-base bg-yellow-500 hover:bg-yellow-600 text-black">
+              <Button variant="ghost" onClick={() => navigate(`/tickets/${localStorage.getItem("selectedEventId") || ""}`)} className="w-full text-sm sm:text-base bg-secondary text-secondary-foreground hover:bg-secondary/80 hover:text-secondary-foreground font-bold">
                 {t('backToTickets')}
               </Button>
             </div>
