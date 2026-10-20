@@ -212,6 +212,22 @@ All colors MUST be HSL.
   .public-logo { width: 140px; height: auto; max-height: 88px; object-fit: contain; }
   .public-site .bg-primary, .public-ticket-banner { background: hsl(var(--foreground)); color: hsl(var(--primary-foreground)); }
 
+  /* Checkout instructions: brand red notice, high-contrast button in every state. */
+  .checkout-terms { border-color: hsl(var(--festival-red)); background: hsl(var(--festival-red) / 0.06); }
+  .checkout-terms-icon, .checkout-terms-title { color: hsl(var(--festival-red)); }
+  .checkout-terms-list { color: hsl(var(--foreground)); line-height: 1.9; }
+  .checkout-terms-btn {
+    background: hsl(var(--festival-red)); color: hsl(var(--primary-foreground));
+    border: 2px solid hsl(var(--festival-red));
+    box-shadow: 0 6px 18px -8px hsl(var(--festival-red) / 0.6);
+    transition: background-color .2s, border-color .2s, transform .1s;
+  }
+  .checkout-terms-btn:hover { background: hsl(var(--festival-burgundy)); border-color: hsl(var(--festival-burgundy)); color: hsl(var(--primary-foreground)); }
+  .checkout-terms-btn:active { transform: scale(.98); }
+  .checkout-terms-btn:focus-visible { outline: 3px solid hsl(var(--secondary)); outline-offset: 2px; }
+  .checkout-terms-btn.is-accepted { background: hsl(var(--festival-turquoise)); border-color: hsl(var(--festival-turquoise)); color: hsl(var(--primary-foreground)); box-shadow: none; }
+  .checkout-terms-btn.is-accepted:hover { background: hsl(var(--accent-foreground)); border-color: hsl(var(--accent-foreground)); }
+
   .public-hero-shade {
     background:
       linear-gradient(to top, hsl(var(--foreground) / 0.94) 0%, hsl(var(--foreground) / 0.72) 26%, hsl(var(--festival-turquoise) / 0.52) 62%, hsl(var(--festival-turquoise) / 0.18) 100%);
