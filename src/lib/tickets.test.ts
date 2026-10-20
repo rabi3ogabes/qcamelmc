@@ -1,5 +1,15 @@
 import { describe, expect, it } from "vitest";
-import { normalizeScannedCode } from "./tickets";
+import { isTicketUsed, normalizeScannedCode } from "./tickets";
+
+describe("used ticket status", () => {
+  it("a scanned ticket remains used without a recorded timestamp", () => {
+    expect(isTicketUsed({ is_present: true })).toBe(true);
+  });
+  it("an unscanned ticket remains available to display", () => {
+    expect(isTicketUsed({ is_present: false })).toBe(false);
+    expect(isTicketUsed(null)).toBe(false);
+  });
+});
 
 describe("normalizeScannedCode", () => {
   it("leaves a ticket code alone", () => {

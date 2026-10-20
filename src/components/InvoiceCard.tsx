@@ -7,6 +7,8 @@ import { Card } from "@/components/ui/card";
 import { FileDown, ImageDown, CheckCircle2, Loader2, Home, ZoomIn } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { generateInvoicePdf, type InvoiceData } from "@/lib/generateInvoicePdf";
+import { isTicketUsed } from "@/lib/tickets";
+import { formatQatarDate, QATAR_TZ } from "@/lib/qatarTime";
 
 interface InvoiceCardProps {
   data: InvoiceData;
@@ -15,16 +17,15 @@ interface InvoiceCardProps {
 const formatDateTime = (value?: string | null) =>
   value
     ? new Date(value).toLocaleString("ar-u-nu-latn", {
-        timeZone: "Asia/Qatar",
-        dateStyle: "medium",
+        timeZone: QATAR_TZ,
+        dateStyle: "short",
         timeStyle: "short",
       })
     : "-";
 
 const formatDate = (value?: string | null) =>
   value
-    ? new Date(value).toLocaleDateString("ar-u-nu-latn", {
-        timeZone: "Asia/Qatar",
+    ? formatQatarDate(value, {
         weekday: "long",
         year: "numeric",
         month: "long",
@@ -60,6 +61,10 @@ export const InvoiceCard = ({ data }: InvoiceCardProps) => {
   const enlargedTicket = enlargedQrIndex >= 0 ? data.ticket_states?.[enlargedQrIndex] : undefined;
 
   useEffect(() => {
+    if (isTicketUsed(enlargedTicket)) setEnlargedQr(null);
+  }, [enlargedTicket]);
+
+  useEffect(() => {
     let active = true;
     const build = async () => {
       const urls = await Promise.all(
@@ -72,7 +77,7 @@ export const InvoiceCard = ({ data }: InvoiceCardProps) => {
           }
         }),
       );
-      if (active) setQrUrls(urls.filter(Boolean));
+      if (active) setQrUrls(urls);
     };
     build();
     return () => {
@@ -160,7 +165,7 @@ export const InvoiceCard = ({ data }: InvoiceCardProps) => {
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
               {qrUrls.map((url, i) => {
                 const state = data.ticket_states?.[i];
-                const used = Boolean(state?.is_present && state?.confirmed_at);
+                const used = isTicketUsed(state);
                 return (
                   <div
                     key={url + i}
@@ -169,14 +174,14 @@ export const InvoiceCard = ({ data }: InvoiceCardProps) => {
                     }`}
                   >
                     {used ? (
-                      <div className="flex h-28 flex-col items-center justify-center gap-1 px-1">
+                      <div className="flex min-h-28 flex-col items-center justify-center gap-2 px-1 py-3" role="status" dir="rtl">
                         <CheckCircle2 className="h-6 w-6 text-destructive" />
-                        <span className="text-xs font-bold text-destructive">تم استخدام هذه التذكرة</span>
-                        <span className="text-[10px] text-muted-foreground">
+                        <span className="text-sm font-bold text-destructive">تم استخدام هذه التذكرة</span>
+                        {state?.confirmed_at && <span className="text-xs text-foreground">
                           {formatDateTime(state?.confirmed_at)}
-                        </span>
+                        </span>}
                         {state?.confirmed_by_name && (
-                          <span className="text-[10px] text-muted-foreground">
+                          <span className="text-xs text-foreground break-words">
                             بواسطة: {state.confirmed_by_name}
                           </span>
                         )}
