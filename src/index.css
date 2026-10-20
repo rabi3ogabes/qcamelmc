@@ -263,6 +263,7 @@ All colors MUST be HSL.
   body {
     @apply bg-background text-foreground;
   }
+}
 
 /* Event cards: festival clay (#cb7552) for the event text and the booking
    button. Written in the utilities layer so they reliably beat the shared
