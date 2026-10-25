@@ -1,5 +1,6 @@
 - Qatar day boundaries and Qatar date display go through src/lib/qatarTime.ts — one tested rule instead of scattered offsets.
 - Manual WhatsApp invoice sends build customer data and randomly selected private templates on the server, with an opaque delivery ID per attempt in email_delivery_events.channel; callbacks must echo delivery_id and explicit status, and acceptance stays queued. Exact-reference admin search can retrieve archived invoices without adding them to automated sending.
+- n8n WhatsApp callback nodes use the tested script in docs/n8n/prepare-whatsapp-callback.js and require provider success plus an outgoing message ID; preserving the original attempt ID prevents false or misattributed delivery counts.
 - Confirmation refreshes its capability-scoped public booking every five seconds while visible and on return; InvoiceCard uses attendance as the used-ticket authority and closes enlarged QR codes after check-in — keeps visitor tickets current without exposing protected rows.
 - Guarded-page access is decided by src/lib/accessDecision.ts (used by RequireAdmin) — keeps the role rule unit-tested.
 - Visitor rows are refreshed/removed only via visitor_heartbeat / visitor_leave keyed by a random session id — browsers have no UPDATE/DELETE on visitor tables.
