@@ -1,5 +1,10 @@
 # Task Roadmap
 
+## Manual invoice delivery
+- [ ] Find the named archived booking through exact-reference search without exposing archived invoices to automatic sending.
+- [ ] Add WhatsApp send/resend with channel-specific delivery history and counts.
+- [ ] Add Settings message templates with random selection; test and verify admin flows.
+
 ## Sadad credential source
 - [x] Correct Checkout uppercase/mandatory-field signing; official public example and payment-proof regressions passed (197 tests), create-order/sadad-payment/sadad-diagnose deployed, authenticated live diagnostic shows updated guidance with API rejected and Checkout unverified. No booking or payment created.
 - [x] Trace the actual merchant login safely and compare official documentation: live/sandbox returned HTTP 401 with documented request shape; diagnostics separate API outcome from unverified Checkout, flag lowercase/extra signed fields and conflicting date documentation; 109 tests and authenticated browser check passed. No payment signing changes or real charge performed.
