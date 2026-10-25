@@ -90,8 +90,8 @@ interface TicketHolder {
 
 const getTicketTypeName = (type: string): string => {
   switch(type) {
-    case "vip": return "تذكرة دخول VIP";
-    case "normal": return "تذكرة دخول عادية";
+    case "vip": return "تذكرة دخول كبار الشخصيات VIP";
+    case "normal": return "تذكرة دخول";
     case "parking": return "تذكرة موقف السيارات";
     default: return type;
   }
