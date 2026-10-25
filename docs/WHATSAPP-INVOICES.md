@@ -27,4 +27,6 @@ Each manual resend creates a new attempt and chooses a template again; its histo
 
 Archived bookings are available through exact-reference administrator search only and remain excluded from automated sending.
 
-External workflow configuration and an actual customer WhatsApp delivery have not been verified: no accessible n8n connection was available during implementation.
+The connected `qcamelmc` workflow was corrected on 2026-10-25. Both invoice picker nodes preserve `delivery_id` and `booking_reference` from the original Webhook body. Both callback nodes use `docs/n8n/prepare-whatsapp-callback.js` (the PDF branch references the picker ending in `1`). WhatsApp sender errors continue to the callback as failures; success requires the provider's `success: true` plus an outgoing `data.key.id` with `fromMe: true`. This confirms provider sending, not handset delivery or reading.
+
+The saved active workflow was read back and its callback code tested against the original Webhook input and provider response from execution 173804, plus simulated failure. Eleven focused tests passed. No customer messages were resent and no historical callback was replayed; a new full send and status readback remains unverified.
