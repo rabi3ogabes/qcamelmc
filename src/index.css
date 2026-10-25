@@ -225,7 +225,8 @@ All colors MUST be HSL.
     mask-image: var(--pre-footer-opacity-mask);
   }
   /* Ticket-card artwork: one copy per card, sitting behind the text. */
-  .public-ticket-art { opacity: 0.24; }
+  .public-ticket-photo { object-position: center 35%; }
+  .public-ticket-photo-wash { background: linear-gradient(180deg, hsl(40 45% 96% / 0.86), hsl(40 45% 96% / 0.66)); }
   .public-logo { width: 140px; height: auto; max-height: 88px; object-fit: contain; }
   .public-site .bg-primary, .public-ticket-banner { background: hsl(var(--foreground)); color: hsl(var(--primary-foreground)); }
 
