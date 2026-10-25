@@ -66,6 +66,8 @@ export interface OrderContext {
 
 export interface Repo extends AuthDeps {
   getPrivateSettings(): Promise<PrivateSettings>;
+  createInvoiceDelivery(row: Row): Promise<void>;
+  updateInvoiceDelivery(id: string, status: string, detail: string): Promise<void>;
   createOrder(args: CreateOrderArgs): Promise<CreatedOrder>;
   /** Unpaid orders of this phone number that still hold seats (pending and not yet expired). */
   countOpenOrders(phone: string): Promise<number>;
@@ -137,6 +139,7 @@ export function createRepo(sb: SupabaseLike): Repo {
       return {
         webhookUrl: row.webhook_enabled === false ? null : text(row.webhook_url),
         emailWebhookUrl: row.email_webhook_enabled === false ? null : text(row.email_webhook_url),
+        whatsappTemplates: Array.isArray(row.whatsapp_templates) ? row.whatsapp_templates : [],
         adminPhone: text(row.admin_phone),
         merchantId: text(row.sadad_merchant_id),
         secret: text(row.sadad_secret),
@@ -145,6 +148,16 @@ export function createRepo(sb: SupabaseLike): Repo {
         environment: toEnvironment(row.sadad_environment),
         siteUrl: text(row.site_url),
       };
+    },
+
+    async createInvoiceDelivery(row) {
+      const { error } = await sb.from("email_delivery_events").insert(row);
+      if (error) fail("invoice delivery log", error);
+    },
+
+    async updateInvoiceDelivery(id, status, detail) {
+      const { error } = await sb.from("email_delivery_events").update({ status, detail }).eq("delivery_id", id).eq("status", "queued");
+      if (error) fail("invoice delivery update", error);
     },
 
     async createOrder(a) {

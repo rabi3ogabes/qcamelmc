@@ -63,6 +63,8 @@ export function makeRepo(over: Partial<Repo> & { settings?: PrivateSettings; ord
   const orders = over.orders ?? {};
   const repo: FakeRepo = {
     calls,
+    createInvoiceDelivery: async () => {},
+    updateInvoiceDelivery: async () => {},
     getUserId: async (jwt) =>
       jwt === "admin-jwt" ? "admin-1" : jwt === "member-jwt" ? "member-1" : jwt === "mod-jwt" ? "mod-1" : null,
     isAdmin: async (id) => id === "admin-1",

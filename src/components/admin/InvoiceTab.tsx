@@ -6,7 +6,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Send, Loader2, CheckCircle, Clock, RotateCcw, CalendarX, PauseCircle, FileDown, Mail, MailCheck, History, ChevronDown } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { EmailDeliveryTimeline } from "@/components/admin/EmailDeliveryTimeline";
+import { InvoiceDeliveryStatus } from "@/components/admin/InvoiceDeliveryStatus";
+import { Input } from "@/components/ui/input";
 import { generateInvoicePdf } from "@/lib/generateInvoicePdf";
 import { useSettings } from "@/contexts/SettingsContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -74,6 +75,9 @@ interface Order {
 
 export const InvoiceTab = () => {
   const { settings } = useSettings();
+  const [referenceSearch, setReferenceSearch] = useState("");
+  const [searchedOrder, setSearchedOrder] = useState<Order | null>(null);
+  const [searching, setSearching] = useState(false);
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
@@ -310,7 +314,7 @@ export const InvoiceTab = () => {
         const { data, error } = await supabase
           .from("orders")
           .select("*, customers(name, email, phone, country_code, nationality), events(title, event_date, location, is_archived), ticket_holders(qr_code, ticket_type)")
-          .eq("payment_method", "sadad")
+          .gte("created_at", "2026-01-12T00:00:00+03:00")
           .eq("payment_status", "confirmed")
           .in("event_id", liveEventIds)
           .order("created_at", { ascending: false })
@@ -352,6 +356,7 @@ export const InvoiceTab = () => {
       }));
 
       setOrders(safeData);
+      setSearchedOrder(current => current ? safeData.find(o => o.id === current.id) ?? current : null);
     } catch (error) {
       console.error("Failed to load orders:", error);
       toast.error("فشل في تحميل الطلبات");
@@ -367,45 +372,7 @@ export const InvoiceTab = () => {
     }
 
     try {
-      // Construct full phone number with country code (without +) for WhatsApp
-      const countryCode = order.customers.country_code?.replace('+', '') || '974';
-      const fullPhone = `${countryCode}${order.customers.phone}`;
-
-      // Extract all ticket holder QR codes and ticket types
-      // Convert QR codes to full URLs if they're not already
-      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-      const ticketQrCodes = order.ticket_holders?.map(holder => {
-        if (!holder.qr_code) return null;
-        // If it's already a full URL, return it as is
-        if (holder.qr_code.startsWith('http')) {
-          return holder.qr_code;
-        }
-        // Otherwise, construct the full URL
-        return `${supabaseUrl}/storage/v1/object/public/qr-codes/${holder.qr_code}.png`;
-      }).filter(Boolean) || [];
-      const ticketTypes = order.ticket_holders?.map(holder => holder.ticket_type) || [];
-
-      const payload = {
-        order_id: order.id, // Include order ID for immediate database update
-        booking_reference: order.booking_reference,
-        customer_name: order.customers.name,
-        customer_phone: order.customers.phone,
-        customer_phone_whatsapp: fullPhone,
-        customer_email: order.customers.email,
-        nationality: order.customers.nationality,
-        ticket_type: order.ticket_type,
-        quantity: order.quantity,
-        total_quantity: totalQuantity,
-        total_amount: order.total_amount,
-        payment_status: order.payment_status,
-        qr_codes: ticketQrCodes,
-        ticket_types: ticketTypes,
-        event_title: order.events?.title,
-        event_date: order.events?.event_date,
-        event_location: order.events?.location,
-        created_at: order.created_at,
-        customers: order.customers,
-      };
+      const payload = { action: "send_invoice", booking_reference: order.booking_reference };
 
       // Use edge function to avoid CORS issues
       const { data, error } = await supabase.functions.invoke('send-to-webhook', {
@@ -640,7 +607,7 @@ export const InvoiceTab = () => {
         const newSentOrders = new Map(sentOrders);
         newSentOrders.set(order.id, { sentAt: sentTime, message: result.message });
         setSentOrders(newSentOrders);
-        toast.success(`تم إرسال الفاتورة بنجاح لـ ${order.customers.name}`);
+        toast.info(`تم قبول الطلب — بانتظار تأكيد واتساب لـ ${order.customers.name}`);
         fetchOrders(); // Refresh to get n8n response
       } else {
         // Increment send attempt count on failure
@@ -754,7 +721,7 @@ export const InvoiceTab = () => {
   };
 
   // Filter orders based on selected tab
-  const filteredOrders = scopedOrders.filter((order) => {
+  const filteredOrders = searchedOrder ? [searchedOrder] : scopedOrders.filter((order) => {
     const isPending = isPendingMessage(order.n8n_response_message) || !order.n8n_responded_at;
     const eventDone = isEventDone(order);
     const onHold = isOnHold(order);
@@ -866,6 +833,22 @@ export const InvoiceTab = () => {
           </div>
         )}
 
+        <form className="flex flex-wrap gap-2 mb-4" onSubmit={async e => {
+          e.preventDefault();
+          const ref = referenceSearch.trim();
+          if (!/^[A-Za-z0-9][A-Za-z0-9_-]{0,59}$/.test(ref)) { toast.error("أدخل رقم الحجز كاملاً"); return; }
+          setSearching(true);
+          const { data, error } = await supabase.from("orders").select("*, customers(name, email, phone, country_code, nationality), events(title, event_date, location, is_archived), ticket_holders(qr_code, ticket_type)").eq("booking_reference", ref).eq("payment_status", "confirmed").gte("created_at", "2026-01-12T00:00:00+03:00").maybeSingle();
+          setSearching(false);
+          if (error || !data) { toast.error("لم يُعثر على فاتورة مؤكدة بهذا الرقم"); return; }
+          setSearchedOrder(data as unknown as Order);
+          setFilterTab("all");
+        }}>
+          <Input aria-label="رقم الحجز" dir="ltr" placeholder="رقم الحجز الكامل" value={referenceSearch} onChange={e => setReferenceSearch(e.target.value)} className="max-w-md" />
+          <Button type="submit" disabled={searching}>{searching ? "جارٍ البحث…" : "بحث"}</Button>
+          {searchedOrder && <Button type="button" variant="outline" onClick={() => { setSearchedOrder(null); setReferenceSearch(""); }}>إلغاء البحث</Button>}
+        </form>
+        {searchedOrder?.events?.is_archived && <p className="mb-4 text-sm text-muted-foreground">فاتورة فعالية مؤرشفة — إرسال يدوي فقط، غير مشمولة بالإرسال التلقائي.</p>}
         <Tabs value={filterTab} onValueChange={(v) => setFilterTab(v as "all" | "pending" | "sent" | "eventDone" | "onHold")} className="w-full">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
             <TabsList className="grid grid-cols-5 w-full sm:w-auto">
@@ -941,102 +924,7 @@ export const InvoiceTab = () => {
                 filteredOrders.slice(0, visibleCount).map((order) => (
                 <TableRow key={order.id}>
                     <TableCell>
-                      {(() => {
-                        const msg = order.n8n_response_message || '';
-                        const msgIsEmail = msg.includes('اميل') || msg.includes('إيميل') || msg.includes('بريد') || msg.includes('email') || msg.includes('Email') || msg.includes('جاري إرسال البريد');
-                        const msgIsWhatsApp = msg.includes('واتساب') || msg.includes('whatsapp') || msg.includes('WhatsApp');
-
-                        if (order.n8n_response_message && !isPendingMessage(order.n8n_response_message)) {
-                          return (
-                            <div className="flex flex-col gap-1">
-                              <Badge variant="default" className={`gap-1 ${msgIsEmail ? 'bg-blue-600 hover:bg-blue-700' : ''}`}>
-                                <CheckCircle className="w-3 h-3" />
-                                {msgIsEmail ? '📧 تم الإرسال بالإيميل' : msgIsWhatsApp ? '💬 تم الإرسال بالواتساب' : 'تم الإرسال'}
-                              </Badge>
-                              {order.n8n_responded_at && (
-                                <span className="text-xs text-muted-foreground" dir="ltr">
-                                  {format(new Date(order.n8n_responded_at), "dd/MM/yyyy HH:mm:ss")}
-                                </span>
-                              )}
-                              <span className="text-xs text-muted-foreground italic">
-                                {order.n8n_response_message}
-                              </span>
-                            </div>
-                          );
-                        }
-                        if (sentOrders.has(order.id)) {
-                          return (
-                            <div className="flex flex-col gap-1">
-                              <Badge variant="default" className="gap-1">
-                                <CheckCircle className="w-3 h-3" />
-                                تم الإرسال
-                              </Badge>
-                              <span className="text-xs text-muted-foreground" dir="ltr">
-                                {format(sentOrders.get(order.id)!.sentAt, "dd/MM/yyyy HH:mm:ss")}
-                              </span>
-                              {sentOrders.get(order.id)?.message && (
-                                <span className="text-xs text-muted-foreground italic">
-                                  {sentOrders.get(order.id)!.message}
-                                </span>
-                              )}
-                            </div>
-                          );
-                        }
-                        if (sendingEmail === order.id) {
-                          return (
-                            <Badge variant="secondary" className="gap-1 bg-blue-50 text-blue-700 border-blue-300">
-                              <Loader2 className="w-3 h-3 animate-spin" />
-                              📧 جاري الإرسال بالإيميل...
-                            </Badge>
-                          );
-                        }
-                        if (currentlySending === order.id) {
-                          return (
-                            <Badge variant="secondary" className="gap-1">
-                              <Loader2 className="w-3 h-3 animate-spin" />
-                              💬 جاري الإرسال...
-                            </Badge>
-                          );
-                        }
-                        if (isPendingMessage(order.n8n_response_message) && order.n8n_response_message) {
-                          return (
-                            <Badge variant="secondary" className={`gap-1 ${msgIsEmail ? 'bg-blue-50 text-blue-700 border-blue-300' : ''}`}>
-                              <Loader2 className="w-3 h-3 animate-spin" />
-                              {msgIsEmail ? '📧 بانتظار رد الإيميل...' : '💬 بانتظار رد الواتساب...'}
-                            </Badge>
-                          );
-                        }
-                        if (sending) {
-                          return (
-                            <Badge variant="secondary" className="gap-1">
-                              <Clock className="w-3 h-3" />
-                              قيد الانتظار
-                            </Badge>
-                          );
-                        }
-                        if (isEventDone(order)) {
-                          return (
-                            <Badge variant="outline" className="gap-1 bg-orange-100 text-orange-700 border-orange-300">
-                              <CalendarX className="w-3 h-3" />
-                              انتهت الفعالية
-                            </Badge>
-                          );
-                        }
-                        if (isOnHold(order)) {
-                          return (
-                            <div className="flex flex-col gap-1">
-                              <Badge variant="outline" className="gap-1 bg-red-100 text-red-700 border-red-300">
-                                <PauseCircle className="w-3 h-3" />
-                                موقوف
-                              </Badge>
-                              <span className="text-xs text-muted-foreground">
-                                محاولات: {order.send_attempt_count || 0}
-                              </span>
-                            </div>
-                          );
-                        }
-                        return <Badge variant="outline">لم يتم الإرسال</Badge>;
-                      })()}
+                      <InvoiceDeliveryStatus orderId={order.id} emailSentAt={order.invoice_email_sent_at} legacyMessage={order.n8n_response_message} legacyAt={order.n8n_responded_at} />
                     </TableCell>
                     
                     <TableCell className="font-mono">{order.booking_reference}</TableCell>
@@ -1102,7 +990,7 @@ export const InvoiceTab = () => {
                     </TableCell>
                     <TableCell>
                       <div className="flex gap-2 whitespace-nowrap">
-                        {!order.n8n_response_message && !sentOrders.has(order.id) && !isOnHold(order) && (
+                        {(
                           <Button
                             variant="default"
                             size="sm"
@@ -1118,7 +1006,7 @@ export const InvoiceTab = () => {
                             ) : (
                               <>
                                 <Send className="w-3 h-3" />
-                                إرسال
+                                {order.n8n_response_message ? "إعادة إرسال واتساب" : "إرسال واتساب"}
                               </>
                             )}
                           </Button>
@@ -1140,10 +1028,10 @@ export const InvoiceTab = () => {
                           size="sm"
                           onClick={() => setTimelineOrder(order)}
                           className="gap-1 text-xs"
-                          title="سجل حالة إرسال البريد"
+                          title="سجل إرسال واتساب والبريد"
                         >
                           <History className="w-3 h-3" />
-                          سجل البريد
+                          سجل الإرسال
                         </Button>
                         {(order.n8n_response_message || sentOrders.has(order.id)) && (
                           <Button
@@ -1187,13 +1075,13 @@ export const InvoiceTab = () => {
           <DialogHeader className="text-right">
             <DialogTitle className="flex items-center gap-2">
               <Mail className="h-4 w-4 text-primary" />
-              سجل إرسال الفاتورة بالبريد
+              سجل إرسال الفاتورة
             </DialogTitle>
             <DialogDescription>
               {timelineOrder ? `حجز ${timelineOrder.booking_reference} — ${timelineOrder.customers?.email || "بدون بريد"}` : ""}
             </DialogDescription>
           </DialogHeader>
-          {timelineOrder && <EmailDeliveryTimeline orderId={timelineOrder.id} />}
+          {timelineOrder && <InvoiceDeliveryStatus orderId={timelineOrder.id} emailSentAt={timelineOrder.invoice_email_sent_at} history />}
         </DialogContent>
       </Dialog>
     </div>

@@ -92,6 +92,7 @@ Deno.serve(async (req) => {
       .from('email_delivery_events')
       .select('id', { count: 'exact', head: true })
       .eq('order_id', order.id)
+      .eq('channel', 'email')
       .in('status', ['queued', 'retried'])
     attempt = (count ?? 0) + 1
 
