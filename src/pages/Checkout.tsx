@@ -1015,7 +1015,7 @@ const Checkout = () => {
             <Card className="checkout-terms p-4 sm:p-5 md:p-6 border-2">
               <div className="flex items-start gap-3 mb-4">
                 <AlertTriangle className="checkout-terms-icon w-6 h-6 flex-shrink-0 mt-0.5" />
-                <h3 className="checkout-terms-title text-lg font-bold">التعليمات</h3>
+                <h3 className="checkout-terms-title text-lg font-bold">الشروط و الأحكام</h3>
               </div>
               <ul className="checkout-terms-list space-y-2 text-sm sm:text-base font-medium mb-4 pr-4" dir="rtl">
                 <li>1- التذكرة المباعة غير قابلة للتعديل او الإستبدال او إسترجاع قيمتها</li>
@@ -1028,7 +1028,7 @@ const Checkout = () => {
                 onClick={() => setTermsAccepted(!termsAccepted)}
                 className={`checkout-terms-btn w-full mt-2 py-4 px-4 rounded-lg text-base font-bold ${termsAccepted ? "is-accepted" : ""}`}
               >
-                {termsAccepted ? "✓ تمت الموافقة على التعليمات" : "اضغط هنا للموافقة على التعليمات"}
+                {termsAccepted ? "✓ تمت الموافقة على الشروط والأحكام" : "اضغط هنا للموافقة على الشروط والأحكام"}
               </button>
             </Card>
 
@@ -1062,7 +1062,7 @@ const Checkout = () => {
             <Button 
               onClick={(e) => {
                 if (!termsAccepted) {
-                  toast.error("يرجى الموافقة على التعليمات أولاً قبل إتمام الحجز");
+                  toast.error("يرجى الموافقة على الشروط والأحكام أولاً قبل إتمام الحجز");
                   return;
                 }
                 handleSubmit(e);
