@@ -912,6 +912,8 @@ export type Database = {
           email_webhook_url: string | null
           header_bg_color: string | null
           header_bg_image_url: string | null
+          hero_image_height: number
+          hero_image_position: string
           hero_image_url: string | null
           hero_text: string | null
           id: string
@@ -954,6 +956,8 @@ export type Database = {
           email_webhook_url?: string | null
           header_bg_color?: string | null
           header_bg_image_url?: string | null
+          hero_image_height?: number
+          hero_image_position?: string
           hero_image_url?: string | null
           hero_text?: string | null
           id?: string
@@ -996,6 +1000,8 @@ export type Database = {
           email_webhook_url?: string | null
           header_bg_color?: string | null
           header_bg_image_url?: string | null
+          hero_image_height?: number
+          hero_image_position?: string
           hero_image_url?: string | null
           hero_text?: string | null
           id?: string
@@ -1211,6 +1217,8 @@ export type Database = {
           current_event_id: string | null
           header_bg_color: string | null
           header_bg_image_url: string | null
+          hero_image_height: number | null
+          hero_image_position: string | null
           hero_image_url: string | null
           hero_text: string | null
           id: string | null
@@ -1230,6 +1238,8 @@ export type Database = {
           current_event_id?: string | null
           header_bg_color?: string | null
           header_bg_image_url?: string | null
+          hero_image_height?: number | null
+          hero_image_position?: string | null
           hero_image_url?: string | null
           hero_text?: string | null
           id?: string | null
@@ -1249,6 +1259,8 @@ export type Database = {
           current_event_id?: string | null
           header_bg_color?: string | null
           header_bg_image_url?: string | null
+          hero_image_height?: number | null
+          hero_image_position?: string | null
           hero_image_url?: string | null
           hero_text?: string | null
           id?: string | null
