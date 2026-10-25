@@ -143,11 +143,11 @@ const EventHome = () => {
       <PublicHeader />
       <main>
         <section className="public-home-banner relative overflow-hidden" style={heroStyle} aria-labelledby="festival-title">
-          <img src={settings?.hero_image_url || heroImage} alt="فعاليات مهرجان قطر للإبل" className="public-home-banner-image absolute inset-0 h-full w-full object-cover" loading="eager" decoding="async" />
+          <img src={settings?.hero_image_url || heroImage} alt="فعاليات مهرجان التحدي للمفاريد" className="public-home-banner-image absolute inset-0 h-full w-full object-cover" loading="eager" decoding="async" />
           <div className="public-hero-shade absolute inset-0" />
           <div className="public-home-banner-content public-hero-text relative mx-auto flex max-w-7xl flex-col justify-end px-5 py-14 sm:px-8 sm:py-20">
             <p className="mb-4 text-sm font-semibold">الفعاليات والتذاكر · قطر</p>
-            <h1 id="festival-title" className="max-w-3xl text-3xl font-bold leading-tight sm:text-5xl">مهرجان قطر للإبل</h1>
+            <h1 id="festival-title" className="max-w-3xl text-3xl font-bold leading-tight sm:text-5xl">مهرجان التحدي للمفاريد</h1>
             {settings?.hero_text && <p className="mt-5 max-w-2xl whitespace-pre-line text-lg leading-8">{settings.hero_text}</p>}
           </div>
         </section>
@@ -182,7 +182,7 @@ const EventHome = () => {
             </nav>}
           </>}
         </section>
-        {settings?.before_footer_image_url && <BeforeFooterImage src={settings.before_footer_image_url} alt="مهرجان قطر للإبل" />}
+        {settings?.before_footer_image_url && <BeforeFooterImage src={settings.before_footer_image_url} alt="مهرجان التحدي للمفاريد" />}
       </main>
       <Footer />
       <WhatsAppButton />

@@ -210,7 +210,7 @@ export const InvoiceCard = ({ data }: InvoiceCardProps) => {
         )}
 
         <p className="mt-6 text-center text-xs text-muted-foreground">
-          شكراً لثقتكم — مهرجان قطر للإبل
+          شكراً لثقتكم — مهرجان التحدي للمفاريد
         </p>
       </Card>
 
