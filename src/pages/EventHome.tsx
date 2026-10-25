@@ -150,7 +150,7 @@ const EventHome = () => {
             {settings?.hero_text && <p className="mt-5 max-w-2xl whitespace-pre-line text-lg leading-8">{settings.hero_text}</p>}
           </div>
         </section>
-        <section className="mx-auto max-w-7xl px-5 py-10 sm:px-8 sm:py-14" aria-labelledby="events-title">
+        <section className="mx-auto max-w-7xl px-5 pb-24 pt-10 sm:px-8 sm:pb-32 sm:pt-14" aria-labelledby="events-title">
           <div className="mb-8 flex flex-wrap items-center gap-3"><Ticket className="h-6 w-6 public-event-heading" /><h2 id="events-title" className="text-2xl font-bold public-event-heading">الفعاليات المتاحة</h2><img src={new URL(heritageDivider.url, "https://www.qcamelmc.org").href} alt="" aria-hidden="true" className="public-heritage-divider mr-auto" /></div>
           {loading ? <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3" aria-label="جار تحميل الفعاليات">{[1,2,3].map(i => <Skeleton key={i} className="h-72 w-full" />)}</div>
           : events.length === 0 ? <div className="border-y border-border py-12 text-center"><Calendar className="mx-auto mb-5 h-9 w-9 text-muted-foreground" /><p className="text-xl font-semibold">{t('noActiveEvents')}</p><p className="mt-3 text-base text-muted-foreground">تُعرض هنا التذاكر عند إتاحة الفعالية القادمة.</p></div>
