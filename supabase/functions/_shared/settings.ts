@@ -4,7 +4,10 @@
 
 import type { SadadCredentials, SadadEnvironment } from "./sadad-api.ts";
 
+export interface WhatsAppTemplate { id: string; name: string; body: string; enabled: boolean; }
+
 export interface PrivateSettings {
+  whatsappTemplates?: WhatsAppTemplate[];
   webhookUrl: string | null;
   /** Separate automation for e-mails (falls back to webhookUrl when unset). */
   emailWebhookUrl: string | null;
