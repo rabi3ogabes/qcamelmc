@@ -643,7 +643,7 @@ const Checkout = () => {
         <div className="animate-pulse text-lg">{t('loading')}</div>
       </div>;
   }
-  return <div className="public-site min-h-screen font-lusail" dir="rtl">
+  return <div className="public-site checkout-luxe min-h-screen font-lusail" dir="rtl">
       <PublicHeader />
 
       <div className="w-full py-4 sm:py-6 md:py-12 px-3 sm:px-4 md:px-8 lg:px-12 xl:px-16">

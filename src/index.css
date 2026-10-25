@@ -216,6 +216,33 @@ All colors MUST be HSL.
   .public-logo { width: 140px; height: auto; max-height: 88px; object-fit: contain; }
   .public-site .bg-primary, .public-ticket-banner { background: hsl(var(--foreground)); color: hsl(var(--primary-foreground)); }
 
+  /* Checkout: warm clay/sand/burgundy palette from the festival guideline (no blue). */
+  .public-site.checkout-luxe {
+    --foreground: 20 25% 14%;
+    --card-foreground: 20 25% 14%;
+    --primary: 17.36 53.78% 55.88%;
+    --secondary: 33.91 76.02% 71.06%;
+    --secondary-foreground: 20 25% 14%;
+    --accent: 30 55% 95%;
+    --accent-foreground: 329 58% 27%;
+    --muted: 34 40% 97%;
+    --muted-foreground: 20 12% 40%;
+    --border: 28 30% 86%;
+    --input: 28 28% 80%;
+    --ring: 17.36 53.78% 55.88%;
+    background: linear-gradient(180deg, hsl(34 45% 97%) 0%, hsl(0 0% 100%) 45%);
+  }
+  .checkout-luxe .bg-primary { background: hsl(var(--festival-clay)); color: hsl(0 0% 100%); }
+  .checkout-luxe main .rounded-lg.border, .checkout-luxe [class*="rounded-lg"][class*="border"][class*="bg-card"] {
+    border-radius: 1.25rem;
+    border-color: hsl(var(--border));
+    box-shadow: 0 1px 0 hsl(var(--festival-clay) / 0.25) inset, 0 18px 40px -24px hsl(20 40% 20% / 0.35);
+  }
+  .checkout-luxe h1, .checkout-luxe h2, .checkout-luxe h3 { letter-spacing: 0; }
+  .checkout-luxe input, .checkout-luxe select, .checkout-luxe textarea { border-radius: 0.75rem; background: hsl(0 0% 100%); }
+  .checkout-luxe input:focus-visible { box-shadow: 0 0 0 3px hsl(var(--festival-clay) / 0.25); }
+  .checkout-luxe button.bg-secondary { border-radius: 0.875rem; }
+
   /* Checkout instructions: brand red notice, high-contrast button in every state. */
   .checkout-terms { border-color: hsl(var(--festival-red)); background: hsl(var(--festival-red) / 0.06); }
   .checkout-terms-icon, .checkout-terms-title { color: hsl(var(--festival-red)); }
