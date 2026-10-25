@@ -1,5 +1,8 @@
 # Task Roadmap
 
+## Home banner controls
+- [ ] Add independent saved top/center/bottom image alignment and height controls; verify admin save/reload and public display without changing other settings.
+
 ## Manual invoice delivery
 - [x] Retrieve QTR-7-11-2026-9A657F69875B in the manual invoice page and save five enabled Arabic WhatsApp messages with customer name, order details and invoice link; authenticated search and save/reload verified, no customer message sent.
 - [x] Find the named archived booking through exact-reference search without exposing archived invoices to automatic sending; authenticated browser verified.

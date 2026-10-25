@@ -7,6 +7,7 @@ import { Upload, Image as ImageIcon, Download, Trash2, AlertTriangle } from "luc
 import { Switch } from "@/components/ui/switch";
 import { Slider } from "@/components/ui/slider";
 import { preFooterDisplay, type ImageRepeat } from "@/lib/preFooterDisplay";
+import { heroImageDisplay, type HeroImagePosition } from "@/lib/heroImageDisplay";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useTranslation } from "react-i18next";
@@ -31,6 +32,9 @@ export const SettingsTab = () => {
   const [newLogoUrl, setNewLogoUrl] = useState("");
   const [heroImageUrl, setHeroImageUrl] = useState("");
   const [newHeroImageUrl, setNewHeroImageUrl] = useState("");
+  const [heroImagePosition, setHeroImagePosition] = useState<HeroImagePosition>("center");
+  const [heroImageHeight, setHeroImageHeight] = useState(600);
+  const [savingHeroDisplay, setSavingHeroDisplay] = useState(false);
   const [beforeFooterImageUrl, setBeforeFooterImageUrl] = useState("");
   const [newBeforeFooterImageUrl, setNewBeforeFooterImageUrl] = useState("");
   const [beforeFooterRepeat, setBeforeFooterRepeat] = useState<ImageRepeat>("repeat-x");
@@ -242,10 +246,26 @@ export const SettingsTab = () => {
     }
   };
 
+  const saveHeroDisplay = async () => {
+    setSavingHeroDisplay(true);
+    try {
+      const display = heroImageDisplay(heroImagePosition, heroImageHeight);
+      const { data, error } = await supabase.from("settings")
+        .update({ hero_image_position: display.position, hero_image_height: display.height })
+        .not("id", "is", null).select("id");
+      if (error || !data?.length) throw error || new Error("Settings unavailable");
+      toast.success("تم حفظ محاذاة الصورة وارتفاعها");
+    } catch {
+      toast.error("تعذّر حفظ إعدادات الصورة، حاول مرة أخرى");
+    } finally {
+      setSavingHeroDisplay(false);
+    }
+  };
+
   const fetchSettings = async () => {
     const { data, error } = await supabase
       .from("settings")
-      .select("logo_url, hero_image_url, before_footer_image_url, before_footer_image_repeat, before_footer_image_opacity, header_bg_color, header_bg_image_url, hero_text, copyright_text, webhook_url, email_webhook_url, webhook_enabled, email_webhook_enabled, admin_phone, admin_email, payment_failed_email_enabled, clarity_project_id, clarity_enabled, sadad_merchant_id, sadad_api_key, sadad_secret, sadad_website_domain, sadad_environment, site_url, show_delete_customer_button, show_generate_qr_button, show_delete_event_button, show_delete_ticket_button, auto_invoice_interval_seconds, invoice_batch_min, invoice_batch_max, invoice_send_delay_min, invoice_send_delay_max, live_refresh_mode")
+      .select("logo_url, hero_image_url, hero_image_position, hero_image_height, before_footer_image_url, before_footer_image_repeat, before_footer_image_opacity, header_bg_color, header_bg_image_url, hero_text, copyright_text, webhook_url, email_webhook_url, webhook_enabled, email_webhook_enabled, admin_phone, admin_email, payment_failed_email_enabled, clarity_project_id, clarity_enabled, sadad_merchant_id, sadad_api_key, sadad_secret, sadad_website_domain, sadad_environment, site_url, show_delete_customer_button, show_generate_qr_button, show_delete_event_button, show_delete_ticket_button, auto_invoice_interval_seconds, invoice_batch_min, invoice_batch_max, invoice_send_delay_min, invoice_send_delay_max, live_refresh_mode")
       .maybeSingle();
 
     if (error) {
@@ -262,6 +282,9 @@ export const SettingsTab = () => {
       setHeroImageUrl(data.hero_image_url);
       setNewHeroImageUrl(data.hero_image_url);
     }
+    const heroDisplay = heroImageDisplay(data?.hero_image_position, data?.hero_image_height);
+    setHeroImagePosition(heroDisplay.position);
+    setHeroImageHeight(heroDisplay.height);
 
     if (data?.before_footer_image_url) {
       setBeforeFooterImageUrl(data.before_footer_image_url);
@@ -1456,6 +1479,26 @@ export const SettingsTab = () => {
             </div>
           </div>
           
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-2">
+              <Label htmlFor="hero-image-position">محاذاة الصورة</Label>
+              <Select value={heroImagePosition} onValueChange={(value) => setHeroImagePosition(heroImageDisplay(value).position)} disabled={savingHeroDisplay}>
+                <SelectTrigger id="hero-image-position"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="top">أعلى</SelectItem>
+                  <SelectItem value="center">وسط</SelectItem>
+                  <SelectItem value="bottom">أسفل</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-3">
+              <Label htmlFor="hero-image-height">ارتفاع الصورة — {heroImageHeight} بكسل</Label>
+              <Slider id="hero-image-height" aria-label="ارتفاع صورة الخلفية" min={300} max={800} step={10} value={[heroImageHeight]} onValueChange={([value]) => setHeroImageHeight(value ?? 600)} disabled={savingHeroDisplay} />
+            </div>
+          </div>
+          <Button onClick={saveHeroDisplay} disabled={savingHeroDisplay} className="font-lusail">
+            {savingHeroDisplay ? "جارٍ الحفظ…" : "حفظ محاذاة الصورة وارتفاعها"}
+          </Button>
           <div>
             <Label htmlFor="hero-url" className="font-lusail">رابط صورة الخلفية</Label>
             <div className="mt-2">
