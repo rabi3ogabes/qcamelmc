@@ -146,8 +146,8 @@ export const generateInvoicePdf = async (data: InvoiceData) => {
       <div class="qr-grid">${qrItems}</div>
     </div>` : ''}
 
-    <div class="thanks">شكراً لثقتكم في مهرجان قطر للإبل - جزيلات العطا - 2026 💛</div>
-    <div class="footer">جميع الحقوق محفوظة © مهرجان قطر للإبل - جزيلات العطا - 2026</div>
+    <div class="thanks">شكراً لثقتكم في مهرجان التحدي للمفاريد - جزيلات العطا - 2026 💛</div>
+    <div class="footer">جميع الحقوق محفوظة © مهرجان التحدي للمفاريد - جزيلات العطا - 2026</div>
   </div>
 </body>
 </html>`;

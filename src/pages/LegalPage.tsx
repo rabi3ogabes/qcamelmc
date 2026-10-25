@@ -32,7 +32,7 @@ const LegalPage = ({ kind }: { kind: "privacy" | "terms" }) => {
       <Link to="/" className="inline-flex items-center gap-2 text-sm text-primary hover:underline"><ArrowRight className="h-4 w-4" />العودة إلى الفعاليات</Link>
       <Icon className="mt-10 h-8 w-8 text-primary" aria-hidden="true" />
       <h1 className="mt-4 text-3xl font-bold text-foreground sm:text-4xl">{title}</h1>
-      <p className="mt-4 text-base leading-8 text-muted-foreground">مهرجان قطر للإبل — معلومات استخدام موقع التذاكر وخدمات الحجز.</p>
+      <p className="mt-4 text-base leading-8 text-muted-foreground">مهرجان التحدي للمفاريد — معلومات استخدام موقع التذاكر وخدمات الحجز.</p>
       <div className="mt-10 divide-y divide-border">
         {(isPrivacy ? privacy : terms).map(([heading, body]) => <section key={heading} className="py-7">
           <h2 className="text-xl font-bold text-foreground">{heading}</h2>

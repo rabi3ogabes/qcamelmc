@@ -279,7 +279,7 @@ const POSReceiptPage = () => {
 
     // Create worksheet with styled header
     const ws = XLSX.utils.aoa_to_sheet([
-      [`كشف تحميل رسوم تذاكر دخول مهرجان قطر للابل- جزيلا العطا - بتاريخ ${today} (POS)`],
+      [`كشف تحميل رسوم تذاكر دخول مهرجان التحدي للمفاريد- جزيلا العطا - بتاريخ ${today} (POS)`],
       [], // Empty row
       headers,
       ...exportData,
