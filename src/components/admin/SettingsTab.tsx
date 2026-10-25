@@ -12,6 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useTranslation } from "react-i18next";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { WhatsAppTemplates } from "./WhatsAppTemplates";
 import { SadadDiagnostic } from "./SadadDiagnostic";
 import * as XLSX from "xlsx";
 import {
@@ -1791,6 +1792,8 @@ export const SettingsTab = () => {
               </Button>
             </div>
           </Card>
+
+          <WhatsAppTemplates />
 
           {/* n8n Webhook - Email */}
           <Card className="p-6">

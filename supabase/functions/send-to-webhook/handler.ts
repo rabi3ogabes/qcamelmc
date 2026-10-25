@@ -8,6 +8,7 @@
 import { requireAdmin, type AuthDeps } from "../_shared/auth.ts";
 import { HttpError, json, preflight, readJson, toErrorResponse } from "../_shared/http.ts";
 import { buildOrderPaidPayload } from "../_shared/notify.ts";
+import { whatsappInvoicePayload } from "../_shared/whatsapp-invoice.ts";
 import type { Repo } from "../_shared/repo.ts";
 
 const SAFE_REF = /^[A-Za-z0-9][A-Za-z0-9_-]{0,59}$/;
@@ -36,6 +37,22 @@ export function sendToWebhookHandler(deps: RelayDeps) {
       // "notify" mode: the server builds the message from the database, so a client can
       // only say WHICH booking to announce, never what the message contains.
       let outgoing: unknown = payload;
+      let deliveryId: string | null = null;
+      const isInvoice = (payload as { action?: unknown }).action === "send_invoice";
+      if (isInvoice) {
+        const ref = String((payload as { booking_reference?: unknown }).booking_reference ?? "").trim();
+        if (!SAFE_REF.test(ref)) throw new HttpError(400, "invalid_reference", "Invalid booking reference");
+        const context = await deps.repo.getOrderContext(ref);
+        if (!context) throw new HttpError(404, "order_not_found", "Booking not found");
+        if (context.order.payment_status !== "confirmed") throw new HttpError(400, "not_confirmed", "Invoice requires confirmed payment");
+        const settings = await deps.repo.getPrivateSettings();
+        if (!settings.webhookUrl) throw new HttpError(400, "webhook_not_configured", "Webhook URL not configured");
+        deliveryId = crypto.randomUUID();
+        const invoice = whatsappInvoicePayload(context, settings.whatsappTemplates ?? [], deliveryId);
+        outgoing = invoice;
+        await deps.repo.createInvoiceDelivery({ order_id: context.order.id, booking_reference: ref, channel: "whatsapp", template: "whatsapp-invoice", status: "queued", attempt: 1, recipient: invoice.customer_phone_whatsapp, message_body: invoice.whatsapp_message, template_name: invoice.template_name, delivery_id: deliveryId });
+        await deps.repo.markAutomationPending({ orderId: context.order.id, bookingReference: ref, message: "جاري الإرسال إلى واتساب..." });
+      }
       if ((payload as { notify?: unknown }).notify === "payment_confirmed") {
         const ref = String((payload as { booking_reference?: unknown }).booking_reference ?? "").trim();
         if (!SAFE_REF.test(ref)) throw new HttpError(400, "invalid_reference", "Invalid booking reference");
@@ -81,7 +98,7 @@ export function sendToWebhookHandler(deps: RelayDeps) {
           const ref = typeof (payload as { booking_reference?: unknown }).booking_reference === "string"
             ? (payload as { booking_reference: string }).booking_reference
             : null;
-          if (orderId || ref) {
+          if (!isInvoice && (orderId || ref)) {
             await deps.repo
               .markAutomationPending({ orderId, bookingReference: ref, message: pendingMessage })
               .catch((error) => console.error("could not mark the order as sending", error instanceof Error ? error.message : error));
@@ -89,6 +106,7 @@ export function sendToWebhookHandler(deps: RelayDeps) {
           return json({ success: true, message: pendingMessage, response: text });
         }
 
+        if (deliveryId) await deps.repo.updateInvoiceDelivery(deliveryId, "failed", `HTTP ${res.status}: ${text.slice(0, 500)}`);
         let details: unknown = text;
         try {
           details = JSON.parse(text);
@@ -107,6 +125,7 @@ export function sendToWebhookHandler(deps: RelayDeps) {
         return json({ error: "Webhook returned error", details, status: res.status });
       } catch (error) {
         const timedOut = error instanceof Error && error.name === "AbortError";
+        if (deliveryId) await deps.repo.updateInvoiceDelivery(deliveryId, "failed", timedOut ? "Webhook request timed out" : "Webhook request failed");
         return json({
           error: timedOut ? "Webhook request timed out" : "Webhook request failed",
           details: timedOut ? "The webhook did not respond in time" : "Could not reach the webhook",
