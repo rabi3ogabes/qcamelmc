@@ -189,14 +189,12 @@ All colors MUST be HSL.
     pointer-events: none;
     background-image: url('https://www.qcamelmc.org/__l5e/assets-v1/5d817b16-68cc-4525-9a8f-d75b204c6476/mafareed-page-background.png');
     background-repeat: no-repeat;
-    /* Bottom edge of the artwork sits just above the ticket grid (see media query below). */
-    background-position: center 290px;
+    /* Bottom edge of the artwork sits in the band just above the ticket grid. */
+    background-position: center 240px;
     background-size: min(520px, 82%) auto;
     opacity: var(--public-artwork-opacity);
   }
-  @media (max-width: 639px) {
-    .public-site:has(> header) > :is(main, div)::before { background-position: center 280px; }
-  }
+
 
   .public-heritage-strip {
     height: 20px;
