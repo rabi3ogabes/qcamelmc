@@ -1015,7 +1015,7 @@ const Checkout = () => {
             <Card className="checkout-terms p-4 sm:p-5 md:p-6 border-2">
               <div className="flex items-start gap-3 mb-4">
                 <AlertTriangle className="checkout-terms-icon w-6 h-6 flex-shrink-0 mt-0.5" />
-                <h3 className="checkout-terms-title text-lg font-bold">الشروط و الأحكام</h3>
+                <h3 className="checkout-terms-title text-lg font-bold">الشروط والأحكام</h3>
               </div>
               <ul className="checkout-terms-list space-y-2 text-sm sm:text-base font-medium mb-4 pr-4" dir="rtl">
                 <li>1- التذكرة المباعة غير قابلة للتعديل او الإستبدال او إسترجاع قيمتها</li>
