@@ -92,6 +92,13 @@
       "when": 1792340885303,
       "tag": "0012_pre_footer_display_controls",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1792918409231,
+      "tag": "0013_invoice_whatsapp_templates_and_history",
+      "breakpoints": true
     }
   ]
 }

@@ -321,35 +321,47 @@ export type Database = {
         Row: {
           attempt: number
           booking_reference: string | null
+          channel: string
           created_at: string
+          delivery_id: string | null
           detail: string | null
           id: string
+          message_body: string | null
           order_id: string | null
           recipient: string | null
           status: string
           template: string
+          template_name: string | null
         }
         Insert: {
           attempt?: number
           booking_reference?: string | null
+          channel?: string
           created_at?: string
+          delivery_id?: string | null
           detail?: string | null
           id?: string
+          message_body?: string | null
           order_id?: string | null
           recipient?: string | null
           status: string
           template?: string
+          template_name?: string | null
         }
         Update: {
           attempt?: number
           booking_reference?: string | null
+          channel?: string
           created_at?: string
+          delivery_id?: string | null
           detail?: string | null
           id?: string
+          message_body?: string | null
           order_id?: string | null
           recipient?: string | null
           status?: string
           template?: string
+          template_name?: string | null
         }
         Relationships: [
           {
@@ -924,6 +936,7 @@ export type Database = {
           updated_at: string | null
           webhook_enabled: boolean
           webhook_url: string | null
+          whatsapp_templates: Json
         }
         Insert: {
           admin_email?: string | null
@@ -965,6 +978,7 @@ export type Database = {
           updated_at?: string | null
           webhook_enabled?: boolean
           webhook_url?: string | null
+          whatsapp_templates?: Json
         }
         Update: {
           admin_email?: string | null
@@ -1006,6 +1020,7 @@ export type Database = {
           updated_at?: string | null
           webhook_enabled?: boolean
           webhook_url?: string | null
+          whatsapp_templates?: Json
         }
         Relationships: [
           {
