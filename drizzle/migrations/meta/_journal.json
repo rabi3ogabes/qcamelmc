@@ -99,6 +99,13 @@
       "when": 1792918409231,
       "tag": "0013_invoice_whatsapp_templates_and_history",
       "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1792946738726,
+      "tag": "0014_hero_image_display_settings",
+      "breakpoints": true
     }
   ]
 }

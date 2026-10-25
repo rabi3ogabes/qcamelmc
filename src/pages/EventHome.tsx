@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, type CSSProperties } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { supabase } from "@/integrations/supabase/client";
@@ -22,6 +22,7 @@ import camelHerd from "@/assets/camel-herd.png.asset.json";
 import camelHandler from "@/assets/camel-handler.png.asset.json";
 import flagBearer from "@/assets/flag-bearer.png.asset.json";
 import camelRider from "@/assets/camel-rider.png.asset.json";
+import { heroImageDisplay } from "@/lib/heroImageDisplay";
 
 // Light background artwork for the ticket cards, cycled across the grid.
 // Resolved against the public host so the artwork loads in preview and live alike.
@@ -50,6 +51,11 @@ const EventHome = () => {
   const { t } = useTranslation();
   const { settings } = useSettings();
   const navigate = useNavigate();
+  const heroDisplay = heroImageDisplay(settings?.hero_image_position, settings?.hero_image_height);
+  const heroStyle = {
+    "--hero-image-height": `${heroDisplay.height}px`,
+    "--hero-image-position": heroDisplay.position,
+  } as CSSProperties;
 
   // Load cached events immediately
   const cachedEvents = useMemo(() => {
@@ -141,10 +147,10 @@ const EventHome = () => {
     <div className="public-site min-h-screen font-lusail" dir="rtl">
       <PublicHeader />
       <main>
-        <section className="relative min-h-[440px] overflow-hidden sm:min-h-[600px]" aria-labelledby="festival-title">
-          <img src={settings?.hero_image_url || heroImage} alt="فعاليات مهرجان قطر للإبل" className="absolute inset-0 h-full w-full object-cover" loading="eager" decoding="async" />
+        <section className="public-home-banner relative overflow-hidden" style={heroStyle} aria-labelledby="festival-title">
+          <img src={settings?.hero_image_url || heroImage} alt="فعاليات مهرجان قطر للإبل" className="public-home-banner-image absolute inset-0 h-full w-full object-cover" loading="eager" decoding="async" />
           <div className="public-hero-shade absolute inset-0" />
-          <div className="public-hero-text relative mx-auto flex min-h-[440px] max-w-7xl flex-col justify-end px-5 py-14 sm:min-h-[600px] sm:px-8 sm:py-20">
+          <div className="public-home-banner-content public-hero-text relative mx-auto flex max-w-7xl flex-col justify-end px-5 py-14 sm:px-8 sm:py-20">
             <p className="mb-4 text-sm font-semibold">الفعاليات والتذاكر · قطر</p>
             <h1 id="festival-title" className="max-w-3xl text-3xl font-bold leading-tight sm:text-5xl">مهرجان قطر للإبل</h1>
             {settings?.hero_text && <p className="mt-5 max-w-2xl whitespace-pre-line text-lg leading-8">{settings.hero_text}</p>}

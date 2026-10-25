@@ -11,6 +11,7 @@
 - Guideline styling remains scoped to public-site; use original PDF artwork through asset pointers and licensed font sources with explicit fallback, never print font subsets, so staff tools and booking logic stay unchanged.
 - Central public-page artwork uses a noninteractive pseudo-element only on public-site wrappers with PublicHeader; footer artwork scales proportionally — shared decoration must not alter staff screens or booking behavior.
 - Pre-footer repetition and opacity are persisted in settings, publicly read through public_settings, and rendered by BeforeFooterImage at natural image dimensions; vertical repetition renders two rows without resizing tiles.
+- Home banner alignment and height use independent settings columns exposed through public_settings and normalized by heroImageDisplay; scoped CSS variables preserve image proportions and cap banner height for smaller screens without affecting the watermark or pre-footer.
 - The public sitemap lists only stable, non-sensitive customer pages; hosting supplies absolute share-image metadata when none is statically configured.
 - Receipt AI quotas are enforced atomically by server-only database functions; shared-passcode callers share a quota, and each active reading holds a bounded lease.
 - Keep spreadsheet, scanner and chart code in separate production chunks; load receipt spreadsheet export only on demand to avoid loading export code on page entry.

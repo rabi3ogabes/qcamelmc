@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect, ReactNode, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { heroImageDisplay, type HeroImagePosition } from "@/lib/heroImageDisplay";
 
 const SETTINGS_CACHE_KEY = "cached_settings";
 const SETTINGS_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
@@ -7,6 +8,8 @@ const SETTINGS_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 interface Settings {
   logo_url: string | null;
   hero_image_url: string | null;
+  hero_image_position: HeroImagePosition;
+  hero_image_height: number;
   before_footer_image_url: string | null;
   before_footer_image_repeat: "repeat-x" | "repeat-y";
   before_footer_image_opacity: number;
@@ -26,6 +29,8 @@ interface Settings {
 const DEFAULT_SETTINGS: Settings = {
   logo_url: null,
   hero_image_url: null,
+  hero_image_position: "center",
+  hero_image_height: 600,
   before_footer_image_url: null,
   before_footer_image_repeat: "repeat-x",
   before_footer_image_opacity: 100,
@@ -88,13 +93,15 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
     try {
       const { data, error } = await supabase
         .from("public_settings")
-        .select("logo_url, hero_image_url, before_footer_image_url, before_footer_image_repeat, before_footer_image_opacity, header_bg_color, header_bg_image_url, hero_text, copyright_text, admin_phone, current_event_id")
+        .select("logo_url, hero_image_url, hero_image_position, hero_image_height, before_footer_image_url, before_footer_image_repeat, before_footer_image_opacity, header_bg_color, header_bg_image_url, hero_text, copyright_text, admin_phone, current_event_id")
         .maybeSingle();
       if (error) throw error;
 
       const resolved: Settings = {
         logo_url: data?.logo_url || null,
         hero_image_url: data?.hero_image_url || null,
+        hero_image_position: heroImageDisplay(data?.hero_image_position, data?.hero_image_height).position,
+        hero_image_height: heroImageDisplay(data?.hero_image_position, data?.hero_image_height).height,
         before_footer_image_url: data?.before_footer_image_url || null,
         before_footer_image_repeat: data?.before_footer_image_repeat === "repeat-y" ? "repeat-y" : "repeat-x",
         before_footer_image_opacity: data?.before_footer_image_opacity ?? 100,

@@ -176,6 +176,15 @@ All colors MUST be HSL.
   }
 
   .public-site .font-lusail { font-family: inherit; }
+  .public-home-banner, .public-home-banner-content {
+    min-height: min(var(--hero-image-height, 600px), 65svh);
+  }
+  .public-home-banner-image { object-position: center var(--hero-image-position, center); }
+  @media (max-width: 639px) {
+    .public-home-banner, .public-home-banner-content {
+      min-height: min(calc(var(--hero-image-height, 600px) * 0.733333), 65svh);
+    }
+  }
   .public-site:has(> header) > :is(main, div) {
     position: relative;
     isolation: isolate;
