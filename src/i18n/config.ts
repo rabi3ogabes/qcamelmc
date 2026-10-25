@@ -161,9 +161,9 @@ const resources = {
       // Ticket Selection Page
       "selectTicketsTitle": "اختر تذكرتك",
       "chooseQuantity": "اختر الكمية لكل نوع تذكرة",
-      "vipAccessTitle": "تذكرة دخول VIP",
+      "vipAccessTitle": "تذكرة دخول كبار الشخصيات VIP",
       "vipAccessDesc": "مقاعد مميزة، وصول حصري",
-      "generalAdmissionTitle": "تذكرة دخول عادية",
+      "generalAdmissionTitle": "تذكرة دخول",
       "generalAdmissionDesc": "دخول عام لجميع مناطق وأنشطة الفعالية",
       "parkingPassTitle": "تذكرة موقف السيارات",
       "parkingPassDesc": "موقف سيارات محجوز بالقرب من مدخل المكان",
