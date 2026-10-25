@@ -5,7 +5,7 @@
 - [x] Find the named archived booking through exact-reference search without exposing archived invoices to automatic sending; authenticated browser verified.
 - [x] Add WhatsApp send/resend with channel-specific delivery history and counts; 71 focused assertions passed, named invoice shows one historic email send.
 - [x] Add Settings message templates with random selection; save/reload verified, original templates restored without sending customer messages.
-- [ ] Fix both n8n WhatsApp callback paths to preserve Webhook delivery_id and require provider success before recording success; connection is now available. Verify without resending customer messages.
+- [x] Fix both n8n WhatsApp callback paths to preserve Webhook delivery_id and require provider success plus an outgoing message ID before recording success; saved active workflow readback verified, real prior execution data and simulated failure passed, 11 focused tests passed. No messages resent or historical statuses changed; a fresh full send remains unverified.
 
 ## Sadad credential source
 - [x] Correct Checkout uppercase/mandatory-field signing; official public example and payment-proof regressions passed (197 tests), create-order/sadad-payment/sadad-diagnose deployed, authenticated live diagnostic shows updated guidance with API rejected and Checkout unverified. No booking or payment created.
