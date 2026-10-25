@@ -351,11 +351,14 @@ const TicketSelection = () => {
       return ticket.description;
     }
     
+    // The operator hides the generic description line for the normal ticket.
+    if (ticket.type === "normal") {
+      return "";
+    }
+
     switch (ticket.type) {
       case "vip":
         return t('vipAccessDesc');
-      case "normal":
-        return t('generalAdmissionDesc');
       case "parking":
         return t('parkingPassDesc');
       default:
@@ -458,9 +461,11 @@ const TicketSelection = () => {
                         {ticket.type === 'vip' ? 'تذكرة دخول كبار الشخصيات VIP' : ticket.type === 'normal' ? 'تذكرة دخول' : 'تذكرة موقف السيارات'}
                       </span>
                     </div>
+                    {getTicketDescription(ticket) && (
                     <p className="text-xs sm:text-sm lg:text-base text-muted-foreground mb-1.5 sm:mb-2 break-words">
                       {getTicketDescription(ticket)}
                     </p>
+                    )}
                     {isSoldOut && (
                       <p className="text-xs sm:text-sm lg:text-base text-destructive font-bold">
                         نفذت الكمية - غير متوفر
