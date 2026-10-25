@@ -43,7 +43,10 @@ Deno.serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseKey);
 
     // Parse the request body
-    const payload: N8nResponsePayload = await req.json();
+    const raw: unknown = await req.json();
+    if (!raw || typeof raw !== "object" || Array.isArray(raw)) return new Response(JSON.stringify({ error: "Invalid callback" }), { status: 400, headers: corsHeaders });
+    const payload = raw as N8nResponsePayload;
+    if (typeof payload.booking_reference !== "string" || !/^[A-Za-z0-9][A-Za-z0-9_-]{0,59}$/.test(payload.booking_reference) || typeof payload.message !== "string" || !payload.message.trim()) return new Response(JSON.stringify({ error: "Invalid callback" }), { status: 400, headers: corsHeaders });
     
     if (req.method !== "POST") return new Response("Method not allowed", { status: 405, headers: corsHeaders });
     if (payload.delivery_id) {
