@@ -24,7 +24,7 @@ export function InvoiceDeliveryStatus({ orderId, emailSentAt, legacyMessage, leg
       if (active) { setError(false); setEvents(rows); }
     };
     load();
-    const timer = setInterval(load, 5000);
+    const timer = setInterval(load, 30000);
     return () => { active = false; clearInterval(timer); };
   }, [orderId]);
   const email = deliveryCounts(events, "email");
@@ -41,7 +41,7 @@ export function InvoiceDeliveryStatus({ orderId, emailSentAt, legacyMessage, leg
       {events.length === 0 && <li className="text-xs text-muted-foreground">لا توجد محاولات مسجلة</li>}
       {events.map(e => <li key={e.id} className="border-r-2 border-border pr-2 text-xs space-y-1">
         <p>{e.channel === "whatsapp" ? "واتساب" : "البريد"} — {({ sent: "تم الإرسال", queued: "بانتظار التأكيد", retried: "إعادة محاولة", failed: "فشل", suppressed: "محظور" } as Record<string, string>)[e.status] ?? e.status}</p>
-        <p className="text-muted-foreground">{formatQatarDate(e.created_at, { dateStyle: "short", hour: "2-digit", minute: "2-digit" })}</p>
+        <p className="text-muted-foreground">{formatQatarDate(e.created_at, { year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" })}</p>
         {e.template_name && <p>{e.template_name}</p>}
         {e.detail && <p className="break-words">{e.detail}</p>}
         {e.message_body && <p className="whitespace-pre-wrap break-words">{e.message_body}</p>}
