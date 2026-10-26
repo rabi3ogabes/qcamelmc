@@ -173,7 +173,6 @@ const AdminPOS = () => {
         const { data, error } = await supabase
           .from("events")
           .select("id, title, event_date")
-          .eq("is_active", true)
           .eq("is_archived", false)
           .order("event_date", { ascending: true });
 
