@@ -5,7 +5,7 @@ import { Card } from "@/components/ui/card";
 import { Search, UserCheck, Loader2, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { searchCustomers, dedupeCustomers } from "@/lib/customerLookup";
+import { searchCustomers, dedupeCustomers, STAFF_UNAUTHORIZED } from "@/lib/customerLookup";
 import { getPersonEventHistory, formatHistoryDate, PersonEventHistoryItem } from "@/lib/personEventHistory";
 
 export interface LookupCustomer {
@@ -58,7 +58,11 @@ export const CustomerLookup = ({ onSelect, eventId }: CustomerLookupProps) => {
       }
     } catch (error) {
       console.error("Customer lookup failed:", error);
-      toast.error("تعذر البحث عن العميل");
+      if ((error as Error)?.message === STAFF_UNAUTHORIZED) {
+        toast.error("انتهت جلسة الفريق أو تغيّرت كلمة المرور — سجّل الدخول من جديد ثم أعد البحث");
+      } else {
+        toast.error("تعذر البحث عن العميل");
+      }
     } finally {
       setSearching(false);
     }

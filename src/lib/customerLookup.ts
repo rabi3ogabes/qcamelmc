@@ -1,5 +1,13 @@
 import { supabase } from "@/integrations/supabase/client";
-import { getStaffPasscode, hasStaffAccess } from "@/lib/staffAccess";
+import { getStaffPasscode, hasStaffAccess, revokeStaffAccess } from "@/lib/staffAccess";
+
+/** Thrown when the stored team passcode is stale/rejected, so screens can ask for a fresh sign-in. */
+export const STAFF_UNAUTHORIZED = "staff-unauthorized";
+
+const isUnauthorized = (err: unknown): boolean => {
+  const e = err as { context?: { status?: number }; status?: number } | null;
+  return e?.context?.status === 401 || e?.status === 401;
+};
 
 export interface LookupCustomerRecord {
   id: string;
@@ -44,7 +52,16 @@ export async function searchCustomers(term: string): Promise<LookupCustomerRecor
     body: { term: cleaned, passcode: getStaffPasscode() },
   });
 
-  if (error) throw error;
+  if (error) {
+    // A rejected passcode means the browser kept an old team password: drop it
+    // so the next attempt sends the staff member back through the login gate
+    // instead of failing every search with a cryptic message.
+    if (isUnauthorized(error)) {
+      revokeStaffAccess();
+      throw new Error(STAFF_UNAUTHORIZED);
+    }
+    throw error;
+  }
   return (data?.customers || []) as LookupCustomerRecord[];
 }
 

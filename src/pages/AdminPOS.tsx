@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { CustomerLookup, type LookupCustomer } from "@/components/admin/CustomerLookup";
-import { searchCustomers, dedupeCustomers } from "@/lib/customerLookup";
+import { searchCustomers, dedupeCustomers, STAFF_UNAUTHORIZED } from "@/lib/customerLookup";
 import { getPersonEventHistory, formatHistoryDate, PersonEventHistoryItem } from "@/lib/personEventHistory";
 
 
@@ -384,6 +384,13 @@ const AdminPOS = () => {
         if (!cancelled) {
           setPhoneMatches([]);
           setPhoneHistories({});
+          if ((err as Error)?.message === STAFF_UNAUTHORIZED) {
+            toast({
+              title: "انتهت جلسة الفريق",
+              description: "تغيّرت كلمة مرور الفريق أو انتهت صلاحيتها — سجّل الدخول من جديد ثم أعد البحث",
+              variant: "destructive",
+            });
+          }
         }
       } finally {
 
