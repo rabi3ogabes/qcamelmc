@@ -52,7 +52,16 @@ export async function searchCustomers(term: string): Promise<LookupCustomerRecor
     body: { term: cleaned, passcode: getStaffPasscode() },
   });
 
-  if (error) throw error;
+  if (error) {
+    // A rejected passcode means the browser kept an old team password: drop it
+    // so the next attempt sends the staff member back through the login gate
+    // instead of failing every search with a cryptic message.
+    if (isUnauthorized(error)) {
+      revokeStaffAccess();
+      throw new Error(STAFF_UNAUTHORIZED);
+    }
+    throw error;
+  }
   return (data?.customers || []) as LookupCustomerRecord[];
 }
 
