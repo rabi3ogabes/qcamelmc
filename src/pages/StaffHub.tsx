@@ -114,7 +114,13 @@ const StaffHub = () => {
                 // Refresh the stored access so the new tab never re-asks for the passcode mid-shift.
                 const code = getStaffPasscode();
                 if (code) grantStaffAccess(code);
-                window.open(buildStaffUrl(to), "_blank", "noopener,noreferrer");
+                // Open the tab inside the click gesture (popup blockers reject
+                // delayed window.open), then navigate once the token is ready.
+                const win = window.open("about:blank", "_blank", "noopener,noreferrer");
+                void buildStaffUrl(to).then((url) => {
+                  if (win) win.location.href = url;
+                  else window.open(url, "_blank", "noopener,noreferrer");
+                });
               }}
               className="group relative cursor-pointer overflow-hidden border-border/70 p-5 transition-all duration-300 hover:-translate-y-0.5 hover:border-primary/50 hover:shadow-[var(--shadow-elegant)]"
             >

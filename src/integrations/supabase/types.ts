@@ -1079,6 +1079,27 @@ export type Database = {
           },
         ]
       }
+      staff_handoff_tokens: {
+        Row: {
+          created_at: string
+          expires_at: string
+          passcode: string
+          token: string
+        }
+        Insert: {
+          created_at?: string
+          expires_at: string
+          passcode: string
+          token: string
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string
+          passcode?: string
+          token?: string
+        }
+        Relationships: []
+      }
       ticket_holders: {
         Row: {
           confirmed_at: string | null
