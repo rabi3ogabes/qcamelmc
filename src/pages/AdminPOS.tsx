@@ -173,7 +173,6 @@ const AdminPOS = () => {
         const { data, error } = await supabase
           .from("events")
           .select("id, title, event_date")
-          .eq("is_active", true)
           .eq("is_archived", false)
           .order("event_date", { ascending: true });
 
@@ -190,10 +189,19 @@ const AdminPOS = () => {
         if (availableEvent) {
           setSelectedDate(new Date(availableEvent.event_date));
           setCurrentEventId(availableEvent.id);
-          fetchTicketsForEvent(availableEvent.id);
+          await fetchTicketsForEvent(availableEvent.id);
+        } else {
+          setTickets([]);
         }
       } catch (error) {
         console.error("Failed to fetch upcoming event:", error);
+        toast({
+          title: "خطأ",
+          description: "فشل تحميل الفعاليات، حاول تحديث الصفحة",
+          variant: "destructive",
+        });
+      } finally {
+        setLoading(false);
       }
     };
 
@@ -672,11 +680,6 @@ const AdminPOS = () => {
         }];
 
     applyCart(nextCart);
-
-    toast({
-      title: "تمت الإضافة",
-      description: `تم إضافة ${quantity} ${getTicketTypeName(ticket.type)} للسلة`,
-    });
   };
 
   const cartTypeMeta: Record<string, { icon: typeof Crown; colorVar: string }> = {
@@ -1255,7 +1258,9 @@ const AdminPOS = () => {
                       <TicketAddItem
                         key={ticket.id}
                         ticket={ticket}
-                        onAddToCart={addToCart}
+                        inCart={cart.find((item) => item.ticketId === ticket.id)?.quantity ?? 0}
+                        onAddOne={() => addToCart(ticket, 1)}
+                        onRemoveOne={() => removeOneFromCart(ticket.id)}
                         getTicketTypeName={getTicketTypeName}
                         actualSoldCount={holderCounts[ticket.type]}
                       />

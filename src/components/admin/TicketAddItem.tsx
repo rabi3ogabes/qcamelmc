@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Plus, Minus, Crown, Ticket, Car } from "lucide-react";
 
@@ -13,7 +12,10 @@ interface Ticket {
 
 interface TicketAddItemProps {
   ticket: Ticket;
-  onAddToCart: (ticket: Ticket, quantity: number) => void;
+  /** How many of this ticket are already in the cart — the stepper edits the cart directly. */
+  inCart: number;
+  onAddOne: () => void;
+  onRemoveOne: () => void;
   getTicketTypeName: (type: string) => string;
   actualSoldCount?: number; // Real count from ticket_holders (confirmed only)
 }
@@ -24,11 +26,11 @@ const ticketMeta: Record<string, { icon: typeof Crown; label: string; colorVar: 
   parking: { icon: Car, label: "مواقف", colorVar: "--ticket-parking", gradientVar: "--gradient-primary" },
 };
 
-export const TicketAddItem = ({ ticket, onAddToCart, getTicketTypeName, actualSoldCount }: TicketAddItemProps) => {
-  const [tempQty, setTempQty] = useState(1);
+export const TicketAddItem = ({ ticket, inCart, onAddOne, onRemoveOne, getTicketTypeName, actualSoldCount }: TicketAddItemProps) => {
   const soldCount = actualSoldCount !== undefined ? actualSoldCount : (ticket.sold_quantity || 0);
   const available = Math.max(0, ticket.available_quantity - soldCount);
   const isSoldOut = available === 0;
+  const canAddMore = !isSoldOut && inCart < available;
 
   const meta = ticketMeta[ticket.type] || {
     icon: Ticket,
@@ -38,16 +40,6 @@ export const TicketAddItem = ({ ticket, onAddToCart, getTicketTypeName, actualSo
   };
   const Icon = meta.icon;
   const accentColor = `hsl(var(${meta.colorVar}))`;
-
-  const handleQuantityChange = (value: string) => {
-    const num = parseInt(value);
-    if (!isNaN(num) && num >= 1 && num <= available) {
-      setTempQty(num);
-    }
-  };
-
-  const increment = () => setTempQty(Math.min(available, tempQty + 1));
-  const decrement = () => setTempQty(Math.max(1, tempQty - 1));
 
   return (
     <div
@@ -82,55 +74,39 @@ export const TicketAddItem = ({ ticket, onAddToCart, getTicketTypeName, actualSo
         </div>
       </div>
 
-      {/* Controls */}
+      {/* Live cart stepper: every press updates the side cart immediately */}
       <div className="mt-auto flex items-center gap-2 border-t border-border/60 bg-muted/30 px-4 py-3">
         <Button
           type="button"
           variant="outline"
           size="icon"
-          className="h-9 w-9 rounded-lg border-border bg-card text-foreground hover:bg-accent hover:text-accent-foreground"
-          onClick={decrement}
-          disabled={isSoldOut || tempQty <= 1}
-          aria-label="تقليل الكمية"
+          className="h-10 w-10 rounded-lg border-border bg-card text-foreground hover:bg-accent hover:text-accent-foreground"
+          onClick={onRemoveOne}
+          disabled={isSoldOut || inCart <= 0}
+          aria-label="إنقاص تذكرة من السلة"
         >
           <Minus className="h-4 w-4" />
         </Button>
 
-        <input
-          type="number"
-          min={1}
-          max={available}
-          value={tempQty}
-          onChange={(e) => handleQuantityChange(e.target.value)}
-          disabled={isSoldOut}
-          className="h-9 w-14 flex-1 rounded-lg border border-input bg-card text-center text-base font-bold text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50"
-        />
+        <div className="flex h-10 flex-1 flex-col items-center justify-center rounded-lg border border-input bg-card" aria-live="polite">
+          <span className="text-lg font-bold leading-none tabular-nums" style={{ color: inCart > 0 ? accentColor : undefined }}>
+            {inCart}
+          </span>
+          <span className="text-[10px] text-muted-foreground">في السلة</span>
+        </div>
 
         <Button
           type="button"
-          variant="outline"
           size="icon"
-          className="h-9 w-9 rounded-lg border-border bg-card text-foreground hover:bg-accent hover:text-accent-foreground"
-          onClick={increment}
-          disabled={isSoldOut || tempQty >= available}
-          aria-label="زيادة الكمية"
+          className="h-10 w-10 rounded-lg text-primary-foreground shadow-sm disabled:opacity-60"
+          style={{
+            background: canAddMore ? `linear-gradient(135deg, hsl(var(${meta.colorVar})), hsl(var(${meta.colorVar}) / 0.85))` : undefined,
+          }}
+          onClick={onAddOne}
+          disabled={!canAddMore}
+          aria-label="إضافة تذكرة إلى السلة"
         >
           <Plus className="h-4 w-4" />
-        </Button>
-
-        <Button
-          type="button"
-          className="ms-auto h-9 flex-1 rounded-lg bg-primary px-4 text-sm font-bold text-primary-foreground shadow-sm hover:bg-primary/90 disabled:opacity-60"
-          style={{
-            background: isSoldOut ? undefined : `linear-gradient(135deg, hsl(var(${meta.colorVar})), hsl(var(${meta.colorVar}) / 0.85))`,
-          }}
-          onClick={() => {
-            onAddToCart(ticket, tempQty);
-            setTempQty(1);
-          }}
-          disabled={isSoldOut}
-        >
-          {isSoldOut ? "نفذت" : "إضافة"}
         </Button>
       </div>
     </div>
