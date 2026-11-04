@@ -257,7 +257,8 @@ Deno.serve(async (req) => {
             n8n_response_message: 'جاري الإرسال إلى واتساب...',
             n8n_responded_at: null
           })
-          .eq('id', typedOrder.id);
+          .eq('id', typedOrder.id)
+          .is('n8n_responded_at', null);
         
         if (markSentError) {
           console.error('Error marking order as sent:', markSentError);

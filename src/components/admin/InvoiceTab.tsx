@@ -476,9 +476,7 @@ export const InvoiceTab = () => {
       
       if (result.success) {
         // Check if the response message indicates actual success (not just "in progress")
-        const isActualSuccess = result.message && 
-          !result.message.includes('جاري الإرسال') && 
-          (result.message.includes('تم إرسال') || result.message.includes('بنجاح'));
+        const isActualSuccess = false; // Webhook acceptance cannot certify a WhatsApp send.
         
         if (isActualSuccess) {
           // Reset attempt count on actual success
