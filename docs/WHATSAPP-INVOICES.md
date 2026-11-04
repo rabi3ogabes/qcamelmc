@@ -17,6 +17,12 @@ After the WhatsApp provider confirms sending, POST to the existing `n8n-response
   "booking_reference": "the original booking_reference",
   "delivery_id": "the original delivery_id",
   "status": "success",
+  "provider_confirmed": true,
+  "provider_message_id": "the outgoing data.key.id",
+  "provider_status": "PENDING",
+  "provider_confirmed": true,
+  "provider_message_id": "the outgoing data.key.id",
+  "provider_status": "PENDING",
   "message": "تم إرسال الفاتورة عبر واتساب"
 }
 ```
@@ -30,3 +36,4 @@ Archived bookings are available through exact-reference administrator search onl
 The connected `qcamelmc` workflow was corrected on 2026-10-25. Both invoice picker nodes preserve `delivery_id` and `booking_reference` from the original Webhook body. Both callback nodes use `docs/n8n/prepare-whatsapp-callback.js` (the PDF branch references the picker ending in `1`). WhatsApp sender errors continue to the callback as failures; success requires the provider's `success: true` plus an outgoing `data.key.id` with `fromMe: true`. This confirms provider sending, not handset delivery or reading.
 
 The saved active workflow was read back and its callback code tested against the original Webhook input and provider response from execution 173804, plus simulated failure. Eleven focused tests passed. No customer messages were resent and no historical callback was replayed; a new full send and status readback remains unverified.
+The receiver requires provider_confirmed and provider_message_id for success, stores the proof and provider status, and conditionally updates each queued attempt once. WhatsApp attempt numbers are allocated under a database lock. PENDING from the provider confirms submission, not handset delivery. Unproven historical sends remain labelled unconfirmed.

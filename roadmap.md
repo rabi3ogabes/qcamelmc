@@ -4,6 +4,7 @@
 - [x] Add independent saved top/center/bottom image alignment and height controls; authenticated save/reload and public top/bottom at 520px verified, mobile checked, 4 tests passed, original center/600px restored without changing other settings.
 
 ## Manual invoice delivery
+- [x] Inspect real n8n/provider responses, persist outgoing message proof and locked attempt numbers, reject unproven success, and verify authenticated history with a real provider message ID; 36 tests passed, active n8n readback matched both callbacks, affected functions deployed. No messages resent; fresh delivery to a customer phone remains unverified.
 - [x] Retrieve QTR-7-11-2026-9A657F69875B in the manual invoice page and save five enabled Arabic WhatsApp messages with customer name, order details and invoice link; authenticated search and save/reload verified, no customer message sent.
 - [x] Find the named archived booking through exact-reference search without exposing archived invoices to automatic sending; authenticated browser verified.
 - [x] Add WhatsApp send/resend with channel-specific delivery history and counts; 71 focused assertions passed, named invoice shows one historic email send.

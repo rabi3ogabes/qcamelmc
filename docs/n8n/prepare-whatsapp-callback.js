@@ -18,6 +18,9 @@ return {
     booking_reference: bookingRef,
     ...(deliveryId ? { delivery_id: deliveryId } : {}),
     status: sent ? 'success' : 'failed',
+    provider_confirmed: sent,
+    provider_message_id: sent ? provider.key.id.trim() : null,
+    provider_status: typeof provider?.status === 'string' ? provider.status.slice(0, 100) : null,
     message: sent
       ? 'تم إرسال الفاتورة إلى مزود واتساب بنجاح'
       : 'لم يؤكد مزود واتساب نجاح إرسال الفاتورة',

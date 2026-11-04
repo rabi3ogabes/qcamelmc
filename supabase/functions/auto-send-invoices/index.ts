@@ -204,7 +204,12 @@ Deno.serve(async (req) => {
       }).filter(Boolean) || [];
       const ticketTypes = typedOrder.ticket_holders?.map(holder => holder.ticket_type) || [];
 
+      const deliveryId = crypto.randomUUID();
+      const { error: deliveryError } = await supabaseClient.from('email_delivery_events').insert({ order_id: typedOrder.id, booking_reference: typedOrder.booking_reference, channel: 'whatsapp', template: 'whatsapp-invoice', status: 'queued', attempt: 1, delivery_id: deliveryId });
+      if (deliveryError) throw deliveryError;
       const payload = {
+        delivery_id: deliveryId,
+        channel: 'whatsapp',
         booking_reference: typedOrder.booking_reference,
         customer_name: typedOrder.customers.name,
         customer_phone: typedOrder.customers.phone,
@@ -249,10 +254,11 @@ Deno.serve(async (req) => {
         const { error: markSentError } = await supabaseClient
           .from('orders')
           .update({
-            n8n_response_message: responseData.message || 'تم الإرسال تلقائياً',
-            n8n_responded_at: new Date().toISOString()
+            n8n_response_message: 'جاري الإرسال إلى واتساب...',
+            n8n_responded_at: null
           })
-          .eq('id', typedOrder.id);
+          .eq('id', typedOrder.id)
+          .is('n8n_responded_at', null);
         
         if (markSentError) {
           console.error('Error marking order as sent:', markSentError);
@@ -261,6 +267,7 @@ Deno.serve(async (req) => {
         }
       }
       
+      if (!isSuccess) await supabaseClient.from('email_delivery_events').update({ status: 'failed', detail: `Webhook HTTP ${webhookResponse.status}` }).eq('delivery_id', deliveryId).eq('status', 'queued');
       results.push({
         order_id: typedOrder.id,
         booking_reference: typedOrder.booking_reference,

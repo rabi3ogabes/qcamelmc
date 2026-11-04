@@ -15,6 +15,7 @@ import { toast } from "sonner";
 import { format } from "date-fns";
 import { isEventExpired } from "@/lib/eventUtils";
 import { availableInvoiceEventIds } from "@/lib/invoiceScope";
+import { hasProviderProof, type DeliveryRecord } from "../../../supabase/functions/_shared/invoice-delivery";
 
 const COUNTRY_FLAGS: Record<string, string> = {
   "السعودية": "🇸🇦",
@@ -54,6 +55,7 @@ interface Order {
   n8n_responded_at: string | null;
   send_attempt_count: number | null;
   invoice_email_sent_at?: string | null;
+  email_delivery_events?: DeliveryRecord[];
   customers: {
     name: string;
     email: string;
@@ -149,6 +151,8 @@ export const InvoiceTab = () => {
     }
   }, [isCountdownActive]);
 
+  const isConfirmed = (order: Order) => order.email_delivery_events?.some(e => e.channel === "whatsapp" && hasProviderProof(e)) === true;
+
   // Check if an order is truly sent (n8n responded with success, not just "sending" status)
   const isPendingMessage = (message: string | null) => {
     if (!message) return true;
@@ -165,7 +169,7 @@ export const InvoiceTab = () => {
   // Check if order is on hold (2+ failed send attempts without success)
   const isOnHold = (order: Order) => {
     const attemptCount = order.send_attempt_count || 0;
-    const isPending = isPendingMessage(order.n8n_response_message) || !order.n8n_responded_at;
+    const isPending = !isConfirmed(order);
     return attemptCount >= 2 && isPending;
   };
 
@@ -175,15 +179,15 @@ export const InvoiceTab = () => {
 
   // Calculate pending orders count - orders that are truly pending AND event not done AND not on hold
   const pendingOrdersCount = scopedOrders.filter(o => 
-    (isPendingMessage(o.n8n_response_message) || !o.n8n_responded_at) && !isEventDone(o) && !isOnHold(o)
+    !isConfirmed(o) && !isEventDone(o) && !isOnHold(o)
   ).length;
   
   // Calculate sent orders count - orders that have actual success response
-  const sentOrdersCount = scopedOrders.filter(o => !isPendingMessage(o.n8n_response_message) && !!o.n8n_responded_at).length;
+  const sentOrdersCount = scopedOrders.filter(o => isConfirmed(o)).length;
 
   // Calculate event done orders count - orders where event has passed but invoice wasn't sent
   const eventDoneOrdersCount = scopedOrders.filter(o => 
-    isEventDone(o) && (isPendingMessage(o.n8n_response_message) || !o.n8n_responded_at)
+    isEventDone(o) && !isConfirmed(o)
   ).length;
 
   // Calculate on hold orders count - orders with 2+ failed attempts
@@ -313,7 +317,7 @@ export const InvoiceTab = () => {
       for (;;) {
         const { data, error } = await supabase
           .from("orders")
-          .select("*, customers(name, email, phone, country_code, nationality), events(title, event_date, location, is_archived), ticket_holders(qr_code, ticket_type)")
+          .select("*, customers(name, email, phone, country_code, nationality), events(title, event_date, location, is_archived), ticket_holders(qr_code, ticket_type), email_delivery_events(id, channel, status, attempt, provider_message_id, provider_confirmed_at)")
           .gte("created_at", "2026-01-12T00:00:00+03:00")
           .eq("payment_status", "confirmed")
           .in("event_id", liveEventIds)
@@ -410,7 +414,7 @@ export const InvoiceTab = () => {
 
       // Handle successful response
       console.log("Webhook response:", data);
-      const message = data?.message || "تم الإرسال بنجاح";
+      const message = data?.message || "بانتظار تأكيد مزود واتساب";
       return { success: true, message };
     } catch (error) {
       console.error("Error sending to webhook:", error);
@@ -472,9 +476,7 @@ export const InvoiceTab = () => {
       
       if (result.success) {
         // Check if the response message indicates actual success (not just "in progress")
-        const isActualSuccess = result.message && 
-          !result.message.includes('جاري الإرسال') && 
-          (result.message.includes('تم إرسال') || result.message.includes('بنجاح'));
+        const isActualSuccess = false; // Webhook acceptance cannot certify a WhatsApp send.
         
         if (isActualSuccess) {
           // Reset attempt count on actual success
@@ -491,7 +493,7 @@ export const InvoiceTab = () => {
         if (newAttempts >= 2 && !isActualSuccess) {
           toast.warning(`الفاتورة لـ ${order.customers.name} - المحاولة ${newAttempts} (ستوضع في الانتظار إذا لم تنجح)`);
         } else {
-          toast.success(`تم إرسال الفاتورة لـ ${order.customers.name}`);
+          toast.info(`تم قبول المحاولة — بانتظار تأكيد واتساب لـ ${order.customers.name}`);
         }
       } else {
         newSentOrders.set(order.id, { sentAt: new Date(), message: result.message });
@@ -525,7 +527,7 @@ export const InvoiceTab = () => {
       setCountdown(autoInvoiceInterval);
     }
     
-    toast.success("تم الانتهاء من إرسال جميع الفواتير!");
+    toast.info("اكتملت طلبات الإرسال — النتائج تظهر بعد تأكيد المزود");
   };
 
   const startCountdown = () => {
@@ -722,7 +724,7 @@ export const InvoiceTab = () => {
 
   // Filter orders based on selected tab
   const filteredOrders = searchedOrder ? [searchedOrder] : scopedOrders.filter((order) => {
-    const isPending = isPendingMessage(order.n8n_response_message) || !order.n8n_responded_at;
+    const isPending = !isConfirmed(order);
     const eventDone = isEventDone(order);
     const onHold = isOnHold(order);
     
@@ -731,7 +733,7 @@ export const InvoiceTab = () => {
       return isPending && !eventDone && !onHold;
     } else if (filterTab === "sent") {
       // Sent = has actual response message (not "sending") AND has n8n_responded_at
-      return !isPendingMessage(order.n8n_response_message) && !!order.n8n_responded_at;
+      return isConfirmed(order);
     } else if (filterTab === "eventDone") {
       // Event done = event date has passed AND invoice wasn't sent
       return eventDone && isPending;
@@ -838,7 +840,7 @@ export const InvoiceTab = () => {
           const ref = referenceSearch.trim();
           if (!/^[A-Za-z0-9][A-Za-z0-9_-]{0,59}$/.test(ref)) { toast.error("أدخل رقم الحجز كاملاً"); return; }
           setSearching(true);
-          const { data, error } = await supabase.from("orders").select("*, customers(name, email, phone, country_code, nationality), events(title, event_date, location, is_archived), ticket_holders(qr_code, ticket_type)").eq("booking_reference", ref).eq("payment_status", "confirmed").gte("created_at", "2026-01-12T00:00:00+03:00").maybeSingle();
+          const { data, error } = await supabase.from("orders").select("*, customers(name, email, phone, country_code, nationality), events(title, event_date, location, is_archived), ticket_holders(qr_code, ticket_type), email_delivery_events(id, channel, status, attempt, provider_message_id, provider_confirmed_at)").eq("booking_reference", ref).eq("payment_status", "confirmed").gte("created_at", "2026-01-12T00:00:00+03:00").maybeSingle();
           setSearching(false);
           if (error || !data) { toast.error("لم يُعثر على فاتورة مؤكدة بهذا الرقم"); return; }
           setSearchedOrder(data as unknown as Order);
@@ -971,9 +973,9 @@ export const InvoiceTab = () => {
                     <TableCell>
                       {order.n8n_response_message ? (
                         <div className="flex flex-col gap-1">
-                          <Badge variant="default" className="gap-1 w-fit">
-                            <CheckCircle className="w-3 h-3" />
-                            تم الاستلام
+                          <Badge variant="outline" className="gap-1 w-fit">
+                            {isConfirmed(order) ? <CheckCircle className="w-3 h-3" /> : <Clock className="w-3 h-3" />}
+                            {isConfirmed(order) ? "أكد المزود الإرسال" : "غير مؤكد"}
                           </Badge>
                           {order.n8n_responded_at && (
                             <span className="text-xs text-muted-foreground" dir="ltr">

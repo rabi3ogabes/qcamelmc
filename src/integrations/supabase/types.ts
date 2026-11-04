@@ -328,6 +328,9 @@ export type Database = {
           id: string
           message_body: string | null
           order_id: string | null
+          provider_confirmed_at: string | null
+          provider_message_id: string | null
+          provider_status: string | null
           recipient: string | null
           status: string
           template: string
@@ -343,6 +346,9 @@ export type Database = {
           id?: string
           message_body?: string | null
           order_id?: string | null
+          provider_confirmed_at?: string | null
+          provider_message_id?: string | null
+          provider_status?: string | null
           recipient?: string | null
           status: string
           template?: string
@@ -358,6 +364,9 @@ export type Database = {
           id?: string
           message_body?: string | null
           order_id?: string | null
+          provider_confirmed_at?: string | null
+          provider_message_id?: string | null
+          provider_status?: string | null
           recipient?: string | null
           status?: string
           template?: string

@@ -86,7 +86,12 @@ export function makeProcessorDeps({ repo, settings, fetch: fetchImpl, now, waitU
             transactionNumber: (context.order.payment_id as string | null | undefined) ?? null,
             now: now?.(),
           });
-          tasks.push(postWebhook(fetchImpl, settings.webhookUrl, payload));
+          const deliveryId = crypto.randomUUID();
+          await repo.createInvoiceDelivery({ order_id: order.id, booking_reference: order.booking_reference, channel: "whatsapp", template: "whatsapp-invoice", status: "queued", attempt: 1, delivery_id: deliveryId });
+          tasks.push(postWebhook(fetchImpl, settings.webhookUrl, { ...payload, delivery_id: deliveryId, channel: "whatsapp" }).then(async result => {
+            if (!result.ok) await repo.updateInvoiceDelivery(deliveryId, "failed", `Webhook failed${result.status ? ` (HTTP ${result.status})` : ""}`);
+            return result;
+          }));
         }
       }
       await background(Promise.allSettled(tasks));

@@ -15,7 +15,7 @@ function run(invoice: object, provider: object) {
 describe('n8n WhatsApp callback rules', () => {
   it('preserves the original Webhook delivery_id through the picker body', () => {
     expect(run({ body: { delivery_id: deliveryId, booking_reference } }, success))
-      .toMatchObject({ delivery_id: deliveryId, booking_reference, status: 'success' });
+      .toMatchObject({ delivery_id: deliveryId, booking_reference, status: 'success', provider_message_id: 'provider-message-1', provider_confirmed: true, provider_status: 'PENDING' });
   });
   it('preserves a top-level delivery_id', () => {
     expect(run({ delivery_id: deliveryId, booking_reference }, success).delivery_id).toBe(deliveryId);

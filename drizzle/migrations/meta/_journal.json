@@ -113,6 +113,13 @@
       "when": 1792995437502,
       "tag": "0015_create_staff_handoff_tokens",
       "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1793773078755,
+      "tag": "0016_whatsapp_provider_proof_and_attempts",
+      "breakpoints": true
     }
   ]
 }
