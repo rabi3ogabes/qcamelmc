@@ -114,6 +114,7 @@ Deno.serve(async (req) => {
       `)
       .eq('payment_method', 'sadad')
       .eq('payment_status', 'confirmed')
+      .is('whatsapp_manually_confirmed_at', null)
       .is('n8n_response_message', null)
       .order('created_at', { ascending: true })
       .limit(batchMax * 2); // Fetch more to account for filtering

@@ -53,6 +53,7 @@ interface Order {
   n8n_responded_at: string | null;
   send_attempt_count: number | null;
   invoice_email_sent_at?: string | null;
+  whatsapp_manually_confirmed_at?: string | null;
   email_delivery_events?: DeliveryRecord[];
   customers: {
     name: string;
@@ -105,6 +106,8 @@ export const InvoiceTab = () => {
   const [filterTab, setFilterTab] = useState<"all" | "pending" | "sent" | "eventDone" | "onHold">("all");
   const [sendingIndividual, setSendingIndividual] = useState<string | null>(null);
   const [sendingEmail, setSendingEmail] = useState<string | null>(null);
+  const [manualOrder, setManualOrder] = useState<Order | null>(null);
+  const [confirmingManual, setConfirmingManual] = useState(false);
   const [timelineOrder, setTimelineOrder] = useState<Order | null>(null);
   const [visibleCount, setVisibleCount] = useState<number>(100);
 
@@ -149,7 +152,7 @@ export const InvoiceTab = () => {
     }
   }, [isCountdownActive]);
 
-  const isConfirmed = (order: Order) => order.email_delivery_events?.some(e => e.channel === "whatsapp" && hasProviderProof(e)) === true;
+  const isConfirmed = (order: Order) => Boolean(order.whatsapp_manually_confirmed_at) || order.email_delivery_events?.some(e => e.channel === "whatsapp" && hasProviderProof(e)) === true;
 
   // Check if an order is truly sent (n8n responded with success, not just "sending" status)
   const isPendingMessage = (message: string | null) => {
@@ -367,14 +370,14 @@ export const InvoiceTab = () => {
     }
   };
 
-  const sendInvoiceToWebhook = async (order: Order, totalQuantity: number): Promise<{ success: boolean; message: string }> => {
+  const sendInvoiceToWebhook = async (order: Order, totalQuantity: number, automatic = false): Promise<{ success: boolean; message: string }> => {
     if (!webhookUrl) {
       toast.error("لم يتم تكوين رابط الويب هوك. يرجى تحديثه في الإعدادات");
       return { success: false, message: "لم يتم تكوين رابط الويب هوك" };
     }
 
     try {
-      const payload = { action: "send_invoice", booking_reference: order.booking_reference };
+      const payload = { action: "send_invoice", booking_reference: order.booking_reference, automatic };
 
       // Use edge function to avoid CORS issues
       const { data, error } = await supabase.functions.invoke('send-to-webhook', {
@@ -433,7 +436,7 @@ export const InvoiceTab = () => {
 
     // Filter orders that need to be sent (only those that are truly pending AND event not done AND not on hold)
     const allOrdersToSend = orders.filter(
-      order => !sentOrders.has(order.id) && isPendingMessage(order.n8n_response_message) && !isEventDone(order) && !isOnHold(order)
+      order => !isConfirmed(order) && !sentOrders.has(order.id) && isPendingMessage(order.n8n_response_message) && !isEventDone(order) && !isOnHold(order)
     );
 
     if (allOrdersToSend.length === 0) {
@@ -470,7 +473,7 @@ export const InvoiceTab = () => {
         .update({ send_attempt_count: newAttempts })
         .eq("id", order.id);
       
-      const result = await sendInvoiceToWebhook(order, totalQuantity);
+      const result = await sendInvoiceToWebhook(order, totalQuantity, true);
       
       if (result.success) {
         // Check if the response message indicates actual success (not just "in progress")
@@ -923,13 +926,14 @@ export const InvoiceTab = () => {
                   </div>
                   <div className="min-w-0">
                     <p className="mb-2 text-xs text-muted-foreground xl:hidden">حالة الإرسال</p>
-                    <InvoiceDeliveryStatus orderId={order.id} emailSentAt={order.invoice_email_sent_at} legacyMessage={order.n8n_response_message} legacyAt={order.n8n_responded_at} />
+                    <InvoiceDeliveryStatus orderId={order.id} emailSentAt={order.invoice_email_sent_at} legacyMessage={order.whatsapp_manually_confirmed_at ? null : order.n8n_response_message} legacyAt={order.n8n_responded_at} manualConfirmedAt={order.whatsapp_manually_confirmed_at} />
                   </div>
                   <div className="flex min-w-0 flex-wrap content-start items-start gap-2 sm:col-span-2 xl:col-span-1 xl:flex-col">
                     <Button variant="default" size="sm" onClick={() => sendSingleInvoice(order)} disabled={sending || currentlySending === order.id || sendingIndividual === order.id || !webhookUrl} className="h-auto min-h-9 max-w-full gap-1 whitespace-normal text-xs">
                       {sendingIndividual === order.id ? <Loader2 className="h-3 w-3 shrink-0 animate-spin" /> : <Send className="h-3 w-3 shrink-0" />}
                       {sendingIndividual === order.id ? "جاري..." : order.n8n_response_message ? "إعادة إرسال واتساب" : "إرسال واتساب"}
                     </Button>
+                    {!order.whatsapp_manually_confirmed_at && <Button variant="outline" size="sm" onClick={() => setManualOrder(order)} disabled={sending || sendingIndividual === order.id} className="h-auto min-h-9 max-w-full gap-1 whitespace-normal text-xs"><CheckCircle className="h-3 w-3 shrink-0" />تأكيد الإرسال يدويًا</Button>}
                     {isOnHold(order) && <Button variant="outline" size="sm" onClick={() => resetAttemptCount(order.id)} disabled={sending || currentlySending === order.id || sendingIndividual === order.id} className="gap-1 text-xs"><RotateCcw className="h-3 w-3" />إعادة المحاولة</Button>}
                     <Button variant="ghost" size="sm" onClick={() => setTimelineOrder(order)} className="gap-1 text-xs" title="سجل إرسال واتساب والبريد"><History className="h-3 w-3" />سجل الإرسال</Button>
                     {(order.n8n_response_message || sentOrders.has(order.id)) && <Button variant="outline" size="sm" onClick={() => resetOrderStatus(order.id)} disabled={sending || currentlySending === order.id || sendingIndividual === order.id} className="gap-1 text-xs"><RotateCcw className="h-3 w-3" />إعادة</Button>}
@@ -954,6 +958,26 @@ export const InvoiceTab = () => {
         </Tabs>
       </Card>
 
+      <Dialog open={!!manualOrder} onOpenChange={open => !open && !confirmingManual && setManualOrder(null)}>
+        <DialogContent dir="rtl" className="max-w-md">
+          <DialogHeader className="text-right"><DialogTitle>تأكيد إرسال واتساب يدويًا</DialogTitle><DialogDescription>هل تؤكد أن الفاتورة {manualOrder?.booking_reference} وصلت عبر واتساب؟ ستُستبعد من الإرسال التلقائي، ولن يُسجّل ذلك كتأكيد من المزود. هذا لا يلغي طلبًا سبق إرساله إلى n8n.</DialogDescription></DialogHeader>
+          <div className="flex flex-wrap gap-2">
+            <Button disabled={confirmingManual} onClick={async () => {
+              if (!manualOrder) return;
+              setConfirmingManual(true);
+              const { error } = await supabase.rpc("confirm_whatsapp_manually", { p_order_id: manualOrder.id });
+              setConfirmingManual(false);
+              if (error) { toast.error("تعذّر حفظ التأكيد اليدوي"); return; }
+              const at = new Date().toISOString();
+              setOrders(rows => rows.map(o => o.id === manualOrder.id ? { ...o, whatsapp_manually_confirmed_at: at } : o));
+              setSearchedOrder(o => o?.id === manualOrder.id ? { ...o, whatsapp_manually_confirmed_at: at } : o);
+              toast.success("تم التأكيد يدويًا — لن تُرسل الفاتورة تلقائيًا مجددًا");
+              setManualOrder(null); fetchOrders();
+            }}>{confirmingManual ? "جارٍ الحفظ…" : "نعم، أؤكد الإرسال"}</Button>
+            <Button variant="outline" disabled={confirmingManual} onClick={() => setManualOrder(null)}>إلغاء</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
       <Dialog open={!!timelineOrder} onOpenChange={(open) => !open && setTimelineOrder(null)}>
         <DialogContent className="max-w-lg" dir="rtl">
           <DialogHeader className="text-right">
@@ -965,7 +989,7 @@ export const InvoiceTab = () => {
               {timelineOrder ? `حجز ${timelineOrder.booking_reference} — ${timelineOrder.customers?.email || "بدون بريد"}` : ""}
             </DialogDescription>
           </DialogHeader>
-          {timelineOrder && <InvoiceDeliveryStatus orderId={timelineOrder.id} emailSentAt={timelineOrder.invoice_email_sent_at} history />}
+          {timelineOrder && <InvoiceDeliveryStatus orderId={timelineOrder.id} emailSentAt={timelineOrder.invoice_email_sent_at} manualConfirmedAt={timelineOrder.whatsapp_manually_confirmed_at} history />}
         </DialogContent>
       </Dialog>
     </div>

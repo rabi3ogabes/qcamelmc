@@ -7,7 +7,7 @@ import { deliveryCounts, hasProviderProof } from "../../../supabase/functions/_s
 import { formatQatarDate } from "@/lib/qatarTime";
 
 interface Event { id: string; channel: string; status: string; attempt: number; detail: string | null; template_name: string | null; message_body: string | null; created_at: string; provider_message_id: string | null; provider_confirmed_at: string | null; provider_status: string | null; }
-export function InvoiceDeliveryStatus({ orderId, emailSentAt, legacyMessage, legacyAt, history = false }: { orderId: string; emailSentAt?: string | null; legacyMessage?: string | null; legacyAt?: string | null; history?: boolean }) {
+export function InvoiceDeliveryStatus({ orderId, emailSentAt, legacyMessage, legacyAt, manualConfirmedAt, history = false }: { orderId: string; emailSentAt?: string | null; legacyMessage?: string | null; legacyAt?: string | null; manualConfirmedAt?: string | null; history?: boolean }) {
   const [events, setEvents] = useState<Event[]>([]);
   const [error, setError] = useState(false);
   const [expanded, setExpanded] = useState(history);
@@ -32,6 +32,7 @@ export function InvoiceDeliveryStatus({ orderId, emailSentAt, legacyMessage, leg
   return <div className="min-w-0 space-y-2 break-words">
     <Badge variant="outline" className="max-w-full whitespace-normal">البريد: {email.sent || (emailSentAt ? 1 : 0)} إرسال</Badge>
     <Badge variant="outline" className="max-w-full whitespace-normal">واتساب: {whatsapp.sent} إرسال مؤكد</Badge>
+    {manualConfirmedAt && <p className="text-xs font-semibold text-primary">واتساب: مؤكد يدويًا بواسطة الإدارة — مستبعد من الإرسال التلقائي<br />{formatQatarDate(manualConfirmedAt, { year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" })}</p>}
     <p className="text-xs text-muted-foreground">محاولات واتساب: {whatsapp.attempts}</p>
     {whatsapp.unverified > 0 && <p className="text-xs text-muted-foreground">{whatsapp.unverified} محاولة سابقة دون رقم رسالة مؤكّد</p>}
     {whatsapp.queued > 0 && <p className="text-xs text-muted-foreground">واتساب: {whatsapp.queued} بانتظار تأكيد n8n</p>}
