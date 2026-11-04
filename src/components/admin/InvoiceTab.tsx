@@ -652,15 +652,11 @@ export const InvoiceTab = () => {
 
       toast.info(`جاري تحديد ${pendingOrders.length} طلب كمرسل...`);
 
-      const { error } = await supabase
-        .from("orders")
-        .update({
-          n8n_response_message: "تم التحديد كمرسل يدويًا",
-          n8n_responded_at: new Date().toISOString(),
-        })
-        .in("id", pendingOrders.map(o => o.id));
-
-      if (error) throw error;
+      if (!window.confirm("هل تؤكد وصول جميع الفواتير المحددة عبر واتساب؟ ستُستبعد من الإرسال التلقائي.")) return;
+      for (const order of pendingOrders) {
+        const { error } = await supabase.rpc("confirm_whatsapp_manually", { p_order_id: order.id });
+        if (error) throw error;
+      }
 
       toast.success(`تم تحديد ${pendingOrders.length} طلب كمرسل بنجاح`);
       fetchOrders(); // Refresh the orders list
