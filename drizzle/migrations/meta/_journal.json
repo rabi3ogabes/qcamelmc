@@ -127,6 +127,13 @@
       "when": 1793773943556,
       "tag": "0017_manual_whatsapp_confirmation",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1793774112180,
+      "tag": "0018_allow_manual_whatsapp_audit",
+      "breakpoints": true
     }
   ]
 }
