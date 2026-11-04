@@ -8,6 +8,9 @@ interface N8nResponsePayload {
   message: string;
   status?: 'success' | 'failed';
   delivery_id?: string;
+  provider_message_id?: string;
+  provider_confirmed?: boolean;
+  provider_status?: string;
 }
 
 // Optional shared secret. When N8N_RESPONSE_SECRET is set, the automation must send it
@@ -55,10 +58,14 @@ Deno.serve(async (req) => {
       }
       const { data: delivery, error: lookupError } = await supabase.from("email_delivery_events").select("id, order_id, booking_reference, status").eq("delivery_id", payload.delivery_id).eq("channel", "whatsapp").maybeSingle();
       if (lookupError || !delivery || delivery.booking_reference !== payload.booking_reference) return new Response(JSON.stringify({ error: "Unknown delivery" }), { status: 404, headers: corsHeaders });
+      const outcome = callbackOutcome(payload.status, payload.provider_message_id, payload.provider_confirmed);
+      if (payload.status === "success" && outcome !== "sent") return new Response(JSON.stringify({ error: "Provider confirmation and outgoing message ID required" }), { status: 400, headers: corsHeaders });
       if (delivery.status !== "queued") return new Response(JSON.stringify({ success: true, duplicate: true }), { headers: corsHeaders });
-      const { error: updateError } = await supabase.from("email_delivery_events").update({ status: callbackOutcome(payload.status), detail: payload.message.slice(0, 500) }).eq("id", delivery.id).eq("status", "queued");
+      const { data: updated, error: updateError } = await supabase.from("email_delivery_events").update({ status: outcome, detail: payload.message.slice(0, 500), provider_message_id: outcome === "sent" ? payload.provider_message_id?.trim() : null, provider_confirmed_at: outcome === "sent" ? new Date().toISOString() : null, provider_status: typeof payload.provider_status === "string" ? payload.provider_status.slice(0, 100) : null }).eq("id", delivery.id).eq("status", "queued").select("id");
       if (updateError) throw updateError;
-      if (payload.status === "success") await supabase.from("orders").update({ n8n_response_message: payload.message.slice(0, 500), n8n_responded_at: new Date().toISOString(), send_attempt_count: 0 }).eq("id", delivery.order_id);
+      if (!updated?.length) return new Response(JSON.stringify({ success: true, duplicate: true }), { headers: corsHeaders });
+      const { error: orderError } = await supabase.from("orders").update({ n8n_response_message: payload.message.slice(0, 500), n8n_responded_at: new Date().toISOString(), ...(outcome === "sent" ? { send_attempt_count: 0 } : {}) }).eq("id", delivery.order_id);
+      if (orderError) throw orderError;
       return new Response(JSON.stringify({ success: true }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
     // Reference-only legacy callbacks cannot certify new randomly identified attempts.
@@ -85,7 +92,7 @@ Deno.serve(async (req) => {
     const { data, error } = await supabase
       .from('orders')
       .update({
-        n8n_response_message: payload.message,
+        n8n_response_message: 'سجل غير مؤكد من مزود واتساب: ' + payload.message,
         n8n_responded_at: new Date().toISOString(),
       })
       .eq('booking_reference', payload.booking_reference)
