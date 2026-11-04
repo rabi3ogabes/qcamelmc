@@ -1,8 +1,6 @@
 import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Send, Loader2, CheckCircle, Clock, RotateCcw, CalendarX, PauseCircle, FileDown, Mail, MailCheck, History, ChevronDown } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
@@ -753,8 +751,8 @@ export const InvoiceTab = () => {
   }
 
   return (
-    <div className="space-y-4 md:space-y-6">
-      <Card className="p-4 md:p-6">
+    <div className="min-w-0 space-y-4 md:space-y-6">
+      <Card className="min-w-0 p-3 sm:p-4 md:p-6">
         <div className="flex flex-col lg:flex-row lg:justify-between lg:items-center gap-4 mb-6">
           <div>
             <h2 className="text-xl md:text-2xl font-bold mb-2">إرسال الفواتير (يدوي)</h2>
@@ -853,16 +851,16 @@ export const InvoiceTab = () => {
         {searchedOrder?.events?.is_archived && <p className="mb-4 text-sm text-muted-foreground">فاتورة فعالية مؤرشفة — إرسال يدوي فقط، غير مشمولة بالإرسال التلقائي.</p>}
         <Tabs value={filterTab} onValueChange={(v) => setFilterTab(v as "all" | "pending" | "sent" | "eventDone" | "onHold")} className="w-full">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
-            <TabsList className="grid grid-cols-5 w-full sm:w-auto">
-              <TabsTrigger value="all" className="text-xs sm:text-sm">
+            <TabsList className="grid h-auto grid-cols-3 gap-1 w-full sm:grid-cols-5 sm:w-auto">
+              <TabsTrigger value="all" className="min-w-0 whitespace-normal px-2 text-xs sm:text-sm">
                 <span className="hidden sm:inline">الكل</span>
                 <span className="sm:hidden">الكل</span> ({orders.length})
               </TabsTrigger>
-              <TabsTrigger value="pending" className="text-xs sm:text-sm">
+              <TabsTrigger value="pending" className="min-w-0 whitespace-normal px-2 text-xs sm:text-sm">
                 <span className="hidden sm:inline">قيد الإرسال</span>
                 <span className="sm:hidden">قيد</span> ({pendingOrdersCount})
               </TabsTrigger>
-              <TabsTrigger value="sent" className="text-xs sm:text-sm">
+              <TabsTrigger value="sent" className="min-w-0 whitespace-normal px-2 text-xs sm:text-sm">
                 <span className="hidden sm:inline">تم الإرسال</span>
                 <span className="sm:hidden">مرسل</span> ({sentOrdersCount})
               </TabsTrigger>
@@ -891,170 +889,54 @@ export const InvoiceTab = () => {
           </div>
 
           <TabsContent value={filterTab} className="mt-0">
-            <div className="rounded-md border overflow-x-auto">
-          <Table className="min-w-[1200px]">
-            <TableHeader>
-              <TableRow>
-                <TableHead className="text-right whitespace-nowrap">الحالة</TableHead>
-                
-                <TableHead className="text-right whitespace-nowrap">رقم الحجز</TableHead>
-                <TableHead className="text-right whitespace-nowrap">اسم العميل</TableHead>
-                <TableHead className="text-right whitespace-nowrap">الدولة</TableHead>
-                <TableHead className="text-right whitespace-nowrap">الهاتف</TableHead>
-                <TableHead className="text-right whitespace-nowrap">البريد</TableHead>
-                <TableHead className="text-right whitespace-nowrap">نوع التذكرة</TableHead>
-                <TableHead className="text-right whitespace-nowrap">الكمية</TableHead>
-                <TableHead className="text-right whitespace-nowrap">المبلغ</TableHead>
-                <TableHead className="text-right whitespace-nowrap">الفعالية</TableHead>
-                <TableHead className="text-right whitespace-nowrap">تاريخ الطلب</TableHead>
-                <TableHead className="text-right whitespace-nowrap">رد n8n</TableHead>
-                <TableHead className="text-right whitespace-nowrap">إجراءات</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
+            <div className="w-full min-w-0">
+              <div className="hidden xl:grid xl:grid-cols-[minmax(0,1.2fr)_minmax(0,1.4fr)_minmax(0,0.8fr)_minmax(0,1.2fr)_minmax(0,1fr)] gap-4 border-b bg-muted/40 px-3 py-3 text-sm font-semibold">
+                <span>الحجز والفعالية</span><span>بيانات العميل</span><span>التذكرة / العدد</span><span>حالة الإرسال</span><span>إجراءات</span>
+              </div>
               {filteredOrders.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={14} className="text-center py-8 text-muted-foreground">
-                    {filterTab === "pending" && "لا توجد طلبات قيد الإرسال"}
-                    {filterTab === "sent" && "لا توجد طلبات تم إرسالها"}
-                    {filterTab === "eventDone" && "لا توجد طلبات انتهت فعاليتها"}
-                    {filterTab === "onHold" && "لا توجد طلبات موقوفة"}
-                    {filterTab === "all" && "لا توجد فواتير متوفرة — فواتير المواسم المؤرشفة لا تُعرض هنا"}
-                  </TableCell>
-                </TableRow>
-              ) : (
-                filteredOrders.slice(0, visibleCount).map((order) => (
-                <TableRow key={order.id}>
-                    <TableCell>
-                      <InvoiceDeliveryStatus orderId={order.id} emailSentAt={order.invoice_email_sent_at} legacyMessage={order.n8n_response_message} legacyAt={order.n8n_responded_at} />
-                    </TableCell>
-                    
-                    <TableCell className="font-mono">{order.booking_reference}</TableCell>
-                    <TableCell>{order.customers.name}</TableCell>
-                    <TableCell className="text-2xl">{COUNTRY_FLAGS[order.customers.nationality || "قطر"] || "🇶🇦"}</TableCell>
-                    <TableCell dir="ltr" className="text-right">{order.customers.phone}</TableCell>
-                    <TableCell className="text-xs">
-                      {order.customers.email ? (
-                        <div className="flex items-center gap-1">
-                          <span className="truncate max-w-[120px]" title={order.customers.email}>{order.customers.email}</span>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => sendEmailInvoice(order)}
-                            disabled={sendingEmail === order.id || sending || order.payment_status !== "confirmed"}
-                            className={`h-6 w-6 p-0 shrink-0 ${order.invoice_email_sent_at ? "text-primary" : ""}`}
-                            title={order.invoice_email_sent_at
-                              ? `أُرسلت بالبريد ${format(new Date(order.invoice_email_sent_at), "dd/MM/yyyy HH:mm")} — اضغط لإعادة الإرسال`
-                              : "إرسال الفاتورة عبر البريد الرسمي (notify@qcamelmc.org)"}
-                          >
-                            {sendingEmail === order.id ? (
-                              <Loader2 className="w-3 h-3 animate-spin" />
-                            ) : order.invoice_email_sent_at ? (
-                              <MailCheck className="w-3.5 h-3.5" />
-                            ) : (
-                              <Mail className="w-3 h-3" />
-                            )}
-                          </Button>
-                          {order.invoice_email_sent_at && (
-                            <span className="inline-flex items-center rounded-full border border-primary/40 bg-primary/10 px-1.5 py-0.5 text-[10px] font-semibold text-primary whitespace-nowrap">
-                              أُرسلت ✓
-                            </span>
-                          )}
-                        </div>
-                      ) : (
-                        <span className="text-muted-foreground">-</span>
-                      )}
-                    </TableCell>
-                    <TableCell>{order.ticket_type}</TableCell>
-                    <TableCell>{order.quantity}</TableCell>
-                    <TableCell>{order.total_amount} QAR</TableCell>
-                    <TableCell>{order.events?.title || "غير متوفر"}</TableCell>
-                    <TableCell>{format(new Date(order.created_at), "dd/MM/yyyy HH:mm")}</TableCell>
-                    <TableCell>
-                      {order.n8n_response_message ? (
-                        <div className="flex flex-col gap-1">
-                          <Badge variant="outline" className="gap-1 w-fit">
-                            {isConfirmed(order) ? <CheckCircle className="w-3 h-3" /> : <Clock className="w-3 h-3" />}
-                            {isConfirmed(order) ? "أكد المزود الإرسال" : "غير مؤكد"}
-                          </Badge>
-                          {order.n8n_responded_at && (
-                            <span className="text-xs text-muted-foreground" dir="ltr">
-                              {format(new Date(order.n8n_responded_at), "dd/MM/yyyy HH:mm:ss")}
-                            </span>
-                          )}
-                          <span className="text-xs">
-                            {order.n8n_response_message}
-                          </span>
-                        </div>
-                      ) : (
-                        <span className="text-xs text-muted-foreground">-</span>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex gap-2 whitespace-nowrap">
-                        {(
-                          <Button
-                            variant="default"
-                            size="sm"
-                            onClick={() => sendSingleInvoice(order)}
-                            disabled={sending || currentlySending === order.id || sendingIndividual === order.id || !webhookUrl}
-                            className="gap-1 text-xs"
-                          >
-                            {sendingIndividual === order.id ? (
-                              <>
-                                <Loader2 className="w-3 h-3 animate-spin" />
-                                جاري...
-                              </>
-                            ) : (
-                              <>
-                                <Send className="w-3 h-3" />
-                                {order.n8n_response_message ? "إعادة إرسال واتساب" : "إرسال واتساب"}
-                              </>
-                            )}
-                          </Button>
-                        )}
-                        {isOnHold(order) && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => resetAttemptCount(order.id)}
-                            disabled={sending || currentlySending === order.id || sendingIndividual === order.id}
-                            className="gap-1 text-xs bg-red-50 hover:bg-red-100 text-red-700 border-red-300"
-                          >
-                            <RotateCcw className="w-3 h-3" />
-                            إعادة المحاولة
-                          </Button>
-                        )}
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => setTimelineOrder(order)}
-                          className="gap-1 text-xs"
-                          title="سجل إرسال واتساب والبريد"
-                        >
-                          <History className="w-3 h-3" />
-                          سجل الإرسال
-                        </Button>
-                        {(order.n8n_response_message || sentOrders.has(order.id)) && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => resetOrderStatus(order.id)}
-                            disabled={sending || currentlySending === order.id || sendingIndividual === order.id}
-                            className="gap-1 text-xs"
-                          >
-                            <RotateCcw className="w-3 h-3" />
-                            إعادة
-                          </Button>
-                        )}
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))
-              )}
-              </TableBody>
-            </Table>
-          </div>
+                <p className="py-8 text-center text-muted-foreground">لا توجد فواتير في هذه القائمة</p>
+              ) : filteredOrders.slice(0, visibleCount).map(order => (
+                <article key={order.id} aria-label={`فاتورة ${order.booking_reference}`} className="grid min-w-0 grid-cols-1 gap-5 border-b px-1 py-5 sm:grid-cols-2 sm:px-3 xl:grid-cols-[minmax(0,1.2fr)_minmax(0,1.4fr)_minmax(0,0.8fr)_minmax(0,1.2fr)_minmax(0,1fr)] xl:gap-4">
+                  <div className="min-w-0 space-y-2">
+                    <p className="text-xs text-muted-foreground xl:hidden">الحجز والفعالية</p>
+                    <p className="break-all font-mono text-sm font-semibold text-primary" dir="ltr">{order.booking_reference}</p>
+                    <p className="text-sm break-words">{order.events?.title || "غير متوفر"}</p>
+                    <p className="text-xs text-muted-foreground">{format(new Date(order.created_at), "dd/MM/yyyy HH:mm")}</p>
+                  </div>
+                  <div className="min-w-0 space-y-2">
+                    <p className="text-xs text-muted-foreground xl:hidden">بيانات العميل</p>
+                    <p className="break-words text-sm font-semibold">{order.customers.name}</p>
+                    <div className="flex min-w-0 items-start gap-1">
+                      <p className="min-w-0 flex-1 break-all text-xs" dir="ltr">{order.customers.email || "بدون بريد"}</p>
+                      {order.customers.email && <Button variant="ghost" size="sm" onClick={() => sendEmailInvoice(order)} disabled={sendingEmail === order.id || sending || order.payment_status !== "confirmed"} className="h-7 w-7 shrink-0 p-0" title={order.invoice_email_sent_at ? "إعادة إرسال البريد" : "إرسال البريد"} aria-label={order.invoice_email_sent_at ? "إعادة إرسال البريد" : "إرسال البريد"}>
+                        {sendingEmail === order.id ? <Loader2 className="h-4 w-4 animate-spin" /> : order.invoice_email_sent_at ? <MailCheck className="h-4 w-4 text-primary" /> : <Mail className="h-4 w-4" />}
+                      </Button>}
+                    </div>
+                    <p className="text-sm" dir="ltr">{order.customers.phone}</p>
+                    <p className="text-xs">{COUNTRY_FLAGS[order.customers.nationality || "قطر"] || "🇶🇦"} {order.customers.nationality || "قطر"}</p>
+                  </div>
+                  <div className="min-w-0 space-y-2 text-sm">
+                    <p className="text-xs text-muted-foreground xl:hidden">التذكرة / العدد</p>
+                    <p className="font-medium break-words">{order.ticket_type}</p>
+                    <p>العدد: <span className="font-semibold">{order.quantity}</span></p>
+                    <p className="font-semibold text-primary">{order.total_amount} QAR</p>
+                  </div>
+                  <div className="min-w-0">
+                    <p className="mb-2 text-xs text-muted-foreground xl:hidden">حالة الإرسال</p>
+                    <InvoiceDeliveryStatus orderId={order.id} emailSentAt={order.invoice_email_sent_at} legacyMessage={order.n8n_response_message} legacyAt={order.n8n_responded_at} />
+                  </div>
+                  <div className="flex min-w-0 flex-wrap content-start items-start gap-2 sm:col-span-2 xl:col-span-1 xl:flex-col">
+                    <Button variant="default" size="sm" onClick={() => sendSingleInvoice(order)} disabled={sending || currentlySending === order.id || sendingIndividual === order.id || !webhookUrl} className="h-auto min-h-9 max-w-full gap-1 whitespace-normal text-xs">
+                      {sendingIndividual === order.id ? <Loader2 className="h-3 w-3 shrink-0 animate-spin" /> : <Send className="h-3 w-3 shrink-0" />}
+                      {sendingIndividual === order.id ? "جاري..." : order.n8n_response_message ? "إعادة إرسال واتساب" : "إرسال واتساب"}
+                    </Button>
+                    {isOnHold(order) && <Button variant="outline" size="sm" onClick={() => resetAttemptCount(order.id)} disabled={sending || currentlySending === order.id || sendingIndividual === order.id} className="gap-1 text-xs"><RotateCcw className="h-3 w-3" />إعادة المحاولة</Button>}
+                    <Button variant="ghost" size="sm" onClick={() => setTimelineOrder(order)} className="gap-1 text-xs" title="سجل إرسال واتساب والبريد"><History className="h-3 w-3" />سجل الإرسال</Button>
+                    {(order.n8n_response_message || sentOrders.has(order.id)) && <Button variant="outline" size="sm" onClick={() => resetOrderStatus(order.id)} disabled={sending || currentlySending === order.id || sendingIndividual === order.id} className="gap-1 text-xs"><RotateCcw className="h-3 w-3" />إعادة</Button>}
+                  </div>
+                </article>
+              ))}
+            </div>
           {filteredOrders.length > visibleCount && (
             <div className="flex justify-center py-3">
               <Button
