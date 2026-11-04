@@ -25,12 +25,15 @@ describe("manual invoice delivery rules", () => {
     expect(payload.customer_phone_whatsapp).toBe("97455512345");
   });
   it("counts WhatsApp and email independently and preserves repeated sends", () => {
-    const rows = [{ id: "1", channel: "email", status: "sent", attempt: 1 }, { id: "2", channel: "email", status: "sent", attempt: 1 }, { id: "3", channel: "email", status: "sent", attempt: 2 }, { id: "4", channel: "whatsapp", status: "sent", attempt: 1 }, { id: "5", channel: "whatsapp", status: "sent", attempt: 1 }, { id: "6", channel: "whatsapp", status: "queued", attempt: 1 }];
-    expect(deliveryCounts(rows, "email")).toEqual({ sent: 2, queued: 0, failed: 0 });
-    expect(deliveryCounts(rows, "whatsapp")).toEqual({ sent: 2, queued: 1, failed: 0 });
+    const rows = [{ id: "1", channel: "email", status: "sent", attempt: 1 }, { id: "2", channel: "email", status: "sent", attempt: 1 }, { id: "3", channel: "email", status: "sent", attempt: 2 }, { id: "4", channel: "whatsapp", status: "sent", attempt: 1, provider_message_id: "m1", provider_confirmed_at: "2026-11-04T06:00:00Z" }, { id: "5", channel: "whatsapp", status: "sent", attempt: 2, provider_message_id: "m2", provider_confirmed_at: "2026-11-04T06:01:00Z" }, { id: "6", channel: "whatsapp", status: "queued", attempt: 1 }];
+    expect(deliveryCounts(rows, "email")).toMatchObject({ sent: 2, queued: 0, failed: 0, attempts: 2 });
+    expect(deliveryCounts(rows, "whatsapp")).toMatchObject({ sent: 2, queued: 1, failed: 0, attempts: 3 });
   });
   it("only explicit success confirms delivery", () => {
-    expect(callbackOutcome("success")).toBe("sent");
+    expect(callbackOutcome("success", "message-1", true)).toBe("sent");
+    expect(callbackOutcome("success")).toBe("failed");
+    expect(callbackOutcome("success", "message-1", false)).toBe("failed");
+    expect(callbackOutcome("success", " ", true)).toBe("failed");
     expect(callbackOutcome("failed")).toBe("failed");
     expect(callbackOutcome(undefined)).toBe("failed");
   });
@@ -53,4 +56,7 @@ describe("manual invoice delivery rules", () => {
     const handler = sendToWebhookHandler({ repo, auth: repo, fetch });
     expect((await handler(post(fn("send-to-webhook"), { action: "send_invoice", booking_reference: context.order.booking_reference }, { authorization: "Bearer admin-jwt" }))).status).toBe(400);
   });
+});
+it("does not count unproven historical success", () => {
+  expect(deliveryCounts([{ id: "legacy", channel: "whatsapp", status: "sent", attempt: 1 }], "whatsapp")).toMatchObject({ sent: 0, attempts: 1, unverified: 1 });
 });
