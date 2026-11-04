@@ -29,9 +29,9 @@ export function InvoiceDeliveryStatus({ orderId, emailSentAt, legacyMessage, leg
   }, [orderId]);
   const email = deliveryCounts(events, "email");
   const whatsapp = deliveryCounts(events, "whatsapp");
-  return <div className="space-y-2 min-w-[180px]">
-    <Badge variant="outline">البريد: {email.sent || (emailSentAt ? 1 : 0)} إرسال</Badge>
-    <Badge variant="outline">واتساب: {whatsapp.sent} إرسال مؤكد</Badge>
+  return <div className="min-w-0 space-y-2 break-words">
+    <Badge variant="outline" className="max-w-full whitespace-normal">البريد: {email.sent || (emailSentAt ? 1 : 0)} إرسال</Badge>
+    <Badge variant="outline" className="max-w-full whitespace-normal">واتساب: {whatsapp.sent} إرسال مؤكد</Badge>
     <p className="text-xs text-muted-foreground">محاولات واتساب: {whatsapp.attempts}</p>
     {whatsapp.unverified > 0 && <p className="text-xs text-muted-foreground">{whatsapp.unverified} محاولة سابقة دون رقم رسالة مؤكّد</p>}
     {whatsapp.queued > 0 && <p className="text-xs text-muted-foreground">واتساب: {whatsapp.queued} بانتظار تأكيد n8n</p>}
