@@ -1,0 +1,6 @@
+ALTER TABLE public.email_delivery_events ADD COLUMN IF NOT EXISTS provider_message_id text, ADD COLUMN IF NOT EXISTS provider_confirmed_at timestamptz, ADD COLUMN IF NOT EXISTS provider_status text;
+WITH numbered AS (SELECT id, row_number() OVER (PARTITION BY order_id, channel ORDER BY created_at, id)::integer AS n FROM public.email_delivery_events WHERE channel = 'whatsapp') UPDATE public.email_delivery_events e SET attempt = numbered.n FROM numbered WHERE e.id = numbered.id;
+CREATE OR REPLACE FUNCTION public.number_whatsapp_attempt() RETURNS trigger LANGUAGE plpgsql SET search_path = public AS $$ BEGIN IF NEW.channel = 'whatsapp' THEN PERFORM pg_advisory_xact_lock(hashtextextended(NEW.order_id::text || ':whatsapp', 0)); SELECT coalesce(max(attempt), 0) + 1 INTO NEW.attempt FROM public.email_delivery_events WHERE order_id = NEW.order_id AND channel = 'whatsapp'; END IF; RETURN NEW; END; $$;
+CREATE OR REPLACE TRIGGER number_whatsapp_attempt BEFORE INSERT ON public.email_delivery_events FOR EACH ROW EXECUTE FUNCTION public.number_whatsapp_attempt();
+REVOKE EXECUTE ON FUNCTION public.number_whatsapp_attempt() FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.number_whatsapp_attempt() TO service_role;
