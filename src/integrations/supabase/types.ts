@@ -529,6 +529,8 @@ export type Database = {
           source: string
           ticket_type: Database["public"]["Enums"]["ticket_type"]
           total_amount: number
+          whatsapp_manually_confirmed_at: string | null
+          whatsapp_manually_confirmed_by: string | null
         }
         Insert: {
           booking_reference: string
@@ -559,6 +561,8 @@ export type Database = {
           source?: string
           ticket_type: Database["public"]["Enums"]["ticket_type"]
           total_amount: number
+          whatsapp_manually_confirmed_at?: string | null
+          whatsapp_manually_confirmed_by?: string | null
         }
         Update: {
           booking_reference?: string
@@ -589,6 +593,8 @@ export type Database = {
           source?: string
           ticket_type?: Database["public"]["Enums"]["ticket_type"]
           total_amount?: number
+          whatsapp_manually_confirmed_at?: string | null
+          whatsapp_manually_confirmed_by?: string | null
         }
         Relationships: [
           {
@@ -1340,6 +1346,7 @@ export type Database = {
         Args: { p_booking_reference: string; p_transaction_number: string }
         Returns: Json
       }
+      confirm_whatsapp_manually: { Args: { p_order_id: string }; Returns: Json }
       create_order: {
         Args: {
           p_actor?: string

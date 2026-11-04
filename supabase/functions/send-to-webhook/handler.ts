@@ -45,6 +45,7 @@ export function sendToWebhookHandler(deps: RelayDeps) {
         const context = await deps.repo.getOrderContext(ref);
         if (!context) throw new HttpError(404, "order_not_found", "Booking not found");
         if (context.order.payment_status !== "confirmed") throw new HttpError(400, "not_confirmed", "Invoice requires confirmed payment");
+        if ((payload as { automatic?: unknown }).automatic === true && context.order.whatsapp_manually_confirmed_at) return json({ success: true, skipped: true, message: "مؤكد يدويًا — مستبعد من الإرسال التلقائي" });
         const settings = await deps.repo.getPrivateSettings();
         if (!settings.webhookUrl) throw new HttpError(400, "webhook_not_configured", "Webhook URL not configured");
         deliveryId = crypto.randomUUID();
