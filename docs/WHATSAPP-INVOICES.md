@@ -20,6 +20,9 @@ After the WhatsApp provider confirms sending, POST to the existing `n8n-response
   "provider_confirmed": true,
   "provider_message_id": "the outgoing data.key.id",
   "provider_status": "PENDING",
+  "provider_confirmed": true,
+  "provider_message_id": "the outgoing data.key.id",
+  "provider_status": "PENDING",
   "message": "تم إرسال الفاتورة عبر واتساب"
 }
 ```

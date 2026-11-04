@@ -51,7 +51,7 @@ export function sendToWebhookHandler(deps: RelayDeps) {
         const invoice = whatsappInvoicePayload(context, settings.whatsappTemplates ?? [], deliveryId);
         outgoing = invoice;
         await deps.repo.createInvoiceDelivery({ order_id: context.order.id, booking_reference: ref, channel: "whatsapp", template: "whatsapp-invoice", status: "queued", attempt: 1, recipient: invoice.customer_phone_whatsapp, message_body: invoice.whatsapp_message, template_name: invoice.template_name, delivery_id: deliveryId });
-        await deps.repo.markAutomationPending({ orderId: context.order.id, bookingReference: ref, message: "جاري الإرسال إلى واتساب..." });
+        await deps.repo.markAutomationPending({ orderId: context.order.id, bookingReference: ref, message: "جاري الإرسال إلى واتساب..." }).catch(error => console.error("could not mark invoice pending", error instanceof Error ? error.message : "unknown error"));
       }
       if ((payload as { notify?: unknown }).notify === "payment_confirmed") {
         const ref = String((payload as { booking_reference?: unknown }).booking_reference ?? "").trim();
