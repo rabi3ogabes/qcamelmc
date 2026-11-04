@@ -56,6 +56,24 @@ describe("manual invoice delivery rules", () => {
     const handler = sendToWebhookHandler({ repo, auth: repo, fetch });
     expect((await handler(post(fn("send-to-webhook"), { action: "send_invoice", booking_reference: context.order.booking_reference }, { authorization: "Bearer admin-jwt" }))).status).toBe(400);
   });
+  it("skips automatic sending after administrator manual confirmation", async () => {
+    const repo = makeRepo({ context: { ...context, order: { ...context.order, whatsapp_manually_confirmed_at: "2026-11-04T06:31:00Z" } } });
+    let calls = 0;
+    const handler = sendToWebhookHandler({ repo, auth: repo, fetch: (async () => { calls++; return new Response("ok"); }) as typeof fetch });
+    const response = await handler(post(fn("send-to-webhook"), { action: "send_invoice", booking_reference: context.order.booking_reference, automatic: true }, { authorization: "Bearer admin-jwt" }));
+    expect(await response.json()).toMatchObject({ skipped: true });
+    expect(calls).toBe(0);
+  });
+  it("allows an intentional manual resend after manual confirmation", async () => {
+    const repo = makeRepo({ context: { ...context, order: { ...context.order, whatsapp_manually_confirmed_at: "2026-11-04T06:31:00Z" } } });
+    let calls = 0;
+    const handler = sendToWebhookHandler({ repo, auth: repo, fetch: (async () => { calls++; return new Response("ok"); }) as typeof fetch });
+    await handler(post(fn("send-to-webhook"), { action: "send_invoice", booking_reference: context.order.booking_reference }, { authorization: "Bearer admin-jwt" }));
+    expect(calls).toBe(1);
+  });
+  it("manual confirmation cannot increase provider-confirmed send counts", () => {
+    expect(deliveryCounts([{ id: "manual", channel: "whatsapp", status: "manual_confirmed", attempt: 1 }], "whatsapp").sent).toBe(0);
+  });
 });
 it("does not count unproven historical success", () => {
   expect(deliveryCounts([{ id: "legacy", channel: "whatsapp", status: "sent", attempt: 1 }], "whatsapp")).toMatchObject({ sent: 0, attempts: 1, unverified: 1 });
