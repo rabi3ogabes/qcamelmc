@@ -1160,7 +1160,7 @@ const LiveBookings = ({ viewerPassword }: { viewerPassword?: string | null } = {
       }, {} as Record<string, number>);
 
       // Group by event date and calculate revenue by ticket holder's ticket_type
-      const grouped = (allTicketHolders || []).reduce((acc: Record<string, DailySummary>, holder: any) => {
+      const grouped = (scopedHolders || []).reduce((acc: Record<string, DailySummary>, holder: any) => {
         const eventDate = holder.orders.events.event_date;
         // Extract just the date portion (YYYY-MM-DD) - handle both ISO format (T separator) and DB format (space separator)
         const date = typeof eventDate === 'string' ? eventDate.substring(0, 10) : '';
