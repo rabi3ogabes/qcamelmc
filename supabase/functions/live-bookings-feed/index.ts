@@ -22,6 +22,10 @@ const RULE = { max: 5, windowMs: 15 * 60_000, blockMs: 30 * 60_000 };
 const ORDER_SELECT =
   "*, customers(name, email, phone, id_number, nationality), events!inner(title, event_date), ticket_holders(*), pos_users(name, icon)";
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+const eventFilterFrom = (eventId: unknown): string | null =>
+  typeof eventId === "string" && UUID_RE.test(eventId) ? eventId : null;
 
 async function pageAll(build: (from: number, to: number) => any) {
   const all: any[] = [];
