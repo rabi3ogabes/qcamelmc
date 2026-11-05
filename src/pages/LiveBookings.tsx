@@ -20,6 +20,7 @@ import { useLifetimeTicketTotals } from "@/hooks/useLifetimeTicketTotals";
 import { fetchLiveFeed } from "@/lib/liveBookingsAccess";
 import { isLiveNow, type LiveRefreshMode } from "@/lib/liveSchedule";
 import { pickActualEventIds } from "@/lib/actualEvent";
+import { buildPersonTicketTotals, normalizePersonKeys, personTotalFromMap } from "@/lib/personTicketTotals";
 
 const QATAR_TIMEZONE = "Asia/Qatar";
 
@@ -352,7 +353,6 @@ interface Booking {
 
 const LiveBookings = ({ viewerPassword }: { viewerPassword?: string | null } = {}) => {
   const { t } = useTranslation();
-  const { getTotal: getLifetimeTickets, refresh: refreshLifetimeTotals } = useLifetimeTicketTotals();
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [ticketHolders, setTicketHolders] = useState<TicketHolder[]>([]);
   const [loading, setLoading] = useState(true);
