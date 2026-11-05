@@ -162,8 +162,8 @@ export const AttendanceTab = () => {
     try {
       const data = await callAttendance({
         mode: "list",
-        from: weekKeys[0],
-        to: dateKey,
+        from: summaryKeys[0],
+        to: summaryKeys[summaryKeys.length - 1],
       });
       setUsers((data?.users as POSUser[]) || []);
       setRecords((data?.records as AttendanceRow[]) || []);
@@ -178,7 +178,7 @@ export const AttendanceTab = () => {
     } finally {
       setLoading(false);
     }
-  }, [callAttendance, dateKey, weekKeys, toast]);
+  }, [callAttendance, summaryKeys, toast]);
 
   useEffect(() => {
     setLoading(true);
