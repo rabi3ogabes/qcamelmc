@@ -1053,6 +1053,8 @@ const LiveBookings = ({ viewerPassword }: { viewerPassword?: string | null } = {
         (payload) => {
           const newTicket = payload.new as any;
           if (!newTicket) return;
+          // Ignore capacity changes on other events
+          if (actualEventIdRef.current && newTicket.event_id !== actualEventIdRef.current) return;
           const ticketType = newTicket.type as string;
           const newCapacity = Number(newTicket.available_quantity ?? 0);
           const oldCapacity = previousTicketCapacitiesRef.current.get(ticketType);
