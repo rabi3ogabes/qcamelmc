@@ -73,15 +73,18 @@ Deno.serve(async (req) => {
       const { data, error } = await admin.from("events").select("id, event_date").eq("is_active", true)
         .order("event_date", { ascending: true });
       if (error) throw error;
-      const { data: st } = await admin.from("settings").select("live_refresh_mode").limit(1).maybeSingle();
-      return json({ data, mode: st?.live_refresh_mode ?? "always" });
+      const { data: st } = await admin.from("settings").select("live_refresh_mode, current_event_id").limit(1).maybeSingle();
+      return json({ data, mode: st?.live_refresh_mode ?? "always", current_event_id: st?.current_event_id ?? null });
     }
 
     if (action === "bookings") {
       const { dateStr, nextDayStr } = body;
+      const eventId = eventFilterFrom(body?.eventId);
       const orders = await pageAll((from, to) => {
         let q = admin.from("orders").select(ORDER_SELECT).eq("payment_status", "confirmed")
           .order("created_at", { ascending: false }).range(from, to);
+        // Only the actual (current) event when provided — never any older event's data
+        if (eventId) q = q.eq("event_id", eventId);
         if (DATE_RE.test(dateStr ?? "") && DATE_RE.test(nextDayStr ?? "")) {
           q = q.gte("events.event_date", dateStr).lt("events.event_date", nextDayStr);
         }
@@ -89,7 +92,7 @@ Deno.serve(async (req) => {
       });
       const { data: logs } = await admin.from("activity_logs").select("action_data")
         .eq("activity_type", "pos_form").limit(500);
-      let eventId: string | null = orders[0]?.event_id ?? null;
+      let capacityEventId: string | null = eventId ?? orders[0]?.event_id ?? null;
       if (!eventId && DATE_RE.test(dateStr ?? "") && DATE_RE.test(nextDayStr ?? "")) {
         const { data: ev } = await admin.from("events").select("id").gte("event_date", dateStr)
           .lt("event_date", nextDayStr).eq("is_active", true).limit(1).maybeSingle();
