@@ -19,6 +19,7 @@ import { CapacityNotificationBanner } from "@/components/admin/CapacityNotificat
 import { useLifetimeTicketTotals } from "@/hooks/useLifetimeTicketTotals";
 import { fetchLiveFeed } from "@/lib/liveBookingsAccess";
 import { isLiveNow, type LiveRefreshMode } from "@/lib/liveSchedule";
+import { pickActualEventId } from "@/lib/actualEvent";
 
 const QATAR_TIMEZONE = "Asia/Qatar";
 
@@ -515,12 +516,7 @@ const LiveBookings = ({ viewerPassword }: { viewerPassword?: string | null } = {
 
         // The actual event: the admin's current event when it is active,
         // otherwise the first active event that has not finished yet
-        const activeEvents = data || [];
-        const currentActive = currentEventSettingId && activeEvents.some((e: any) => e.id === currentEventSettingId)
-          ? currentEventSettingId
-          : null;
-        const upcoming = activeEvents.find((e: any) => canPurchaseTickets(e.event_date));
-        const chosenEventId = currentActive ?? upcoming?.id ?? null;
+        const chosenEventId = pickActualEventId(data || [], currentEventSettingId, canPurchaseTickets);
         setActualEventId(chosenEventId);
         actualEventIdRef.current = chosenEventId;
 
