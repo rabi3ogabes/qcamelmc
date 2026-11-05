@@ -84,11 +84,65 @@ export const AttendanceTab = () => {
   const [bulkBusy, setBulkBusy] = useState(false);
   /** Editing requires a real account session; passcode-only staff get a read-only board. */
   const [canEdit, setCanEdit] = useState(false);
+  /** Distinct Qatar date keys of active (non-archived) events, sorted ascending. */
+  const [eventDays, setEventDays] = useState<string[]>([]);
 
-  const weekKeys = useMemo(
-    () => Array.from({ length: 7 }, (_, i) => shiftKey(dateKey, i - 6)),
-    [dateKey]
+  // Load the event days once: attendance is only tracked on days that have an event.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const { data, error } = await supabase
+        .from("events")
+        .select("event_date, end_date")
+        .eq("is_active", true)
+        .eq("is_archived", false);
+      if (cancelled || error || !data?.length) return;
+      const keys = new Set<string>();
+      for (const ev of data) {
+        if (ev.event_date) keys.add(qatarDateKey(new Date(ev.event_date)));
+        if (ev.end_date) keys.add(qatarDateKey(new Date(ev.end_date)));
+      }
+      const sorted = [...keys].sort();
+      if (!sorted.length) return;
+      setEventDays(sorted);
+      // Open on today when it is an event day, otherwise the nearest event day.
+      setDateKey((current) => {
+        if (sorted.includes(current)) return current;
+        if (sorted.includes(todayKey)) return todayKey;
+        return sorted.find((k) => k >= todayKey) ?? sorted[sorted.length - 1];
+      });
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [todayKey]);
+
+  // Keep the selected day inside the event days whenever the list changes.
+  useEffect(() => {
+    if (!eventDays.length) return;
+    setDateKey((current) =>
+      eventDays.includes(current)
+        ? current
+        : eventDays.find((k) => k >= current) ?? eventDays[eventDays.length - 1]
+    );
+  }, [eventDays]);
+
+  /** Days shown in the summary table: the event days only, never arbitrary dates. */
+  const summaryKeys = useMemo(
+    () => (eventDays.length ? eventDays : [dateKey]),
+    [eventDays, dateKey]
   );
+
+  const dayIndex = eventDays.indexOf(dateKey);
+  const goToDay = (dir: -1 | 1) => {
+    if (!eventDays.length) {
+      setDateKey((k) => shiftKey(k, dir));
+      return;
+    }
+    const i = dayIndex === -1 ? 0 : dayIndex;
+    const next = eventDays[i + dir];
+    if (next) setDateKey(next);
+  };
 
   /**
    * All reads/writes go through the edge function. It uses the signed-in
@@ -108,8 +162,8 @@ export const AttendanceTab = () => {
     try {
       const data = await callAttendance({
         mode: "list",
-        from: weekKeys[0],
-        to: dateKey,
+        from: summaryKeys[0],
+        to: summaryKeys[summaryKeys.length - 1],
       });
       setUsers((data?.users as POSUser[]) || []);
       setRecords((data?.records as AttendanceRow[]) || []);
@@ -124,7 +178,7 @@ export const AttendanceTab = () => {
     } finally {
       setLoading(false);
     }
-  }, [callAttendance, dateKey, weekKeys, toast]);
+  }, [callAttendance, summaryKeys, toast]);
 
   useEffect(() => {
     setLoading(true);
@@ -251,28 +305,30 @@ export const AttendanceTab = () => {
             <Button
               variant="ghost"
               size="icon"
-              onClick={() => setDateKey((k) => shiftKey(k, -1))}
-              aria-label="اليوم السابق"
+              disabled={eventDays.length > 0 && dayIndex <= 0}
+              onClick={() => goToDay(-1)}
+              aria-label="يوم الفعالية السابق"
             >
               <ChevronRight className="h-4 w-4" />
             </Button>
             <div className="min-w-[190px] text-center">
               <p className="text-sm font-semibold">{prettyDate(dateKey)}</p>
-              <input
-                type="date"
-                value={dateKey}
-                max={todayKey}
-                onChange={(e) => e.target.value && setDateKey(e.target.value)}
-                className="mt-1 w-full cursor-pointer bg-transparent text-center text-[11px] text-muted-foreground outline-none"
-                dir="ltr"
-              />
+              {eventDays.length > 0 && dayIndex !== -1 && (
+                <p className="mt-1 text-[11px] text-muted-foreground">
+                  يوم {dayIndex + 1} من {eventDays.length} أيام الفعالية
+                </p>
+              )}
             </div>
             <Button
               variant="ghost"
               size="icon"
-              disabled={dateKey >= todayKey}
-              onClick={() => setDateKey((k) => shiftKey(k, 1))}
-              aria-label="اليوم التالي"
+              disabled={
+                eventDays.length > 0
+                  ? dayIndex === -1 || dayIndex >= eventDays.length - 1
+                  : dateKey >= todayKey
+              }
+              onClick={() => goToDay(1)}
+              aria-label="يوم الفعالية التالي"
             >
               <ChevronLeft className="h-4 w-4" />
             </Button>
@@ -397,12 +453,12 @@ export const AttendanceTab = () => {
       {!loading && users.length > 0 && (
         <Card className="border-border/70">
           <CardContent className="overflow-x-auto p-4">
-            <p className="mb-3 text-sm font-semibold">ملخّص آخر 7 أيام</p>
+            <p className="mb-3 text-sm font-semibold">ملخّص أيام الفعالية</p>
             <table className="w-full min-w-[520px] text-sm">
               <thead>
                 <tr className="text-muted-foreground">
                   <th className="p-2 text-right font-medium">الاسم</th>
-                  {weekKeys.map((k) => (
+                  {summaryKeys.map((k) => (
                     <th key={k} className="p-2 text-center text-xs font-medium">
                       {shortDay(k)}
                     </th>
@@ -416,7 +472,7 @@ export const AttendanceTab = () => {
                       <span className="me-2">{u.icon || "👤"}</span>
                       {u.name}
                     </td>
-                    {weekKeys.map((k) => {
+                    {summaryKeys.map((k) => {
                       const s = statusFor(u.id, k);
                       return (
                         <td key={k} className="p-2 text-center">
