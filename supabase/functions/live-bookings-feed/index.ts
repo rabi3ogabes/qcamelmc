@@ -93,10 +93,10 @@ Deno.serve(async (req) => {
       const { data: logs } = await admin.from("activity_logs").select("action_data")
         .eq("activity_type", "pos_form").limit(500);
       let capacityEventId: string | null = eventId ?? orders[0]?.event_id ?? null;
-      if (!eventId && DATE_RE.test(dateStr ?? "") && DATE_RE.test(nextDayStr ?? "")) {
+      if (!capacityEventId && DATE_RE.test(dateStr ?? "") && DATE_RE.test(nextDayStr ?? "")) {
         const { data: ev } = await admin.from("events").select("id").gte("event_date", dateStr)
           .lt("event_date", nextDayStr).eq("is_active", true).limit(1).maybeSingle();
-        eventId = ev?.id ?? null;
+        capacityEventId = ev?.id ?? null;
       }
       let capacities: unknown[] = [];
       if (capacityEventId) {
