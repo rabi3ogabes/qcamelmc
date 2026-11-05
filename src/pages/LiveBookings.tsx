@@ -16,7 +16,6 @@ import { cn } from "@/lib/utils";
 import { Footer } from "@/components/Footer";
 import { canPurchaseTickets } from "@/lib/eventUtils";
 import { CapacityNotificationBanner } from "@/components/admin/CapacityNotificationBanner";
-import { useLifetimeTicketTotals } from "@/hooks/useLifetimeTicketTotals";
 import { fetchLiveFeed } from "@/lib/liveBookingsAccess";
 import { isLiveNow, type LiveRefreshMode } from "@/lib/liveSchedule";
 import { pickActualEventIds } from "@/lib/actualEvent";
@@ -1912,7 +1911,7 @@ const LiveBookings = ({ viewerPassword }: { viewerPassword?: string | null } = {
                             ? "border-amber-400/50 bg-gradient-to-l from-amber-500/15 via-amber-400/10 to-transparent"
                             : "border-border bg-muted/40"
                         )}
-                        title="إجمالي التذاكر لهذا الشخص في كل الفعاليات (بما فيها الأرشيف)"
+                        title="إجمالي تذاكر هذا الشخص في الفعالية الحالية فقط"
                       >
                         <div className="flex items-center gap-1.5 min-w-0">
                           <Hash className={cn("w-3.5 h-3.5 flex-shrink-0", lifetimeTickets > 1 ? "text-amber-600" : "text-muted-foreground")} />
