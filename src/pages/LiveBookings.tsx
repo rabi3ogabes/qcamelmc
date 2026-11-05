@@ -1131,17 +1131,26 @@ const LiveBookings = ({ viewerPassword }: { viewerPassword?: string | null } = {
       // Fetch all ticket prices
       let ticketPrices: any[] | null = null;
       if (viewerPassword) {
-        const res = await fetchLiveFeed(viewerPassword, "daily_sales");
+        const res = await fetchLiveFeed(viewerPassword, "daily_sales", { eventId: actualEventIdRef.current });
         allTicketHolders.length = 0;
         allTicketHolders.push(...res.holders);
         ticketPrices = res.prices;
       } else {
-        const { data, error: ticketError } = await supabase
+        let pricesQuery = supabase
           .from("tickets")
           .select("event_id, type, price");
+        if (actualEventIdRef.current) {
+          pricesQuery = pricesQuery.eq("event_id", actualEventIdRef.current);
+        }
+        const { data, error: ticketError } = await pricesQuery;
         if (ticketError) throw ticketError;
         ticketPrices = data;
       }
+
+      // Safety net: drop anything outside the actual event (feed path included)
+      const scopedHolders = actualEventIdRef.current
+        ? allTicketHolders.filter((h: any) => h.orders?.event_id === actualEventIdRef.current)
+        : allTicketHolders;
 
       // Create a map of ticket prices by event_id and type
       const priceMap = (ticketPrices || []).reduce((acc, ticket) => {
