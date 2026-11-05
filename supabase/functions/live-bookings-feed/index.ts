@@ -99,20 +99,25 @@ Deno.serve(async (req) => {
         eventId = ev?.id ?? null;
       }
       let capacities: unknown[] = [];
-      if (eventId) {
-        const { data } = await admin.from("tickets").select("type, available_quantity").eq("event_id", eventId);
+      if (capacityEventId) {
+        const { data } = await admin.from("tickets").select("type, available_quantity").eq("event_id", capacityEventId);
         capacities = data ?? [];
       }
       return json({ orders, logs: logs ?? [], capacities });
     }
 
     if (action === "daily_sales") {
-      const holders = await pageAll((from, to) =>
-        admin.from("ticket_holders")
+      const eventId = eventFilterFrom(body?.eventId);
+      const holders = await pageAll((from, to) => {
+        let q = admin.from("ticket_holders")
           .select("id, ticket_type, order_id, created_at, orders!inner(payment_status, event_id, total_amount, events!inner(title, event_date))")
-          .eq("orders.payment_status", "confirmed").order("created_at", { ascending: false }).range(from, to)
-      );
-      const { data: prices } = await admin.from("tickets").select("event_id, type, price");
+          .eq("orders.payment_status", "confirmed").order("created_at", { ascending: false }).range(from, to);
+        if (eventId) q = q.eq("orders.event_id", eventId);
+        return q;
+      });
+      let priceQuery = admin.from("tickets").select("event_id, type, price");
+      if (eventId) priceQuery = priceQuery.eq("event_id", eventId);
+      const { data: prices } = await priceQuery;
       return json({ holders, prices: prices ?? [] });
     }
 
