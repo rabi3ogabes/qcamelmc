@@ -19,7 +19,7 @@ import { CapacityNotificationBanner } from "@/components/admin/CapacityNotificat
 import { useLifetimeTicketTotals } from "@/hooks/useLifetimeTicketTotals";
 import { fetchLiveFeed } from "@/lib/liveBookingsAccess";
 import { isLiveNow, type LiveRefreshMode } from "@/lib/liveSchedule";
-import { pickActualEventId } from "@/lib/actualEvent";
+import { pickActualEventIds } from "@/lib/actualEvent";
 
 const QATAR_TIMEZONE = "Asia/Qatar";
 
@@ -394,9 +394,9 @@ const LiveBookings = ({ viewerPassword }: { viewerPassword?: string | null } = {
   const [eventDates, setEventDates] = useState<string[]>([]);
   const [isLive, setIsLive] = useState(false);
   // The actual (current) event — every list and statistic on this page is scoped to it
-  const [actualEventId, setActualEventId] = useState<string | null>(null);
-  const actualEventIdRef = useRef<string | null>(null);
-  useEffect(() => { actualEventIdRef.current = actualEventId; }, [actualEventId]);
+  const [actualEventIds, setActualEventIds] = useState<string[]>([]);
+  const actualEventIdsRef = useRef<string[]>([]);
+  useEffect(() => { actualEventIdsRef.current = actualEventIds; }, [actualEventIds]);
   const [dailySalesDialogOpen, setDailySalesDialogOpen] = useState(false);
   const [dailySummaries, setDailySummaries] = useState<DailySummary[]>([]);
   
@@ -516,9 +516,9 @@ const LiveBookings = ({ viewerPassword }: { viewerPassword?: string | null } = {
 
         // The actual event: the admin's current event when it is active,
         // otherwise the first active event that has not finished yet
-        const chosenEventId = pickActualEventId(data || [], currentEventSettingId, canPurchaseTickets);
-        setActualEventId(chosenEventId);
-        actualEventIdRef.current = chosenEventId;
+        const chosenEventIds = pickActualEventIds(data || [], currentEventSettingId, canPurchaseTickets);
+        setActualEventIds(chosenEventIds);
+        actualEventIdsRef.current = chosenEventIds;
 
         // Find the first event that still allows viewing (upcoming or today)
         const availableEvent = data?.find(event => canPurchaseTickets(event.event_date));
@@ -822,7 +822,7 @@ const LiveBookings = ({ viewerPassword }: { viewerPassword?: string | null } = {
         feed = await fetchLiveFeed(viewerPassword, "bookings", {
           dateStr,
           nextDayStr: nextDayStrForFeed,
-          eventId: actualEventIdRef.current,
+          eventIds: actualEventIdsRef.current,
         });
         allOrders.push(...feed!.orders);
       }
@@ -836,8 +836,8 @@ const LiveBookings = ({ viewerPassword }: { viewerPassword?: string | null } = {
           .range(from, from + PAGE_SIZE - 1);
 
         // Only the actual (current) event — never any older event's data
-        if (actualEventIdRef.current) {
-          query = query.eq("event_id", actualEventIdRef.current);
+        if (actualEventIdsRef.current.length) {
+          query = query.in("event_id", actualEventIdsRef.current);
         }
 
         // Apply server-side date range filter (event_date is timestamp, not date)
@@ -882,7 +882,7 @@ const LiveBookings = ({ viewerPassword }: { viewerPassword?: string | null } = {
       setInvoiceDownloadedRefs(downloadedRefs);
       
       // Fetch ticket capacities for the actual event
-      const eventId = actualEventIdRef.current ?? allOrders[0]?.event_id;
+      const eventId = allOrders[0]?.event_id ?? actualEventIdsRef.current[0];
       if (feed) {
         const capacities: { [key: string]: number } = {};
         const capacitiesMap = new Map<string, number>();
@@ -950,7 +950,7 @@ const LiveBookings = ({ viewerPassword }: { viewerPassword?: string | null } = {
               const fullOrder = await fetchSingleOrder(orderData.id);
               if (!fullOrder) return;
               // Ignore anything outside the actual event or the selected date
-              if (actualEventIdRef.current && fullOrder.event_id !== actualEventIdRef.current) return;
+              if (actualEventIdsRef.current.length && !actualEventIdsRef.current.includes(fullOrder.event_id)) return;
               if (!orderMatchesSelectedDate(fullOrder)) return;
               
               // Add or update in state
@@ -1050,7 +1050,7 @@ const LiveBookings = ({ viewerPassword }: { viewerPassword?: string | null } = {
           const newTicket = payload.new as any;
           if (!newTicket) return;
           // Ignore capacity changes on other events
-          if (actualEventIdRef.current && newTicket.event_id !== actualEventIdRef.current) return;
+          if (actualEventIdsRef.current.length && !actualEventIdsRef.current.includes(newTicket.event_id)) return;
           const ticketType = newTicket.type as string;
           const newCapacity = Number(newTicket.available_quantity ?? 0);
           const oldCapacity = previousTicketCapacitiesRef.current.get(ticketType);
@@ -1114,8 +1114,8 @@ const LiveBookings = ({ viewerPassword }: { viewerPassword?: string | null } = {
           .range(from, from + PAGE_SIZE - 1);
 
         // Only the actual (current) event — never any older event's data
-        if (actualEventIdRef.current) {
-          holdersQuery = holdersQuery.eq("orders.event_id", actualEventIdRef.current);
+        if (actualEventIdsRef.current.length) {
+          holdersQuery = holdersQuery.in("orders.event_id", actualEventIdsRef.current);
         }
 
         const { data, error } = await holdersQuery;
@@ -1129,7 +1129,7 @@ const LiveBookings = ({ viewerPassword }: { viewerPassword?: string | null } = {
       // Fetch all ticket prices
       let ticketPrices: any[] | null = null;
       if (viewerPassword) {
-        const res = await fetchLiveFeed(viewerPassword, "daily_sales", { eventId: actualEventIdRef.current });
+        const res = await fetchLiveFeed(viewerPassword, "daily_sales", { eventIds: actualEventIdsRef.current });
         allTicketHolders.length = 0;
         allTicketHolders.push(...res.holders);
         ticketPrices = res.prices;
@@ -1137,8 +1137,8 @@ const LiveBookings = ({ viewerPassword }: { viewerPassword?: string | null } = {
         let pricesQuery = supabase
           .from("tickets")
           .select("event_id, type, price");
-        if (actualEventIdRef.current) {
-          pricesQuery = pricesQuery.eq("event_id", actualEventIdRef.current);
+        if (actualEventIdsRef.current.length) {
+          pricesQuery = pricesQuery.in("event_id", actualEventIdsRef.current);
         }
         const { data, error: ticketError } = await pricesQuery;
         if (ticketError) throw ticketError;
@@ -1146,8 +1146,8 @@ const LiveBookings = ({ viewerPassword }: { viewerPassword?: string | null } = {
       }
 
       // Safety net: drop anything outside the actual event (feed path included)
-      const scopedHolders = actualEventIdRef.current
-        ? allTicketHolders.filter((h: any) => h.orders?.event_id === actualEventIdRef.current)
+      const scopedHolders = actualEventIdsRef.current.length
+        ? allTicketHolders.filter((h: any) => actualEventIdsRef.current.includes(h.orders?.event_id))
         : allTicketHolders;
 
       // Create a map of ticket prices by event_id and type
