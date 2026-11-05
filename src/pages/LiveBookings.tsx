@@ -509,7 +509,20 @@ const LiveBookings = ({ viewerPassword }: { viewerPassword?: string | null } = {
           throw error;
         }
         setEventDates((data || []).map((e: any) => e.event_date));
-        
+
+        // The actual event: the admin's current event when it is active,
+        // otherwise the first active event that has not finished yet
+        const activeEvents = data || [];
+        const currentEventId: string | null = viewerPassword
+          ? (res?.current_event_id ?? null)
+          : currentEventSettingId;
+        const currentActive = currentEventId && activeEvents.some((e: any) => e.id === currentEventId)
+          ? currentEventId
+          : null;
+        const upcoming = activeEvents.find((e: any) => canPurchaseTickets(e.event_date));
+        setActualEventId(currentActive ?? upcoming?.id ?? null);
+        actualEventIdRef.current = currentActive ?? upcoming?.id ?? null;
+
         // Find the first event that still allows viewing (upcoming or today)
         const availableEvent = data?.find(event => canPurchaseTickets(event.event_date));
         
