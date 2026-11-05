@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -16,10 +16,10 @@ import { cn } from "@/lib/utils";
 import { Footer } from "@/components/Footer";
 import { canPurchaseTickets } from "@/lib/eventUtils";
 import { CapacityNotificationBanner } from "@/components/admin/CapacityNotificationBanner";
-import { useLifetimeTicketTotals } from "@/hooks/useLifetimeTicketTotals";
 import { fetchLiveFeed } from "@/lib/liveBookingsAccess";
 import { isLiveNow, type LiveRefreshMode } from "@/lib/liveSchedule";
 import { pickActualEventIds } from "@/lib/actualEvent";
+import { buildPersonTicketTotals, personTotalFromMap } from "@/lib/personTicketTotals";
 
 const QATAR_TIMEZONE = "Asia/Qatar";
 
@@ -352,7 +352,6 @@ interface Booking {
 
 const LiveBookings = ({ viewerPassword }: { viewerPassword?: string | null } = {}) => {
   const { t } = useTranslation();
-  const { getTotal: getLifetimeTickets, refresh: refreshLifetimeTotals } = useLifetimeTicketTotals();
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [ticketHolders, setTicketHolders] = useState<TicketHolder[]>([]);
   const [loading, setLoading] = useState(true);
@@ -590,13 +589,13 @@ const LiveBookings = ({ viewerPassword }: { viewerPassword?: string | null } = {
     }
   }, [bookings, ticketHolders, loading]);
 
-  // Keep lifetime ticket totals in sync as new bookings arrive
-  useEffect(() => {
-    if (loading) return;
-    const timer = setTimeout(() => { refreshLifetimeTotals(); }, 1500);
-    return () => clearTimeout(timer);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ticketHolders.length, loading]);
+
+  // Per-person ticket totals counted ONLY from the actual event's loaded tickets
+  const eventTicketTotals = useMemo(() => buildPersonTicketTotals(ticketHolders), [ticketHolders]);
+  const getEventTickets = useCallback(
+    (phone?: string | null, idNumber?: string | null): number => personTotalFromMap(eventTicketTotals, phone, idNumber),
+    [eventTicketTotals]
+  );
 
   // Helper: extract ticket holders from a single order
   const extractOrderTicketHolders = useCallback((order: any): TicketHolder[] => {
@@ -1824,7 +1823,7 @@ const LiveBookings = ({ viewerPassword }: { viewerPassword?: string | null } = {
               ticketHolders.map((holder, index) => {
                 const isRecent = isRecentBooking(holder.created_at);
                 const ticketNumber = ticketHolders.length - index; // Descending order (newest first, so reverse the number)
-                const lifetimeTickets = getLifetimeTickets(holder.phone, holder.id_number);
+              const lifetimeTickets = getEventTickets(holder.phone, holder.id_number);
                 return (
                 <Card 
                   key={holder.id} 
@@ -1912,7 +1911,7 @@ const LiveBookings = ({ viewerPassword }: { viewerPassword?: string | null } = {
                             ? "border-amber-400/50 bg-gradient-to-l from-amber-500/15 via-amber-400/10 to-transparent"
                             : "border-border bg-muted/40"
                         )}
-                        title="إجمالي التذاكر لهذا الشخص في كل الفعاليات (بما فيها الأرشيف)"
+                        title="إجمالي تذاكر هذا الشخص في الفعالية الحالية فقط"
                       >
                         <div className="flex items-center gap-1.5 min-w-0">
                           <Hash className={cn("w-3.5 h-3.5 flex-shrink-0", lifetimeTickets > 1 ? "text-amber-600" : "text-muted-foreground")} />
@@ -2048,10 +2047,10 @@ const LiveBookings = ({ viewerPassword }: { viewerPassword?: string | null } = {
                         </TableCell>
                         <TableCell className="py-2 sm:py-4">
                           {(() => {
-                            const lifetimeTickets = getLifetimeTickets(holder.phone, holder.id_number);
-                            return (
-                              <span
-                                title="إجمالي التذاكر لهذا الشخص في كل الفعاليات (بما فيها الأرشيف)"
+                const lifetimeTickets = getEventTickets(holder.phone, holder.id_number);
+                return (
+                  <span
+                    title="إجمالي تذاكر هذا الشخص في الفعالية الحالية فقط"
                                 className={cn(
                                   "inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-[11px] sm:text-xs font-bold tabular-nums",
                                   lifetimeTickets > 1
