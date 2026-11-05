@@ -823,7 +823,11 @@ const LiveBookings = ({ viewerPassword }: { viewerPassword?: string | null } = {
       }
       let feed: { orders: any[]; logs: any[]; capacities: any[] } | null = null;
       if (viewerPassword) {
-        feed = await fetchLiveFeed(viewerPassword, "bookings", { dateStr, nextDayStr: nextDayStrForFeed });
+        feed = await fetchLiveFeed(viewerPassword, "bookings", {
+          dateStr,
+          nextDayStr: nextDayStrForFeed,
+          eventId: actualEventIdRef.current,
+        });
         allOrders.push(...feed!.orders);
       }
 
@@ -834,6 +838,11 @@ const LiveBookings = ({ viewerPassword }: { viewerPassword?: string | null } = {
           .eq("payment_status", "confirmed")
           .order("created_at", { ascending: false })
           .range(from, from + PAGE_SIZE - 1);
+
+        // Only the actual (current) event — never any older event's data
+        if (actualEventIdRef.current) {
+          query = query.eq("event_id", actualEventIdRef.current);
+        }
 
         // Apply server-side date range filter (event_date is timestamp, not date)
         if (dateStr) {
