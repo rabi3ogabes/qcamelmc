@@ -952,7 +952,10 @@ const LiveBookings = ({ viewerPassword }: { viewerPassword?: string | null } = {
             if (orderData?.payment_status === 'confirmed') {
               // Fetch only this single order (not all orders)
               const fullOrder = await fetchSingleOrder(orderData.id);
-              if (!fullOrder || !orderMatchesSelectedDate(fullOrder)) return;
+              if (!fullOrder) return;
+              // Ignore anything outside the actual event or the selected date
+              if (actualEventIdRef.current && fullOrder.event_id !== actualEventIdRef.current) return;
+              if (!orderMatchesSelectedDate(fullOrder)) return;
               
               // Add or update in state
               setBookings(prev => {
