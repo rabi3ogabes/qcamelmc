@@ -20,7 +20,7 @@ import { useLifetimeTicketTotals } from "@/hooks/useLifetimeTicketTotals";
 import { fetchLiveFeed } from "@/lib/liveBookingsAccess";
 import { isLiveNow, type LiveRefreshMode } from "@/lib/liveSchedule";
 import { pickActualEventIds } from "@/lib/actualEvent";
-import { buildPersonTicketTotals, normalizePersonKeys, personTotalFromMap } from "@/lib/personTicketTotals";
+import { buildPersonTicketTotals, personTotalFromMap } from "@/lib/personTicketTotals";
 
 const QATAR_TIMEZONE = "Asia/Qatar";
 
@@ -1824,7 +1824,7 @@ const LiveBookings = ({ viewerPassword }: { viewerPassword?: string | null } = {
               ticketHolders.map((holder, index) => {
                 const isRecent = isRecentBooking(holder.created_at);
                 const ticketNumber = ticketHolders.length - index; // Descending order (newest first, so reverse the number)
-                const lifetimeTickets = getLifetimeTickets(holder.phone, holder.id_number);
+              const lifetimeTickets = getEventTickets(holder.phone, holder.id_number);
                 return (
                 <Card 
                   key={holder.id} 
@@ -2048,10 +2048,10 @@ const LiveBookings = ({ viewerPassword }: { viewerPassword?: string | null } = {
                         </TableCell>
                         <TableCell className="py-2 sm:py-4">
                           {(() => {
-                            const lifetimeTickets = getLifetimeTickets(holder.phone, holder.id_number);
-                            return (
-                              <span
-                                title="إجمالي التذاكر لهذا الشخص في كل الفعاليات (بما فيها الأرشيف)"
+                const lifetimeTickets = getEventTickets(holder.phone, holder.id_number);
+                return (
+                  <span
+                    title="إجمالي تذاكر هذا الشخص في الفعالية الحالية فقط"
                                 className={cn(
                                   "inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-[11px] sm:text-xs font-bold tabular-nums",
                                   lifetimeTickets > 1
