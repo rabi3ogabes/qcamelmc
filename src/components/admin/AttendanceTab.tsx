@@ -472,7 +472,7 @@ export const AttendanceTab = () => {
                       <span className="me-2">{u.icon || "👤"}</span>
                       {u.name}
                     </td>
-                    {weekKeys.map((k) => {
+                    {summaryKeys.map((k) => {
                       const s = statusFor(u.id, k);
                       return (
                         <td key={k} className="p-2 text-center">
