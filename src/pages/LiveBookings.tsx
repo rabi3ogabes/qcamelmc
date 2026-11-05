@@ -1092,7 +1092,7 @@ const LiveBookings = ({ viewerPassword }: { viewerPassword?: string | null } = {
       const allTicketHolders: any[] = [];
 
       for (let from = 0; !viewerPassword; from += PAGE_SIZE) {
-        const { data, error } = await supabase
+        let holdersQuery = supabase
           .from("ticket_holders")
           .select(
             `
@@ -1114,6 +1114,13 @@ const LiveBookings = ({ viewerPassword }: { viewerPassword?: string | null } = {
           .eq("orders.payment_status", "confirmed")
           .order("created_at", { ascending: false })
           .range(from, from + PAGE_SIZE - 1);
+
+        // Only the actual (current) event — never any older event's data
+        if (actualEventIdRef.current) {
+          holdersQuery = holdersQuery.eq("orders.event_id", actualEventIdRef.current);
+        }
+
+        const { data, error } = await holdersQuery;
 
         if (error) throw error;
         if (data?.length) allTicketHolders.push(...data);
