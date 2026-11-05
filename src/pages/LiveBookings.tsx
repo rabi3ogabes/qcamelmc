@@ -392,6 +392,10 @@ const LiveBookings = ({ viewerPassword }: { viewerPassword?: string | null } = {
   const [liveMode, setLiveMode] = useState<LiveRefreshMode>("always");
   const [eventDates, setEventDates] = useState<string[]>([]);
   const [isLive, setIsLive] = useState(false);
+  // The actual (current) event — every list and statistic on this page is scoped to it
+  const [actualEventId, setActualEventId] = useState<string | null>(null);
+  const actualEventIdRef = useRef<string | null>(null);
+  useEffect(() => { actualEventIdRef.current = actualEventId; }, [actualEventId]);
   const [dailySalesDialogOpen, setDailySalesDialogOpen] = useState(false);
   const [dailySummaries, setDailySummaries] = useState<DailySummary[]>([]);
   
