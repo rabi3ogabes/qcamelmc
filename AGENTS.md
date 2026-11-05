@@ -19,3 +19,4 @@
 - Sadad transaction details load private settings through createRepo and sadadCredentialsFromSettings, rejecting missing credentials — keeps merchant login aligned with checkout without alternate credential sources.
 - Sadad diagnostics trace only outbound login method, endpoint and HTTP status, and always report checkout acceptance as unverified — merchant API authentication cannot certify a payment signature.
 - Checkout request signatures use the documented mandatory-field allowlist and uppercase SHA256 in sadad-core; callback checksums retain all-field verification and payment confirmation requires independent provider proof — optional form fields must not change signing or weaken payment security.
+- Per-person «إجمالي التذاكر» on LiveBookings is computed client-side from the already event-scoped loaded holders (src/lib/personTicketTotals.ts), not from the lifetime RPC — one data path, counts only the actual event.
