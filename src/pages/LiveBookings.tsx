@@ -885,8 +885,8 @@ const LiveBookings = ({ viewerPassword }: { viewerPassword?: string | null } = {
       });
       setInvoiceDownloadedRefs(downloadedRefs);
       
-      // Fetch ticket capacities
-      const eventId = allOrders[0]?.event_id;
+      // Fetch ticket capacities for the actual event
+      const eventId = actualEventIdRef.current ?? allOrders[0]?.event_id;
       if (feed) {
         const capacities: { [key: string]: number } = {};
         const capacitiesMap = new Map<string, number>();
@@ -898,17 +898,6 @@ const LiveBookings = ({ viewerPassword }: { viewerPassword?: string | null } = {
         previousTicketCapacitiesRef.current = capacitiesMap;
       } else if (eventId) {
         await fetchTicketCapacities(eventId);
-      } else if (dateStr && dateToUse) {
-        const { data: eventData } = await supabase
-          .from("events")
-          .select("id")
-          .gte("event_date", dateStr)
-          .lt("event_date", nextDayStrForFeed!)
-          .eq("is_active", true)
-          .maybeSingle();
-        if (eventData) {
-          await fetchTicketCapacities(eventData.id);
-        }
       }
       
       // Track new ticket holders for animation
