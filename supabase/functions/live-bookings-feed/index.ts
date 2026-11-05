@@ -22,6 +22,10 @@ const RULE = { max: 5, windowMs: 15 * 60_000, blockMs: 30 * 60_000 };
 const ORDER_SELECT =
   "*, customers(name, email, phone, id_number, nationality), events!inner(title, event_date), ticket_holders(*), pos_users(name, icon)";
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+const eventFilterFrom = (eventId: unknown): string | null =>
+  typeof eventId === "string" && UUID_RE.test(eventId) ? eventId : null;
 
 async function pageAll(build: (from: number, to: number) => any) {
   const all: any[] = [];
@@ -69,15 +73,18 @@ Deno.serve(async (req) => {
       const { data, error } = await admin.from("events").select("id, event_date").eq("is_active", true)
         .order("event_date", { ascending: true });
       if (error) throw error;
-      const { data: st } = await admin.from("settings").select("live_refresh_mode").limit(1).maybeSingle();
-      return json({ data, mode: st?.live_refresh_mode ?? "always" });
+      const { data: st } = await admin.from("settings").select("live_refresh_mode, current_event_id").limit(1).maybeSingle();
+      return json({ data, mode: st?.live_refresh_mode ?? "always", current_event_id: st?.current_event_id ?? null });
     }
 
     if (action === "bookings") {
       const { dateStr, nextDayStr } = body;
+      const eventId = eventFilterFrom(body?.eventId);
       const orders = await pageAll((from, to) => {
         let q = admin.from("orders").select(ORDER_SELECT).eq("payment_status", "confirmed")
           .order("created_at", { ascending: false }).range(from, to);
+        // Only the actual (current) event when provided — never any older event's data
+        if (eventId) q = q.eq("event_id", eventId);
         if (DATE_RE.test(dateStr ?? "") && DATE_RE.test(nextDayStr ?? "")) {
           q = q.gte("events.event_date", dateStr).lt("events.event_date", nextDayStr);
         }
@@ -85,27 +92,32 @@ Deno.serve(async (req) => {
       });
       const { data: logs } = await admin.from("activity_logs").select("action_data")
         .eq("activity_type", "pos_form").limit(500);
-      let eventId: string | null = orders[0]?.event_id ?? null;
-      if (!eventId && DATE_RE.test(dateStr ?? "") && DATE_RE.test(nextDayStr ?? "")) {
+      let capacityEventId: string | null = eventId ?? orders[0]?.event_id ?? null;
+      if (!capacityEventId && DATE_RE.test(dateStr ?? "") && DATE_RE.test(nextDayStr ?? "")) {
         const { data: ev } = await admin.from("events").select("id").gte("event_date", dateStr)
           .lt("event_date", nextDayStr).eq("is_active", true).limit(1).maybeSingle();
-        eventId = ev?.id ?? null;
+        capacityEventId = ev?.id ?? null;
       }
       let capacities: unknown[] = [];
-      if (eventId) {
-        const { data } = await admin.from("tickets").select("type, available_quantity").eq("event_id", eventId);
+      if (capacityEventId) {
+        const { data } = await admin.from("tickets").select("type, available_quantity").eq("event_id", capacityEventId);
         capacities = data ?? [];
       }
       return json({ orders, logs: logs ?? [], capacities });
     }
 
     if (action === "daily_sales") {
-      const holders = await pageAll((from, to) =>
-        admin.from("ticket_holders")
+      const eventId = eventFilterFrom(body?.eventId);
+      const holders = await pageAll((from, to) => {
+        let q = admin.from("ticket_holders")
           .select("id, ticket_type, order_id, created_at, orders!inner(payment_status, event_id, total_amount, events!inner(title, event_date))")
-          .eq("orders.payment_status", "confirmed").order("created_at", { ascending: false }).range(from, to)
-      );
-      const { data: prices } = await admin.from("tickets").select("event_id, type, price");
+          .eq("orders.payment_status", "confirmed").order("created_at", { ascending: false }).range(from, to);
+        if (eventId) q = q.eq("orders.event_id", eventId);
+        return q;
+      });
+      let priceQuery = admin.from("tickets").select("event_id, type, price");
+      if (eventId) priceQuery = priceQuery.eq("event_id", eventId);
+      const { data: prices } = await priceQuery;
       return json({ holders, prices: prices ?? [] });
     }
 
