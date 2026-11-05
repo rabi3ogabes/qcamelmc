@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -590,13 +590,13 @@ const LiveBookings = ({ viewerPassword }: { viewerPassword?: string | null } = {
     }
   }, [bookings, ticketHolders, loading]);
 
-  // Keep lifetime ticket totals in sync as new bookings arrive
-  useEffect(() => {
-    if (loading) return;
-    const timer = setTimeout(() => { refreshLifetimeTotals(); }, 1500);
-    return () => clearTimeout(timer);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ticketHolders.length, loading]);
+
+  // Per-person ticket totals counted ONLY from the actual event's loaded tickets
+  const eventTicketTotals = useMemo(() => buildPersonTicketTotals(ticketHolders), [ticketHolders]);
+  const getEventTickets = useCallback(
+    (phone?: string | null, idNumber?: string | null): number => personTotalFromMap(eventTicketTotals, phone, idNumber),
+    [eventTicketTotals]
+  );
 
   // Helper: extract ticket holders from a single order
   const extractOrderTicketHolders = useCallback((order: any): TicketHolder[] => {
