@@ -84,11 +84,65 @@ export const AttendanceTab = () => {
   const [bulkBusy, setBulkBusy] = useState(false);
   /** Editing requires a real account session; passcode-only staff get a read-only board. */
   const [canEdit, setCanEdit] = useState(false);
+  /** Distinct Qatar date keys of active (non-archived) events, sorted ascending. */
+  const [eventDays, setEventDays] = useState<string[]>([]);
 
-  const weekKeys = useMemo(
-    () => Array.from({ length: 7 }, (_, i) => shiftKey(dateKey, i - 6)),
-    [dateKey]
+  // Load the event days once: attendance is only tracked on days that have an event.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const { data, error } = await supabase
+        .from("events")
+        .select("event_date, end_date")
+        .eq("is_active", true)
+        .eq("is_archived", false);
+      if (cancelled || error || !data?.length) return;
+      const keys = new Set<string>();
+      for (const ev of data) {
+        if (ev.event_date) keys.add(qatarDateKey(new Date(ev.event_date)));
+        if (ev.end_date) keys.add(qatarDateKey(new Date(ev.end_date)));
+      }
+      const sorted = [...keys].sort();
+      if (!sorted.length) return;
+      setEventDays(sorted);
+      // Open on today when it is an event day, otherwise the nearest event day.
+      setDateKey((current) => {
+        if (sorted.includes(current)) return current;
+        if (sorted.includes(todayKey)) return todayKey;
+        return sorted.find((k) => k >= todayKey) ?? sorted[sorted.length - 1];
+      });
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [todayKey]);
+
+  // Keep the selected day inside the event days whenever the list changes.
+  useEffect(() => {
+    if (!eventDays.length) return;
+    setDateKey((current) =>
+      eventDays.includes(current)
+        ? current
+        : eventDays.find((k) => k >= current) ?? eventDays[eventDays.length - 1]
+    );
+  }, [eventDays]);
+
+  /** Days shown in the summary table: the event days only, never arbitrary dates. */
+  const summaryKeys = useMemo(
+    () => (eventDays.length ? eventDays : [dateKey]),
+    [eventDays, dateKey]
   );
+
+  const dayIndex = eventDays.indexOf(dateKey);
+  const goToDay = (dir: -1 | 1) => {
+    if (!eventDays.length) {
+      setDateKey((k) => shiftKey(k, dir));
+      return;
+    }
+    const i = dayIndex === -1 ? 0 : dayIndex;
+    const next = eventDays[i + dir];
+    if (next) setDateKey(next);
+  };
 
   /**
    * All reads/writes go through the edge function. It uses the signed-in
