@@ -305,28 +305,30 @@ export const AttendanceTab = () => {
             <Button
               variant="ghost"
               size="icon"
-              onClick={() => setDateKey((k) => shiftKey(k, -1))}
-              aria-label="اليوم السابق"
+              disabled={eventDays.length > 0 && dayIndex <= 0}
+              onClick={() => goToDay(-1)}
+              aria-label="يوم الفعالية السابق"
             >
               <ChevronRight className="h-4 w-4" />
             </Button>
             <div className="min-w-[190px] text-center">
               <p className="text-sm font-semibold">{prettyDate(dateKey)}</p>
-              <input
-                type="date"
-                value={dateKey}
-                max={todayKey}
-                onChange={(e) => e.target.value && setDateKey(e.target.value)}
-                className="mt-1 w-full cursor-pointer bg-transparent text-center text-[11px] text-muted-foreground outline-none"
-                dir="ltr"
-              />
+              {eventDays.length > 0 && dayIndex !== -1 && (
+                <p className="mt-1 text-[11px] text-muted-foreground">
+                  يوم {dayIndex + 1} من {eventDays.length} أيام الفعالية
+                </p>
+              )}
             </div>
             <Button
               variant="ghost"
               size="icon"
-              disabled={dateKey >= todayKey}
-              onClick={() => setDateKey((k) => shiftKey(k, 1))}
-              aria-label="اليوم التالي"
+              disabled={
+                eventDays.length > 0
+                  ? dayIndex === -1 || dayIndex >= eventDays.length - 1
+                  : dateKey >= todayKey
+              }
+              onClick={() => goToDay(1)}
+              aria-label="يوم الفعالية التالي"
             >
               <ChevronLeft className="h-4 w-4" />
             </Button>
@@ -451,12 +453,12 @@ export const AttendanceTab = () => {
       {!loading && users.length > 0 && (
         <Card className="border-border/70">
           <CardContent className="overflow-x-auto p-4">
-            <p className="mb-3 text-sm font-semibold">ملخّص آخر 7 أيام</p>
+            <p className="mb-3 text-sm font-semibold">ملخّص أيام الفعالية</p>
             <table className="w-full min-w-[520px] text-sm">
               <thead>
                 <tr className="text-muted-foreground">
                   <th className="p-2 text-right font-medium">الاسم</th>
-                  {weekKeys.map((k) => (
+                  {summaryKeys.map((k) => (
                     <th key={k} className="p-2 text-center text-xs font-medium">
                       {shortDay(k)}
                     </th>
