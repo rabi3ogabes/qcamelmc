@@ -24,8 +24,11 @@ const ORDER_SELECT =
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-const eventFilterFrom = (eventId: unknown): string | null =>
-  typeof eventId === "string" && UUID_RE.test(eventId) ? eventId : null;
+// Accepts eventIds (list of festival days) or a legacy single eventId.
+const eventFilterFrom = (body: any): string[] => {
+  const raw = Array.isArray(body?.eventIds) ? body.eventIds : body?.eventId ? [body.eventId] : [];
+  return raw.filter((id: unknown) => typeof id === "string" && UUID_RE.test(id)).slice(0, 50);
+};
 
 async function pageAll(build: (from: number, to: number) => any) {
   const all: any[] = [];
@@ -79,12 +82,12 @@ Deno.serve(async (req) => {
 
     if (action === "bookings") {
       const { dateStr, nextDayStr } = body;
-      const eventId = eventFilterFrom(body?.eventId);
+      const eventIds = eventFilterFrom(body);
       const orders = await pageAll((from, to) => {
         let q = admin.from("orders").select(ORDER_SELECT).eq("payment_status", "confirmed")
           .order("created_at", { ascending: false }).range(from, to);
         // Only the actual (current) event when provided — never any older event's data
-        if (eventId) q = q.eq("event_id", eventId);
+        if (eventIds.length) q = q.in("event_id", eventIds);
         if (DATE_RE.test(dateStr ?? "") && DATE_RE.test(nextDayStr ?? "")) {
           q = q.gte("events.event_date", dateStr).lt("events.event_date", nextDayStr);
         }
@@ -92,7 +95,7 @@ Deno.serve(async (req) => {
       });
       const { data: logs } = await admin.from("activity_logs").select("action_data")
         .eq("activity_type", "pos_form").limit(500);
-      let capacityEventId: string | null = eventId ?? orders[0]?.event_id ?? null;
+      let capacityEventId: string | null = orders[0]?.event_id ?? eventIds[0] ?? null;
       if (!capacityEventId && DATE_RE.test(dateStr ?? "") && DATE_RE.test(nextDayStr ?? "")) {
         const { data: ev } = await admin.from("events").select("id").gte("event_date", dateStr)
           .lt("event_date", nextDayStr).eq("is_active", true).limit(1).maybeSingle();
@@ -107,16 +110,16 @@ Deno.serve(async (req) => {
     }
 
     if (action === "daily_sales") {
-      const eventId = eventFilterFrom(body?.eventId);
+      const eventIds = eventFilterFrom(body);
       const holders = await pageAll((from, to) => {
         let q = admin.from("ticket_holders")
           .select("id, ticket_type, order_id, created_at, orders!inner(payment_status, event_id, total_amount, events!inner(title, event_date))")
           .eq("orders.payment_status", "confirmed").order("created_at", { ascending: false }).range(from, to);
-        if (eventId) q = q.eq("orders.event_id", eventId);
+        if (eventIds.length) q = q.in("orders.event_id", eventIds);
         return q;
       });
       let priceQuery = admin.from("tickets").select("event_id, type, price");
-      if (eventId) priceQuery = priceQuery.eq("event_id", eventId);
+      if (eventIds.length) priceQuery = priceQuery.in("event_id", eventIds);
       const { data: prices } = await priceQuery;
       return json({ holders, prices: prices ?? [] });
     }
