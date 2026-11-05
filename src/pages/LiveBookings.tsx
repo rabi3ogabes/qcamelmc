@@ -492,16 +492,19 @@ const LiveBookings = ({ viewerPassword }: { viewerPassword?: string | null } = {
       try {
         let data: any[] | null = null;
         let error: any = null;
+        let currentEventSettingId: string | null = null;
         if (viewerPassword) {
           const res = await fetchLiveFeed(viewerPassword, "active_events");
           data = res.data;
+          currentEventSettingId = res?.current_event_id ?? null;
           setLiveMode(res.mode === "event_hours" ? "event_hours" : "always");
         } else {
           const r = await supabase.from("events").select("id, event_date").eq("is_active", true)
             .order("event_date", { ascending: true });
           data = r.data; error = r.error;
-          const { data: st } = await supabase.from("settings").select("live_refresh_mode").limit(1).maybeSingle();
+          const { data: st } = await supabase.from("settings").select("live_refresh_mode, current_event_id").limit(1).maybeSingle();
           if ((st as any)?.live_refresh_mode) setLiveMode((st as any).live_refresh_mode);
+          currentEventSettingId = (st as any)?.current_event_id ?? null;
         }
 
         if (error) {
@@ -513,15 +516,13 @@ const LiveBookings = ({ viewerPassword }: { viewerPassword?: string | null } = {
         // The actual event: the admin's current event when it is active,
         // otherwise the first active event that has not finished yet
         const activeEvents = data || [];
-        const currentEventId: string | null = viewerPassword
-          ? (res?.current_event_id ?? null)
-          : currentEventSettingId;
-        const currentActive = currentEventId && activeEvents.some((e: any) => e.id === currentEventId)
-          ? currentEventId
+        const currentActive = currentEventSettingId && activeEvents.some((e: any) => e.id === currentEventSettingId)
+          ? currentEventSettingId
           : null;
         const upcoming = activeEvents.find((e: any) => canPurchaseTickets(e.event_date));
-        setActualEventId(currentActive ?? upcoming?.id ?? null);
-        actualEventIdRef.current = currentActive ?? upcoming?.id ?? null;
+        const chosenEventId = currentActive ?? upcoming?.id ?? null;
+        setActualEventId(chosenEventId);
+        actualEventIdRef.current = chosenEventId;
 
         // Find the first event that still allows viewing (upcoming or today)
         const availableEvent = data?.find(event => canPurchaseTickets(event.event_date));
