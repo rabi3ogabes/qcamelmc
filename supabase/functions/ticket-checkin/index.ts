@@ -129,6 +129,21 @@ Deno.serve(async (req) => {
       });
     }
 
+    // Resolve whether the bearer token belongs to an admin account.
+    const adminFromRequest = async (): Promise<{ userId: string | null; isAdmin: boolean }> => {
+      const token = (req.headers.get("Authorization") || "").replace("Bearer ", "").trim();
+      if (!token) return { userId: null, isAdmin: false };
+      const { data: userData } = await supabase.auth.getUser(token);
+      const userId = userData?.user?.id ?? null;
+      if (!userId) return { userId: null, isAdmin: false };
+      const { data: adminRow } = await supabase
+        .from('admin_users').select('id').eq('id', userId).maybeSingle();
+      if (adminRow) return { userId, isAdmin: true };
+      const { data: roleRow } = await supabase
+        .from('user_roles').select('role').eq('user_id', userId).eq('role', 'admin').maybeSingle();
+      return { userId, isAdmin: !!roleRow };
+    };
+
     // History mode: return the most recent successful check-ins
     if (mode === 'history') {
       const { data: history, error: historyError } = await supabase
@@ -166,20 +181,7 @@ Deno.serve(async (req) => {
           { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
-      const { data: userData } = await supabase.auth.getUser(token);
-      const userId = userData?.user?.id;
-      let isAdmin = false;
-      if (userId) {
-        const { data: adminRow } = await supabase
-          .from('admin_users').select('id').eq('id', userId).maybeSingle();
-        if (adminRow) {
-          isAdmin = true;
-        } else {
-          const { data: roleRow } = await supabase
-            .from('user_roles').select('role').eq('user_id', userId).eq('role', 'admin').maybeSingle();
-          isAdmin = !!roleRow;
-        }
-      }
+      const { userId, isAdmin } = await adminFromRequest();
       if (!isAdmin) {
         return new Response(
           JSON.stringify({ success: false, message: 'إلغاء المسح متاح للأدمن فقط' }),
@@ -191,14 +193,6 @@ Deno.serve(async (req) => {
           JSON.stringify({ success: false, message: 'معرّف التذكرة مطلوب' }),
           { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
-      }
-      const { data: scopedHolder, error: scopeError } = await supabase
-        .from('ticket_holders').select('id, order_id, orders!inner(event_id)')
-        .eq('id', holder_id).in('orders.event_id', eventIds).maybeSingle();
-      if (scopeError || !scopedHolder) {
-        return new Response(JSON.stringify({ success: false, message: 'التذكرة ليست ضمن الفعالية الحالية' }), {
-          status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
       }
       const { data: resetRows, error: resetError } = await supabase
         .from('ticket_holders')
@@ -281,6 +275,22 @@ Deno.serve(async (req) => {
           .eq('orders.booking_reference', code)
           .limit(20);
         rows = res.data ?? [];
+      }
+
+      // Admin accounts may scan an already-used ticket from a past event so they
+      // can cancel its attendance; only present tickets, exact code/reference.
+      if (!isPhone && (!rows || rows.length === 0)) {
+        const { isAdmin } = await adminFromRequest();
+        if (isAdmin) {
+          const byQr = await supabase.from('ticket_holders').select(HOLDER_SELECT)
+            .eq('qr_code', code).eq('is_present', true).limit(20);
+          rows = byQr.data ?? [];
+          if (rows.length === 0) {
+            const byRef = await supabase.from('ticket_holders').select(HOLDER_SELECT)
+              .eq('orders.booking_reference', code).eq('is_present', true).limit(20);
+            rows = byRef.data ?? [];
+          }
+        }
       }
 
       const results = (rows ?? []).map((h: any) => {
