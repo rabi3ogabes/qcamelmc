@@ -4,6 +4,7 @@
 - Manual WhatsApp confirmation uses an admin-checked RPC with an order-level timestamp and activity audit; automatic senders exclude it without changing provider proof or delivery counts.
 - Confirmation refreshes its capability-scoped public booking every five seconds while visible and on return; InvoiceCard uses attendance as the used-ticket authority and closes enlarged QR codes after check-in — keeps visitor tickets current without exposing protected rows.
 - Guarded-page access is decided by src/lib/accessDecision.ts (used by RequireAdmin) — keeps the role rule unit-tested.
+- Staff tool links use openStaffPage to reserve a tab synchronously, detach its opener, then navigate with an opaque handoff token; blocked popups fall back to the current tab to support Safari without exposing passcodes.
 - Visitor rows are refreshed/removed only via visitor_heartbeat / visitor_leave keyed by a random session id — browsers have no UPDATE/DELETE on visitor tables.
 - Site crashes are reported only via the log_app_error RPC (src/lib/errorReporter.ts); causes are classified in src/lib/errorCauses.ts — browsers can write the error log but never read it.
 - Edge-function traffic is recorded by importing supabase/functions/_shared/track-install.ts first in each index.ts (wraps Deno.serve, writes public.api_calls, admin-read only) — one place to monitor every API.
