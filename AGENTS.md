@@ -23,3 +23,4 @@
 - Sadad diagnostics trace only outbound login method, endpoint and HTTP status, and always report checkout acceptance as unverified — merchant API authentication cannot certify a payment signature.
 - Checkout request signatures use the documented mandatory-field allowlist and uppercase SHA256 in sadad-core; callback checksums retain all-field verification and payment confirmation requires independent provider proof — optional form fields must not change signing or weaken payment security.
 - Per-person «إجمالي التذاكر» on LiveBookings is computed client-side from the already event-scoped loaded holders (src/lib/personTicketTotals.ts), not from the lifetime RPC — one data path, counts only the actual event.
+- QRScanner reads all phone/code/reference results through ticket-checkin's server-resolved active festival scope; history, searches and admin-only attendance resets share that scope to exclude previous-event customers consistently.

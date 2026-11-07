@@ -255,28 +255,29 @@ Deno.serve(async (req) => {
         });
       }
 
-      let { data: rows } = await supabase
-        .from('ticket_holders')
-        .select(HOLDER_SELECT)
-        .in('orders.event_id', eventIds)
-        .eq('qr_code', code)
-        .limit(20);
+      const isPhone = /^[\d\s+\-()]+$/.test(code);
+      const lookupBase = () => supabase.from('ticket_holders')
+        .select(HOLDER_SELECT).in('orders.event_id', eventIds).limit(100);
+      let { data: rows, error: lookupError } = await (isPhone
+        ? lookupBase().ilike('phone', `%${code.replace(/[^\d+]/g, '')}%`)
+        : lookupBase().eq('qr_code', code));
+      if (lookupError) throw lookupError;
 
-      if (!rows || rows.length === 0) {
+      if (!isPhone && (!rows || rows.length === 0)) {
         const res = await supabase
           .from('ticket_holders')
           .select(HOLDER_SELECT)
-        .in('orders.event_id', eventIds)
+          .in('orders.event_id', eventIds)
           .ilike('qr_code', `%${code.replace(/[%,()]/g, '')}%`)
           .limit(20);
         rows = res.data ?? [];
       }
 
-      if (!rows || rows.length === 0) {
+      if (!isPhone && (!rows || rows.length === 0)) {
         const res = await supabase
           .from('ticket_holders')
           .select(HOLDER_SELECT)
-        .in('orders.event_id', eventIds)
+          .in('orders.event_id', eventIds)
           .eq('orders.booking_reference', code)
           .limit(20);
         rows = res.data ?? [];
