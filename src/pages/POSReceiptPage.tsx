@@ -51,7 +51,8 @@ const POSReceiptPage = () => {
         },
         (payload) => {
           if (payload.eventType === "INSERT") {
-            setReceipts((prev) => [payload.new as POSReceipt, ...prev]);
+            const receipt = payload.new as POSReceipt;
+            setReceipts((prev) => [receipt, ...prev.filter((r) => r.id !== receipt.id)]);
           } else if (payload.eventType === "UPDATE") {
             setReceipts((prev) =>
               prev.map((r) => (r.id === payload.new.id ? (payload.new as POSReceipt) : r))
