@@ -1,6 +1,8 @@
 import "../_shared/track-install.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.58.0";
-import { isStaffAuthorized, unauthorizedResponse } from "../_shared/staffAuth.ts";
+import { staffIdentity, unauthorizedResponse } from "../_shared/staffAuth.ts";
+import { canWriteAttendance } from "./policy.ts";
+import { qatarDayKey } from "../../../src/lib/qatarTime.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -16,29 +18,6 @@ const json = (body: unknown, status = 200) =>
 const isDateKey = (v: unknown): v is string =>
   typeof v === "string" && /^\d{4}-\d{2}-\d{2}$/.test(v);
 
-/**
- * Writes require a real account (admin or moderator). Shared-passcode staff
- * may read the attendance board but never change it.
- */
-async function accountUserId(req: Request, admin: any): Promise<string | null> {
-  const token = (req.headers.get("Authorization") || "").replace("Bearer ", "").trim();
-  if (!token) return null;
-  try {
-    const { data: userData } = await admin.auth.getUser(token);
-    const userId = userData?.user?.id;
-    if (!userId) return null;
-    const { data: adminRow } = await admin
-      .from("admin_users").select("id").eq("id", userId).maybeSingle();
-    if (adminRow) return userId;
-    const { data: roleRow } = await admin
-      .from("user_roles").select("role").eq("user_id", userId)
-      .in("role", ["admin", "moderator"]).maybeSingle();
-    return roleRow ? userId : null;
-  } catch (_e) {
-    return null;
-  }
-}
-
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -52,18 +31,28 @@ Deno.serve(async (req) => {
       { auth: { persistSession: false } },
     );
 
-    if (!(await isStaffAuthorized(req, admin, passcode))) {
+    const identity = await staffIdentity(req, admin, passcode);
+    if (!identity) {
       return unauthorizedResponse(corsHeaders);
     }
 
-    const editorId = await accountUserId(req, admin);
-    const marked_by = editorId;
+    const marked_by = identity.userId;
     const writeModes = ["set", "bulk_present", "clear_day"];
-    if (writeModes.includes(mode) && !editorId) {
+    if (writeModes.includes(mode) && !canWriteAttendance(identity, mode)) {
       return json(
-        { error: "account_required", message: "سجّل الدخول بحسابك لتعديل الحضور" },
+        { error: "account_required", message: "سجّل الدخول بحسابك لتعديل الجميع أو مسح اليوم" },
         403,
       );
+    }
+
+    if (writeModes.includes(mode)) {
+      if (!isDateKey(date)) return json({ error: "bad_input" }, 400);
+      const { data: events, error } = await admin.from("events")
+        .select("event_date, end_date").eq("is_active", true).eq("is_archived", false);
+      if (error) return json({ error: error.message }, 500);
+      const isEventDay = (events ?? []).some((event: { event_date: string; end_date: string | null }) =>
+        qatarDayKey(event.event_date) === date || (event.end_date && qatarDayKey(event.end_date) === date));
+      if (!isEventDay) return json({ error: "not_event_day", message: "تسجيل الحضور متاح لأيام الفعالية فقط" }, 400);
     }
 
 
@@ -87,7 +76,8 @@ Deno.serve(async (req) => {
       return json({
         users: users.data ?? [],
         records: records.data ?? [],
-        can_edit: !!editorId,
+        can_edit: true,
+        can_bulk_edit: identity.kind !== "passcode",
       });
     }
 
@@ -95,6 +85,10 @@ Deno.serve(async (req) => {
       if (!isDateKey(date) || typeof pos_user_id !== "string") {
         return json({ error: "bad_input" }, 400);
       }
+      const { data: user, error: userError } = await admin.from("pos_users")
+        .select("id").eq("id", pos_user_id).eq("is_active", true).maybeSingle();
+      if (userError) return json({ error: userError.message }, 500);
+      if (!user) return json({ error: "inactive_staff", message: "اختر أحد أعضاء الفريق النشطين" }, 400);
       if (status === null) {
         const { error } = await admin
           .from("staff_attendance")
