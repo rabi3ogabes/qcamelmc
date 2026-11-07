@@ -120,6 +120,14 @@ export const useOrdersQuery = (params: OrdersQueryParams) => {
     const requestId = ++requestIdRef.current;
     setLoading(true);
 
+    // No festival window yet — show nothing rather than fall back to an
+    // archived season.
+    if (!festivalFrom || !festivalToExclusive) {
+      setOrders([]);
+      setTotalCount(0);
+      return;
+    }
+
     try {
       const term = search.trim();
 
@@ -199,6 +207,10 @@ export const useOrdersQuery = (params: OrdersQueryParams) => {
   }, [status, paymentMethod, eventId, search, upcomingOnly, festivalFrom, festivalToExclusive, page, pageSize]);
 
   const fetchStats = useCallback(async () => {
+    if (!festivalFrom || !festivalToExclusive) {
+      setStats({ success: 0, failed: 0, methodAll: 0, methodSadad: 0, methodCashPos: 0 });
+      return;
+    }
     try {
       const head = () =>
         supabase.from("orders").select(sel("id, events!inner(event_date)"), {
