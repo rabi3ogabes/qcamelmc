@@ -104,7 +104,17 @@ export const useOrdersQuery = (params: OrdersQueryParams) => {
   });
   const requestIdRef = useRef(0);
 
-  const { status, paymentMethod, eventId, search, upcomingOnly, page, pageSize } = params;
+  const {
+    status,
+    paymentMethod,
+    eventId,
+    search,
+    upcomingOnly,
+    festivalFrom,
+    festivalToExclusive,
+    page,
+    pageSize,
+  } = params;
 
   const fetchPage = useCallback(async () => {
     const requestId = ++requestIdRef.current;
@@ -120,7 +130,7 @@ export const useOrdersQuery = (params: OrdersQueryParams) => {
         const byRefQuery = applyStatusFilter(
           applyCommonFilters(
             supabase.from("orders").select(sel(SELECT_FIELDS)),
-            { paymentMethod, eventId, upcomingOnly }
+            { paymentMethod, eventId, upcomingOnly, festivalFrom, festivalToExclusive }
           ),
           status
         )
@@ -133,7 +143,7 @@ export const useOrdersQuery = (params: OrdersQueryParams) => {
             supabase
               .from("orders")
               .select(sel(SELECT_FIELDS.replace("customers(", "customers!inner("))),
-            { paymentMethod, eventId, upcomingOnly }
+            { paymentMethod, eventId, upcomingOnly, festivalFrom, festivalToExclusive }
           ),
           status
         )
