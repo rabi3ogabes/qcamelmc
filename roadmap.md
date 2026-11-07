@@ -1,5 +1,8 @@
 # Task Roadmap
 
+## Orders festival scope
+- [x] Show only the actual festival (7 → 14 November 2026) on /admin/dashboard/orders: list, search, statistics and the date picker all use the non-archived day span from src/lib/festivalWindow.ts; authenticated browser verified 98 confirmed / 53 failed matching the database, archived-season search returns nothing, each day listed once.
+
 ## Scanner current-event attendance
 - [x] Restrict all scanner lookups and attendance history to the active current festival (or the admin-selected single event); removed previous-event related lists, archived-code lookup verified empty, ticket-checkin deployed.
 - [x] Add admin cancellation to customer results, ticket selection and duplicate alert; authenticated UI cancellation/readback verified, payment unchanged and original attendance restored; 35 scanner/security regressions passed.
