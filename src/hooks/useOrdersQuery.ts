@@ -38,6 +38,10 @@ export interface OrdersQueryParams {
   eventId: string;
   search: string;
   upcomingOnly: boolean;
+  /** Qatar "YYYY-MM-DD" of the first festival day; null = no festival. */
+  festivalFrom: string | null;
+  /** Qatar "YYYY-MM-DD" after the last festival day (exclusive); null = no festival. */
+  festivalToExclusive: string | null;
   page: number;
   pageSize: number;
 }
@@ -59,9 +63,15 @@ type AnyBuilder = any;
 
 const applyCommonFilters = (
   query: AnyBuilder,
-  params: Pick<OrdersQueryParams, "paymentMethod" | "eventId" | "upcomingOnly">
+  params: Pick<
+    OrdersQueryParams,
+    "paymentMethod" | "eventId" | "upcomingOnly" | "festivalFrom" | "festivalToExclusive"
+  >
 ) => {
   let q = query;
+  // The live festival only — never an archived season, never a day beyond it.
+  if (params.festivalFrom) q = q.gte("events.event_date", params.festivalFrom);
+  if (params.festivalToExclusive) q = q.lt("events.event_date", params.festivalToExclusive);
   if (params.upcomingOnly) q = q.gte("events.event_date", getTodayQatar());
   if (params.paymentMethod !== "all") q = q.eq("payment_method", params.paymentMethod);
   if (params.eventId !== "all") q = q.eq("event_id", params.eventId);
@@ -94,11 +104,29 @@ export const useOrdersQuery = (params: OrdersQueryParams) => {
   });
   const requestIdRef = useRef(0);
 
-  const { status, paymentMethod, eventId, search, upcomingOnly, page, pageSize } = params;
+  const {
+    status,
+    paymentMethod,
+    eventId,
+    search,
+    upcomingOnly,
+    festivalFrom,
+    festivalToExclusive,
+    page,
+    pageSize,
+  } = params;
 
   const fetchPage = useCallback(async () => {
     const requestId = ++requestIdRef.current;
     setLoading(true);
+
+    // No festival window yet — show nothing rather than fall back to an
+    // archived season.
+    if (!festivalFrom || !festivalToExclusive) {
+      setOrders([]);
+      setTotalCount(0);
+      return;
+    }
 
     try {
       const term = search.trim();
@@ -110,7 +138,7 @@ export const useOrdersQuery = (params: OrdersQueryParams) => {
         const byRefQuery = applyStatusFilter(
           applyCommonFilters(
             supabase.from("orders").select(sel(SELECT_FIELDS)),
-            { paymentMethod, eventId, upcomingOnly }
+            { paymentMethod, eventId, upcomingOnly, festivalFrom, festivalToExclusive }
           ),
           status
         )
@@ -123,7 +151,7 @@ export const useOrdersQuery = (params: OrdersQueryParams) => {
             supabase
               .from("orders")
               .select(sel(SELECT_FIELDS.replace("customers(", "customers!inner("))),
-            { paymentMethod, eventId, upcomingOnly }
+            { paymentMethod, eventId, upcomingOnly, festivalFrom, festivalToExclusive }
           ),
           status
         )
@@ -154,7 +182,7 @@ export const useOrdersQuery = (params: OrdersQueryParams) => {
       const listQuery = applyStatusFilter(
         applyCommonFilters(
           supabase.from("orders").select(sel(SELECT_FIELDS), { count: "exact" }),
-          { paymentMethod, eventId, upcomingOnly }
+          { paymentMethod, eventId, upcomingOnly, festivalFrom, festivalToExclusive }
         ),
         status
       )
@@ -176,9 +204,13 @@ export const useOrdersQuery = (params: OrdersQueryParams) => {
     } finally {
       if (requestId === requestIdRef.current) setLoading(false);
     }
-  }, [status, paymentMethod, eventId, search, upcomingOnly, page, pageSize]);
+  }, [status, paymentMethod, eventId, search, upcomingOnly, festivalFrom, festivalToExclusive, page, pageSize]);
 
   const fetchStats = useCallback(async () => {
+    if (!festivalFrom || !festivalToExclusive) {
+      setStats({ success: 0, failed: 0, methodAll: 0, methodSadad: 0, methodCashPos: 0 });
+      return;
+    }
     try {
       const head = () =>
         supabase.from("orders").select(sel("id, events!inner(event_date)"), {
@@ -187,7 +219,7 @@ export const useOrdersQuery = (params: OrdersQueryParams) => {
         });
 
       const base = (method: "all" | "sadad" | "cash_pos") =>
-        applyCommonFilters(head(), { paymentMethod: method, eventId, upcomingOnly });
+        applyCommonFilters(head(), { paymentMethod: method, eventId, upcomingOnly, festivalFrom, festivalToExclusive });
 
       const [successRes, failedRes, allRes, sadadRes, posRes] = await Promise.all([
         applyStatusFilter(base(paymentMethod), "success"),
@@ -207,7 +239,7 @@ export const useOrdersQuery = (params: OrdersQueryParams) => {
     } catch (error) {
       console.error("Error fetching order stats:", error);
     }
-  }, [paymentMethod, eventId, upcomingOnly]);
+  }, [paymentMethod, eventId, upcomingOnly, festivalFrom, festivalToExclusive]);
 
   useEffect(() => {
     fetchPage();
