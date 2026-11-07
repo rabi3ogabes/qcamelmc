@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -25,6 +25,7 @@ import { format } from "date-fns";
 import { ar } from "date-fns/locale";
 import { toZonedTime } from "date-fns-tz";
 import { useOrdersQuery } from "@/hooks/useOrdersQuery";
+import { festivalDateWindow, isFestivalDay } from "@/lib/festivalWindow";
 
 interface TicketHolder {
   id: string;
@@ -135,7 +136,7 @@ export const OrdersTab = () => {
   const [orderToDelete, setOrderToDelete] = useState<string | null>(null);
   const [showDeleteButton, setShowDeleteButton] = useState(false);
   const [showGenerateQrButton, setShowGenerateQrButton] = useState(false);
-  const [showUpcomingOnly, setShowUpcomingOnly] = useState(true);
+  const [showUpcomingOnly, setShowUpcomingOnly] = useState(false);
   const [page, setPage] = useState(0);
   const [sadadTxOrder, setSadadTxOrder] = useState<{ id: string; ref: string } | null>(null);
 
@@ -150,6 +151,21 @@ export const OrdersTab = () => {
     setPage(0);
   }, [activeTab, paymentMethodFilter, selectedEventFilter, debouncedSearch, showUpcomingOnly]);
 
+  const [availableEvents, setAvailableEvents] = useState<Array<{
+    id: string;
+    title: string;
+    event_date: string;
+    is_archived?: boolean | null;
+  }>>([]);
+
+  // The live festival only: every day of the current season (7 → 14 November
+  // 2026), never an archived one. No season at all means no orders shown.
+  const festivalWindow = useMemo(() => festivalDateWindow(availableEvents), [availableEvents]);
+  const festivalDays = useMemo(
+    () => availableEvents.filter(event => isFestivalDay(event.event_date, festivalWindow)),
+    [availableEvents, festivalWindow]
+  );
+
   const {
     orders,
     totalCount,
@@ -162,6 +178,8 @@ export const OrdersTab = () => {
     eventId: selectedEventFilter,
     search: debouncedSearch,
     upcomingOnly: showUpcomingOnly,
+    festivalFrom: festivalWindow.from,
+    festivalToExclusive: festivalWindow.toExclusive,
     page,
     pageSize: PAGE_SIZE
   });
