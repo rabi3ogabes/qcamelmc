@@ -14,7 +14,6 @@ import { CheckCircle2, XCircle, Loader2, Search, Camera, AlertCircle, AlertTrian
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { useActivityLog } from "@/hooks/useActivityLog";
-import { format } from "date-fns";
 import { playErrorSound } from "@/lib/sfx";
 import { normalizeScannedCode } from "@/lib/tickets";
 
@@ -28,13 +27,6 @@ interface TicketHolder {
   id_number: string;
   is_present: boolean;
   confirmed_at?: string;
-}
-
-interface RelatedTicket extends TicketHolder {
-  event_date?: string;
-  event_title?: string;
-  booking_reference?: string;
-  is_same_day: boolean;
 }
 
 interface SuccessData {
@@ -81,13 +73,9 @@ const QRScanner = () => {
   const [selectedTicketIds, setSelectedTicketIds] = useState<string[]>([]);
   const scanMode = 'confirm' as const;
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
-  const [relatedTicketsSameDay, setRelatedTicketsSameDay] = useState<RelatedTicket[]>([]);
-  const [relatedTicketsOtherDays, setRelatedTicketsOtherDays] = useState<RelatedTicket[]>([]);
-  const [sameBookingTickets, setSameBookingTickets] = useState<RelatedTicket[]>([]);
   const [showSuccessDialog, setShowSuccessDialog] = useState(false);
   const [scanPopupOpen, setScanPopupOpen] = useState(false);
   const [successData, setSuccessData] = useState<SuccessData | null>(null);
-  const [collapsedDates, setCollapsedDates] = useState<Record<string, boolean>>({});
   const [errorDialogMessage, setErrorDialogMessage] = useState<string | null>(null);
   const [alreadyScanned, setAlreadyScanned] = useState<{
     holderId: string;
@@ -363,9 +351,6 @@ const QRScanner = () => {
     setScanning(false);
     setAvailableTickets([]);
     setSelectedTicketIds([]);
-    setRelatedTicketsSameDay([]);
-    setRelatedTicketsOtherDays([]);
-    setSameBookingTickets([]);
 
     setTicketInfo(null);
     setScanResult(null);
@@ -542,10 +527,7 @@ const QRScanner = () => {
       // Clear selections and refresh
       setAvailableTickets([]);
       setSelectedTicketIds([]);
-      setRelatedTicketsSameDay([]);
-      setRelatedTicketsOtherDays([]);
-      setSameBookingTickets([]);
-      setTicketInfo(null);
+            setTicketInfo(null);
       setScanResult(null);
 
       // Popup hidden — get the camera ready for the next scan right away
@@ -586,9 +568,6 @@ const QRScanner = () => {
     setCameraError(null);
     setAvailableTickets([]);
     setSelectedTicketIds([]);
-    setRelatedTicketsSameDay([]);
-    setRelatedTicketsOtherDays([]);
-    setSameBookingTickets([]);
     
     // Restart scanner
     await startScanner();
@@ -1391,7 +1370,8 @@ const QRScanner = () => {
               <AlertTriangle className="w-12 h-12 text-amber-600" />
             </div>
             <div className="space-y-2">
-              <h2 className="text-2xl font-bold text-amber-600">تم مسح هذه التذكرة مسبقاً</h2>
+              <DialogTitle className="text-2xl font-bold text-warning">تم مسح هذه التذكرة مسبقاً</DialogTitle>
+              <DialogDescription className="uppercase">{alreadyScanned?.ticketType}</DialogDescription>
               <p className="text-lg font-semibold">{alreadyScanned?.name}</p>
               <p className="text-sm text-muted-foreground" dir="ltr">
                 {alreadyScanned?.reference}
@@ -1442,7 +1422,7 @@ const QRScanner = () => {
             </div>
             
             <div className="space-y-2">
-              <h2 className="text-2xl font-bold text-red-600">لا يمكن تسجيل الحضور</h2>
+              <DialogTitle className="text-2xl font-bold text-destructive">لا يمكن تسجيل الحضور</DialogTitle>
               <p className="text-lg text-foreground whitespace-pre-wrap">{errorDialogMessage}</p>
             </div>
 
