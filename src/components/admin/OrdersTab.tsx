@@ -246,7 +246,7 @@ export const OrdersTab = () => {
       const {
         data,
         error
-      } = await supabase.from("events").select("id, title, event_date").order("event_date", {
+      } = await supabase.from("events").select("id, title, event_date, is_archived").order("event_date", {
         ascending: false
       });
       if (error) throw error;
@@ -909,7 +909,7 @@ export const OrdersTab = () => {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all" className="font-lusail">جميع الفعاليات</SelectItem>
-              {availableEvents.map(event => <SelectItem key={event.id} value={event.id} className="font-lusail">
+              {festivalDays.map(event => <SelectItem key={event.id} value={event.id} className="font-lusail">
                   {format(new Date(event.event_date), 'dd/MM/yyyy')}
                 </SelectItem>)}
             </SelectContent>
