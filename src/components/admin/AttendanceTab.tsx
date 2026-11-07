@@ -5,6 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { getStaffPasscode } from "@/lib/staffAccess";
+import { qatarDayKey } from "@/lib/qatarTime";
 import {
   CalendarDays,
   Check,
@@ -33,18 +34,7 @@ interface AttendanceRow {
   status: Status;
 }
 
-const QATAR_TZ = "Asia/Qatar";
-
-/** YYYY-MM-DD for a given date in Qatar time. */
-const qatarDateKey = (d: Date) => {
-  const parts = new Intl.DateTimeFormat("en-CA", {
-    timeZone: QATAR_TZ,
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).format(d);
-  return parts;
-};
+const qatarDateKey = qatarDayKey;
 
 const shiftKey = (key: string, days: number) => {
   const [y, m, d] = key.split("-").map(Number);
@@ -82,8 +72,9 @@ export const AttendanceTab = () => {
   const [loading, setLoading] = useState(true);
   const [savingId, setSavingId] = useState<string | null>(null);
   const [bulkBusy, setBulkBusy] = useState(false);
-  /** Editing requires a real account session; passcode-only staff get a read-only board. */
+  /** Capabilities come from server-verified staff identity. */
   const [canEdit, setCanEdit] = useState(false);
+  const [canBulkEdit, setCanBulkEdit] = useState(false);
   /** Distinct Qatar date keys of active (non-archived) events, sorted ascending. */
   const [eventDays, setEventDays] = useState<string[]>([]);
 
@@ -146,8 +137,7 @@ export const AttendanceTab = () => {
 
   /**
    * All reads/writes go through the edge function. It uses the signed-in
-   * dashboard session (same Supabase session as the admin dashboard) to decide
-   * who may edit, and falls back to the shared passcode for read-only access.
+   * dashboard session or verified shared passcode to decide who may edit.
    */
   const callAttendance = useCallback(async (payload: Record<string, unknown>) => {
     const { data, error } = await supabase.functions.invoke("staff-attendance", {
@@ -168,6 +158,7 @@ export const AttendanceTab = () => {
       setUsers((data?.users as POSUser[]) || []);
       setRecords((data?.records as AttendanceRow[]) || []);
       setCanEdit(!!data?.can_edit);
+      setCanBulkEdit(!!data?.can_bulk_edit);
     } catch (error) {
       console.error("Attendance load error:", error);
       toast({
@@ -236,7 +227,7 @@ export const AttendanceTab = () => {
   };
 
   const markAllPresent = async () => {
-    if (!users.length) return;
+    if (!users.length || !canBulkEdit) return;
     setBulkBusy(true);
     try {
       await callAttendance({
@@ -262,6 +253,7 @@ export const AttendanceTab = () => {
   };
 
   const clearDay = async () => {
+    if (!canBulkEdit) return;
     setBulkBusy(true);
     try {
       await callAttendance({ mode: "clear_day", date: dateKey });
@@ -364,13 +356,13 @@ export const AttendanceTab = () => {
       <div className="flex flex-wrap gap-2">
         <Button
           onClick={markAllPresent}
-          disabled={bulkBusy || !users.length || !canEdit}
+          disabled={bulkBusy || !users.length || !canBulkEdit}
           size="sm"
         >
           <CheckCheck className="ms-2 h-4 w-4" />
           تحديد الكل حاضر
         </Button>
-        <Button onClick={clearDay} disabled={bulkBusy || !canEdit} size="sm" variant="outline">
+        <Button onClick={clearDay} disabled={bulkBusy || !canBulkEdit} size="sm" variant="outline">
           <RotateCcw className="ms-2 h-4 w-4" />
           مسح اليوم
         </Button>
