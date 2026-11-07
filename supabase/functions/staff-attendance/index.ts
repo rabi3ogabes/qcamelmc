@@ -2,7 +2,6 @@ import "../_shared/track-install.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.58.0";
 import { staffIdentity, unauthorizedResponse } from "../_shared/staffAuth.ts";
 import { canWriteAttendance } from "./policy.ts";
-import { qatarDayKey } from "../../../src/lib/qatarTime.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -17,6 +16,15 @@ const json = (body: unknown, status = 200) =>
 
 const isDateKey = (v: unknown): v is string =>
   typeof v === "string" && /^\d{4}-\d{2}-\d{2}$/.test(v);
+
+// Edge bundles cannot import browser src files; use the named Qatar timezone.
+const qatarDayKey = (value: string): string => {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: "Asia/Qatar", year: "numeric", month: "2-digit", day: "2-digit",
+  }).formatToParts(new Date(value));
+  const part = (type: string) => parts.find((p) => p.type === type)?.value ?? "";
+  return `${part("year")}-${part("month")}-${part("day")}`;
+};
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
