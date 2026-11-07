@@ -5,6 +5,7 @@
 - [x] Add admin cancellation to customer results, ticket selection and duplicate alert; authenticated UI cancellation/readback verified, payment unchanged and original attendance restored; 35 scanner/security regressions passed.
 
 ## Receipt reading repair
+- [ ] Fix team-password receipt uploads and saved receipt access through server-validated staff operations; reproduce supplied-photo save/reload and preserve AI quotas.
 - [x] Fixed reproduced truncated extraction output; supplied photo extracted QAR 200, sequence 001036002, time 12:06:02 and authorization 020459, saved and reloaded once; verification receipt/images removed, quotas unchanged, four tests passed. Native phone-camera capture remains device-specific and unverified.
 
 ## Home banner controls
