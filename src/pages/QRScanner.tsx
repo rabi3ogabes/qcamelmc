@@ -14,7 +14,6 @@ import { CheckCircle2, XCircle, Loader2, Search, Camera, AlertCircle, AlertTrian
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { useActivityLog } from "@/hooks/useActivityLog";
-import { format } from "date-fns";
 import { playErrorSound } from "@/lib/sfx";
 import { normalizeScannedCode } from "@/lib/tickets";
 
@@ -28,13 +27,6 @@ interface TicketHolder {
   id_number: string;
   is_present: boolean;
   confirmed_at?: string;
-}
-
-interface RelatedTicket extends TicketHolder {
-  event_date?: string;
-  event_title?: string;
-  booking_reference?: string;
-  is_same_day: boolean;
 }
 
 interface SuccessData {
@@ -81,15 +73,12 @@ const QRScanner = () => {
   const [selectedTicketIds, setSelectedTicketIds] = useState<string[]>([]);
   const scanMode = 'confirm' as const;
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
-  const [relatedTicketsSameDay, setRelatedTicketsSameDay] = useState<RelatedTicket[]>([]);
-  const [relatedTicketsOtherDays, setRelatedTicketsOtherDays] = useState<RelatedTicket[]>([]);
-  const [sameBookingTickets, setSameBookingTickets] = useState<RelatedTicket[]>([]);
   const [showSuccessDialog, setShowSuccessDialog] = useState(false);
   const [scanPopupOpen, setScanPopupOpen] = useState(false);
   const [successData, setSuccessData] = useState<SuccessData | null>(null);
-  const [collapsedDates, setCollapsedDates] = useState<Record<string, boolean>>({});
   const [errorDialogMessage, setErrorDialogMessage] = useState<string | null>(null);
   const [alreadyScanned, setAlreadyScanned] = useState<{
+    holderId: string;
     name: string;
     ticketType: string;
     reference: string;
@@ -140,14 +129,14 @@ const QRScanner = () => {
   useEffect(() => {
     if (!alreadyScanned) return;
     playErrorSound();
-    if (!cameraScanRef.current) return;
+    if (!cameraScanRef.current || isAdminUser) return;
     const timer = setTimeout(() => {
       setAlreadyScanned(null);
       resetScanner();
     }, 4000);
     return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [alreadyScanned]);
+  }, [alreadyScanned, isAdminUser]);
 
   // Scan popup: whenever a valid, paid ticket is found, show all its details in a popup
   useEffect(() => {
@@ -248,7 +237,7 @@ const QRScanner = () => {
   };
 
   const handleResetTicket = async (holderId: string, holderName: string) => {
-    if (!window.confirm(`إلغاء مسح تذكرة ${holderName}؟ ستعود التذكرة صالحة من جديد.`)) return;
+    if (!window.confirm(`إلغاء حضور ${holderName}؟ ستعود التذكرة صالحة من جديد.`)) return;
     setResettingId(holderId);
     try {
       const { data, error } = await supabase.functions.invoke("ticket-checkin", {
@@ -260,6 +249,14 @@ const QRScanner = () => {
       }
       toast.success(data.message || "تم إلغاء المسح");
       setScanHistory((prev) => prev.filter((h) => h.id !== holderId));
+      setAvailableTickets(prev => prev.map(ticket => ticket.id === holderId
+        ? { ...ticket, is_present: false, confirmed_at: undefined } : ticket));
+      setSelectedTicketIds(prev => prev.filter(id => id !== holderId));
+      setAlreadyScanned(null);
+      setScanPopupOpen(false);
+      setTicketInfo(null);
+      setScanResult(null);
+      await loadScanHistory();
     } catch {
       toast.error("تعذر إلغاء المسح");
     } finally {
@@ -354,513 +351,59 @@ const QRScanner = () => {
     setScanning(false);
     setAvailableTickets([]);
     setSelectedTicketIds([]);
-    setRelatedTicketsSameDay([]);
-    setRelatedTicketsOtherDays([]);
-    setSameBookingTickets([]);
 
-    // Log search activity
-    await logActivity({
-      activityType: 'qr_search',
-      userType: 'admin',
-      actionData: {
-        search_query: scannedCode,
-        search_type: /^[\d\s+\-()]+$/.test(scannedCode) ? 'phone' : 
-                     scannedCode.includes('-TKT') ? 'ticket_code' : 'booking_reference'
-      }
-    });
-
+    setTicketInfo(null);
+    setScanResult(null);
+    setAlreadyScanned(null);
+    setScanPopupOpen(false);
     try {
-      // Check if it's a phone number (contains only digits, +, spaces, or hyphens)
-      const isPhoneNumber = /^[\d\s+\-()]+$/.test(scannedCode);
-      
-      // Check if it's a specific ticket code (contains -TKT) or just booking reference
-      const isSpecificTicket = scannedCode.includes('-TKT');
-      
-      if (isPhoneNumber) {
-        // Search by phone number in ticket_holders
-        // Keep only digits/plus so the filter below cannot be broken by stray characters
-        const cleanPhone = scannedCode.replace(/[^\d+]/g, '');
-        
-        const { data: ticketsData, error: ticketsError } = await supabase
-          .from('ticket_holders')
-          .select(`
-            id,
-            name,
-            phone,
-            nationality,
-            ticket_type,
-            qr_code,
-            is_present,
-            confirmed_at,
-            confirmed_by_name,
-            id_number,
-            order_id,
-            orders!inner (
-              id,
-              booking_reference,
-              payment_status,
-              payment_method,
-              quantity,
-              customers!inner (name),
-              events!inner (title, event_date)
-            )
-          `)
-          .ilike('phone', `%${cleanPhone}%`)
-          .order('created_at', { ascending: false });
-        
-        // Filter to show only successful payments
-        const filteredTickets = ticketsData?.filter((ticket: any) => 
-          ticket.orders?.payment_status === 'confirmed' || 
-          ticket.orders?.payment_method === 'cash_pos'
-        );
-
-        if (ticketsError || !filteredTickets || filteredTickets.length === 0) {
-          setScanResult('error');
-          setTicketInfo({
-            booking_reference: scannedCode,
-            customer_name: "غير موجود",
-            event_title: "-",
-            ticket_type: "-",
-            quantity: 0,
-            payment_status: "غير مؤكد",
-            is_present: false,
-          });
-          toast.error('لا توجد تذاكر لهذا الرقم');
-          updateProcessing(false);
-          return;
-        }
-
-        // Group tickets by order
-        const orderGroups = new Map();
-        filteredTickets.forEach(ticket => {
-          const orderId = ticket.order_id;
-          if (!orderGroups.has(orderId)) {
-            orderGroups.set(orderId, []);
-          }
-          orderGroups.get(orderId).push(ticket);
+      const { data, error } = await supabase.functions.invoke('ticket-checkin', {
+        body: { mode: 'lookup', booking_reference: scannedCode, passcode: getStaffPasscode() },
+      });
+      if (error || !data?.success) throw new Error(data?.message || 'تعذر البحث عن التذكرة');
+      const tickets = (data.results ?? []).filter((ticket: any) =>
+        ticket.orders?.payment_status === 'confirmed' || ticket.orders?.payment_method === 'cash_pos'
+      );
+      if (!tickets.length) {
+        setErrorDialogMessage('لا توجد تذاكر مدفوعة لهذا البحث ضمن الفعالية الحالية');
+        return;
+      }
+      setAvailableTickets(tickets);
+      const ticket = tickets[0];
+      const order = ticket.orders;
+      setTicketInfo({
+        booking_reference: order.booking_reference,
+        customer_name: order.customers.name,
+        event_title: order.events.title,
+        ticket_type: ticket.ticket_type,
+        ...(tickets.length === 1 ? {
+          ticket_holder_name: ticket.name,
+          ticket_holder_phone: ticket.phone,
+          ticket_holder_nationality: ticket.nationality,
+          ticket_holder_id_number: ticket.id_number,
+          ticket_holder_qr_code: ticket.qr_code,
+        } : {}),
+        quantity: tickets.length,
+        payment_status: 'confirmed',
+        is_present: tickets.length === 1 && ticket.is_present,
+        confirmed_at: ticket.confirmed_at,
+      });
+      if (tickets.length === 1 && ticket.is_present) {
+        setScanResult('error');
+        setAlreadyScanned({
+          holderId: ticket.id,
+          name: ticket.name,
+          ticketType: ticket.ticket_type,
+          reference: order.booking_reference,
+          confirmedAt: ticket.confirmed_at,
+          confirmedBy: ticket.confirmed_by_name,
         });
-
-        // If multiple orders, show all tickets to choose from
-        if (orderGroups.size > 1 || filteredTickets.length > 1) {
-          setAvailableTickets(filteredTickets);
-          const firstTicket = filteredTickets[0];
-          const order: any = firstTicket.orders;
-          
-          const isPOSOrder = order.booking_reference?.startsWith('POS-') || order.payment_method === 'cash_pos';
-          const effectivePaymentStatus = isPOSOrder ? 'confirmed' : order.payment_status;
-          
-          // Don't show tickets with pending payment (unless POS)
-          if (effectivePaymentStatus !== 'confirmed') {
-            setScanResult('error');
-            setTicketInfo({
-              booking_reference: order.booking_reference,
-              customer_name: order.customers.name,
-              event_title: order.events.title,
-              ticket_type: "-",
-              quantity: 0,
-              payment_status: effectivePaymentStatus,
-              is_present: false,
-            });
-            toast.error('⚠️ حالة الدفع: قيد الانتظار - لا يمكن عرض التذاكر');
-            updateProcessing(false);
-            return;
-          }
-          
-          setTicketInfo({
-            booking_reference: `${filteredTickets.length} تذكرة`,
-            customer_name: order.customers.name,
-            event_title: order.events.title,
-            ticket_type: firstTicket.ticket_type,
-            quantity: filteredTickets.length,
-            payment_status: effectivePaymentStatus,
-            is_present: false,
-          });
-          setScanResult('success');
-          toast.info(`تم العثور على ${filteredTickets.length} تذكرة لهذا الرقم - اختر التذكرة المراد تأكيدها`);
-        } else {
-          // Single ticket found - auto-select it
-          const ticket = filteredTickets[0];
-          const order: any = ticket.orders;
-          
-          const isPOSOrder = order.booking_reference?.startsWith('POS-') || order.payment_method === 'cash_pos';
-          const effectivePaymentStatus = isPOSOrder ? 'confirmed' : order.payment_status;
-          
-          // Don't show tickets with pending payment (unless POS)
-          if (effectivePaymentStatus !== 'confirmed') {
-            setScanResult('error');
-            setTicketInfo({
-              booking_reference: order.booking_reference,
-              customer_name: order.customers.name,
-              event_title: order.events.title,
-              ticket_type: "-",
-              quantity: 0,
-              payment_status: effectivePaymentStatus,
-              is_present: false,
-            });
-            toast.error('⚠️ حالة الدفع: قيد الانتظار - لا يمكن عرض التذاكر');
-            updateProcessing(false);
-            return;
-          }
-          
-          // Set as available ticket and auto-select it if not already present
-          setAvailableTickets([ticket]);
-          if (!ticket.is_present) {
-            setSelectedTicketIds([ticket.id]);
-          }
-          
-          setTicketInfo({
-            booking_reference: order.booking_reference,
-            customer_name: order.customers.name,
-            event_title: order.events.title,
-            ticket_type: ticket.ticket_type,
-            ticket_holder_name: ticket.name,
-            ticket_holder_phone: ticket.phone,
-            ticket_holder_nationality: ticket.nationality,
-            ticket_holder_id_number: ticket.id_number,
-            ticket_holder_qr_code: ticket.qr_code,
-            quantity: 1,
-            payment_status: effectivePaymentStatus,
-            is_present: ticket.is_present,
-            confirmed_at: ticket.confirmed_at,
-          });
-
-          if (ticket.is_present) {
-            setScanResult('error');
-            setAlreadyScanned({
-              name: ticket.name,
-              ticketType: ticket.ticket_type,
-              reference: order.booking_reference,
-              confirmedAt: ticket.confirmed_at,
-              confirmedBy: (ticket as any).confirmed_by_name,
-            });
-          } else if (effectivePaymentStatus !== 'confirmed') {
-            setScanResult('success');
-            toast.warning('⚠️ الدفع غير مؤكد');
-          } else {
-            setScanResult('success');
-            toast.success('معلومات التذكرة - جاهز للتأكيد');
-          }
-
-          // Fetch related tickets by same phone number
-          if (ticket.phone && order.events?.event_date) {
-            fetchRelatedTickets(ticket.phone, order.events.event_date, [ticket.id]);
-          }
-        }
-      } else if (isSpecificTicket) {
-        // Process specific ticket
-        // First try exact match
-        let { data: orderData, error: orderError } = await supabase
-          .from('ticket_holders')
-          .select(`
-            id,
-            name,
-            phone,
-            nationality,
-            ticket_type,
-            qr_code,
-            is_present,
-            confirmed_at,
-            confirmed_by_name,
-            id_number,
-            orders!inner (
-              booking_reference,
-              payment_status,
-              payment_method,
-              quantity,
-              customers!inner (name),
-              events!inner (title)
-            )
-          `)
-          .eq('qr_code', scannedCode)
-          .maybeSingle();
-
-        // If not found, try searching by QR code that contains the scanned code (handles URL vs plain code mismatch)
-        if (!orderData) {
-          const { data: ticketsData, error: ticketsError } = await supabase
-            .from('ticket_holders')
-            .select(`
-              id,
-              name,
-              phone,
-              nationality,
-              ticket_type,
-              qr_code,
-              is_present,
-              confirmed_at,
-              confirmed_by_name,
-              id_number,
-              orders!inner (
-                booking_reference,
-                payment_status,
-                payment_method,
-                quantity,
-                customers!inner (name),
-                events!inner (title)
-              )
-            `)
-            .ilike('qr_code', `%${scannedCode}%`);
-
-          if (ticketsData && ticketsData.length > 0) {
-            orderData = ticketsData[0];
-            orderError = ticketsError;
-          }
-        }
-
-        // Fallback for passcode-only staff (no signed-in session): use the secure lookup service
-        if (!orderData) {
-          try {
-            const { data: lookup } = await supabase.functions.invoke('ticket-checkin', {
-              body: { mode: 'lookup', booking_reference: scannedCode, passcode: getStaffPasscode() },
-            });
-            const found = (lookup as any)?.results?.[0];
-            if (found) {
-              orderData = found;
-              orderError = null;
-            }
-          } catch (lookupErr) {
-            console.error('Lookup fallback failed:', lookupErr);
-          }
-        }
-
-
-
-        if (orderError || !orderData) {
-          setScanResult('error');
-          setTicketInfo({
-            booking_reference: scannedCode,
-            customer_name: "غير موجود",
-            event_title: "-",
-            ticket_type: "-",
-            quantity: 0,
-            payment_status: "غير مؤكد",
-            is_present: false,
-          });
-          toast.error('تذكرة غير موجودة');
-          return;
-        }
-
-        const order: any = orderData.orders;
-        
-        console.log('=== Specific Ticket Scan Debug ===');
-        console.log('Scanned code:', scannedCode);
-        console.log('Order data:', orderData);
-        console.log('Payment status from order:', order.payment_status);
-        console.log('Payment method:', order.payment_method);
-        console.log('Booking reference:', order.booking_reference);
-        console.log('Is ticket present:', orderData.is_present);
-        
-        // Force confirmed status for POS orders
-        const isPOSOrder = order.booking_reference?.startsWith('POS-') || order.payment_method === 'cash_pos';
-        const effectivePaymentStatus = isPOSOrder ? 'confirmed' : order.payment_status;
-        
-        console.log('Is POS order:', isPOSOrder);
-        console.log('Effective payment status:', effectivePaymentStatus);
-        console.log('=== End Debug ===');
-        
-        // Don't show tickets with pending payment (unless POS)
-        if (effectivePaymentStatus !== 'confirmed') {
-          setScanResult('error');
-          setTicketInfo({
-            booking_reference: order.booking_reference,
-            customer_name: order.customers.name,
-            event_title: order.events.title,
-            ticket_type: "-",
-            quantity: 0,
-            payment_status: effectivePaymentStatus,
-            is_present: false,
-          });
-          toast.error('⚠️ حالة الدفع: قيد الانتظار - لا يمكن عرض التذاكر');
-          return;
-        }
-        
-        setTicketInfo({
-          booking_reference: order.booking_reference,
-          customer_name: order.customers.name,
-          event_title: order.events.title,
-          ticket_type: orderData.ticket_type,
-          ticket_holder_name: orderData.name,
-          ticket_holder_phone: orderData.phone,
-          ticket_holder_nationality: orderData.nationality,
-          ticket_holder_id_number: orderData.id_number,
-          ticket_holder_qr_code: orderData.qr_code,
-          quantity: 1,
-          payment_status: effectivePaymentStatus,
-          is_present: orderData.is_present,
-          confirmed_at: orderData.confirmed_at,
-        });
-
-        if (orderData.is_present) {
-          setScanResult('error');
-          setAlreadyScanned({
-            name: orderData.name,
-            ticketType: orderData.ticket_type,
-            reference: order.booking_reference,
-            confirmedAt: orderData.confirmed_at,
-            confirmedBy: (orderData as any).confirmed_by_name,
-          });
-        } else if (effectivePaymentStatus !== 'confirmed') {
-          setScanResult('success');
-          toast.warning('⚠️ الدفع غير مؤكد');
-        } else {
-          setScanResult('success');
-          toast.success('معلومات التذكرة - جاهز للتأكيد');
-        }
       } else {
-        // It's a booking reference - fetch all tickets for this booking
-        // eslint-disable-next-line prefer-const -- orderData is reassigned below (legacy fallback lookups)
-        let { data: orderData, error: orderError } = await supabase
-          .from('orders')
-          .select(`
-            id,
-            booking_reference,
-            payment_status,
-            payment_method,
-            quantity,
-            customers!inner (name),
-            events!inner (title, event_date)
-          `)
-          .eq('booking_reference', scannedCode)
-          .single();
-
-        let ticketsData: any[] | null = null;
-        let ticketsError: any = null;
-
-        if (orderError || !orderData) {
-          // Fallback for passcode-only staff (no signed-in session): use the secure lookup service
-          let lookupResults: any[] | null = null;
-          try {
-            const { data: lookup } = await supabase.functions.invoke('ticket-checkin', {
-              body: { mode: 'lookup', booking_reference: scannedCode, passcode: getStaffPasscode() },
-            });
-            if ((lookup as any)?.success && (lookup as any)?.results?.length) {
-              lookupResults = (lookup as any).results;
-            }
-          } catch (lookupErr) {
-            console.error('Booking lookup fallback failed:', lookupErr);
-          }
-
-          if (!lookupResults) {
-            setScanResult('error');
-            setTicketInfo({
-              booking_reference: scannedCode,
-              customer_name: "غير موجود",
-              event_title: "-",
-              ticket_type: "-",
-              quantity: 0,
-              payment_status: "غير مؤكد",
-              is_present: false,
-            });
-            toast.error('حجز غير موجود');
-            return;
-          }
-
-          const o = lookupResults[0].orders;
-          orderData = {
-            id: lookupResults[0].order_id,
-            booking_reference: o.booking_reference,
-            payment_status: o.payment_status,
-            payment_method: o.payment_method,
-            quantity: o.quantity,
-            customers: o.customers,
-            events: o.events,
-          };
-          ticketsData = lookupResults;
-        } else {
-          // Fetch all tickets for this order with orders relation for display
-          const { data, error } = await supabase
-            .from('ticket_holders')
-            .select(`
-              *,
-              orders!inner (
-                id,
-                booking_reference,
-                payment_status,
-                payment_method,
-                quantity,
-                customers (name),
-                events (title, event_date)
-              )
-            `)
-            .eq('order_id', orderData.id)
-            .order('qr_code');
-          ticketsData = data;
-          ticketsError = error;
-        }
-
-        // Force confirmed status for POS orders
-        const isPOSBooking = orderData.booking_reference?.startsWith('POS-');
-        const effectiveBookingPaymentStatus = isPOSBooking ? 'confirmed' : orderData.payment_status;
-        
-        console.log('Booking reference scan - Is POS:', isPOSBooking);
-        console.log('Booking reference scan - Effective status:', effectiveBookingPaymentStatus);
-        
-        // Don't show tickets with pending payment (unless POS)
-        if (effectiveBookingPaymentStatus !== 'confirmed') {
-          setScanResult('error');
-          setTicketInfo({
-            booking_reference: orderData.booking_reference,
-            customer_name: orderData.customers.name,
-            event_title: orderData.events.title,
-            ticket_type: "-",
-            quantity: 0,
-            payment_status: effectiveBookingPaymentStatus,
-            is_present: false,
-          });
-          toast.error('⚠️ حالة الدفع: قيد الانتظار - لا يمكن عرض التذاكر');
-          return;
-        }
-        
-        console.log('Setting available tickets count:', ticketsData.length);
-        
-        setAvailableTickets(ticketsData);
-        
-        // Auto-select single ticket or all unpresent/present tickets based on mode
-        if (ticketsData.length === 1) {
-          const ticket = ticketsData[0];
-          if (!ticket.is_present) {
-            setSelectedTicketIds([ticket.id]);
-          }
-        }
-        
-        setTicketInfo({
-          booking_reference: orderData.booking_reference,
-          customer_name: orderData.customers.name,
-          event_title: orderData.events.title,
-          ticket_type: ticketsData[0].ticket_type,
-          quantity: ticketsData.length,
-          payment_status: effectiveBookingPaymentStatus,
-          is_present: false,
-        });
         setScanResult('success');
-        
-        if (ticketsData.length === 1) {
-          toast.success('تم العثور على التذكرة - جاهز للتأكيد');
-        } else {
-          toast.info(`تم العثور على ${ticketsData.length} تذكرة - اختر التذكرة المراد تأكيدها`);
-        }
-
-        // Fetch related tickets by phone for the first ticket holder
-        const firstTicket = ticketsData[0];
-        if (firstTicket?.phone && orderData.events?.event_date) {
-          fetchRelatedTickets(firstTicket.phone, orderData.events.event_date, ticketsData.map(t => t.id));
-        }
-
-        // Fetch same booking reference tickets that might have been already selected
-        fetchSameBookingTickets(orderData.booking_reference, ticketsData.map(t => t.id));
+        setSelectedTicketIds(tickets.length === 1 ? [ticket.id] : []);
       }
     } catch (error) {
-      console.error("Error validating ticket:", error);
-      setScanResult('error');
-      setTicketInfo({
-        booking_reference: scannedCode,
-        customer_name: "خطأ",
-        event_title: "-",
-        ticket_type: "-",
-        quantity: 0,
-        payment_status: "خطأ",
-        is_present: false,
-      });
-      toast.error(t('validationError') || "خطأ في التحقق من التذكرة");
+      setErrorDialogMessage(error instanceof Error ? error.message : 'تعذر البحث عن التذكرة');
     } finally {
       updateProcessing(false);
     }
@@ -984,10 +527,7 @@ const QRScanner = () => {
       // Clear selections and refresh
       setAvailableTickets([]);
       setSelectedTicketIds([]);
-      setRelatedTicketsSameDay([]);
-      setRelatedTicketsOtherDays([]);
-      setSameBookingTickets([]);
-      setTicketInfo(null);
+            setTicketInfo(null);
       setScanResult(null);
 
       // Popup hidden — get the camera ready for the next scan right away
@@ -1028,140 +568,9 @@ const QRScanner = () => {
     setCameraError(null);
     setAvailableTickets([]);
     setSelectedTicketIds([]);
-    setRelatedTicketsSameDay([]);
-    setRelatedTicketsOtherDays([]);
-    setSameBookingTickets([]);
     
     // Restart scanner
     await startScanner();
-  };
-
-  // Fetch related tickets by phone number
-  const fetchRelatedTickets = async (phone: string, currentEventDate: string, currentTicketIds: string[]) => {
-    try {
-      const cleanPhone = phone.replace(/[\s\-()]/g, '');
-      const currentDate = new Date(currentEventDate);
-      const currentDateStr = format(currentDate, 'yyyy-MM-dd');
-
-      const { data: relatedData, error } = await supabase
-        .from('ticket_holders')
-        .select(`
-          id,
-          name,
-          phone,
-          nationality,
-          ticket_type,
-          qr_code,
-          is_present,
-          confirmed_at,
-          confirmed_by_name,
-          id_number,
-          order_id,
-          orders!inner (
-            id,
-            booking_reference,
-            payment_status,
-            payment_method,
-            customers (name),
-            events (title, event_date)
-          )
-        `)
-        .or(`phone.ilike.%${cleanPhone}%`)
-        .order('created_at', { ascending: false });
-
-      if (error || !relatedData) return;
-
-      // Filter out current tickets and unpaid
-      const otherTickets = relatedData.filter((ticket: any) => 
-        !currentTicketIds.includes(ticket.id) &&
-        (ticket.orders?.payment_status === 'confirmed' || ticket.orders?.payment_method === 'cash_pos')
-      );
-
-      // Separate by same day vs other days
-      const sameDay: RelatedTicket[] = [];
-      const otherDays: RelatedTicket[] = [];
-
-      otherTickets.forEach((ticket: any) => {
-        const ticketEventDate = ticket.orders?.events?.event_date;
-        const ticketDateStr = ticketEventDate ? format(new Date(ticketEventDate), 'yyyy-MM-dd') : '';
-        const isSameDay = ticketDateStr === currentDateStr;
-
-        const relatedTicket: RelatedTicket = {
-          id: ticket.id,
-          qr_code: ticket.qr_code,
-          name: ticket.name,
-          phone: ticket.phone,
-          nationality: ticket.nationality,
-          ticket_type: ticket.ticket_type,
-          id_number: ticket.id_number,
-          is_present: ticket.is_present,
-          confirmed_at: ticket.confirmed_at,
-          event_date: ticketEventDate,
-          event_title: ticket.orders?.events?.title,
-          booking_reference: ticket.orders?.booking_reference,
-          is_same_day: isSameDay
-        };
-
-        if (isSameDay) {
-          sameDay.push(relatedTicket);
-        } else {
-          otherDays.push(relatedTicket);
-        }
-      });
-
-      setRelatedTicketsSameDay(sameDay);
-      setRelatedTicketsOtherDays(otherDays);
-    } catch (err) {
-      console.error('Error fetching related tickets:', err);
-    }
-  };
-
-  // Fetch other tickets with same booking reference
-  const fetchSameBookingTickets = async (bookingReference: string, currentTicketIds: string[]) => {
-    try {
-      const { data: orderData } = await supabase
-        .from('orders')
-        .select('id, events(event_date)')
-        .eq('booking_reference', bookingReference)
-        .maybeSingle();
-
-      if (!orderData) return;
-
-      const { data: ticketsData } = await supabase
-        .from('ticket_holders')
-        .select(`
-          id,
-          name,
-          phone,
-          nationality,
-          ticket_type,
-          qr_code,
-          is_present,
-          confirmed_at,
-          confirmed_by_name,
-          id_number,
-          order_id
-        `)
-        .eq('order_id', orderData.id);
-
-      if (!ticketsData) return;
-
-      // Filter out current tickets
-      const otherTickets = ticketsData.filter(t => !currentTicketIds.includes(t.id));
-
-      if (otherTickets.length > 0) {
-        const eventDate = (orderData.events as any)?.event_date;
-        setSameBookingTickets(otherTickets.map(t => ({
-          ...t,
-          event_date: eventDate,
-          event_title: '',
-          booking_reference: bookingReference,
-          is_same_day: true
-        })));
-      }
-    } catch (err) {
-      console.error('Error fetching same booking tickets:', err);
-    }
   };
 
   const toggleTicketSelection = (ticketId: string) => {
@@ -1498,7 +907,7 @@ const QRScanner = () => {
                               : 'border-border bg-card hover:border-primary/50'
                           } ${
                             ticket.is_present
-                              ? 'opacity-50 cursor-not-allowed'
+                              ? 'cursor-default'
                               : ''
                           }`}
                         >
@@ -1542,7 +951,15 @@ const QRScanner = () => {
                             </div>
                             <div className="flex-shrink-0 self-start sm:self-auto mt-1 sm:mt-0">
                               {ticket.is_present ? (
-                                <span className="text-green-600 font-bold text-xs sm:text-sm whitespace-nowrap">✅ حاضر</span>
+                                <div className="flex flex-wrap items-center gap-2">
+                                  <span className="text-success font-bold text-xs sm:text-sm">✓ حاضر</span>
+                                  {isAdminUser && (
+                                    <Button variant="destructive" size="sm" disabled={resettingId !== null}
+                                      onClick={(e) => { e.stopPropagation(); handleResetTicket(ticket.id, ticket.name); }}>
+                                      <RotateCcw className="size-4" /> إلغاء الحضور
+                                    </Button>
+                                  )}
+                                </div>
                               ) : (
                                 <span className="text-muted-foreground text-xs sm:text-sm whitespace-nowrap">⭕ غير حاضر</span>
                               )}
@@ -1690,190 +1107,6 @@ const QRScanner = () => {
                 )}
               </div>
 
-              {/* Same Booking Reference - Other Tickets */}
-              {sameBookingTickets.length > 0 && (
-                <div className="mt-4 p-3 sm:p-4 bg-purple-50 dark:bg-purple-950/20 rounded-lg border-2 border-purple-300">
-                  <h3 className="font-bold text-sm sm:text-base text-purple-900 dark:text-purple-100 flex items-center gap-2 mb-3">
-                    <Users className="w-4 h-4" />
-                    تذاكر أخرى بنفس الرقم المرجعي ({sameBookingTickets.length})
-                  </h3>
-                  <div className="space-y-2">
-                    {sameBookingTickets.map((ticket) => (
-                      <div
-                        key={ticket.id}
-                        className="p-2 sm:p-3 rounded-lg border bg-card text-right"
-                      >
-                        <div className="flex justify-between items-start gap-2">
-                          <div className="flex-1">
-                            <div className="font-bold text-sm sm:text-base">{ticket.name}</div>
-                            <div className="text-xs text-muted-foreground mt-1">
-                              <span className="font-semibold">النوع:</span> {ticket.ticket_type.toUpperCase()}
-                            </div>
-                          </div>
-                          <div>
-                            {ticket.is_present ? (
-                              <span className="text-green-600 font-bold text-xs">✅ حاضر</span>
-                            ) : (
-                              <span className="text-muted-foreground text-xs">⭕ غير حاضر</span>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Related Tickets - Same Day */}
-              {relatedTicketsSameDay.length > 0 && (
-                <div className="mt-4 p-3 sm:p-4 bg-emerald-50 dark:bg-emerald-950/20 rounded-lg border-2 border-emerald-300">
-                  <h3 className="font-bold text-sm sm:text-base text-emerald-900 dark:text-emerald-100 flex items-center gap-2 mb-3">
-                    <Calendar className="w-4 h-4" />
-                    تذاكر أخرى لنفس رقم الهاتف - نفس اليوم ({relatedTicketsSameDay.length})
-                  </h3>
-                  <div className="space-y-2">
-                    {relatedTicketsSameDay.map((ticket) => (
-                      <div
-                        key={ticket.id}
-                        className="p-2 sm:p-3 rounded-lg border bg-card text-right"
-                      >
-                        <div className="flex justify-between items-start gap-2">
-                          <div className="flex-1">
-                            <div className="font-bold text-sm sm:text-base">{ticket.name}</div>
-                            {ticket.event_title && (
-                              <div className="text-xs text-muted-foreground mt-1">
-                                <span className="font-semibold">الفعالية:</span> {ticket.event_title}
-                              </div>
-                            )}
-                            <div className="text-xs text-muted-foreground mt-0.5">
-                              <span className="font-semibold">النوع:</span> {ticket.ticket_type.toUpperCase()}
-                            </div>
-                            {ticket.booking_reference && (
-                              <div className="text-xs text-muted-foreground mt-0.5 font-mono">
-                                {ticket.booking_reference}
-                              </div>
-                            )}
-                          </div>
-                          <div>
-                            {ticket.is_present ? (
-                              <span className="text-green-600 font-bold text-xs">✅ حاضر</span>
-                            ) : (
-                              <span className="text-muted-foreground text-xs">⭕ غير حاضر</span>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Related Tickets - Other Days */}
-              {relatedTicketsOtherDays.length > 0 && (
-                <div className="mt-4 p-3 sm:p-4 bg-amber-50 dark:bg-amber-950/20 rounded-lg border-2 border-amber-300">
-                  <h3 className="font-bold text-sm sm:text-base text-amber-900 dark:text-amber-100 flex items-center gap-2 mb-3">
-                    <Calendar className="w-4 h-4" />
-                    تذاكر أخرى لنفس رقم الهاتف - أيام أخرى ({relatedTicketsOtherDays.length})
-                  </h3>
-                  <p className="text-xs text-amber-700 dark:text-amber-300 mb-3 bg-amber-100 dark:bg-amber-900/30 p-2 rounded">
-                    ⚠️ هذه التذاكر ليوم مختلف - لا يمكن تسجيل الحضور اليوم
-                  </p>
-                  <div className="space-y-4">
-                    {(() => {
-                      // Group tickets by date
-                      const ticketsByDate = relatedTicketsOtherDays.reduce((acc, ticket) => {
-                        const dateKey = ticket.event_date ? format(new Date(ticket.event_date), 'yyyy-MM-dd') : 'unknown';
-                        if (!acc[dateKey]) {
-                          acc[dateKey] = [];
-                        }
-                        acc[dateKey].push(ticket);
-                        return acc;
-                      }, {} as Record<string, typeof relatedTicketsOtherDays>);
-
-                      // Sort dates
-                      const sortedDates = Object.keys(ticketsByDate).sort();
-
-                      return sortedDates.map((dateKey, dateIndex) => {
-                        const isCollapsed = collapsedDates[dateKey] ?? false;
-                        
-                        return (
-                          <div key={dateKey} className={dateIndex > 0 ? 'mt-[30px]' : ''}>
-                            {/* Top Separator Line */}
-                            {dateIndex > 0 && (
-                              <div className="mb-4 h-1 bg-gradient-to-r from-amber-200 via-amber-500 to-amber-200 rounded-full"></div>
-                            )}
-                            
-                            {/* Date Header - Clickable */}
-                            <div 
-                              className="flex items-center gap-3 mb-3 cursor-pointer"
-                              onClick={() => setCollapsedDates(prev => ({ ...prev, [dateKey]: !isCollapsed }))}
-                            >
-                              <div className="flex-1 h-1 bg-gradient-to-r from-transparent via-amber-400 to-amber-500 rounded-full"></div>
-                              <div className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-amber-300 to-amber-200 dark:from-amber-700 dark:to-amber-800 rounded-full shadow-md border-2 border-amber-400 dark:border-amber-600 hover:shadow-lg transition-shadow">
-                                {isCollapsed ? (
-                                  <ChevronDown className="w-5 h-5 text-amber-800 dark:text-amber-200" />
-                                ) : (
-                                  <ChevronUp className="w-5 h-5 text-amber-800 dark:text-amber-200" />
-                                )}
-                                <Calendar className="w-5 h-5 text-amber-800 dark:text-amber-200" />
-                                <span className="text-sm font-bold text-amber-900 dark:text-amber-100">
-                                  📅 {dateKey !== 'unknown' ? format(new Date(dateKey), 'dd MMMM yyyy') : 'تاريخ غير محدد'}
-                                </span>
-                                <span className="text-xs bg-amber-500 dark:bg-amber-600 text-white px-2.5 py-1 rounded-full font-bold shadow">
-                                  {ticketsByDate[dateKey].length} تذكرة
-                                </span>
-                              </div>
-                              <div className="flex-1 h-1 bg-gradient-to-l from-transparent via-amber-400 to-amber-500 rounded-full"></div>
-                            </div>
-                            
-                            {/* Tickets for this date - Collapsible */}
-                            {!isCollapsed && (
-                              <div className="space-y-2 border-r-4 border-amber-400 pr-3 mr-1">
-                                {ticketsByDate[dateKey].map((ticket) => (
-                                  <div
-                                    key={ticket.id}
-                                    className="p-2 sm:p-3 rounded-lg border bg-card text-right opacity-80 hover:opacity-100 transition-opacity"
-                                  >
-                                    <div className="flex justify-between items-start gap-2">
-                                      <div className="flex-1">
-                                        <div className="font-bold text-sm sm:text-base">{ticket.name}</div>
-                                        {ticket.event_title && (
-                                          <div className="text-xs text-muted-foreground mt-1">
-                                            <span className="font-semibold">الفعالية:</span> {ticket.event_title}
-                                          </div>
-                                        )}
-                                        <div className="text-xs text-muted-foreground mt-0.5">
-                                          <span className="font-semibold">النوع:</span> {ticket.ticket_type.toUpperCase()}
-                                        </div>
-                                        {ticket.booking_reference && (
-                                          <div className="text-[10px] text-muted-foreground mt-0.5 font-mono">
-                                            {ticket.booking_reference}
-                                          </div>
-                                        )}
-                                      </div>
-                                      <div>
-                                        {ticket.is_present ? (
-                                          <span className="text-green-600 font-bold text-xs">✅ حاضر</span>
-                                        ) : (
-                                          <span className="text-muted-foreground text-xs">⭕ غير حاضر</span>
-                                        )}
-                                      </div>
-                                    </div>
-                                  </div>
-                                ))}
-                              </div>
-                            )}
-                            
-                            {/* Bottom Separator Line */}
-                            <div className="mt-3 h-0.5 bg-gradient-to-r from-amber-300 via-amber-400 to-amber-300 rounded-full"></div>
-                          </div>
-                        );
-                      });
-                    })()}
-                  </div>
-                </div>
-              )}
-
               {/* Reset Button */}
               <div className="mt-4 sm:mt-6">
                 <Button 
@@ -1936,14 +1169,14 @@ const QRScanner = () => {
                           className="h-9 border-destructive/60 bg-destructive/10 px-3 text-[11px] font-bold text-destructive hover:bg-destructive hover:text-destructive-foreground"
                           disabled={resettingId === h.id}
                           onClick={() => handleResetTicket(h.id, h.name)}
-                          title="إلغاء المسح (للأدمن فقط)"
+                          title="إلغاء الحضور (للأدمن فقط)"
                         >
                           {resettingId === h.id ? (
                             <Loader2 className="h-3.5 w-3.5 animate-spin" />
                           ) : (
                             <RotateCcw className="h-3.5 w-3.5" />
                           )}
-                          إلغاء المسح
+                          إلغاء الحضور
                         </Button>
                       )}
                       <div className="text-end">
@@ -2017,7 +1250,7 @@ const QRScanner = () => {
                         key={ticket.id}
                         className={`flex items-center gap-2 rounded-md border p-2 text-xs transition-colors ${
                           ticket.is_present
-                            ? 'cursor-not-allowed border-scanner-elevated opacity-50'
+                            ? 'border-scanner-elevated'
                             : selectedTicketIds.includes(ticket.id)
                             ? 'cursor-pointer border-success bg-success/10'
                             : 'cursor-pointer border-scanner-elevated hover:border-scanner-gold/50'
@@ -2031,6 +1264,12 @@ const QRScanner = () => {
                         <span className="font-bold">{ticket.name}</span>
                         <span className="uppercase text-scanner-muted">— {ticket.ticket_type}</span>
                         {ticket.is_present && <span className="mr-auto text-success">✓ حاضر</span>}
+                        {ticket.is_present && isAdminUser && (
+                          <Button variant="destructive" size="sm" disabled={resettingId !== null}
+                            onClick={(e) => { e.preventDefault(); handleResetTicket(ticket.id, ticket.name); }}>
+                            <RotateCcw className="size-3.5" /> إلغاء الحضور
+                          </Button>
+                        )}
                       </label>
                     ))}
                   </div>
@@ -2131,7 +1370,8 @@ const QRScanner = () => {
               <AlertTriangle className="w-12 h-12 text-amber-600" />
             </div>
             <div className="space-y-2">
-              <h2 className="text-2xl font-bold text-amber-600">تم مسح هذه التذكرة مسبقاً</h2>
+              <DialogTitle className="text-2xl font-bold text-warning">تم مسح هذه التذكرة مسبقاً</DialogTitle>
+              <DialogDescription className="uppercase">{alreadyScanned?.ticketType}</DialogDescription>
               <p className="text-lg font-semibold">{alreadyScanned?.name}</p>
               <p className="text-sm text-muted-foreground" dir="ltr">
                 {alreadyScanned?.reference}
@@ -2148,9 +1388,13 @@ const QRScanner = () => {
                 <p className="text-sm text-muted-foreground">بواسطة {alreadyScanned.confirmedBy}</p>
               )}
             </div>
-            <p className="text-xs text-muted-foreground">
-              الكاميرا ستكون جاهزة لمسح تذكرة جديدة خلال لحظات…
-            </p>
+            {isAdminUser && alreadyScanned && (
+              <Button variant="destructive" className="w-full" disabled={resettingId !== null}
+                onClick={() => handleResetTicket(alreadyScanned.holderId, alreadyScanned.name)}>
+                {resettingId ? <Loader2 className="size-4 animate-spin" /> : <RotateCcw className="size-4" />}
+                إلغاء الحضور
+              </Button>
+            )}
             <Button
               onClick={() => {
                 setAlreadyScanned(null);
@@ -2178,7 +1422,7 @@ const QRScanner = () => {
             </div>
             
             <div className="space-y-2">
-              <h2 className="text-2xl font-bold text-red-600">لا يمكن تسجيل الحضور</h2>
+              <DialogTitle className="text-2xl font-bold text-destructive">لا يمكن تسجيل الحضور</DialogTitle>
               <p className="text-lg text-foreground whitespace-pre-wrap">{errorDialogMessage}</p>
             </div>
 

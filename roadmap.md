@@ -1,5 +1,9 @@
 # Task Roadmap
 
+## Scanner current-event attendance
+- [x] Restrict all scanner lookups and attendance history to the active current festival (or the admin-selected single event); removed previous-event related lists, archived-code lookup verified empty, ticket-checkin deployed.
+- [x] Add admin cancellation to customer results, ticket selection and duplicate alert; authenticated UI cancellation/readback verified, payment unchanged and original attendance restored; 35 scanner/security regressions passed.
+
 ## Receipt reading repair
 - [x] Fixed reproduced truncated extraction output; supplied photo extracted QAR 200, sequence 001036002, time 12:06:02 and authorization 020459, saved and reloaded once; verification receipt/images removed, quotas unchanged, four tests passed. Native phone-camera capture remains device-specific and unverified.
 

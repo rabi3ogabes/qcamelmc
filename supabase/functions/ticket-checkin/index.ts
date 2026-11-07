@@ -3,6 +3,7 @@ import "../_shared/track-install.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.58.0";
 import { toZonedTime } from "https://esm.sh/date-fns-tz@3.2.0";
 import { staffIdentity, unauthorizedResponse } from "../_shared/staffAuth.ts";
+import { scannerEventIds, cancelledAttendance } from "./scope.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -114,12 +115,27 @@ Deno.serve(async (req) => {
     const actorId = identity.userId;
     const staffLabel = typeof staff_name === 'string' ? staff_name.replace(/\s+/g, ' ').trim().slice(0, 80) || null : null;
 
+    const qatarNow = toZonedTime(new Date(), "Asia/Qatar");
+    const searchDayStartUtc = new Date(Date.UTC(qatarNow.getFullYear(), qatarNow.getMonth(), qatarNow.getDate()) - 3 * 60 * 60 * 1000).toISOString();
+    const [{ data: activeEvents, error: eventError }, { data: settings, error: settingsError }] = await Promise.all([
+      supabase.from('events').select('id, event_date, end_date, is_active, is_archived').eq('is_active', true).eq('is_archived', false),
+      supabase.from('settings').select('current_event_id').maybeSingle(),
+    ]);
+    if (eventError || settingsError) throw eventError || settingsError;
+    const eventIds = scannerEventIds(activeEvents ?? [], settings?.current_event_id, searchDayStartUtc);
+    if (eventIds.length === 0) {
+      return new Response(JSON.stringify({ success: false, message: 'لا توجد تذاكر ضمن الفعالية الحالية', results: [], history: [] }), {
+        status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
     // History mode: return the most recent successful check-ins
     if (mode === 'history') {
       const { data: history, error: historyError } = await supabase
         .from('ticket_holders')
-        .select('id, name, ticket_type, qr_code, confirmed_at, confirmed_by_name, orders(booking_reference, events(title))')
+        .select('id, name, ticket_type, qr_code, confirmed_at, confirmed_by_name, orders!inner(event_id, booking_reference, events!inner(title))')
         .eq('is_present', true)
+        .in('orders.event_id', eventIds)
         .not('confirmed_at', 'is', null)
         .order('confirmed_at', { ascending: false })
         .limit(30);
@@ -176,9 +192,17 @@ Deno.serve(async (req) => {
           { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
+      const { data: scopedHolder, error: scopeError } = await supabase
+        .from('ticket_holders').select('id, order_id, orders!inner(event_id)')
+        .eq('id', holder_id).in('orders.event_id', eventIds).maybeSingle();
+      if (scopeError || !scopedHolder) {
+        return new Response(JSON.stringify({ success: false, message: 'التذكرة ليست ضمن الفعالية الحالية' }), {
+          status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
       const { data: resetRows, error: resetError } = await supabase
         .from('ticket_holders')
-        .update({ is_present: false, confirmed_at: null, confirmed_by: null, confirmed_by_name: null })
+        .update(cancelledAttendance())
         .eq('id', holder_id)
         .eq('is_present', true)
         .select('id, name, qr_code');
@@ -210,14 +234,13 @@ Deno.serve(async (req) => {
       );
     }
 
-    const qatarNow = toZonedTime(new Date(), "Asia/Qatar");
     const todayKey = `${qatarNow.getFullYear()}-${String(qatarNow.getMonth() + 1).padStart(2, '0')}-${String(qatarNow.getDate()).padStart(2, '0')}`;
 
     const HOLDER_SELECT = `
       id, name, phone, country_code, nationality, id_number, ticket_type, qr_code,
       is_present, confirmed_at, confirmed_by_name, order_id, created_at,
       orders!inner (
-        id, booking_reference, payment_status, payment_method, n8n_responded_at,
+        id, event_id, booking_reference, payment_status, payment_method, n8n_responded_at,
         customers ( name, email, phone ),
         events!inner ( title, event_date, location )
       )
@@ -232,25 +255,29 @@ Deno.serve(async (req) => {
         });
       }
 
-      let { data: rows } = await supabase
-        .from('ticket_holders')
-        .select(HOLDER_SELECT)
-        .eq('qr_code', code)
-        .limit(20);
+      const isPhone = /^[\d\s+\-()]+$/.test(code);
+      const lookupBase = () => supabase.from('ticket_holders')
+        .select(HOLDER_SELECT).in('orders.event_id', eventIds).limit(100);
+      let { data: rows, error: lookupError } = await (isPhone
+        ? lookupBase().ilike('phone', `%${code.replace(/[^\d+]/g, '')}%`)
+        : lookupBase().eq('qr_code', code));
+      if (lookupError) throw lookupError;
 
-      if (!rows || rows.length === 0) {
+      if (!isPhone && (!rows || rows.length === 0)) {
         const res = await supabase
           .from('ticket_holders')
           .select(HOLDER_SELECT)
+          .in('orders.event_id', eventIds)
           .ilike('qr_code', `%${code.replace(/[%,()]/g, '')}%`)
           .limit(20);
         rows = res.data ?? [];
       }
 
-      if (!rows || rows.length === 0) {
+      if (!isPhone && (!rows || rows.length === 0)) {
         const res = await supabase
           .from('ticket_holders')
           .select(HOLDER_SELECT)
+          .in('orders.event_id', eventIds)
           .eq('orders.booking_reference', code)
           .limit(20);
         rows = res.data ?? [];
@@ -273,6 +300,7 @@ Deno.serve(async (req) => {
           confirmed_by_name: h.confirmed_by_name,
           order_id: h.order_id,
           orders: {
+            event_id: order?.event_id,
             booking_reference: order?.booking_reference,
             payment_status: order?.payment_status,
             payment_method: order?.payment_method,
@@ -296,20 +324,20 @@ Deno.serve(async (req) => {
         });
       }
       const like = `%${value.replace(/[%,()]/g, '')}%`;
-      const searchDayStartUtc = new Date(Date.UTC(qatarNow.getFullYear(), qatarNow.getMonth(), qatarNow.getDate()) - 3 * 60 * 60 * 1000).toISOString();
 
       const holdersBase = () =>
         supabase
           .from('ticket_holders')
           .select(HOLDER_SELECT)
-          .gte('orders.events.event_date', searchDayStartUtc)
-          .order('created_at', { ascending: false })
+        .in('orders.event_id', eventIds)
+                    .order('created_at', { ascending: false })
           .limit(40);
 
       // Orders whose customer matches the term
       const { data: custOrders } = await supabase
         .from('orders')
         .select('id, customers!inner(id)')
+        .in('event_id', eventIds)
         .or(`name.ilike.${like},phone.ilike.${like},email.ilike.${like}`, { referencedTable: 'customers' })
         .order('created_at', { ascending: false })
         .limit(60);
@@ -368,6 +396,7 @@ Deno.serve(async (req) => {
       const { data: holder, error: holderFetchError } = await supabase
         .from('ticket_holders')
         .select(HOLDER_SELECT)
+        .in('orders.event_id', eventIds)
         .eq('id', holder_id)
         .maybeSingle();
 
@@ -513,7 +542,7 @@ Deno.serve(async (req) => {
         )
       `)
       .eq('qr_code', booking_reference)
-      .gte('orders.events.event_date', qatarDayStartUtc)
+      .in('orders.event_id', eventIds)
       .maybeSingle();
 
     console.log('[Ticket Check-in] Ticket holder search result:', ticketHolder ? 'FOUND' : 'NOT FOUND');
@@ -742,7 +771,7 @@ Deno.serve(async (req) => {
         events!inner(title, event_date, location)
       `)
       .eq('booking_reference', booking_reference)
-      .gte('events.event_date', qatarDayStartUtc)
+      .in('event_id', eventIds)
       .single();
 
     if (fetchError || !order) {
