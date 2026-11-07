@@ -1,0 +1,1 @@
+import type {} from "../supabase/functions/parse-pos-receipt/generated/models";

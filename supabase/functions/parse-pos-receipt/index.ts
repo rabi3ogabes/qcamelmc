@@ -2,6 +2,8 @@ import "../_shared/track-install.ts";
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.58.0";
 import { staffIdentity, unauthorizedResponse } from "../_shared/staffAuth.ts";
+import { generateChatCompletion, GatewayError } from "npm:@lovable.dev/ai-gateway@0.1.11";
+import { RECEIPT_OUTPUT, parseReceiptOutput } from "./output.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -41,11 +43,6 @@ Deno.serve(async (req) => {
       );
     }
 
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) {
-      throw new Error("LOVABLE_API_KEY is not configured");
-    }
-
     const subject = identity.userId ? `user:${identity.userId}` : "shared:passcode";
     const lease = crypto.randomUUID();
     const { data: slot, error: slotError } = await admin.rpc("acquire_receipt_ai_slot", { p_subject: subject, p_lease: lease });
@@ -83,15 +80,8 @@ Extraction rules:
 - Do NOT include explanations, comments, or extra text.
 - Return ONLY the JSON object, nothing else.`;
 
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      signal: AbortSignal.timeout(60000),
-      body: JSON.stringify({
-        max_tokens: 500,
+    const data = await generateChatCompletion({
+        ...RECEIPT_OUTPUT,
         model: "google/gemini-2.5-flash",
         messages: [
           { role: "system", content: systemPrompt },
@@ -111,52 +101,17 @@ Extraction rules:
             ],
           },
         ],
-      }),
-    });
-
-    if (!response.ok) {
-      if (response.status === 429) {
-        return new Response(
-          JSON.stringify({ error: "Rate limit exceeded. Please try again later." }),
-          { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
-      if (response.status === 402) {
-        return new Response(
-          JSON.stringify({ error: "Payment required. Please add credits to your workspace." }),
-          { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
-      const errorText = await response.text();
-      console.error("AI gateway error:", response.status, errorText);
-      return new Response(
-        JSON.stringify({ error: "AI gateway error" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    const data = await response.json();
+    }, { signal: AbortSignal.timeout(60000) });
     const content = data.choices?.[0]?.message?.content || "";
     
     // Try to parse the JSON from the response
     let extractedData;
     try {
-      // Remove markdown code blocks if present
-      let jsonStr = content.trim();
-      if (jsonStr.startsWith("```json")) {
-        jsonStr = jsonStr.slice(7);
-      }
-      if (jsonStr.startsWith("```")) {
-        jsonStr = jsonStr.slice(3);
-      }
-      if (jsonStr.endsWith("```")) {
-        jsonStr = jsonStr.slice(0, -3);
-      }
-      extractedData = JSON.parse(jsonStr.trim());
+      extractedData = parseReceiptOutput(content, data.choices?.[0]?.finish_reason);
     } catch (parseError) {
-      console.error("Failed to parse AI response:", content);
+      console.warn("Incomplete receipt response", data.choices?.[0]?.finish_reason);
       return new Response(
-        JSON.stringify({ error: "Failed to parse receipt data", rawResponse: content }),
+        JSON.stringify({ error: "Receipt reading was incomplete. Please retry the photo." }),
         { status: 422, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -166,6 +121,11 @@ Extraction rules:
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error) {
+    if (error instanceof GatewayError) {
+      console.warn("Receipt gateway failure", error.code, error.httpStatus);
+      const status = error.httpStatus === 402 || error.httpStatus === 429 ? error.httpStatus : 500;
+      return new Response(JSON.stringify({error: status === 402 ? "Receipt reading needs workspace AI credits." : status === 429 ? "Receipt reading is busy. Please try later." : "Receipt reading failed. Please try again."}), {status, headers:{...corsHeaders,"Content-Type":"application/json"}});
+    }
     console.error("Error in parse-pos-receipt:", error);
     return new Response(
       JSON.stringify({ error: "تعذرت قراءة الإيصال، يرجى المحاولة لاحقًا" }),

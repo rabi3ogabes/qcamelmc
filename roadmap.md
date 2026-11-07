@@ -1,5 +1,8 @@
 # Task Roadmap
 
+## Receipt reading repair
+- [x] Fixed reproduced truncated extraction output; supplied photo extracted QAR 200, sequence 001036002, time 12:06:02 and authorization 020459, saved and reloaded once; verification receipt/images removed, quotas unchanged, four tests passed. Native phone-camera capture remains device-specific and unverified.
+
 ## Home banner controls
 - [x] Add independent saved top/center/bottom image alignment and height controls; authenticated save/reload and public top/bottom at 520px verified, mobile checked, 4 tests passed, original center/600px restored without changing other settings.
 

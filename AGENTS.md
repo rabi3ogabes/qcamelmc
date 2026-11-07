@@ -18,6 +18,7 @@
 - The public sitemap lists only stable, non-sensitive customer pages; hosting supplies absolute share-image metadata when none is statically configured.
 - Receipt AI quotas are enforced atomically by server-only database functions; shared-passcode callers share a quota, and each active reading holds a bounded lease.
 - Keep spreadsheet, scanner and chart code in separate production chunks; load receipt spreadsheet export only on demand to avoid loading export code on page entry.
+- Receipt extraction uses the server-only AI Gateway SDK with JSON output and reasoning disabled inside the existing output budget; reject incomplete data, expose retryable errors, and show persisted receipts without relying on realtime.
 - Sadad transaction details load private settings through createRepo and sadadCredentialsFromSettings, rejecting missing credentials — keeps merchant login aligned with checkout without alternate credential sources.
 - Sadad diagnostics trace only outbound login method, endpoint and HTTP status, and always report checkout acceptance as unverified — merchant API authentication cannot certify a payment signature.
 - Checkout request signatures use the documented mandatory-field allowlist and uppercase SHA256 in sadad-core; callback checksums retain all-field verification and payment confirmation requires independent provider proof — optional form fields must not change signing or weaken payment security.
