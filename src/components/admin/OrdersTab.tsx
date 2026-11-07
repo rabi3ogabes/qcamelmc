@@ -188,13 +188,6 @@ export const OrdersTab = () => {
   const isSearching = debouncedSearch.trim().length > 0;
   const totalPages = isSearching ? 1 : Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
 
-  const [availableEvents, setAvailableEvents] = useState<Array<{
-    id: string;
-    title: string;
-    event_date: string;
-  }>>([]);
-
-
   // Generate QR code image when selectedHolder changes
   useEffect(() => {
     if (selectedHolder?.qr_code) {
