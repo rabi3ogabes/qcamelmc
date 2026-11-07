@@ -739,7 +739,7 @@ const Checkout = () => {
                     value={customerInfo.name} 
                     onChange={e => setCustomerInfo({
                       ...customerInfo,
-                      name: e.target.value.trim().substring(0, 100)
+                      name: e.target.value.replace(/^\s+/, "").substring(0, 100)
                     })} 
                     required 
                     minLength={3}
