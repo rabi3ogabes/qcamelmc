@@ -38,6 +38,10 @@ export interface OrdersQueryParams {
   eventId: string;
   search: string;
   upcomingOnly: boolean;
+  /** Qatar "YYYY-MM-DD" of the first festival day; null = no festival. */
+  festivalFrom: string | null;
+  /** Qatar "YYYY-MM-DD" after the last festival day (exclusive); null = no festival. */
+  festivalToExclusive: string | null;
   page: number;
   pageSize: number;
 }
@@ -59,9 +63,15 @@ type AnyBuilder = any;
 
 const applyCommonFilters = (
   query: AnyBuilder,
-  params: Pick<OrdersQueryParams, "paymentMethod" | "eventId" | "upcomingOnly">
+  params: Pick<
+    OrdersQueryParams,
+    "paymentMethod" | "eventId" | "upcomingOnly" | "festivalFrom" | "festivalToExclusive"
+  >
 ) => {
   let q = query;
+  // The live festival only — never an archived season, never a day beyond it.
+  if (params.festivalFrom) q = q.gte("events.event_date", params.festivalFrom);
+  if (params.festivalToExclusive) q = q.lt("events.event_date", params.festivalToExclusive);
   if (params.upcomingOnly) q = q.gte("events.event_date", getTodayQatar());
   if (params.paymentMethod !== "all") q = q.eq("payment_method", params.paymentMethod);
   if (params.eventId !== "all") q = q.eq("event_id", params.eventId);
