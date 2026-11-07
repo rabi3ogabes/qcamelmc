@@ -757,7 +757,7 @@ export const OrdersTab = () => {
               <CheckCircle className="w-3 h-3" />
               تغيير إلى نجح
             </Button>}
-          {showDeleteButton && <Button size="icon" variant="destructive" onClick={e => {
+          {<Button size="icon" variant="destructive" onClick={e => {
             e.stopPropagation();
             setOrderToDelete(order.id);
           }} className="h-8 w-8" title="حذف الطلب">
