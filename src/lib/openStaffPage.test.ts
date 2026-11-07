@@ -17,7 +17,8 @@ describe("staff page navigation", () => {
     vi.stubGlobal("window", { open, location: { assign } });
 
     const pending = openStaffPage("/admin/pos");
-    expect(open).toHaveBeenCalledExactlyOnceWith("about:blank", "_blank");
+    expect(open).toHaveBeenCalledTimes(1);
+    expect(open).toHaveBeenCalledWith("about:blank", "_blank");
     expect(tab.opener).toBeNull();
     expect(tab.location.replace).not.toHaveBeenCalled();
     resolveUrl("/admin/pos#sk=opaque-token");
