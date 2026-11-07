@@ -162,7 +162,7 @@ export const OrdersTab = () => {
   // 2026), never an archived one. No season at all means no orders shown.
   const festivalWindow = useMemo(() => festivalDateWindow(availableEvents), [availableEvents]);
   const festivalDays = useMemo(
-    () => availableEvents.filter(event => isFestivalDay(event.event_date, festivalWindow)),
+    () => availableEvents.filter(event => !event.is_archived && isFestivalDay(event.event_date, festivalWindow)),
     [availableEvents, festivalWindow]
   );
 
