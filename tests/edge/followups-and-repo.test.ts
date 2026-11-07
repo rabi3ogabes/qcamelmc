@@ -184,7 +184,7 @@ describe("what follows a settled payment", () => {
     expect((await outcome).outcome).toBe("confirmed");
     expect(functions.sort()).toEqual([["notify-admin-sale", { order_id: "order-1" }], ["send-invoice-email", { order_id: "order-1" }]]);
     expect(posted).toHaveLength(1);
-    expect(posted[0].body).toMatchObject({ action: "payment_confirmed", booking_reference: REF });
+    expect(posted[0].body).toMatchObject({ action: "send_invoice", channel: "whatsapp", booking_reference: REF });
   });
 
   it("a switched-off automation is skipped, the e-mails still go out", async () => {

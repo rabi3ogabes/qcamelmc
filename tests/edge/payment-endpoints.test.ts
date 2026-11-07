@@ -126,7 +126,7 @@ describe("sadad-callback", () => {
     expect(repo.calls.confirm).toEqual([[REF, "SD-REAL-1"]]);
     await Promise.all(waited);
     expect(net.n8n).toHaveLength(1);
-    expect(net.n8n[0]).toMatchObject({ action: "payment_confirmed", payment_status: "confirmed", events: { title: "Festival" }, booking_reference: REF });
+    expect(net.n8n[0]).toMatchObject({ action: "send_invoice", channel: "whatsapp", payment_status: "confirmed", event_title: "Festival", booking_reference: REF });
   });
 
   it("does NOT confirm a forged 'success' callback that Sadad has no record of", async () => {

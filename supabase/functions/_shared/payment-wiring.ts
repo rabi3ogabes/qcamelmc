@@ -2,7 +2,8 @@
 // repository, Sadad's API and the n8n automation. Used by every endpoint that
 // can settle a payment (callback, webhook, verify-payment).
 
-import { postWebhook, buildOrderPaidPayload } from "./notify.ts";
+import { postWebhook } from "./notify.ts";
+import { whatsappInvoicePayload } from "./whatsapp-invoice.ts";
 import type { ProcessorDeps } from "./payment-processor.ts";
 import type { Repo } from "./repo.ts";
 import { lookupTransaction, type SadadApiResult } from "./sadad-api.ts";
@@ -77,18 +78,12 @@ export function makeProcessorDeps({ repo, settings, fetch: fetchImpl, now, waitU
       if (settings.webhookUrl) {
         const context = await repo.getOrderContext(order.booking_reference);
         if (context) {
-          const payload = buildOrderPaidPayload({
-            customer: context.customer,
-            event: context.event,
-            order: context.order,
-            holders: context.holders,
-            prices: context.prices,
-            transactionNumber: (context.order.payment_id as string | null | undefined) ?? null,
-            now: now?.(),
-          });
+          // Same server-built invoice message (random admin template) as the manual send,
+          // so n8n receives the WhatsApp text it needs instead of a bare paid-order notice.
           const deliveryId = crypto.randomUUID();
-          await repo.createInvoiceDelivery({ order_id: order.id, booking_reference: order.booking_reference, channel: "whatsapp", template: "whatsapp-invoice", status: "queued", attempt: 1, delivery_id: deliveryId });
-          tasks.push(postWebhook(fetchImpl, settings.webhookUrl, { ...payload, delivery_id: deliveryId, channel: "whatsapp" }).then(async result => {
+          const invoice = whatsappInvoicePayload(context, settings.whatsappTemplates ?? [], deliveryId);
+          await repo.createInvoiceDelivery({ order_id: order.id, booking_reference: order.booking_reference, channel: "whatsapp", template: "whatsapp-invoice", status: "queued", attempt: 1, recipient: invoice.customer_phone_whatsapp, message_body: invoice.whatsapp_message, template_name: invoice.template_name, delivery_id: deliveryId });
+          tasks.push(postWebhook(fetchImpl, settings.webhookUrl, invoice).then(async result => {
             if (!result.ok) await repo.updateInvoiceDelivery(deliveryId, "failed", `Webhook failed${result.status ? ` (HTTP ${result.status})` : ""}`);
             return result;
           }));
