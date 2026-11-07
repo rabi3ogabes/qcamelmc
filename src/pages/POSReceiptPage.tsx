@@ -69,16 +69,24 @@ const POSReceiptPage = () => {
     };
   }, []);
 
+  const receiptRequest = async (body: Record<string, unknown>) => {
+    const { data, error } = await supabase.functions.invoke('parse-pos-receipt', {
+      body: { ...body, passcode: getStaffPasscode() },
+    });
+    if (error) {
+      const response = (error as { context?: Response }).context;
+      const details = await response?.json().catch(() => null);
+      throw new Error(details?.message || details?.error || 'Receipt operation failed. Please try again.');
+    }
+    if (!data?.success) throw new Error(data?.error || 'Receipt operation failed. Please try again.');
+    return data;
+  };
+
   const fetchReceipts = async () => {
     setIsLoading(true);
     try {
-      const { data, error } = await supabase
-        .from("pos_receipts")
-        .select("*")
-        .order("created_at", { ascending: false });
-
-      if (error) throw error;
-      setReceipts(data || []);
+      const data = await receiptRequest({ mode: 'list' });
+      setReceipts(data.receipts || []);
     } catch (error) {
       console.error("Error fetching receipts:", error);
       toast.error("Failed to load receipts");
@@ -115,60 +123,9 @@ const POSReceiptPage = () => {
     processingRef.current = true;
     setIsProcessing(true);
     setProcessingError(null);
-    let uploadedPath: string | null = null;
     try {
-      // First, upload the image to storage
-      const fileExt = file.name.split('.').pop() || 'jpg';
-      const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
-      const filePath = `receipts/${fileName}`;
-
-      const { error: uploadError } = await supabase.storage
-        .from('pos-receipts')
-        .upload(filePath, file, {
-          cacheControl: '3600',
-          upsert: false
-        });
-
-      if (uploadError) {
-        console.error("Upload error:", uploadError);
-        throw new Error("Failed to upload image");
-      }
-      uploadedPath = filePath;
-
-      // Get the public URL
-      const { data: { publicUrl } } = supabase.storage
-        .from('pos-receipts')
-        .getPublicUrl(filePath);
-
-      // Parse the receipt using AI
-      const { data, error } = await supabase.functions.invoke("parse-pos-receipt", {
-        body: { imageBase64, passcode: getStaffPasscode() },
-      });
-
-      if (error) {
-        const response = (error as { context?: Response }).context;
-        const details = await response?.json().catch(() => null);
-        throw new Error(details?.error || "Receipt reading failed. Please try again.");
-      }
-
-      if (data.error) {
-        throw new Error(data.error);
-      }
-
-      const extractedData = data.data;
-
-      // Insert with image URL
-      const { data: saved, error: insertError } = await supabase.from("pos_receipts").insert({
-        amount_qar: extractedData.amount_qar,
-        seq_number: extractedData.seq_number,
-        card_number_masked: extractedData.card_number_masked,
-        time: extractedData.time,
-        auth_number: extractedData.auth_number,
-        image_url: publicUrl,
-      }).select("*").single();
-
-      if (insertError) throw insertError;
-      uploadedPath = null;
+      const data = await receiptRequest({ imageBase64 });
+      const saved = data.receipt;
       if (saved) setReceipts((prev) => [saved, ...prev.filter((r) => r.id !== saved.id)]);
 
       toast.success("Receipt read and saved successfully");
@@ -181,7 +138,6 @@ const POSReceiptPage = () => {
       setProcessingError(message);
       toast.error(message);
     } finally {
-      if (uploadedPath) await supabase.storage.from("pos-receipts").remove([uploadedPath]).catch(() => {});
       processingRef.current = false;
       setIsProcessing(false);
       if (cameraInputRef.current) cameraInputRef.current.value = "";
@@ -191,8 +147,8 @@ const POSReceiptPage = () => {
 
   const handleDelete = async (id: string) => {
     try {
-      const { error } = await supabase.from("pos_receipts").delete().eq("id", id);
-      if (error) throw error;
+      await receiptRequest({ mode: 'delete', receipt_id: id });
+      setReceipts(prev => prev.filter(r => r.id !== id));
       toast.success("Receipt deleted");
       // No need to fetchReceipts - realtime will handle it
     } catch (error) {
@@ -207,12 +163,7 @@ const POSReceiptPage = () => {
     value: number
   ) => {
     try {
-      const { error } = await supabase
-        .from("pos_receipts")
-        .update({ [ticketType]: value } as never)
-        .eq("id", receiptId);
-
-      if (error) throw error;
+      await receiptRequest({ mode: 'update', receipt_id: receiptId, field: ticketType, value });
 
       setReceipts((prev) =>
         prev.map((r) => (r.id === receiptId ? { ...r, [ticketType]: value } : r))

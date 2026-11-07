@@ -4,6 +4,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.58.0";
 import { staffIdentity, unauthorizedResponse } from "../_shared/staffAuth.ts";
 import { generateChatCompletion, GatewayError } from "npm:@lovable.dev/ai-gateway@0.1.11";
 import { RECEIPT_OUTPUT, parseReceiptOutput } from "./output.ts";
+import { receiptTicketPatch, receiptImage } from "./operations.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -17,7 +18,7 @@ Deno.serve(async (req) => {
 
   let releaseSlot: (() => Promise<void>) | undefined;
   try {
-    const { imageBase64, passcode } = await req.json();
+    const { imageBase64, passcode, mode, receipt_id, field, value } = await req.json();
 
     // Every call costs AI credits: staff only (administrator, moderator or the team passcode).
     const url = Deno.env.get("SUPABASE_URL");
@@ -29,18 +30,40 @@ Deno.serve(async (req) => {
     const identity = await staffIdentity(req, admin, passcode);
     if (!identity) return unauthorizedResponse(corsHeaders);
 
-    if (typeof imageBase64 === "string" && imageBase64.length > 8_000_000) {
-      return new Response(
-        JSON.stringify({ error: "Image is too large" }),
-        { status: 413, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+    if (mode === 'list') {
+      const receipts: unknown[] = [];
+      for (let offset = 0; ; offset += 1000) {
+        const { data, error } = await admin.from('pos_receipts').select('*').order('created_at', { ascending: false }).range(offset, offset + 999);
+        if (error) throw error;
+        receipts.push(...(data ?? []));
+        if (!data || data.length < 1000) break;
+      }
+      return new Response(JSON.stringify({ success: true, receipts }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
-
-    if (typeof imageBase64 !== "string" || !/^[A-Za-z0-9+/]+={0,2}$/.test(imageBase64)) {
-      return new Response(
-        JSON.stringify({ error: "No image provided" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+    if (mode === 'update' || mode === 'delete') {
+      if (typeof receipt_id !== 'string' || !/^[0-9a-f-]{36}$/i.test(receipt_id)) {
+        return new Response(JSON.stringify({ error: 'Invalid receipt' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      }
+      if (mode === 'update') {
+        let patch;
+        try { patch = receiptTicketPatch(field, value); } catch {
+          return new Response(JSON.stringify({ error: 'Invalid ticket quantity' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+        }
+        const { data, error } = await admin.from('pos_receipts').update(patch).eq('id', receipt_id).select('*').single();
+        if (error) throw error;
+        return new Response(JSON.stringify({ success: true, receipt: data }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      }
+      const { data: existing, error: fetchError } = await admin.from('pos_receipts').select('image_url').eq('id', receipt_id).single();
+      if (fetchError) throw fetchError;
+      const { error } = await admin.from('pos_receipts').delete().eq('id', receipt_id);
+      if (error) throw error;
+      const prefix = `${url}/storage/v1/object/public/pos-receipts/`;
+      if (existing?.image_url?.startsWith(prefix)) await admin.storage.from('pos-receipts').remove([existing.image_url.slice(prefix.length)]);
+      return new Response(JSON.stringify({ success: true }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
+    let image;
+    try { image = receiptImage(imageBase64); } catch (error) {
+      return new Response(JSON.stringify({ error: error instanceof Error ? error.message : 'Invalid photo' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
     const subject = identity.userId ? `user:${identity.userId}` : "shared:passcode";
@@ -91,7 +114,7 @@ Extraction rules:
               {
                 type: "image_url",
                 image_url: {
-                  url: `data:image/jpeg;base64,${imageBase64}`,
+                  url: `data:${image.mime};base64,${imageBase64}`,
                 },
               },
               {
@@ -116,8 +139,17 @@ Extraction rules:
       );
     }
 
+    const path = `receipts/${crypto.randomUUID()}.${image.ext}`;
+    const { error: uploadError } = await admin.storage.from('pos-receipts').upload(path, image.bytes, { contentType: image.mime, upsert: false });
+    if (uploadError) throw new Error('Photo could not be saved. Please retry.');
+    const { data: { publicUrl } } = admin.storage.from('pos-receipts').getPublicUrl(path);
+    const { data: saved, error: saveError } = await admin.from('pos_receipts').insert({ ...extractedData, image_url: publicUrl, created_by: identity.userId }).select('*').single();
+    if (saveError) {
+      await admin.storage.from('pos-receipts').remove([path]);
+      throw new Error('Receipt could not be saved. Please retry.');
+    }
     return new Response(
-      JSON.stringify({ success: true, data: extractedData }),
+      JSON.stringify({ success: true, data: extractedData, receipt: saved }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error) {
