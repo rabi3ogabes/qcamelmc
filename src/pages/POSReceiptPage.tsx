@@ -30,6 +30,8 @@ const POSReceiptPage = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isProcessing, setIsProcessing] = useState(false);
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
+  const [processingError, setProcessingError] = useState<string | null>(null);
+  const [retryFile, setRetryFile] = useState<File | null>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const galleryInputRef = useRef<HTMLInputElement>(null);
   const processingRef = useRef(false); // Prevent overlapping uploads and AI requests.
@@ -94,6 +96,9 @@ const POSReceiptPage = () => {
     }
 
     const reader = new FileReader();
+    setProcessingError(null);
+    setRetryFile(file);
+    reader.onerror = () => setProcessingError("The photo could not be opened. Choose it again.");
     reader.onload = async (e) => {
       const base64 = (e.target?.result as string)?.split(",")[1];
       if (base64) {
@@ -108,6 +113,8 @@ const POSReceiptPage = () => {
     if (processingRef.current) return;
     processingRef.current = true;
     setIsProcessing(true);
+    setProcessingError(null);
+    let uploadedPath: string | null = null;
     try {
       // First, upload the image to storage
       const fileExt = file.name.split('.').pop() || 'jpg';
@@ -125,6 +132,7 @@ const POSReceiptPage = () => {
         console.error("Upload error:", uploadError);
         throw new Error("Failed to upload image");
       }
+      uploadedPath = filePath;
 
       // Get the public URL
       const { data: { publicUrl } } = supabase.storage
@@ -138,40 +146,41 @@ const POSReceiptPage = () => {
 
       if (error) {
         const response = (error as { context?: Response }).context;
-        if (response?.status === 429) {
-          const details = await response.json().catch(() => null);
-          toast.error(details?.error || "وصلت إلى حد الاستخدام، حاول لاحقًا");
-          return;
-        }
-        throw error;
+        const details = await response?.json().catch(() => null);
+        throw new Error(details?.error || "Receipt reading failed. Please try again.");
       }
 
       if (data.error) {
-        toast.error(data.error);
-        return;
+        throw new Error(data.error);
       }
 
       const extractedData = data.data;
 
       // Insert with image URL
-      const { error: insertError } = await supabase.from("pos_receipts").insert({
+      const { data: saved, error: insertError } = await supabase.from("pos_receipts").insert({
         amount_qar: extractedData.amount_qar,
         seq_number: extractedData.seq_number,
         card_number_masked: extractedData.card_number_masked,
         time: extractedData.time,
         auth_number: extractedData.auth_number,
         image_url: publicUrl,
-      });
+      }).select("*").single();
 
       if (insertError) throw insertError;
+      uploadedPath = null;
+      if (saved) setReceipts((prev) => [saved, ...prev.filter((r) => r.id !== saved.id)]);
 
       toast.success("Receipt read and saved successfully");
       setCapturedImage(null);
+      setRetryFile(null);
       // No need to fetchReceipts - realtime will handle it
     } catch (error) {
       console.error("Error processing receipt:", error);
-      toast.error("Failed to process receipt");
+      const message = error instanceof Error ? error.message : "Failed to process receipt";
+      setProcessingError(message);
+      toast.error(message);
     } finally {
+      if (uploadedPath) await supabase.storage.from("pos-receipts").remove([uploadedPath]).catch(() => {});
       processingRef.current = false;
       setIsProcessing(false);
       if (cameraInputRef.current) cameraInputRef.current.value = "";
@@ -530,6 +539,15 @@ const POSReceiptPage = () => {
               </div>
 
               {/* Preview */}
+              {processingError && (
+                <div role="alert" className="space-y-3 border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">
+                  <p>{processingError}</p>
+                  {retryFile && <Button variant="outline" disabled={isProcessing} onClick={() => {
+                    const base64 = capturedImage?.split(",")[1];
+                    if (base64) void processReceipt(base64, retryFile);
+                  }}>Retry reading</Button>}
+                </div>
+              )}
               {capturedImage && (
                 <div className="relative mt-4">
                   <img

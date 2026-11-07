@@ -1,5 +1,8 @@
 # Task Roadmap
 
+## Receipt reading repair
+- [ ] Fix reproduced truncated extraction output and verify supplied photo saves and reloads; retain server quotas and remove verification data afterward.
+
 ## Home banner controls
 - [x] Add independent saved top/center/bottom image alignment and height controls; authenticated save/reload and public top/bottom at 520px verified, mobile checked, 4 tests passed, original center/600px restored without changing other settings.
 
