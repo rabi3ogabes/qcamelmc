@@ -1,5 +1,9 @@
 # Task Roadmap
 
+## Scanner current-event attendance
+- [ ] Restrict search, related tickets and attendance history to the current event scope, excluding previous events.
+- [ ] Make admin attendance cancellation reachable from customer search and duplicate-scan results; validate and verify reset without changing payment state.
+
 ## Receipt reading repair
 - [x] Fixed reproduced truncated extraction output; supplied photo extracted QAR 200, sequence 001036002, time 12:06:02 and authorization 020459, saved and reloaded once; verification receipt/images removed, quotas unchanged, four tests passed. Native phone-camera capture remains device-specific and unverified.
 
