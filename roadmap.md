@@ -1,8 +1,8 @@
 # Task Roadmap
 
 ## Staff orders
-- [ ] Add staff orders access with server-validated read-only data; keep deletion, payment changes and date changes admin-only.
-- [ ] Scope admin and staff orders, searches, statistics and date choices to 7–14 November 2026; verify permissions and UI.
+- [x] Add /staff/orders and hub link with server-validated read-only reads; admin controls remain available, staff-page delete/cancel/date controls absent. Existing table mutation policies remain admin-only; read endpoint rejects mutations (403) and anonymous reads (401). Actual shared-password/moderator session remains unverified; staff authorization unit tests pass.
+- [x] Scope both order pages and date targets to 7–14 November 2026 in Qatar; authenticated list/details verified, 99 confirmed / 54 failed, old-season search empty, mobile has no horizontal overflow; 55 authorization/range tests passed. staff-orders and change-order-event deployed; build clean.
 
 ## Orders festival scope
 - [x] Show only the actual festival (7 → 14 November 2026) on /admin/dashboard/orders: list, search, statistics and the date picker all use the non-archived day span from src/lib/festivalWindow.ts; authenticated browser verified 98 confirmed / 53 failed matching the database, archived-season search returns nothing, each day listed once.
