@@ -413,11 +413,21 @@ const LiveBookings = ({ viewerPassword }: { viewerPassword?: string | null } = {
   const dismissCapacityNotification = useCallback(() => {
     setShowCapacityNotification(false);
     setCapacityNotification(null);
+    setCapacityLeaving(false);
     if (capacityDismissTimeoutRef.current) {
       window.clearTimeout(capacityDismissTimeoutRef.current);
       capacityDismissTimeoutRef.current = null;
     }
   }, []);
+
+  // Show for 1 second, then play the exit animation before removing
+  const scheduleCapacityDismiss = useCallback(() => {
+    if (capacityDismissTimeoutRef.current) window.clearTimeout(capacityDismissTimeoutRef.current);
+    capacityDismissTimeoutRef.current = window.setTimeout(() => {
+      setCapacityLeaving(true);
+      capacityDismissTimeoutRef.current = window.setTimeout(() => dismissCapacityNotification(), 350);
+    }, 1000);
+  }, [dismissCapacityNotification]);
 
   // Cleanup pending timeout on unmount
   useEffect(() => {
@@ -1038,9 +1048,9 @@ const LiveBookings = ({ viewerPassword }: { viewerPassword?: string | null } = {
             const increase = newCapacity - oldCapacity;
             if (soundEnabledRef.current) playCapacityIncreaseSound(ticketType);
             setCapacityNotification({ ticketType, increase, newCapacity });
+            setCapacityLeaving(false);
             setShowCapacityNotification(true);
-            if (capacityDismissTimeoutRef.current) window.clearTimeout(capacityDismissTimeoutRef.current);
-            capacityDismissTimeoutRef.current = window.setTimeout(() => dismissCapacityNotification(), 4000);
+            scheduleCapacityDismiss();
           }
           previousTicketCapacitiesRef.current.set(ticketType, newCapacity);
         }
@@ -1342,6 +1352,7 @@ const LiveBookings = ({ viewerPassword }: { viewerPassword?: string | null } = {
           increase={capacityNotification.increase}
           newCapacity={capacityNotification.newCapacity}
           onDismiss={dismissCapacityNotification}
+          leaving={capacityLeaving}
         />
       )}
       
