@@ -38,14 +38,11 @@ export function sendToWebhookHandler(deps: RelayDeps) {
       if (!isEmail) {
         const ref = String((payload as { booking_reference?: unknown }).booking_reference ?? "").trim();
         if (!SAFE_REF.test(ref)) throw new HttpError(400, "invalid_reference", "Invalid booking reference");
-        const automatic = (payload as { automatic?: unknown }).automatic !== false
-          && (payload as { action?: unknown }).action !== "send_invoice"
+        const automatic = (payload as { action?: unknown }).action !== "send_invoice"
           || (payload as { automatic?: unknown }).automatic === true;
         return json(await sendWhatsAppInvoice({ repo: deps.repo, fetch: deps.fetch, reference: ref, automatic, timeoutMs: deps.timeoutMs }));
       }
       const outgoing = payload;
-      const deliveryId: string | null = null;
-      const isInvoice = false;
 
       // e-mails go to their own automation when one is configured
       const settings = await deps.repo.getPrivateSettings();
@@ -76,7 +73,7 @@ export function sendToWebhookHandler(deps: RelayDeps) {
           const ref = typeof (payload as { booking_reference?: unknown }).booking_reference === "string"
             ? (payload as { booking_reference: string }).booking_reference
             : null;
-          if (!isInvoice && (orderId || ref)) {
+          if (orderId || ref) {
             await deps.repo
               .markAutomationPending({ orderId, bookingReference: ref, message: pendingMessage })
               .catch((error) => console.error("could not mark the order as sending", error instanceof Error ? error.message : error));
@@ -84,7 +81,6 @@ export function sendToWebhookHandler(deps: RelayDeps) {
           return json({ success: true, message: pendingMessage, response: text });
         }
 
-        if (deliveryId) await deps.repo.updateInvoiceDelivery(deliveryId, "failed", `HTTP ${res.status}: ${text.slice(0, 500)}`);
         let details: unknown = text;
         try {
           details = JSON.parse(text);
@@ -103,7 +99,6 @@ export function sendToWebhookHandler(deps: RelayDeps) {
         return json({ error: "Webhook returned error", details, status: res.status });
       } catch (error) {
         const timedOut = error instanceof Error && error.name === "AbortError";
-        if (deliveryId) await deps.repo.updateInvoiceDelivery(deliveryId, "failed", timedOut ? "Webhook request timed out" : "Webhook request failed");
         return json({
           error: timedOut ? "Webhook request timed out" : "Webhook request failed",
           details: timedOut ? "The webhook did not respond in time" : "Could not reach the webhook",

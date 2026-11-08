@@ -7,7 +7,6 @@
 
 import { requireStaff, type AuthDeps } from "../_shared/auth.ts";
 import { HttpError, json, preflight, readJson, toErrorResponse } from "../_shared/http.ts";
-import { buildOrderCreatedPayload, postWebhook } from "../_shared/notify.ts";
 import { renderTicketQr } from "../_shared/qr-tools.ts";
 import type { QrStorage, Repo } from "../_shared/repo.ts";
 import { buildCheckoutRequest } from "../_shared/sadad-core.ts";
@@ -116,36 +115,7 @@ export function createOrderHandler(deps: CreateOrderDeps) {
         }),
       );
 
-      // Cash-at-venue bookings are complete now: tell the automation (WhatsApp etc.) in the background.
-      if (!wantsPos && input.payment_method === "cash_pos" && settings.webhookUrl) {
-        const payload = buildOrderCreatedPayload({
-          customer: input.customer as unknown as Record<string, unknown>,
-          order: {
-            id: created.order_id,
-            booking_reference: created.booking_reference,
-            total_amount: created.total_amount,
-            payment_method: created.payment_method,
-            payment_status: created.payment_status,
-            event_id: created.event_id,
-          },
-          holders: created.holders.map((holder, index) => ({
-            order_id: created.order_id,
-            name: input.holders[index]?.name ?? holder.name,
-            phone: input.holders[index]?.phone ?? "",
-            country_code:
-              input.holders[index]?.country_code ||
-              holderCountryCode(input.holders[index]?.phone ?? "", input.customer.country_code),
-            nationality: input.holders[index]?.nationality ?? "",
-            ticket_type: holder.ticket_type,
-            qr_code: holder.qr_code,
-            qr_image_url: imageUrls.get(holder.id) ?? null,
-            id_number: input.holders[index]?.id_number ?? "",
-          })),
-          adminPhone: settings.adminPhone,
-          now: deps.now?.(),
-        });
-        deps.waitUntil(postWebhook(deps.fetch, settings.webhookUrl, payload));
-      }
+      // Cash/POS bookings never trigger customer WhatsApp invoices.
 
       let payment: Awaited<ReturnType<typeof buildCheckoutRequest>> | undefined;
       if (input.payment_method === "sadad") {
