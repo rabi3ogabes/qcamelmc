@@ -9,7 +9,7 @@
 - Visitor rows are refreshed/removed only via visitor_heartbeat / visitor_leave keyed by a random session id — browsers have no UPDATE/DELETE on visitor tables.
 - Site crashes are reported only via the log_app_error RPC (src/lib/errorReporter.ts); causes are classified in src/lib/errorCauses.ts — browsers can write the error log but never read it.
 - Edge-function traffic is recorded by importing supabase/functions/_shared/track-install.ts first in each index.ts (wraps Deno.serve, writes public.api_calls, admin-read only) — one place to monitor every API.
-- /live-bookings opens for signed-in admins, or with the LIVE_BOOKINGS_PASSWORD secret via the live-bookings-feed function (read-only, throttled, polled every 5s); live-vs-sleep timing is decided only by src/lib/liveSchedule.ts — one tested rule.
+- /live-bookings opens for signed-in admins, or with the LIVE_BOOKINGS_PASSWORD secret via the read-only live-bookings-feed; both refresh every 10 seconds using liveBookingChanges snapshot comparisons, keyed by ticket ID across event days, so polling also emits booking/attendance/stock alerts; live-vs-sleep timing remains in liveSchedule.ts.
 - Customer pages share PublicHeader, Footer and scoped public-site tokens; legal pages are informational drafts for operator review, not invented commercial policies.
 - Guideline styling remains scoped to public-site; use original PDF artwork through asset pointers and licensed font sources with explicit fallback, never print font subsets, so staff tools and booking logic stay unchanged.
 - Central public-page artwork uses a noninteractive pseudo-element only on public-site wrappers with PublicHeader; footer artwork scales proportionally — shared decoration must not alter staff screens or booking behavior.

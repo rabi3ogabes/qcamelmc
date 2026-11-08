@@ -1,7 +1,7 @@
 # Task Roadmap
 
 ## Live bookings ten-second updates
-- [ ] Refresh both admin and password viewers every 10 seconds; detect bookings, check-ins and per-event stock increases without duplicate alerts; verify popup and sound.
+- [x] Refresh admin/password viewers every 10 seconds; compare booking/attendance snapshots and ticket-ID stock across festival days. Feed deployed; four regression tests passed. Authenticated UI stock increase showed «تمت إضافة 1 تذاكر», two beep oscillators and automatic dismissal, with a measured 10-second refresh gap; original stock restored. Password-view end-to-end remains unverified.
 
 ## Staff orders
 - [x] Add /staff/orders and hub link with server-validated read-only reads; admin controls remain available, staff-page delete/cancel/date controls absent. Existing table mutation policies remain admin-only; read endpoint rejects mutations (403) and anonymous reads (401). Actual shared-password/moderator session remains unverified; staff authorization unit tests pass.
