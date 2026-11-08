@@ -7,6 +7,8 @@ interface CapacityNotificationBannerProps {
   increase: number;
   newCapacity: number;
   onDismiss: () => void;
+  /** When true, plays the exit animation before dismissal */
+  leaving?: boolean;
 }
 
 const typeLabels: Record<string, string> = {
@@ -25,13 +27,16 @@ export const CapacityNotificationBanner = ({
   ticketType,
   increase,
   newCapacity,
-  onDismiss
+  onDismiss,
+  leaving = false
 }: CapacityNotificationBannerProps) => {
   return (
     <div 
       className={cn(
         "fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-[90%] max-w-xl",
-        "animate-in slide-in-from-top-5 duration-500"
+        leaving
+          ? "animate-out fade-out-0 zoom-out-95 slide-out-to-top-5 duration-300"
+          : "animate-in fade-in-0 zoom-in-95 slide-in-from-top-5 duration-300"
       )}
     >
       <div 
@@ -59,11 +64,11 @@ export const CapacityNotificationBanner = ({
             <div className="flex items-center gap-2">
               <Ticket className="h-5 w-5" />
               <h3 className="text-lg font-bold">
-                تذاكر جديدة متاحة للبيع!
+                تمت إضافة <span className="text-2xl">{increase}</span> تذاكر
               </h3>
             </div>
             <p className="mt-1 text-white/90 text-sm sm:text-base">
-              تم إضافة <span className="font-bold text-xl">{increase}</span> تذكرة {typeLabels[ticketType] || ticketType}
+              {typeLabels[ticketType] || ticketType}
               <span className="mx-2">•</span>
               الإجمالي: <span className="font-bold">{newCapacity}</span>
             </p>
@@ -80,12 +85,12 @@ export const CapacityNotificationBanner = ({
           </Button>
         </div>
         
-        {/* Progress bar for auto-dismiss */}
+        {/* Progress bar for auto-dismiss (1 second) */}
         <div className="absolute bottom-0 left-0 right-0 h-1 bg-white/20">
           <div 
-            className="h-full bg-white/60 animate-[shrink_4s_linear_forwards]"
+            className="h-full bg-white/60"
             style={{
-              animation: 'shrink 4s linear forwards'
+              animation: 'shrink 1s linear forwards'
             }}
           />
         </div>
