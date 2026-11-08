@@ -852,12 +852,6 @@ const LiveBookings = ({ viewerPassword }: { viewerPassword?: string | null } = {
         dateStr = `${y}-${m}-${d}`;
       }
 
-      let nextDayStrForFeed: string | null = null;
-      if (dateStr && dateToUse) {
-        const nd = new Date(dateToUse);
-        nd.setDate(nd.getDate() + 1);
-        nextDayStrForFeed = `${nd.getFullYear()}-${String(nd.getMonth() + 1).padStart(2, '0')}-${String(nd.getDate()).padStart(2, '0')}`;
-      }
       let feed: { orders: any[]; logs: any[]; capacities: any[] } | null = null;
       if (viewerPassword) {
         feed = await fetchLiveFeed(viewerPassword, "bookings", {

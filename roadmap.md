@@ -1,9 +1,9 @@
 # Task Roadmap
 
 ## Remaining monitoring and browser errors
-- [ ] Verify all three pending findings and reduce invoice-history polling pressure.
-- [ ] Harden live refresh catch-up, empty-event scope and older-browser fullscreen/audio handling; verify stock popup and ten-second refresh.
-- [ ] Repair secure random IDs on older browsers and cached-page recovery on first render; run regression tests.
+- [x] Verified all three findings: checkout and staff-link evidence stale; invoice-history polling restored to 30 seconds, paused while hidden and overlap guarded. Authenticated invoices made zero delivery-history calls during a 6.5-second observation; no pending monitoring findings remain.
+- [x] Live refresh queues catch-up, empty scope cannot read old bookings, and date selection no longer hides other festival-day notifications. Older-browser fullscreen/audio failures are handled. Real admin stock increase produced popup, two oscillators and animated dismissal at ten-second refresh; original capacity restored. Mobile simulated password-feed alert appeared/dismissed with no overflow; actual password authentication remains unverified.
+- [x] Secure random-ID fallback and first-mount cached-chunk recovery repaired; all 506 tests passed, build clean and authenticated browser had no runtime errors. Historical logs retained; external SCDynimacBridge/Object Not Found/cross-origin-frame errors cannot be attributed to current application code and were not suppressed or marked resolved.
 
 ## Live bookings ten-second updates
 - [x] Refresh admin/password viewers every 10 seconds; compare booking/attendance snapshots and ticket-ID stock across festival days. Feed deployed; four regression tests passed. Authenticated UI stock increase showed «تمت إضافة 1 تذاكر», two beep oscillators and automatic dismissal, with a measured 10-second refresh gap; original stock restored. Password-view end-to-end remains unverified.
