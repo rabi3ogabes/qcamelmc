@@ -21,6 +21,7 @@ import { isLiveNow, type LiveRefreshMode } from "@/lib/liveSchedule";
 import { pickActualEventIds } from "@/lib/actualEvent";
 import { buildPersonTicketTotals, personTotalFromMap } from "@/lib/personTicketTotals";
 import { CountryFlag } from "@/components/CountryFlag";
+import { LIVE_BOOKINGS_REFRESH_MS, stockIncreases, bookingChanges, type LiveStock } from "@/lib/liveBookingChanges";
 
 const QATAR_TIMEZONE = "Asia/Qatar";
 
@@ -39,11 +40,20 @@ interface DailySummary {
   daily_total: number;
 }
 
+// Reuse an audio context unlocked by the viewer's first interaction (Safari/Chrome).
+let notificationAudio: AudioContext | undefined;
+const getNotificationAudio = () => {
+  const Audio = window.AudioContext || (window as any).webkitAudioContext;
+  notificationAudio ??= new Audio();
+  if (notificationAudio?.state === 'suspended') void notificationAudio.resume();
+  return notificationAudio as AudioContext;
+};
+
 // Create audio context for notification sounds
 const playNotificationSound = () => {
   // Generic booking notification sound
   try {
-    const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+    const audioContext = getNotificationAudio();
     const oscillator = audioContext.createOscillator();
     const gainNode = audioContext.createGain();
     
@@ -70,7 +80,7 @@ const playNotificationSound = () => {
 // Check-in notification sounds - different for each ticket type
 const playCheckinSound = (ticketType: string) => {
   try {
-    const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+    const audioContext = getNotificationAudio();
     const gainNode = audioContext.createGain();
     gainNode.connect(audioContext.destination);
     
@@ -153,7 +163,7 @@ const playCheckinSound = (ticketType: string) => {
 // POS registration sound - distinctive cash register style sound
 const playPOSNotificationSound = () => {
   try {
-    const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+    const audioContext = getNotificationAudio();
     const gainNode = audioContext.createGain();
     gainNode.connect(audioContext.destination);
     
@@ -200,7 +210,7 @@ const playPOSNotificationSound = () => {
 
 const playCapacityIncreaseSound = (ticketType: string) => {
   try {
-    const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+    const audioContext = getNotificationAudio();
     const gainNode = audioContext.createGain();
     gainNode.connect(audioContext.destination);
     
@@ -368,6 +378,11 @@ const LiveBookings = ({ viewerPassword }: { viewerPassword?: string | null } = {
   const isInitialLoadRef = useRef(true);
   // Keep track of previous ticket capacities (do NOT rely on payload.old, which may be incomplete)
   const previousTicketCapacitiesRef = useRef<Map<string, number>>(new Map());
+  const previousOrdersRef = useRef<Set<string>>(new Set());
+  const previousAttendanceRef = useRef<Map<string, boolean>>(new Map());
+  const snapshotScopeRef = useRef<string | null>(null);
+  const fetchInProgressRef = useRef(false);
+  const capacityQueueRef = useRef<Array<{ ticketType: string; increase: number; newCapacity: number }>>([]);
   const capacityDismissTimeoutRef = useRef<number | null>(null);
   const [stats, setStats] = useState({
     total: 0,
@@ -542,8 +557,19 @@ const LiveBookings = ({ viewerPassword }: { viewerPassword?: string | null } = {
   useEffect(() => {
     if (!isDateInitialized || !isLive) return;
     fetchBookings(true); // catch up on anything missed while asleep
-    const cleanup = setupRealtimeSubscription();
-    return cleanup;
+    const timer = window.setInterval(() => {
+      if (document.visibilityState === 'visible') void fetchBookings(true);
+    }, LIVE_BOOKINGS_REFRESH_MS);
+    const catchUp = () => {
+      if (document.visibilityState === 'visible') void fetchBookings(true);
+    };
+    document.addEventListener('visibilitychange', catchUp);
+    window.addEventListener('focus', catchUp);
+    return () => {
+      window.clearInterval(timer);
+      document.removeEventListener('visibilitychange', catchUp);
+      window.removeEventListener('focus', catchUp);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isDateInitialized, isLive]);
 
@@ -718,22 +744,42 @@ const LiveBookings = ({ viewerPassword }: { viewerPassword?: string | null } = {
     );
   }, []);
 
-  // Helper: fetch and set ticket capacities for an event
-  const fetchTicketCapacities = useCallback(async (eventId: string) => {
-    const { data: ticketsData } = await supabase
-      .from("tickets")
-      .select("type, available_quantity")
-      .eq("event_id", eventId);
-    if (ticketsData) {
-      const capacities: { [key: string]: number } = {};
-      const capacitiesMap = new Map<string, number>();
-      ticketsData.forEach(ticket => {
-        capacities[ticket.type] = ticket.available_quantity;
-        capacitiesMap.set(ticket.type, ticket.available_quantity);
-      });
-      setTicketCapacities(capacities);
-      previousTicketCapacitiesRef.current = capacitiesMap;
-    }
+  // Stock snapshots use ticket IDs across every festival day, not type-only keys.
+  const applyStockSnapshot = (tickets: LiveStock[], displayEventId?: string) => {
+    const increases = stockIncreases(previousTicketCapacitiesRef.current, tickets);
+    previousTicketCapacitiesRef.current = new Map(tickets.map(ticket => [ticket.id, ticket.available_quantity]));
+    const capacities: Record<string, number> = {};
+    tickets.filter(ticket => ticket.event_id === displayEventId).forEach(ticket => {
+      capacities[ticket.type] = ticket.available_quantity;
+    });
+    setTicketCapacities(capacities);
+    capacityQueueRef.current.push(...increases);
+    showNextCapacityNotification();
+  };
+
+  const showNextCapacityNotification = () => {
+    if (capacityDismissTimeoutRef.current) return;
+    const next = capacityQueueRef.current.shift();
+    if (!next) return;
+    if (soundEnabledRef.current) playCapacityIncreaseSound(next.ticketType);
+    setCapacityNotification(next);
+    setCapacityLeaving(false);
+    setShowCapacityNotification(true);
+    scheduleCapacityDismiss();
+  };
+
+  useEffect(() => {
+    if (!showCapacityNotification) showNextCapacityNotification();
+  }, [showCapacityNotification]);
+
+  useEffect(() => {
+    const unlock = () => { getNotificationAudio(); };
+    document.addEventListener('pointerdown', unlock, { once: true });
+    document.addEventListener('keydown', unlock, { once: true });
+    return () => {
+      document.removeEventListener('pointerdown', unlock);
+      document.removeEventListener('keydown', unlock);
+    };
   }, []);
 
 
@@ -778,8 +824,10 @@ const LiveBookings = ({ viewerPassword }: { viewerPassword?: string | null } = {
   };
 
   const fetchBookings = async (useRefDate = false) => {
+    if (fetchInProgressRef.current) return;
+    fetchInProgressRef.current = true;
     const dateToUse = useRefDate ? selectedDateRef.current : selectedDate;
-    
+
     try {
       const PAGE_SIZE = 1000;
       const allOrders: any[] = [];
@@ -806,7 +854,7 @@ const LiveBookings = ({ viewerPassword }: { viewerPassword?: string | null } = {
           nextDayStr: nextDayStrForFeed,
           eventIds: actualEventIdsRef.current,
         });
-        allOrders.push(...feed!.orders);
+        allOrders.push(...(feed?.orders ?? []));
       }
 
       for (let from = 0; !viewerPassword; from += PAGE_SIZE) {
@@ -824,7 +872,7 @@ const LiveBookings = ({ viewerPassword }: { viewerPassword?: string | null } = {
 
         // Apply server-side date range filter (event_date is timestamp, not date)
         if (dateStr) {
-          query = query.gte("events.event_date", dateStr).lt("events.event_date", nextDayStrForFeed!);
+          query = query.gte("events.event_date", dateStr).lt("events.event_date", nextDayStrForFeed ?? dateStr);
         }
 
         const { data, error } = await query;
@@ -863,21 +911,27 @@ const LiveBookings = ({ viewerPassword }: { viewerPassword?: string | null } = {
       });
       setInvoiceDownloadedRefs(downloadedRefs);
       
-      // Fetch ticket capacities for the actual event
+      // Compare polling snapshots for every viewer, including password-only access.
       const eventId = allOrders[0]?.event_id ?? actualEventIdsRef.current[0];
       if (feed) {
-        const capacities: { [key: string]: number } = {};
-        const capacitiesMap = new Map<string, number>();
-        feed.capacities.forEach((tk: any) => {
-          capacities[tk.type] = tk.available_quantity;
-          capacitiesMap.set(tk.type, tk.available_quantity);
-        });
-        setTicketCapacities(capacities);
-        previousTicketCapacitiesRef.current = capacitiesMap;
-      } else if (eventId) {
-        await fetchTicketCapacities(eventId);
+        applyStockSnapshot(feed.capacities, eventId);
+      } else if (actualEventIdsRef.current.length) {
+        const { data: stock, error } = await supabase.from('tickets')
+          .select('id, event_id, type, available_quantity').in('event_id', actualEventIdsRef.current);
+        if (error) throw error;
+        applyStockSnapshot(stock ?? [], eventId);
       }
-      
+
+      const scope = `${actualEventIdsRef.current.join(',')}:${dateStr ?? 'all'}`;
+      if (snapshotScopeRef.current === scope) {
+        const changes = bookingChanges(previousOrdersRef.current, previousAttendanceRef.current, allOrders, allTicketHolders);
+        changes.bookings.forEach(showNewBookingNotification);
+        changes.checkins.forEach(showCheckinNotificationToast);
+      }
+      snapshotScopeRef.current = scope;
+      previousOrdersRef.current = new Set(allOrders.map(order => order.id));
+      previousAttendanceRef.current = new Map(allTicketHolders.map(holder => [holder.id, holder.is_present]));
+
       // Track new ticket holders for animation
       if (!isInitialLoadRef.current) {
         const currentIds = new Set(allTicketHolders.map(h => h.id));
@@ -898,169 +952,9 @@ const LiveBookings = ({ viewerPassword }: { viewerPassword?: string | null } = {
       console.error("Error fetching bookings:", error);
       toast.error(t("failedToLoad"));
     } finally {
+      fetchInProgressRef.current = false;
       setLoading(false);
     }
-  };
-
-  const setupRealtimeSubscription = () => {
-    if (viewerPassword) {
-      // Password-only screens can't subscribe to private tables: poll the feed instead.
-      const timer = setInterval(() => fetchBookings(true), 5000);
-      return () => clearInterval(timer);
-    }
-    let debounceTimer: ReturnType<typeof setTimeout>;
-    
-    // Debounced full refresh — fallback for edge cases
-    const debouncedRefresh = () => {
-      clearTimeout(debounceTimer);
-      debounceTimer = setTimeout(() => fetchBookings(true), 1500);
-    };
-
-    // Single unified channel for all tables (reduces DB connections)
-    const channel = supabase
-      .channel('live-bookings-unified')
-      // Orders table
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' },
-        async (payload) => {
-          console.log('RT order:', payload.eventType);
-          
-          if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
-            const orderData = payload.new as any;
-            
-            if (orderData?.payment_status === 'confirmed') {
-              // Fetch only this single order (not all orders)
-              const fullOrder = await fetchSingleOrder(orderData.id);
-              if (!fullOrder) return;
-              // Ignore anything outside the actual event or the selected date
-              if (actualEventIdsRef.current.length && !actualEventIdsRef.current.includes(fullOrder.event_id)) return;
-              if (!orderMatchesSelectedDate(fullOrder)) return;
-              
-              // Add or update in state
-              setBookings(prev => {
-                const existingIdx = prev.findIndex(b => b.id === orderData.id);
-                if (existingIdx >= 0) {
-                  const updated = [...prev];
-                  updated[existingIdx] = fullOrder as Booking;
-                  return updated;
-                }
-                return [fullOrder as Booking, ...prev];
-              });
-              
-              // Update ticket holders
-              setTicketHolders(prev => {
-                const withoutOld = prev.filter(h => h.order_id !== orderData.id);
-                const newHolders = extractOrderTicketHolders(fullOrder);
-                
-                // Animation for new holders on INSERT
-                if (!isInitialLoadRef.current && payload.eventType === 'INSERT') {
-                  const newIds = new Set(newHolders.map(h => h.id));
-                  if (newIds.size > 0) {
-                    setNewTicketHolderIds(newIds);
-                    setTimeout(() => setNewTicketHolderIds(new Set()), 5000);
-                  }
-                  newHolders.forEach(h => previousTicketHolderIdsRef.current.add(h.id));
-                }
-                
-                return [...newHolders, ...withoutOld];
-              });
-              
-              // Show notification for new orders only
-              if (payload.eventType === 'INSERT' && !isInitialLoadRef.current) {
-                showNewBookingNotification(fullOrder);
-              }
-            } else if (orderData?.payment_status === 'cancelled' && payload.eventType === 'UPDATE') {
-              // Remove cancelled order from state
-              setBookings(prev => prev.filter(b => b.id !== orderData.id));
-              setTicketHolders(prev => prev.filter(h => h.order_id !== orderData.id));
-            }
-          } else if (payload.eventType === 'DELETE') {
-            const deletedId = (payload.old as any)?.id;
-            if (deletedId) {
-              setBookings(prev => prev.filter(b => b.id !== deletedId));
-              setTicketHolders(prev => prev.filter(h => h.order_id !== deletedId));
-            }
-          }
-        }
-      )
-      // Ticket holders table — in-place updates (no full refetch)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'ticket_holders' },
-        (payload) => {
-          console.log('RT ticket_holder:', payload.eventType);
-          
-          if (payload.eventType === 'UPDATE') {
-            const newData = payload.new as any;
-            const oldData = payload.old as any;
-            const isCheckin = newData.is_present === true && oldData.is_present !== true;
-            
-            // Update holder in-place — instant UI update, zero DB queries
-            setTicketHolders(prev => {
-              if (isCheckin && !isInitialLoadRef.current) {
-                const existingHolder = prev.find(h => h.id === newData.id);
-                if (existingHolder) {
-                  setTimeout(() => showCheckinNotificationToast({ ...existingHolder, ...newData }), 0);
-                }
-              }
-              return prev.map(h => h.id === newData.id ? { ...h, ...newData } : h);
-            });
-            
-            // Also update within bookings' ticket_holders array
-            setBookings(prev => prev.map(b => ({
-              ...b,
-              ticket_holders: b.ticket_holders?.map((h: any) =>
-                h.id === newData.id ? { ...h, ...newData } : h
-              )
-            })));
-          } else if (payload.eventType === 'DELETE') {
-            const deletedId = (payload.old as any)?.id;
-            if (deletedId) {
-              setTicketHolders(prev => prev.filter(h => h.id !== deletedId));
-              setBookings(prev => prev.map(b => ({
-                ...b,
-                ticket_holders: b.ticket_holders?.filter((h: any) => h.id !== deletedId)
-              })));
-            }
-          } else if (payload.eventType === 'INSERT') {
-            // New holder added — usually part of order creation handled above
-            // Debounced refresh as fallback
-            debouncedRefresh();
-          }
-        }
-      )
-      // Tickets table — capacity tracking (already efficient, kept as-is)
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'tickets' },
-        (payload) => {
-          const newTicket = payload.new as any;
-          if (!newTicket) return;
-          // Ignore capacity changes on other events
-          if (actualEventIdsRef.current.length && !actualEventIdsRef.current.includes(newTicket.event_id)) return;
-          const ticketType = newTicket.type as string;
-          const newCapacity = Number(newTicket.available_quantity ?? 0);
-          const oldCapacity = previousTicketCapacitiesRef.current.get(ticketType);
-
-          setTicketCapacities(prev => ({ ...prev, [ticketType]: newCapacity }));
-
-          if (typeof oldCapacity !== 'number') {
-            previousTicketCapacitiesRef.current.set(ticketType, newCapacity);
-            return;
-          }
-
-          if (!isInitialLoadRef.current && newCapacity > oldCapacity) {
-            const increase = newCapacity - oldCapacity;
-            if (soundEnabledRef.current) playCapacityIncreaseSound(ticketType);
-            setCapacityNotification({ ticketType, increase, newCapacity });
-            setCapacityLeaving(false);
-            setShowCapacityNotification(true);
-            scheduleCapacityDismiss();
-          }
-          previousTicketCapacitiesRef.current.set(ticketType, newCapacity);
-        }
-      )
-      .subscribe();
-
-    return () => {
-      clearTimeout(debounceTimer);
-      supabase.removeChannel(channel);
-    };
   };
 
   // Fetch daily sales statistics - calculate revenue by ticket holder type using ticket prices
@@ -1335,7 +1229,7 @@ const LiveBookings = ({ viewerPassword }: { viewerPassword?: string | null } = {
               <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-75" />
               <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-primary" />
             </span>
-            مباشر — التحديث لحظي
+            مباشر — التحديث كل 10 ثوانٍ
           </span>
         ) : (
           <span className="flex items-center gap-2 text-muted-foreground">

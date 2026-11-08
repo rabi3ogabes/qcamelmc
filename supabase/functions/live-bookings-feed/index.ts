@@ -95,17 +95,10 @@ Deno.serve(async (req) => {
       });
       const { data: logs } = await admin.from("activity_logs").select("action_data")
         .eq("activity_type", "pos_form").limit(500);
-      let capacityEventId: string | null = orders[0]?.event_id ?? eventIds[0] ?? null;
-      if (!capacityEventId && DATE_RE.test(dateStr ?? "") && DATE_RE.test(nextDayStr ?? "")) {
-        const { data: ev } = await admin.from("events").select("id").gte("event_date", dateStr)
-          .lt("event_date", nextDayStr).eq("is_active", true).limit(1).maybeSingle();
-        capacityEventId = ev?.id ?? null;
-      }
-      let capacities: unknown[] = [];
-      if (capacityEventId) {
-        const { data } = await admin.from("tickets").select("type, available_quantity").eq("event_id", capacityEventId);
-        capacities = data ?? [];
-      }
+      const capacities = eventIds.length ? await pageAll((from, to) =>
+        admin.from("tickets").select("id, event_id, type, available_quantity")
+          .in("event_id", eventIds).order("id").range(from, to)
+      ) : [];
       return json({ orders, logs: logs ?? [], capacities });
     }
 
