@@ -21,7 +21,7 @@ import { isLiveNow, type LiveRefreshMode } from "@/lib/liveSchedule";
 import { pickActualEventIds } from "@/lib/actualEvent";
 import { buildPersonTicketTotals, personTotalFromMap } from "@/lib/personTicketTotals";
 import { CountryFlag } from "@/components/CountryFlag";
-import { LIVE_BOOKINGS_REFRESH_MS, stockIncreases, bookingChanges, bookingsForDay, type LiveStock } from "@/lib/liveBookingChanges";
+import { LIVE_BOOKINGS_REFRESH_MS, stockIncreases, bookingChanges, bookingsForDay, appendStockAdditions, type LiveStock, type StockAddition } from "@/lib/liveBookingChanges";
 import { fullscreenActive, toggleBrowserFullscreen } from "@/lib/browserSupport";
 import { STOCK_NOTIFICATION_VISIBLE_MS } from "@/lib/stockNotificationTiming";
 
@@ -429,6 +429,7 @@ const LiveBookings = ({ viewerPassword }: { viewerPassword?: string | null } = {
   } | null>(null);
   const [showCapacityNotification, setShowCapacityNotification] = useState(false);
   const [capacityLeaving, setCapacityLeaving] = useState(false);
+  const [stockAdditions, setStockAdditions] = useState<StockAddition[]>([]);
   const [invoiceDownloadedRefs, setInvoiceDownloadedRefs] = useState<Set<string>>(new Set());
 
   const dismissCapacityNotification = useCallback(() => {
@@ -759,6 +760,9 @@ const LiveBookings = ({ viewerPassword }: { viewerPassword?: string | null } = {
       capacities[ticket.type] = ticket.available_quantity;
     });
     setTicketCapacities(capacities);
+    if (increases.length > 0) {
+      setStockAdditions(prev => appendStockAdditions(prev, increases, Date.now()));
+    }
     capacityQueueRef.current.push(...increases);
     showNextCapacityNotification();
   };
