@@ -5,6 +5,7 @@ import { staffIdentity, unauthorizedResponse } from "../_shared/staffAuth.ts";
 import { generateChatCompletion, GatewayError } from "npm:@lovable.dev/ai-gateway@0.1.11";
 import { RECEIPT_OUTPUT, parseReceiptOutput } from "./output.ts";
 import { receiptTicketPatch, receiptImage } from "./operations.ts";
+import { ORDER_FESTIVAL } from "../_shared/orders-policy.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -38,7 +39,21 @@ Deno.serve(async (req) => {
         receipts.push(...(data ?? []));
         if (!data || data.length < 1000) break;
       }
-      return new Response(JSON.stringify({ success: true, receipts }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      const { data: settings, error: settingsError } = await admin.from('settings').select('current_event_id').maybeSingle();
+      if (settingsError) throw settingsError;
+      const pricingEvents: unknown[] = [];
+      for (let offset = 0; ; offset += 1000) {
+        let query = admin.from('events').select('id,title,event_date,tickets(type,price)')
+          .eq('is_active', true).eq('is_archived', false)
+          .gte('event_date', ORDER_FESTIVAL.startUtc).lt('event_date', ORDER_FESTIVAL.endUtc)
+          .order('event_date').range(offset, offset + 999);
+        if (settings?.current_event_id) query = query.eq('id', settings.current_event_id);
+        const { data, error } = await query;
+        if (error) throw error;
+        pricingEvents.push(...(data ?? []));
+        if (!data || data.length < 1000) break;
+      }
+      return new Response(JSON.stringify({ success: true, receipts, pricing_events: pricingEvents }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
     if (mode === 'update' || mode === 'delete') {
       if (typeof receipt_id !== 'string' || !/^[0-9a-f-]{36}$/i.test(receipt_id)) {
@@ -47,7 +62,7 @@ Deno.serve(async (req) => {
       if (mode === 'update') {
         let patch;
         try { patch = receiptTicketPatch(field, value); } catch {
-          return new Response(JSON.stringify({ error: 'Invalid ticket quantity' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+          return new Response(JSON.stringify({ error: 'Invalid receipt amount or ticket quantity' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
         }
         const { data, error } = await admin.from('pos_receipts').update(patch).eq('id', receipt_id).select('*').single();
         if (error) throw error;
