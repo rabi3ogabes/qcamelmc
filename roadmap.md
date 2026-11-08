@@ -1,7 +1,7 @@
 # Task Roadmap
 
 ## Receipt pricing and amount corrections
-- [ ] Replace fixed receipt summary prices with actual event ticket prices; allow saved Amount (QAR) corrections on desktop/mobile, verify persistence and pricing tests.
+- [x] Receipt summary/export use the selected active festival day's actual prices (verified 300/500/500 QAR); saved amount correction persisted after reload and original amount restored. Eleven pricing/validation/output tests passed; function deployed. Desktop/mobile checked without overflow or runtime errors; preview verification bypassed stale module caching.
 
 ## Live attendance display
 - [x] Normalize both live reads before cards, tables, statistics and notification snapshots: POS always displays present; online attendance retains scanner holder state. Nine tests passed, build clean; authenticated existing POS cards/table verified and a simulated scanned-holder response updated on the next poll (2 → 3 present), no runtime errors. No real customer was checked in; stored attendance and payments unchanged.

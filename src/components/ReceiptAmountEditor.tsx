@@ -26,8 +26,8 @@ export function ReceiptAmountEditor({ amount, onSave }: { amount: number | null;
     <Button size="icon" variant="ghost" className="h-7 w-7 shrink-0" aria-label="Edit Amount (QAR)" title="Edit Amount (QAR)" onClick={() => { setError(null); setEditing(true); }}><Pencil className="h-3.5 w-3.5" /></Button>
   </div>;
   return <div className="space-y-1">
-    <div className="flex items-center gap-1">
-      <Input autoFocus type="number" min="0" step="0.01" aria-label="Amount (QAR)" value={draft} disabled={saving} onChange={e => setDraft(e.target.value)} className="h-8 w-24 font-mono" onKeyDown={e => { if (e.key === 'Enter') void save(); if (e.key === 'Escape' && !saving) setEditing(false); }} />
+    <div className="flex flex-wrap items-center gap-1 max-w-40">
+      <Input autoFocus type="number" min="0" step="0.01" aria-label="Amount (QAR)" value={draft} disabled={saving} onChange={e => setDraft(e.target.value)} className="h-8 w-full min-w-0 font-mono" onKeyDown={e => { if (e.key === 'Enter') void save(); if (e.key === 'Escape' && !saving) setEditing(false); }} />
       <Button size="icon" variant="ghost" className="h-7 w-7 shrink-0" aria-label="Save amount" title="Save amount" disabled={saving} onClick={() => void save()}>{saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}</Button>
       <Button size="icon" variant="ghost" className="h-7 w-7 shrink-0" aria-label="Cancel amount edit" title="Cancel" disabled={saving} onClick={() => setEditing(false)}><X className="h-4 w-4" /></Button>
     </div>
