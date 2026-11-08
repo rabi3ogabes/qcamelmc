@@ -1,5 +1,8 @@
 # Task Roadmap
 
+## Server WhatsApp POS exclusion
+- [ ] Guard countdown, legacy n8n triggers, payment follow-ups and retries using trusted online order data; test and deploy without sending customer messages.
+
 ## Receipt pricing and amount corrections
 - [x] Receipt summary/export use the selected active festival day's actual prices (verified 300/500/500 QAR); saved amount correction persisted after reload and original amount restored. Eleven pricing/validation/output tests passed; function deployed. Desktop/mobile checked without overflow or runtime errors; preview verification bypassed stale module caching.
 
