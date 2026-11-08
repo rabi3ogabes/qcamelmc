@@ -1,7 +1,24 @@
 import { describe, expect, it } from 'vitest';
-import { LIVE_BOOKINGS_REFRESH_MS, stockIncreases, bookingChanges, bookingsForDay, appendStockAdditions } from '../src/lib/liveBookingChanges';
+import { LIVE_BOOKINGS_REFRESH_MS, stockIncreases, bookingChanges, bookingsForDay, liveBookingAttendance, appendStockAdditions } from '../src/lib/liveBookingChanges';
 
 describe('live bookings updates', () => {
+  it('always displays POS customers as present, including existing absent or null records', () => {
+    const order = { payment_method: 'cash_pos', ticket_holders: [
+      { id: 'one', is_present: false }, { id: 'two', is_present: null },
+    ] };
+    expect(liveBookingAttendance(order).ticket_holders.map(h => h.is_present)).toEqual([true, true]);
+    expect(order.ticket_holders[0].is_present).toBe(false);
+  });
+  it('reflects scanned and cancelled attendance on the next live snapshot', () => {
+    const holders = liveBookingAttendance({ payment_method: 'sadad', ticket_holders: [
+      { id: 'scanned', is_present: true }, { id: 'not-scanned', is_present: false },
+    ] }).ticket_holders;
+    expect(holders.map(h => h.is_present)).toEqual([true, false]);
+    expect(bookingChanges(new Set(), new Map([['scanned', false]]), [], holders).checkins.map(h => h.id)).toEqual(['scanned']);
+    expect(liveBookingAttendance({ payment_method: 'sadad', ticket_holders: [
+      { id: 'scanned', is_present: false },
+    ] }).ticket_holders[0].is_present).toBe(false);
+  });
   it('refreshes every 10 seconds', () => expect(LIVE_BOOKINGS_REFRESH_MS).toBe(10_000));
   it('keeps notifications across festival days while filtering display by Qatar day', () => {
     const orders = [

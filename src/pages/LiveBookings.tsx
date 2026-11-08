@@ -21,7 +21,7 @@ import { isLiveNow, type LiveRefreshMode } from "@/lib/liveSchedule";
 import { pickActualEventIds } from "@/lib/actualEvent";
 import { buildPersonTicketTotals, personTotalFromMap } from "@/lib/personTicketTotals";
 import { CountryFlag } from "@/components/CountryFlag";
-import { LIVE_BOOKINGS_REFRESH_MS, stockIncreases, bookingChanges, bookingsForDay, appendStockAdditions, type LiveStock, type StockAddition } from "@/lib/liveBookingChanges";
+import { LIVE_BOOKINGS_REFRESH_MS, stockIncreases, bookingChanges, bookingsForDay, liveBookingAttendance, appendStockAdditions, type LiveStock, type StockAddition } from "@/lib/liveBookingChanges";
 import { fullscreenActive, toggleBrowserFullscreen } from "@/lib/browserSupport";
 import { STOCK_NOTIFICATION_VISIBLE_MS } from "@/lib/stockNotificationTiming";
 import { formatQatarDate } from "@/lib/qatarTime";
@@ -865,7 +865,7 @@ const LiveBookings = ({ viewerPassword }: { viewerPassword?: string | null } = {
           nextDayStr: null,
           eventIds: actualEventIdsRef.current,
         });
-        allOrders.push(...(feed?.orders ?? []));
+        allOrders.push(...(feed?.orders ?? []).map(liveBookingAttendance));
       }
 
       for (let from = 0; !viewerPassword; from += PAGE_SIZE) {
@@ -885,7 +885,7 @@ const LiveBookings = ({ viewerPassword }: { viewerPassword?: string | null } = {
 
         const { data, error } = await query;
         if (error) throw error;
-        if (data?.length) allOrders.push(...data);
+        if (data?.length) allOrders.push(...data.map(liveBookingAttendance));
         if (!data || data.length < PAGE_SIZE) break;
       }
 

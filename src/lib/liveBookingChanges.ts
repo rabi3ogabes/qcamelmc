@@ -2,6 +2,20 @@ import { qatarDayKey } from "./qatarTime";
 
 export const LIVE_BOOKINGS_REFRESH_MS = 10_000;
 
+/** Live-board attendance: POS sales are present; scanned tickets use holder attendance. */
+export function liveBookingAttendance<T extends {
+  payment_method: string;
+  ticket_holders?: Array<{ is_present?: boolean | null }> | null;
+}>(order: T): T {
+  return {
+    ...order,
+    ticket_holders: order.ticket_holders?.map(holder => ({
+      ...holder,
+      is_present: order.payment_method === 'cash_pos' || holder.is_present === true,
+    })) ?? [],
+  };
+}
+
 /** Filter display only; notification snapshots retain every actual festival day. */
 export function bookingsForDay<T extends { events: { event_date: string } }>(orders: T[], day: string | null): T[] {
   return day ? orders.filter(order => qatarDayKey(order.events.event_date) === day) : orders;
