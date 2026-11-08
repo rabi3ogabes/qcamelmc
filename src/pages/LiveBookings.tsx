@@ -1229,7 +1229,7 @@ const LiveBookings = ({ viewerPassword }: { viewerPassword?: string | null } = {
               <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-75" />
               <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-primary" />
             </span>
-            مباشر — التحديث لحظي
+            مباشر — التحديث كل 10 ثوانٍ
           </span>
         ) : (
           <span className="flex items-center gap-2 text-muted-foreground">
