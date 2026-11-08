@@ -1,4 +1,8 @@
 export function receiptTicketPatch(field: unknown, value: unknown) {
+  if (field === 'amount_qar') {
+    if (typeof value !== 'number' || !Number.isFinite(value) || value < 0 || value > 99999999.99 || Math.abs(value * 100 - Math.round(value * 100)) > 0.00001) throw new Error('Invalid receipt amount');
+    return { amount_qar: Math.round(value * 100) / 100 };
+  }
   if (field !== 'normal_tickets' && field !== 'vip_tickets' && field !== 'parking_tickets') throw new Error('Invalid ticket type');
   if (typeof value !== 'number' || !Number.isSafeInteger(value) || value < 0 || value > 10000) throw new Error('Invalid ticket quantity');
   return { [field]: value };

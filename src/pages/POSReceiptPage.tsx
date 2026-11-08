@@ -8,6 +8,9 @@ import { getStaffPasscode } from "@/lib/staffAccess";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { ReceiptAmountEditor } from '@/components/ReceiptAmountEditor';
+import { receiptPrices, receiptSummaryAmounts, type ReceiptPriceEvent } from '../../supabase/functions/parse-pos-receipt/pricing';
+import { qatarDayKey, formatQatarDate } from '@/lib/qatarTime';
 
 interface POSReceipt {
   id: string;
@@ -27,6 +30,8 @@ interface POSReceipt {
 const POSReceiptPage = () => {
   const navigate = useNavigate();
   const [receipts, setReceipts] = useState<POSReceipt[]>([]);
+  const [pricingEvents, setPricingEvents] = useState<ReceiptPriceEvent[]>([]);
+  const [pricingEventId, setPricingEventId] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [isProcessing, setIsProcessing] = useState(false);
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
@@ -87,6 +92,10 @@ const POSReceiptPage = () => {
     try {
       const data = await receiptRequest({ mode: 'list' });
       setReceipts(data.receipts || []);
+      const events: ReceiptPriceEvent[] = data.pricing_events || [];
+      setPricingEvents(events);
+      setPricingEventId(previous => events.some(event => event.id === previous) ? previous :
+        (events.find(event => qatarDayKey(event.event_date) === qatarDayKey(new Date()))?.id ?? events[0]?.id ?? ''));
     } catch (error) {
       console.error("Error fetching receipts:", error);
       toast.error("Failed to load receipts");
@@ -163,10 +172,10 @@ const POSReceiptPage = () => {
     value: number
   ) => {
     try {
-      await receiptRequest({ mode: 'update', receipt_id: receiptId, field: ticketType, value });
+      const data = await receiptRequest({ mode: 'update', receipt_id: receiptId, field: ticketType, value });
 
       setReceipts((prev) =>
-        prev.map((r) => (r.id === receiptId ? { ...r, [ticketType]: value } : r))
+        prev.map((r) => (r.id === receiptId ? data.receipt : r))
       );
     } catch (error) {
       console.error("Error updating tickets:", error);
@@ -174,12 +183,12 @@ const POSReceiptPage = () => {
     }
   };
 
-  // Ticket prices
-  const TICKET_PRICES = {
-    normal: 200,
-    vip: 300,
-    parking: 500,
+  const handleAmountChange = async (receiptId: string, value: number) => {
+    const data = await receiptRequest({ mode: 'update', receipt_id: receiptId, field: 'amount_qar', value });
+    setReceipts(previous => previous.map(receipt => receipt.id === receiptId ? data.receipt : receipt));
+    toast.success('Amount saved');
   };
+  const TICKET_PRICES = receiptPrices(pricingEvents.find(event => event.id === pricingEventId));
 
   // Calculate totals
   const totals = receipts.reduce(
@@ -191,18 +200,18 @@ const POSReceiptPage = () => {
     { normal: 0, vip: 0, parking: 0 }
   );
 
-  const totalAmounts = {
-    normal: totals.normal * TICKET_PRICES.normal,
-    vip: totals.vip * TICKET_PRICES.vip,
-    parking: totals.parking * TICKET_PRICES.parking,
-  };
+  const totalAmounts = receiptSummaryAmounts(totals, TICKET_PRICES);
 
   const grandTotalTickets = totals.normal + totals.vip + totals.parking;
-  const grandTotalAmount = totalAmounts.normal + totalAmounts.vip + totalAmounts.parking;
+  const grandTotalAmount = totalAmounts.total;
 
   const handleExportToExcel = async () => {
     if (receipts.length === 0) {
       toast.error("No data to export");
+      return;
+    }
+    if (grandTotalAmount === null) {
+      toast.error('Actual ticket prices are unavailable. Select an event with configured prices.');
       return;
     }
 
@@ -576,7 +585,7 @@ const POSReceiptPage = () => {
                         <div className="grid grid-cols-2 gap-3 text-sm">
                           <div>
                             <p className="text-xs text-muted-foreground">Amount</p>
-                            <p className="font-mono font-semibold">{receipt.amount_qar?.toLocaleString() ?? "-"} QAR</p>
+                            <ReceiptAmountEditor amount={receipt.amount_qar} onSave={value => handleAmountChange(receipt.id, value)} />
                           </div>
                           <div>
                             <p className="text-xs text-muted-foreground">Seq #</p>
@@ -660,7 +669,7 @@ const POSReceiptPage = () => {
                             {index + 1}
                           </TableCell>
                           <TableCell className="font-mono font-semibold">
-                            {receipt.amount_qar?.toLocaleString() ?? "-"}
+                            <ReceiptAmountEditor amount={receipt.amount_qar} onSave={value => handleAmountChange(receipt.id, value)} />
                           </TableCell>
                           <TableCell className="font-mono">
                             {receipt.seq_number ?? "-"}
@@ -724,6 +733,15 @@ const POSReceiptPage = () => {
               {/* Summary Section */}
               {receipts.length > 0 && (
                 <div className="mt-6 border-t pt-4">
+                  <div className="mb-4 max-w-md mx-auto space-y-2">
+                    <label className="text-sm font-medium" htmlFor="receipt-pricing-event">Ticket prices · Event day</label>
+                    <Select value={pricingEventId} onValueChange={setPricingEventId}>
+                      <SelectTrigger id="receipt-pricing-event" aria-label="Ticket pricing event"><SelectValue placeholder="No active event" /></SelectTrigger>
+                      <SelectContent>{pricingEvents.map(event => <SelectItem key={event.id} value={event.id}>{formatQatarDate(event.event_date)} · {event.title}</SelectItem>)}</SelectContent>
+                    </Select>
+                    <p className="text-xs text-muted-foreground">Normal: {TICKET_PRICES.normal ?? '—'} QAR · VIP: {TICKET_PRICES.vip ?? '—'} QAR · Parking: {TICKET_PRICES.parking ?? '—'} QAR</p>
+                    {grandTotalAmount === null && <p role="alert" className="text-sm text-destructive">Actual ticket prices are unavailable for this event.</p>}
+                  </div>
                   <div className="overflow-x-auto">
                     <table className="w-full max-w-md mx-auto text-sm border-collapse">
                       <thead>
@@ -742,22 +760,22 @@ const POSReceiptPage = () => {
                         <tr className="bg-green-50 dark:bg-green-900/20">
                           <td className="py-2 px-3 text-right border font-medium text-green-700 dark:text-green-400">normal</td>
                           <td className="py-2 px-3 text-center border font-mono">{totals.normal}</td>
-                          <td className="py-2 px-3 text-center border font-mono">{totalAmounts.normal.toLocaleString()}</td>
+                          <td className="py-2 px-3 text-center border font-mono">{totalAmounts.normal?.toLocaleString() ?? '—'}</td>
                         </tr>
                         <tr className="bg-amber-50 dark:bg-amber-900/20">
                           <td className="py-2 px-3 text-right border font-medium text-amber-700 dark:text-amber-400">VIP</td>
                           <td className="py-2 px-3 text-center border font-mono">{totals.vip}</td>
-                          <td className="py-2 px-3 text-center border font-mono">{totalAmounts.vip.toLocaleString()}</td>
+                          <td className="py-2 px-3 text-center border font-mono">{totalAmounts.vip?.toLocaleString() ?? '—'}</td>
                         </tr>
                         <tr className="bg-blue-50 dark:bg-blue-900/20">
                           <td className="py-2 px-3 text-right border font-medium text-blue-700 dark:text-blue-400">parking</td>
                           <td className="py-2 px-3 text-center border font-mono">{totals.parking}</td>
-                          <td className="py-2 px-3 text-center border font-mono">{totalAmounts.parking.toLocaleString()}</td>
+                          <td className="py-2 px-3 text-center border font-mono">{totalAmounts.parking?.toLocaleString() ?? '—'}</td>
                         </tr>
                         <tr className="bg-primary/10 font-bold">
                           <td className="py-2 px-3 text-right border text-primary">المجموع</td>
                           <td className="py-2 px-3 text-center border font-mono">{grandTotalTickets}</td>
-                          <td className="py-2 px-3 text-center border font-mono">{grandTotalAmount.toLocaleString()}</td>
+                          <td className="py-2 px-3 text-center border font-mono">{grandTotalAmount?.toLocaleString() ?? '—'}</td>
                         </tr>
                       </tbody>
                     </table>
