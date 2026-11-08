@@ -5,6 +5,7 @@ import { isAdminAuthorized, unauthorizedResponse } from "../_shared/staffAuth.ts
 import { makeQrGenerator } from "../_shared/qr.ts";
 import { renderTicketQr } from "../_shared/qr-tools.ts";
 import { createQrStorage, createRepo, type SupabaseLike } from "../_shared/repo.ts";
+import { isOrderFestivalDate } from "../staff-orders/policy.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -40,6 +41,12 @@ Deno.serve(async (req) => {
     // Moving a booking invalidates its tickets: administrators only, the shared passcode is not enough.
     if (!(await isAdminAuthorized(req, supabase))) {
       return unauthorizedResponse(corsHeaders);
+    }
+
+    // Reject out-of-festival targets before invalidating any existing QR codes.
+    const { data: targetEvent, error: targetError } = await supabase.from('events').select('event_date').eq('id', new_event_id).maybeSingle();
+    if (targetError || !targetEvent || !isOrderFestivalDate(targetEvent.event_date)) {
+      return new Response(JSON.stringify({ error: 'event_outside_festival' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
     console.log(`[Change Event] Processing order: ${order_id}`);
