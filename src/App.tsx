@@ -34,7 +34,7 @@ const AdminDashboard = lazy(() => import("./pages/AdminDashboard"));
 const LiveBookingsGate = lazy(() => import("./components/LiveBookingsGate"));
 const LiveVisitors = lazy(() => import("./pages/LiveVisitors"));
 const QRScanner = lazy(() => import("./pages/QRScanner"));
-const AdminPOS = lazy(() => import("./pages/AdminPOS"));
+const AdminPOS = lazy(() => import("./pages/POSPage"));
 const POSReceiptPage = lazy(() => import("./pages/POSReceiptPage"));
 const TicketViewer = lazy(() => import("./pages/TicketViewer"));
 const StaffHub = lazy(() => import("./pages/StaffHub"));
