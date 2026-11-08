@@ -1567,7 +1567,7 @@ const LiveBookings = ({ viewerPassword }: { viewerPassword?: string | null } = {
                     تمت إضافة {addition.increase} تذاكر {addition.ticketType === 'vip' ? 'VIP' : addition.ticketType === 'normal' ? 'عادي' : addition.ticketType === 'parking' ? 'مواقف' : addition.ticketType}
                   </span>
                   <span className="text-muted-foreground whitespace-nowrap">
-                    {formatQatarDate(addition.at, { hour: "2-digit", minute: "2-digit" })}
+                    {formatQatarDate(new Date(addition.at), { hour: "2-digit", minute: "2-digit" })}
                   </span>
                 </div>
               ))}
