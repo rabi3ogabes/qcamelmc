@@ -153,9 +153,9 @@ describe("what follows a settled payment", () => {
   const REF = "QTR-ABC123DEF456";
   const pending = { id: "order-1", booking_reference: REF, total_amount: 150, payment_status: "pending" as const };
   const context = {
-    order: { ...pending, payment_status: "confirmed", payment_id: "SD-1" },
+    order: { ...pending, payment_status: "confirmed", payment_method: "sadad", payment_id: "SD-1" },
     customer: { name: "Ahmed", phone: "5551", country_code: "+974" },
-    event: { title: "Festival" },
+    event: { title: "Festival", event_date: "2026-11-14T06:00:00Z", is_archived: false },
     holders: [{ name: "Sara", phone: "5559", country_code: "+974", ticket_type: "vip", qr_code: `${REF}-TKT01` }],
     prices: { vip: 150 },
   };
@@ -237,7 +237,7 @@ describe("what follows a settled payment", () => {
 
 describe("send-to-webhook: the e-mail action", () => {
   const setup = (settings = configuredSettings({ emailWebhookUrl: "https://n8n.example/mail" })) => {
-    const repo = makeRepo({ settings });
+    const repo = makeRepo({ settings, context: { order: { id: "o1", booking_reference: "QTR-B", payment_method: "sadad", payment_status: "confirmed", total_amount: 300 }, customer: {}, event: { event_date: "2026-11-14T06:00:00Z", is_archived: false }, holders: [], prices: {} } });
     const urls: string[] = [];
     const handler = sendToWebhookHandler({
       repo, auth: repo,
@@ -250,7 +250,7 @@ describe("send-to-webhook: the e-mail action", () => {
   it("sends e-mails to the e-mail automation and tickets to the WhatsApp one", async () => {
     const { handler, urls } = setup();
     await handler(post(fn("send-to-webhook"), { action: "send_email", order_id: "o1" }, ADMIN));
-    await handler(post(fn("send-to-webhook"), { action: "send_ticket", order_id: "o1" }, ADMIN));
+    await handler(post(fn("send-to-webhook"), { action: "send_ticket", booking_reference: "QTR-B" }, ADMIN));
     expect(urls).toEqual(["https://n8n.example/mail", "https://n8n.example/hook"]);
   });
 
@@ -274,14 +274,14 @@ describe("send-to-webhook: the e-mail action", () => {
     await handler(post(fn("send-to-webhook"), { action: "send_ticket" }, ADMIN));
     expect(repo.calls.pending).toEqual([
       { orderId: "o1", bookingReference: "QTR-A", message: "جاري إرسال البريد الإلكتروني..." },
-      { orderId: null, bookingReference: "QTR-B", message: "جاري الإرسال إلى واتساب..." },
+      { orderId: "o1", bookingReference: "QTR-B", message: "جاري الإرسال إلى واتساب..." },
     ]);
   });
 
   it("does not mark the order when the automation refused", async () => {
     const repo = makeRepo();
     const handler = sendToWebhookHandler({ repo, auth: repo, fetch: (async () => new Response("no", { status: 500 })) as typeof fetch });
-    await handler(post(fn("send-to-webhook"), { action: "send_ticket", order_id: "o1" }, ADMIN));
+    await handler(post(fn("send-to-webhook"), { action: "send_ticket", booking_reference: "QTR-B" }, ADMIN));
     expect(repo.calls.pending).toEqual([]);
   });
 });

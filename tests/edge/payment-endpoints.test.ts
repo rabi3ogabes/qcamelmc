@@ -77,7 +77,7 @@ const paidRow = (over: SadadRow = {}): SadadRow => ({
 const context = (): OrderContext => ({
   order: { ...pendingOrder(), payment_id: "SD-REAL-1", payment_method: "sadad" } as OrderContext["order"],
   customer: { name: "Ahmed", email: "a@b.qa", phone: "5551 2345", country_code: "+974" },
-  event: { title: "Festival", event_date: "2026-12-18", location: "Doha" },
+  event: { title: "Festival", event_date: "2026-11-14T06:00:00Z", is_archived: false, location: "Doha" },
   holders: [{ name: "Ahmed", phone: "+974 5551 2345", country_code: "+974", nationality: "قطر", ticket_type: "vip", qr_code: `${REF}-TKT01`, qr_image_url: "https://x/q.png", id_number: "1" }],
   prices: { vip: 150 },
 });

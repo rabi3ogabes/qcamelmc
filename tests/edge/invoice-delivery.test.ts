@@ -10,7 +10,7 @@ const templates = [
   { id: "off", name: "Disabled", body: "Disabled", enabled: false },
   { id: "b", name: "Second", body: "Booking {{booking_reference}}", enabled: true },
 ];
-const context = { order: { id: "order-1", booking_reference: "QTR-7-11-2026-9A657F69875B", payment_status: "confirmed", total_amount: 3 }, customer: { name: "Ahmed", phone: "55512345", country_code: "+974" }, event: { is_archived: true, title: "Festival" }, holders: [{ qr_code: "ticket-code", qr_image_url: "https://example.com/ticket.png", ticket_type: "vip" }], prices: { vip: 3 } } as OrderContext;
+const context = { order: { id: "order-1", booking_reference: "QTR-7-11-2026-9A657F69875B", payment_status: "confirmed", payment_method: "sadad", total_amount: 3 }, customer: { name: "Ahmed", phone: "55512345", country_code: "+974" }, event: { is_archived: true, title: "Festival" }, holders: [{ qr_code: "ticket-code", qr_image_url: "https://example.com/ticket.png", ticket_type: "vip" }], prices: { vip: 3 } } as OrderContext;
 
 describe("manual invoice delivery rules", () => {
   it("randomly selects among enabled templates on every send", () => {

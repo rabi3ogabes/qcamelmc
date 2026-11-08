@@ -1,5 +1,8 @@
 # Task Roadmap
 
+## Server WhatsApp POS exclusion
+- [x] Guard countdown, legacy n8n triggers, payment follow-ups and retries before attempts/HTTP using trusted confirmed Sadad/QTR orders and current festival eligibility. Six send/payment functions deployed; 528 tests passed. Authenticated live requests for a real 8 November POS booking rejected send_invoice, send_ticket and retry with pos_order. No messages sent or historical delivery states changed; fresh QTR provider delivery was not exercised.
+
 ## Receipt pricing and amount corrections
 - [x] Receipt summary/export use the selected active festival day's actual prices (verified 300/500/500 QAR); saved amount correction persisted after reload and original amount restored. Eleven pricing/validation/output tests passed; function deployed. Desktop/mobile checked without overflow or runtime errors; preview verification bypassed stale module caching.
 

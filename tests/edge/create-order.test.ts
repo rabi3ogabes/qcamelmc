@@ -106,7 +106,7 @@ describe("create-order handler", () => {
     expect(repo.calls.createOrder).toHaveLength(0);
   });
 
-  it("cash-at-venue orders need no gateway and notify the automation without delaying the response", async () => {
+  it("cash-at-venue orders need no gateway and never send customer invoices", async () => {
     const { handler, waited, webhookCalls, repo } = setup({ settings: configuredSettings({ secret: null }) });
     const res = await call(handler, validBody({ payment_method: "cash_pos" }));
     expect(res.status).toBe(200);
@@ -114,9 +114,7 @@ describe("create-order handler", () => {
     expect(body.payment).toBeUndefined();
     expect(repo.calls.createOrder[0].paymentMethod).toBe("cash_pos");
     await Promise.all(waited);
-    expect(webhookCalls).toHaveLength(1);
-    expect(webhookCalls[0].url).toBe("https://n8n.example/hook");
-    expect(webhookCalls[0].body).toMatchObject({ bookingReference: "QTR-AAAAAAAAAAAA", adminPhone: "97455500000" });
+    expect(webhookCalls).toHaveLength(0);
   });
 
   it("does not notify the automation for online orders until they are paid", async () => {
