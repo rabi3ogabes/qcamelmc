@@ -7,12 +7,13 @@ export interface ReceiptPriceEvent {
 
 export function receiptPrices(event: ReceiptPriceEvent | undefined) {
   const price = (type: string): number | null => {
-    const matches = event?.tickets.filter(ticket => ticket.type === type) ?? [];
+    const aliases: Record<string, string> = { 'عادي': 'normal', 'VIP': 'vip', 'مواقف': 'parking' };
+    const matches = event?.tickets.filter(ticket => (aliases[ticket.type] ?? ticket.type) === type) ?? [];
     if (matches.length !== 1) return null;
     const value = Number(matches[0].price);
     return Number.isFinite(value) && value >= 0 ? value : null;
   };
-  return { normal: price('عادي'), vip: price('VIP'), parking: price('مواقف') };
+  return { normal: price('normal'), vip: price('vip'), parking: price('parking') };
 }
 
 export function receiptSummaryAmounts(

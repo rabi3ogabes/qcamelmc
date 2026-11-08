@@ -11,4 +11,7 @@ describe('receipt actual ticket pricing', () => {
     expect(receiptSummaryAmounts({ normal: 1, vip: 0, parking: 0 }, receiptPrices(undefined)).total).toBeNull();
     expect(receiptPrices({ id: 'a', title: 'a', event_date: '2026-11-08', tickets: [{ type: 'عادي', price: 75 }, { type: 'عادي', price: 100 }] }).normal).toBeNull();
   });
+  it('reads the live database ticket type keys', () => {
+    expect(receiptPrices({ id: 'actual', title: 'Festival', event_date: '2026-11-08', tickets: [{ type: 'normal', price: 300 }, { type: 'vip', price: 500 }, { type: 'parking', price: 500 }] })).toEqual({ normal: 300, vip: 500, parking: 500 });
+  });
 });
