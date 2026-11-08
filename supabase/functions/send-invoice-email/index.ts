@@ -75,6 +75,11 @@ Deno.serve(async (req) => {
       return json({ sent: false, reason: 'not_confirmed' })
     }
 
+    // Invoices are for online customers only — POS sales are never sent.
+    if (order.payment_method !== 'sadad') {
+      return json({ sent: false, reason: 'pos_order' })
+    }
+
     const customer = order.customers as { name?: string; email?: string; phone?: string; country_code?: string } | null
     const email = (customer?.email || '').trim()
     if (!email || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
