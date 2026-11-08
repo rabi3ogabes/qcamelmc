@@ -6,7 +6,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { CalendarIcon, CheckCircle, XCircle, Users, LayoutGrid, Table as TableIcon, User, Phone, CreditCard, Hash, Maximize, Minimize, Globe, Store, Volume2, VolumeX, Clock, Send, SendHorizonal, CircleDashed, BarChart3, Bell, BellOff, Copy, Download } from "lucide-react";
+import { CalendarIcon, CheckCircle, XCircle, Users, LayoutGrid, Table as TableIcon, User, Phone, CreditCard, Hash, Maximize, Minimize, Globe, Store, Volume2, VolumeX, Clock, Send, SendHorizonal, CircleDashed, BarChart3, Bell, BellOff, Copy, Download, PackagePlus } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -21,9 +21,10 @@ import { isLiveNow, type LiveRefreshMode } from "@/lib/liveSchedule";
 import { pickActualEventIds } from "@/lib/actualEvent";
 import { buildPersonTicketTotals, personTotalFromMap } from "@/lib/personTicketTotals";
 import { CountryFlag } from "@/components/CountryFlag";
-import { LIVE_BOOKINGS_REFRESH_MS, stockIncreases, bookingChanges, bookingsForDay, type LiveStock } from "@/lib/liveBookingChanges";
+import { LIVE_BOOKINGS_REFRESH_MS, stockIncreases, bookingChanges, bookingsForDay, appendStockAdditions, type LiveStock, type StockAddition } from "@/lib/liveBookingChanges";
 import { fullscreenActive, toggleBrowserFullscreen } from "@/lib/browserSupport";
 import { STOCK_NOTIFICATION_VISIBLE_MS } from "@/lib/stockNotificationTiming";
+import { formatQatarDate } from "@/lib/qatarTime";
 
 const QATAR_TIMEZONE = "Asia/Qatar";
 
@@ -429,6 +430,7 @@ const LiveBookings = ({ viewerPassword }: { viewerPassword?: string | null } = {
   } | null>(null);
   const [showCapacityNotification, setShowCapacityNotification] = useState(false);
   const [capacityLeaving, setCapacityLeaving] = useState(false);
+  const [stockAdditions, setStockAdditions] = useState<StockAddition[]>([]);
   const [invoiceDownloadedRefs, setInvoiceDownloadedRefs] = useState<Set<string>>(new Set());
 
   const dismissCapacityNotification = useCallback(() => {
@@ -759,6 +761,9 @@ const LiveBookings = ({ viewerPassword }: { viewerPassword?: string | null } = {
       capacities[ticket.type] = ticket.available_quantity;
     });
     setTicketCapacities(capacities);
+    if (increases.length > 0) {
+      setStockAdditions(prev => appendStockAdditions(prev, increases, Date.now()));
+    }
     capacityQueueRef.current.push(...increases);
     showNextCapacityNotification();
   };
@@ -1547,6 +1552,28 @@ const LiveBookings = ({ viewerPassword }: { viewerPassword?: string | null } = {
             </div>
           </Card>
         </div>
+
+        {/* Stock addition records — same zone as آخر ساعة */}
+        {stockAdditions.length > 0 && (
+          <Card className="mb-4 sm:mb-8 p-3 sm:p-4 bg-cyan-50/60 dark:bg-cyan-950/40 border-cyan-500/20">
+            <div className="flex items-center gap-2 mb-2">
+              <PackagePlus className="w-4 h-4 sm:w-5 sm:h-5 text-cyan-600" />
+              <p className="text-xs sm:text-sm font-bold text-cyan-700 dark:text-cyan-300">إضافات المخزون</p>
+            </div>
+            <div className="space-y-1">
+              {stockAdditions.map((addition, index) => (
+                <div key={`${addition.at}-${index}`} className="flex items-center justify-between text-xs sm:text-sm">
+                  <span>
+                    تمت إضافة {addition.increase} تذاكر {addition.ticketType === 'vip' ? 'VIP' : addition.ticketType === 'normal' ? 'عادي' : addition.ticketType === 'parking' ? 'مواقف' : addition.ticketType}
+                  </span>
+                  <span className="text-muted-foreground whitespace-nowrap">
+                    {formatQatarDate(new Date(addition.at), { hour: "2-digit", minute: "2-digit" })}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </Card>
+        )}
 
         {/* Payment Method Breakdown */}
         <div className="mb-4 sm:mb-8">

@@ -23,6 +23,24 @@ export function stockIncreases(previous: Map<string, number>, current: LiveStock
   });
 }
 
+export interface StockAddition {
+  ticketType: string;
+  increase: number;
+  at: number;
+}
+
+export const STOCK_ADDITIONS_LIMIT = 20;
+
+/** Newest first; capped so the record list stays small. */
+export function appendStockAdditions(
+  list: StockAddition[],
+  increases: Array<{ ticketType: string; increase: number }>,
+  at: number,
+): StockAddition[] {
+  const entries = increases.map(item => ({ ticketType: item.ticketType, increase: item.increase, at }));
+  return [...entries, ...list].slice(0, STOCK_ADDITIONS_LIMIT);
+}
+
 export function bookingChanges<T extends { id: string }, H extends { id: string; is_present: boolean }>(
   previousOrders: Set<string>, previousHolders: Map<string, boolean>, orders: T[], holders: H[],
 ) {
