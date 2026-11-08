@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { canManageOrders, isOrderFestivalDate, ordersReadMode } from "../../supabase/functions/staff-orders/policy";
+import { canManageOrders, isOrderFestivalDate, ordersReadMode } from "../../supabase/functions/_shared/orders-policy";
 
 describe("orders permissions", () => {
   it("only admins can delete orders", () => {

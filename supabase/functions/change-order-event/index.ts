@@ -5,7 +5,7 @@ import { isAdminAuthorized, unauthorizedResponse } from "../_shared/staffAuth.ts
 import { makeQrGenerator } from "../_shared/qr.ts";
 import { renderTicketQr } from "../_shared/qr-tools.ts";
 import { createQrStorage, createRepo, type SupabaseLike } from "../_shared/repo.ts";
-import { isOrderFestivalDate } from "../staff-orders/policy.ts";
+import { isOrderFestivalDate } from "../_shared/orders-policy.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',

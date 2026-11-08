@@ -25,7 +25,7 @@ import { format } from "date-fns";
 import { ar } from "date-fns/locale";
 import { toZonedTime } from "date-fns-tz";
 import { useOrdersQuery } from "@/hooks/useOrdersQuery";
-import { ORDER_FESTIVAL, isOrderFestivalDate } from "../../../supabase/functions/staff-orders/policy";
+import { ORDER_FESTIVAL, isOrderFestivalDate } from "../../../supabase/functions/_shared/orders-policy";
 import { qatarDayKey, formatQatarDate } from "@/lib/qatarTime";
 
 interface TicketHolder {
