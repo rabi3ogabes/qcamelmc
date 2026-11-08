@@ -1,5 +1,9 @@
 # Task Roadmap
 
+## Staff orders
+- [ ] Add staff orders access with server-validated read-only data; keep deletion, payment changes and date changes admin-only.
+- [ ] Scope admin and staff orders, searches, statistics and date choices to 7–14 November 2026; verify permissions and UI.
+
 ## Orders festival scope
 - [x] Show only the actual festival (7 → 14 November 2026) on /admin/dashboard/orders: list, search, statistics and the date picker all use the non-archived day span from src/lib/festivalWindow.ts; authenticated browser verified 98 confirmed / 53 failed matching the database, archived-season search returns nothing, each day listed once.
 
