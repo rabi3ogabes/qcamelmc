@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { CustomerLookup, type LookupCustomer } from "@/components/admin/CustomerLookup";
+import { type LookupCustomer } from "@/components/admin/CustomerLookup";
 import { searchCustomers, dedupeCustomers, STAFF_UNAUTHORIZED } from "@/lib/customerLookup";
 import { getPersonEventHistory, formatHistoryDate, PersonEventHistoryItem } from "@/lib/personEventHistory";
 
@@ -354,9 +354,13 @@ const AdminPOS = () => {
     const term = customerPhone.replace(/\D/g, "");
     if (suppressPhoneSearchRef.current) {
       suppressPhoneSearchRef.current = false;
+      setPhoneSearching(false);
       return;
     }
+    setPhoneMatches([]);
+    setPhoneHistories({});
     if (term.length < 4) {
+      setPhoneSearching(false);
       setPhoneMatches([]);
       setPhoneHistories({});
       return;
@@ -404,7 +408,8 @@ const AdminPOS = () => {
   }, [customerPhone]);
 
   const applyCustomer = (c: LookupCustomer) => {
-    suppressPhoneSearchRef.current = true;
+    suppressPhoneSearchRef.current = customerPhone !== (c.phone || "");
+    setPhoneSearching(false);
     setCustomerName(c.name || "");
     setCustomerEmail(c.email || "");
     setCustomerPhone(c.phone || "");
@@ -1292,48 +1297,17 @@ const AdminPOS = () => {
                     </p>
                   </CardHeader>
                   <CardContent className="space-y-4">
-                  <div className="rounded-lg border border-dashed p-3 bg-muted/30">
-                    <Label className="mb-2 block">استدعاء عميل سابق</Label>
-                    <CustomerLookup
-                      eventId={currentEventId}
-                      onSelect={(c) => {
-                        setCustomerName(c.name || "");
-                        setCustomerEmail(c.email || "");
-                        setCustomerPhone(c.phone || "");
-                        setCustomerCountryCode(c.country_code || "+974");
-                        setCustomerNationality(c.nationality || "قطر");
-                        setCustomerIdNumber(c.id_number || "");
-                      }}
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="name">الاسم *</Label>
-                    <Input
-                      id="name"
-                      value={customerName}
-                      onChange={(e) => setCustomerName(e.target.value)}
-                      required
-                    />
-                  </div>
-
-                  <div className="hidden">
-                    <Label htmlFor="email">البريد الإلكتروني</Label>
-                    <Input
-                      id="email"
-                      type="email"
-                      value={customerEmail}
-                      onChange={(e) => setCustomerEmail(e.target.value)}
-                    />
-                  </div>
-
                   <div>
                     <Label htmlFor="phone">رقم الهاتف *</Label>
                     <div className="flex gap-2" dir="ltr">
                       <Input
                         id="phone"
                         type="tel"
-                        dir="rtl"
-                        className="flex-1"
+                        name="customer_phone"
+                        autoComplete="tel-national"
+                        inputMode="tel"
+                        dir="ltr"
+                        className="flex-1 min-w-0"
                         value={customerPhone}
                         onChange={(e) => setCustomerPhone(e.target.value)}
                         placeholder="XXXXXXXX"
@@ -1343,7 +1317,7 @@ const AdminPOS = () => {
                         value={customerCountryCode}
                         onValueChange={setCustomerCountryCode}
                       >
-                        <SelectTrigger className="w-[140px]">
+                        <SelectTrigger className="w-[120px] sm:w-[140px] shrink-0">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
@@ -1362,11 +1336,12 @@ const AdminPOS = () => {
                           <p className="px-3 py-2 text-xs text-muted-foreground">جاري البحث عن عملاء سابقين…</p>
                         )}
                         {phoneMatches.map((c) => (
-                          <button
+                          <Button
+                            variant="ghost"
                             key={c.id}
                             type="button"
                             onClick={() => applyCustomer(c)}
-                            className="w-full text-right px-3 py-2 flex items-center justify-between gap-3 hover:bg-primary/10 transition-colors border-b last:border-b-0 border-border/50"
+                            className="w-full h-auto rounded-none text-right whitespace-normal px-3 py-2 flex items-center justify-between gap-3 hover:bg-primary/10 transition-colors border-b last:border-b-0 border-border/50"
                           >
                             <span className="min-w-0">
                               <span className="block font-bold truncate">{c.name}</span>
@@ -1392,12 +1367,32 @@ const AdminPOS = () => {
                             </span>
 
                             <User className="w-4 h-4 text-primary shrink-0" />
-                          </button>
+                          </Button>
                         ))}
                       </div>
                     )}
                   </div>
 
+
+                  <div>
+                    <Label htmlFor="name">الاسم *</Label>
+                    <Input
+                      id="name"
+                      value={customerName}
+                      onChange={(e) => setCustomerName(e.target.value)}
+                      required
+                    />
+                  </div>
+
+                  <div className="hidden">
+                    <Label htmlFor="email">البريد الإلكتروني</Label>
+                    <Input
+                      id="email"
+                      type="email"
+                      value={customerEmail}
+                      onChange={(e) => setCustomerEmail(e.target.value)}
+                    />
+                  </div>
 
                   <div>
                     <Label htmlFor="id_number">رقم الهوية *</Label>
@@ -1506,7 +1501,7 @@ const AdminPOS = () => {
                                 value={holder.countryCode}
                                 onValueChange={(value) => updateTicketHolder(index, 'countryCode', value)}
                               >
-                                <SelectTrigger className="w-[140px]">
+                                <SelectTrigger className="w-[120px] sm:w-[140px] shrink-0">
                                   <SelectValue />
                                 </SelectTrigger>
                                 <SelectContent>
