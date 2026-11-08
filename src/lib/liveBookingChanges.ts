@@ -1,4 +1,11 @@
+import { qatarDayKey } from "./qatarTime";
+
 export const LIVE_BOOKINGS_REFRESH_MS = 10_000;
+
+/** Filter display only; notification snapshots retain every actual festival day. */
+export function bookingsForDay<T extends { events: { event_date: string } }>(orders: T[], day: string | null): T[] {
+  return day ? orders.filter(order => qatarDayKey(order.events.event_date) === day) : orders;
+}
 
 export interface LiveStock {
   id: string;

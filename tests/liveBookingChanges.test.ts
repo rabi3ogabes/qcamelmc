@@ -1,8 +1,17 @@
 import { describe, expect, it } from 'vitest';
-import { LIVE_BOOKINGS_REFRESH_MS, stockIncreases, bookingChanges } from '../src/lib/liveBookingChanges';
+import { LIVE_BOOKINGS_REFRESH_MS, stockIncreases, bookingChanges, bookingsForDay } from '../src/lib/liveBookingChanges';
 
 describe('live bookings updates', () => {
   it('refreshes every 10 seconds', () => expect(LIVE_BOOKINGS_REFRESH_MS).toBe(10_000));
+  it('keeps notifications across festival days while filtering display by Qatar day', () => {
+    const orders = [
+      { id: 'today', events: { event_date: '2026-11-07T21:00:00Z' } },
+      { id: 'later', events: { event_date: '2026-11-14T06:00:00Z' } },
+    ];
+    expect(bookingsForDay(orders, '2026-11-08').map(o => o.id)).toEqual(['today']);
+    expect(bookingChanges(new Set(['today']), new Map(), orders, []).bookings.map(o => o.id)).toEqual(['later']);
+    expect(bookingsForDay(orders, null)).toEqual(orders);
+  });
   it('reports the exact added stock separately for equal types on different event days', () => {
     expect(stockIncreases(new Map([['day1', 100], ['day2', 200]]), [
       { id: 'day1', event_id: 'one', type: 'normal', available_quantity: 100 },

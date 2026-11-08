@@ -21,7 +21,8 @@ import { isLiveNow, type LiveRefreshMode } from "@/lib/liveSchedule";
 import { pickActualEventIds } from "@/lib/actualEvent";
 import { buildPersonTicketTotals, personTotalFromMap } from "@/lib/personTicketTotals";
 import { CountryFlag } from "@/components/CountryFlag";
-import { LIVE_BOOKINGS_REFRESH_MS, stockIncreases, bookingChanges, type LiveStock } from "@/lib/liveBookingChanges";
+import { LIVE_BOOKINGS_REFRESH_MS, stockIncreases, bookingChanges, bookingsForDay, type LiveStock } from "@/lib/liveBookingChanges";
+import { fullscreenActive, toggleBrowserFullscreen } from "@/lib/browserSupport";
 
 const QATAR_TIMEZONE = "Asia/Qatar";
 
@@ -45,7 +46,7 @@ let notificationAudio: AudioContext | undefined;
 const getNotificationAudio = () => {
   const Audio = window.AudioContext || (window as any).webkitAudioContext;
   notificationAudio ??= new Audio();
-  if (notificationAudio?.state === 'suspended') void notificationAudio.resume();
+  if (notificationAudio?.state === 'suspended') void notificationAudio.resume().catch(() => undefined);
   return notificationAudio as AudioContext;
 };
 
@@ -382,6 +383,10 @@ const LiveBookings = ({ viewerPassword }: { viewerPassword?: string | null } = {
   const previousAttendanceRef = useRef<Map<string, boolean>>(new Map());
   const snapshotScopeRef = useRef<string | null>(null);
   const fetchInProgressRef = useRef(false);
+  const refreshPendingRef = useRef(false);
+  const refreshLatestRef = useRef<() => void>(() => {});
+  const mountedRef = useRef(true);
+  useEffect(() => { mountedRef.current = true; return () => { mountedRef.current = false; }; }, []);
   const capacityQueueRef = useRef<Array<{ ticketType: string; increase: number; newCapacity: number }>>([]);
   const capacityDismissTimeoutRef = useRef<number | null>(null);
   const [stats, setStats] = useState({
@@ -773,7 +778,7 @@ const LiveBookings = ({ viewerPassword }: { viewerPassword?: string | null } = {
   }, [showCapacityNotification]);
 
   useEffect(() => {
-    const unlock = () => { getNotificationAudio(); };
+    const unlock = () => { try { getNotificationAudio(); } catch { /* visual alerts still work without audio */ } };
     document.addEventListener('pointerdown', unlock, { once: true });
     document.addEventListener('keydown', unlock, { once: true });
     return () => {
@@ -785,11 +790,15 @@ const LiveBookings = ({ viewerPassword }: { viewerPassword?: string | null } = {
 
   useEffect(() => {
     const handleFullscreenChange = () => {
-      setIsFullscreen(!!document.fullscreenElement);
+      setIsFullscreen(fullscreenActive());
     };
 
     document.addEventListener('fullscreenchange', handleFullscreenChange);
-    return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
+    document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
+    return () => {
+      document.removeEventListener('fullscreenchange', handleFullscreenChange);
+      document.removeEventListener('webkitfullscreenchange', handleFullscreenChange);
+    };
   }, []);
 
   const fetchSettings = async () => {
@@ -814,21 +823,23 @@ const LiveBookings = ({ viewerPassword }: { viewerPassword?: string | null } = {
   };
 
   const toggleFullscreen = () => {
-    if (!document.fullscreenElement) {
-      document.documentElement.requestFullscreen().catch(err => {
-        toast.error("لا يمكن تفعيل وضع ملء الشاشة");
-      });
-    } else {
-      document.exitFullscreen();
-    }
+    void toggleBrowserFullscreen().catch(() => toast.error("لا يمكن تفعيل وضع ملء الشاشة"));
   };
 
   const fetchBookings = async (useRefDate = false) => {
-    if (fetchInProgressRef.current) return;
+    if (fetchInProgressRef.current) { refreshPendingRef.current = true; return; }
     fetchInProgressRef.current = true;
     const dateToUse = useRefDate ? selectedDateRef.current : selectedDate;
 
     try {
+      // Never let an empty active-event scope turn into an unrestricted query.
+      if (!actualEventIdsRef.current.length) {
+        setBookings([]);
+        setTicketHolders([]);
+        setTicketCapacities({});
+        calculateStats([], []);
+        return;
+      }
       const PAGE_SIZE = 1000;
       const allOrders: any[] = [];
 
@@ -841,17 +852,11 @@ const LiveBookings = ({ viewerPassword }: { viewerPassword?: string | null } = {
         dateStr = `${y}-${m}-${d}`;
       }
 
-      let nextDayStrForFeed: string | null = null;
-      if (dateStr && dateToUse) {
-        const nd = new Date(dateToUse);
-        nd.setDate(nd.getDate() + 1);
-        nextDayStrForFeed = `${nd.getFullYear()}-${String(nd.getMonth() + 1).padStart(2, '0')}-${String(nd.getDate()).padStart(2, '0')}`;
-      }
       let feed: { orders: any[]; logs: any[]; capacities: any[] } | null = null;
       if (viewerPassword) {
         feed = await fetchLiveFeed(viewerPassword, "bookings", {
-          dateStr,
-          nextDayStr: nextDayStrForFeed,
+          dateStr: null,
+          nextDayStr: null,
           eventIds: actualEventIdsRef.current,
         });
         allOrders.push(...(feed?.orders ?? []));
@@ -870,10 +875,7 @@ const LiveBookings = ({ viewerPassword }: { viewerPassword?: string | null } = {
           query = query.in("event_id", actualEventIdsRef.current);
         }
 
-        // Apply server-side date range filter (event_date is timestamp, not date)
-        if (dateStr) {
-          query = query.gte("events.event_date", dateStr).lt("events.event_date", nextDayStrForFeed ?? dateStr);
-        }
+        // Read every scoped festival day so alerts are independent of the display date.
 
         const { data, error } = await query;
         if (error) throw error;
@@ -889,9 +891,11 @@ const LiveBookings = ({ viewerPassword }: { viewerPassword?: string | null } = {
         allTicketHolders.push(...extractOrderTicketHolders(order));
       });
 
-      setBookings(allOrders);
-      setTicketHolders(allTicketHolders);
-      calculateStats(allOrders, allTicketHolders);
+      const displayedOrders = bookingsForDay(allOrders, dateStr);
+      const displayedHolders = displayedOrders.flatMap(extractOrderTicketHolders);
+      setBookings(displayedOrders);
+      setTicketHolders(displayedHolders);
+      calculateStats(displayedOrders, displayedHolders);
 
       // Fetch invoice download logs
       const allDownloadLogs = feed
@@ -912,7 +916,7 @@ const LiveBookings = ({ viewerPassword }: { viewerPassword?: string | null } = {
       setInvoiceDownloadedRefs(downloadedRefs);
       
       // Compare polling snapshots for every viewer, including password-only access.
-      const eventId = allOrders[0]?.event_id ?? actualEventIdsRef.current[0];
+      const eventId = displayedOrders[0]?.event_id ?? actualEventIdsRef.current[0];
       if (feed) {
         applyStockSnapshot(feed.capacities, eventId);
       } else if (actualEventIdsRef.current.length) {
@@ -922,7 +926,7 @@ const LiveBookings = ({ viewerPassword }: { viewerPassword?: string | null } = {
         applyStockSnapshot(stock ?? [], eventId);
       }
 
-      const scope = `${actualEventIdsRef.current.join(',')}:${dateStr ?? 'all'}`;
+      const scope = actualEventIdsRef.current.join(',');
       if (snapshotScopeRef.current === scope) {
         const changes = bookingChanges(previousOrdersRef.current, previousAttendanceRef.current, allOrders, allTicketHolders);
         changes.bookings.forEach(showNewBookingNotification);
@@ -954,8 +958,13 @@ const LiveBookings = ({ viewerPassword }: { viewerPassword?: string | null } = {
     } finally {
       fetchInProgressRef.current = false;
       setLoading(false);
+      if (refreshPendingRef.current && mountedRef.current) {
+        refreshPendingRef.current = false;
+        refreshLatestRef.current();
+      }
     }
   };
+  refreshLatestRef.current = () => { void fetchBookings(true); };
 
   // Fetch daily sales statistics - calculate revenue by ticket holder type using ticket prices
   const fetchDailySales = async () => {
