@@ -1,5 +1,8 @@
 # Task Roadmap
 
+## Live attendance display
+- [x] Normalize both live reads before cards, tables, statistics and notification snapshots: POS always displays present; online attendance retains scanner holder state. Nine tests passed, build clean; authenticated existing POS cards/table verified and a simulated scanned-holder response updated on the next poll (2 → 3 present), no runtime errors. No real customer was checked in; stored attendance and payments unchanged.
+
 ## Remaining monitoring and browser errors
 - [x] Verified all three findings: checkout and staff-link evidence stale; invoice-history polling restored to 30 seconds, paused while hidden and overlap guarded. Authenticated invoices made zero delivery-history calls during a 6.5-second observation; no pending monitoring findings remain.
 - [x] Live refresh queues catch-up, empty scope cannot read old bookings, and date selection no longer hides other festival-day notifications. Older-browser fullscreen/audio failures are handled. Real admin stock increase produced popup, two oscillators and animated dismissal at ten-second refresh; original capacity restored. Mobile simulated password-feed alert appeared/dismissed with no overflow; actual password authentication remains unverified.
