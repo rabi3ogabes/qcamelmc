@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Plus, Save, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { secureUuid } from "@/lib/browserSupport";
 
 interface Template { id: string; name: string; body: string; enabled: boolean; }
 export function WhatsAppTemplates() {
@@ -31,7 +32,7 @@ export function WhatsAppTemplates() {
   return <Card className="p-6 space-y-4" dir="rtl">
     <div className="flex flex-wrap items-center justify-between gap-3">
       <h3 className="text-lg font-semibold">رسائل فواتير واتساب — اختيار عشوائي</h3>
-      <Button variant="outline" disabled={templates.length >= 50} onClick={() => setTemplates(t => [...t, { id: crypto.randomUUID(), name: "", body: "", enabled: true }])}><Plus className="h-4 w-4 ml-2" />إضافة رسالة</Button>
+      <Button variant="outline" disabled={templates.length >= 50} onClick={() => setTemplates(t => [...t, { id: secureUuid(), name: "", body: "", enabled: true }])}><Plus className="h-4 w-4 ml-2" />إضافة رسالة</Button>
     </div>
     {templates.map((t, i) => <div key={t.id} className="border-b border-border pb-4 space-y-3">
       <div className="flex items-center gap-3">

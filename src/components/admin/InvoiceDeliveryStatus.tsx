@@ -13,7 +13,11 @@ export function InvoiceDeliveryStatus({ orderId, emailSentAt, legacyMessage, leg
   const [expanded, setExpanded] = useState(history);
   useEffect(() => {
     let active = true;
+    let loading = false;
     const load = async () => {
+      if (loading || document.visibilityState === "hidden") return;
+      loading = true;
+      try {
       const rows: Event[] = [];
       for (let from = 0; ; from += 1000) {
         const { data, error } = await supabase.from("email_delivery_events").select("id, channel, status, attempt, detail, template_name, message_body, created_at, provider_message_id, provider_confirmed_at, provider_status").eq("order_id", orderId).order("created_at", { ascending: false }).range(from, from + 999);
@@ -22,10 +26,12 @@ export function InvoiceDeliveryStatus({ orderId, emailSentAt, legacyMessage, leg
         if (!data || data.length < 1000) break;
       }
       if (active) { setError(false); setEvents(rows); }
+      } finally { loading = false; }
     };
     load();
-    const timer = setInterval(load, 5000);
-    return () => { active = false; clearInterval(timer); };
+    const timer = setInterval(load, 30000);
+    document.addEventListener("visibilitychange", load);
+    return () => { active = false; clearInterval(timer); document.removeEventListener("visibilitychange", load); };
   }, [orderId]);
   const email = deliveryCounts(events, "email");
   const whatsapp = deliveryCounts(events, "whatsapp");

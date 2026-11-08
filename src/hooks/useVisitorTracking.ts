@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { secureUuid } from "@/lib/browserSupport";
 
 const SESSION_KEY = "visitor_session_id";
 const REGISTERED_KEY = "visitor_session_registered";
@@ -29,7 +30,7 @@ const shouldTrackPage = (): boolean => {
 const getSessionId = (): string => {
   let value = sessionStorage.getItem(SESSION_KEY);
   if (!value || value.length < 32) {
-    value = crypto.randomUUID();
+    value = secureUuid();
     sessionStorage.setItem(SESSION_KEY, value);
   }
   return value;

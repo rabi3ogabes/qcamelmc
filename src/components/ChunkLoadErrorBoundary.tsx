@@ -52,20 +52,29 @@ export default class ChunkLoadErrorBoundary extends React.Component<Props, State
 
   componentDidCatch(error: Error, info: React.ErrorInfo) {
     reportError("تعطل عرض الصفحة", error?.message ?? String(error), `${error?.stack ?? ""}\n${info.componentStack ?? ""}`);
+    this.recoverChunk();
   }
 
   componentDidUpdate() {
+    this.recoverChunk();
+  }
+
+  private recoverChunk = () => {
     if (!this.state.hasError) return;
 
     // Auto-recover once if this looks like a cached/old chunk issue after a deploy.
-    if (isLikelyChunkLoadError(this.state.error) && !hasRecentlyReloaded()) {
-      sessionStorage.setItem(RELOAD_GUARD_KEY, String(Date.now()));
-      hardReloadWithCacheBust();
+    try {
+      if (isLikelyChunkLoadError(this.state.error) && !hasRecentlyReloaded()) {
+        sessionStorage.setItem(RELOAD_GUARD_KEY, String(Date.now()));
+        hardReloadWithCacheBust();
+      }
+    } catch {
+      // Restricted browser storage must leave the manual recovery button usable.
     }
-  }
+  };
 
   private handleReload = () => {
-    sessionStorage.setItem(RELOAD_GUARD_KEY, String(Date.now()));
+    try { sessionStorage.setItem(RELOAD_GUARD_KEY, String(Date.now())); } catch { /* storage may be blocked */ }
     hardReloadWithCacheBust();
   };
 

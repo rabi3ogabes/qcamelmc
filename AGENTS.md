@@ -27,3 +27,4 @@
 - QRScanner reads all phone/code/reference results through ticket-checkin's server-resolved active festival scope; history, searches and admin-only attendance resets share that scope to exclude previous-event customers consistently.
 - Admin and staff orders read through staff-orders with a server-owned festival range and verified staff identity; staff views remain read-only and existing admin-only mutation authorization is preserved so passcode access never widens table permissions.
 - Live booking nationality flags use bundled SVG artwork via CountryFlag, not system emoji glyphs, so tables, cards and notifications render consistently across browsers.
+- Browser compatibility uses secureUuid and fullscreen helpers in browserSupport; crypto fallbacks retain secure randomness and unsupported fullscreen leaves the page usable.

@@ -1,5 +1,10 @@
 # Task Roadmap
 
+## Remaining monitoring and browser errors
+- [ ] Verify all three pending findings and reduce invoice-history polling pressure.
+- [ ] Harden live refresh catch-up, empty-event scope and older-browser fullscreen/audio handling; verify stock popup and ten-second refresh.
+- [ ] Repair secure random IDs on older browsers and cached-page recovery on first render; run regression tests.
+
 ## Live bookings ten-second updates
 - [x] Refresh admin/password viewers every 10 seconds; compare booking/attendance snapshots and ticket-ID stock across festival days. Feed deployed; four regression tests passed. Authenticated UI stock increase showed «تمت إضافة 1 تذاكر», two beep oscillators and automatic dismissal, with a measured 10-second refresh gap; original stock restored. Password-view end-to-end remains unverified.
 
