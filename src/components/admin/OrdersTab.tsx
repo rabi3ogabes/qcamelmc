@@ -25,7 +25,8 @@ import { format } from "date-fns";
 import { ar } from "date-fns/locale";
 import { toZonedTime } from "date-fns-tz";
 import { useOrdersQuery } from "@/hooks/useOrdersQuery";
-import { festivalDateWindow, isFestivalDay } from "@/lib/festivalWindow";
+import { ORDER_FESTIVAL, isOrderFestivalDate } from "../../../supabase/functions/staff-orders/policy";
+import { qatarDayKey, formatQatarDate } from "@/lib/qatarTime";
 
 interface TicketHolder {
   id: string;
@@ -113,7 +114,7 @@ interface Order {
 }
 const PAGE_SIZE = 30;
 
-export const OrdersTab = () => {
+export const OrdersTab = ({ readOnly = false }: { readOnly?: boolean }) => {
   const {
     t
   } = useTranslation();
@@ -134,7 +135,6 @@ export const OrdersTab = () => {
   const [qrCodeImage, setQrCodeImage] = useState<string | null>(null);
   const [generatingQrCodes, setGeneratingQrCodes] = useState(false);
   const [orderToDelete, setOrderToDelete] = useState<string | null>(null);
-  const [showDeleteButton, setShowDeleteButton] = useState(false);
   const [showGenerateQrButton, setShowGenerateQrButton] = useState(false);
   const [showUpcomingOnly, setShowUpcomingOnly] = useState(false);
   const [page, setPage] = useState(0);
@@ -160,9 +160,9 @@ export const OrdersTab = () => {
 
   // The live festival only: every day of the current season (7 → 14 November
   // 2026), never an archived one. No season at all means no orders shown.
-  const festivalWindow = useMemo(() => festivalDateWindow(availableEvents), [availableEvents]);
+  const festivalWindow = ORDER_FESTIVAL;
   const festivalDays = useMemo(
-    () => availableEvents.filter(event => !event.is_archived && isFestivalDay(event.event_date, festivalWindow)),
+    () => availableEvents.filter(event => isOrderFestivalDate(event.event_date)).filter((event, index, events) => events.findIndex(other => qatarDayKey(other.event_date) === qatarDayKey(event.event_date)) === index),
     [availableEvents, festivalWindow]
   );
 
@@ -171,6 +171,8 @@ export const OrdersTab = () => {
     totalCount,
     stats: serverStats,
     loading,
+    canManage: serverCanManage,
+    error: ordersError,
     refresh: onRefresh
   } = useOrdersQuery({
     status: activeTab,
@@ -184,7 +186,8 @@ export const OrdersTab = () => {
     pageSize: PAGE_SIZE
   });
 
-  const { data: sadadTx, loading: sadadTxLoading } = useSadadTransactions(orders);
+  const canManage = serverCanManage && !readOnly;
+  const { data: sadadTx, loading: sadadTxLoading } = useSadadTransactions(canManage ? orders : []);
   const isSearching = debouncedSearch.trim().length > 0;
   const totalPages = isSearching ? 1 : Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
 
@@ -214,18 +217,17 @@ export const OrdersTab = () => {
     localStorage.setItem("ordersViewMode", viewMode);
   }, [viewMode]);
   useEffect(() => {
-    fetchSettings();
+    if (canManage) fetchSettings();
     fetchAvailableEvents();
-  }, []);
+  }, [canManage]);
   const fetchSettings = async () => {
     try {
       const {
         data,
         error
-      } = await supabase.from("settings").select("show_delete_customer_button, show_generate_qr_button").limit(1).maybeSingle();
+      } = await supabase.from("settings").select("show_generate_qr_button").limit(1).maybeSingle();
       if (error) throw error;
       if (data) {
-        setShowDeleteButton(data.show_delete_customer_button || false);
         setShowGenerateQrButton(data.show_generate_qr_button || false);
       }
     } catch (error) {
@@ -239,7 +241,7 @@ export const OrdersTab = () => {
       const {
         data,
         error
-      } = await supabase.from("events").select("id, title, event_date, is_archived").order("event_date", {
+      } = await supabase.from("events").select("id, title, event_date, is_archived").gte("event_date", ORDER_FESTIVAL.startUtc).lt("event_date", ORDER_FESTIVAL.endUtc).order("event_date", {
         ascending: false
       });
       if (error) throw error;
@@ -249,6 +251,7 @@ export const OrdersTab = () => {
     }
   };
   const changeOrderEvent = async (orderId: string, newEventId: string) => {
+    if (!canManage || !availableEvents.some(event => event.id === newEventId && isOrderFestivalDate(event.event_date))) return;
     try {
       // Call edge function to change event and regenerate QR codes
       const {
@@ -299,6 +302,7 @@ export const OrdersTab = () => {
     };
   }, [selectedOrder, onRefresh]);
   const generateMissingQrCodes = async () => {
+    if (!canManage) return;
     setGeneratingQrCodes(true);
     try {
       const {
@@ -318,47 +322,19 @@ export const OrdersTab = () => {
   const viewOrderDetails = async (orderId: string) => {
     setSelectedOrder(orderId);
     try {
-      // First get the order to know which event_id
-      const {
-        data: orderData,
-        error: orderError
-      } = await supabase.from("orders").select("event_id").eq("id", orderId).single();
-      if (orderError) throw orderError;
-
-      // Fetch ticket holders with ticket prices
-      const {
-        data,
-        error
-      } = await supabase.from("ticket_holders").select(`
-          *,
-          orders!inner(event_id)
-        `).eq("order_id", orderId);
+      setTicketHolders([]);
+      const { data, error } = await supabase.functions.invoke("staff-orders", {
+        body: { mode: "details", orderId, passcode: getStaffPasscode() },
+      });
       if (error) throw error;
-
-      // Fetch ticket prices for this event
-      const {
-        data: ticketsData,
-        error: ticketsError
-      } = await supabase.from("tickets").select("type, price").eq("event_id", orderData.event_id);
-      if (ticketsError) throw ticketsError;
-
-      // Add prices to ticket holders
-      const ticketPriceMap = ticketsData?.reduce((acc, ticket) => {
-        acc[ticket.type] = ticket.price;
-        return acc;
-      }, {} as Record<string, number>) || {};
-      const holdersWithPrices = (data || []).map(holder => ({
-        ...holder,
-        price: ticketPriceMap[holder.ticket_type] || 0
-      }));
-      console.log("Ticket holders data with prices:", holdersWithPrices);
-      setTicketHolders(holdersWithPrices as any);
+      setTicketHolders(data.holders ?? []);
     } catch (error) {
       console.error("Error fetching ticket holders:", error);
       toast.error(t("failedToLoad"));
     }
   };
   const confirmPayment = async (orderId: string) => {
+    if (!canManage) return;
     try {
       const {
         error
@@ -373,6 +349,7 @@ export const OrdersTab = () => {
     }
   };
   const togglePaymentStatus = async (orderId: string, currentStatus: string) => {
+    if (!canManage) return;
     try {
       console.log('=== Starting togglePaymentStatus ===');
       console.log('Order ID:', orderId);
@@ -543,6 +520,7 @@ export const OrdersTab = () => {
   };
   /** Ask Sadad directly whether this order was paid (for orders that could not be confirmed automatically). */
   const verifyWithSadad = async (order: Order) => {
+    if (!canManage) return;
     setVerifying(order.id);
     const result = await api.verifyPayment(order.booking_reference);
     setVerifying(null);
@@ -557,6 +535,7 @@ export const OrdersTab = () => {
 
   /** Cancel an unpaid booking and put its seats back on sale. */
   const releaseOrder = async (order: Order) => {
+    if (!canManage) return;
     if (!confirm(`إلغاء الحجز ${order.booking_reference} وإعادة تذاكره للبيع؟`)) return;
     const result = await api.cancelOrder(order.id, "released by admin");
     if (result.ok === false) {
@@ -568,6 +547,7 @@ export const OrdersTab = () => {
   };
 
   const deleteOrder = async () => {
+    if (!canManage) return;
     if (!orderToDelete) {
       console.error("No order selected for deletion");
       return;
@@ -670,7 +650,7 @@ export const OrdersTab = () => {
 
         <div className="min-w-0 text-end">
           <div className="flex items-center justify-end gap-1.5">
-            <EventShiftBadge orderId={order.id} />
+            {canManage && <EventShiftBadge orderId={order.id} />}
             <button
               onClick={() => {
                 navigator.clipboard.writeText(order.booking_reference);
@@ -720,7 +700,7 @@ export const OrdersTab = () => {
           </div>
         </div>
 
-        {order.payment_method === "sadad" && <SadadTxStrip summary={sadadTx[order.id]} loading={sadadTxLoading} />}
+        {canManage && order.payment_method === "sadad" && <SadadTxStrip summary={sadadTx[order.id]} loading={sadadTxLoading} />}
 
         {/* Tickets */}
         <div className="rounded-lg border bg-muted/30 px-3 py-2 flex items-center justify-between gap-2">
@@ -744,31 +724,31 @@ export const OrdersTab = () => {
             <Eye className="w-3 h-3" />
             {t("viewDetails")}
           </Button>
-          {order.payment_method === "sadad" && <Button size="sm" variant="outline" onClick={() => setSadadTxOrder({ id: order.id, ref: order.booking_reference })} className="font-lusail flex items-center gap-1 text-xs px-2 h-8 border-primary/40 text-primary hover:bg-primary/10">
+          {canManage && order.payment_method === "sadad" && <Button size="sm" variant="outline" onClick={() => setSadadTxOrder({ id: order.id, ref: order.booking_reference })} className="font-lusail flex items-center gap-1 text-xs px-2 h-8 border-primary/40 text-primary hover:bg-primary/10">
               <ReceiptText className="w-3 h-3" />
               تفاصيل سداد
             </Button>}
-          {order.payment_method === "sadad" && order.payment_status !== "confirmed" && order.payment_note !== "admin_cancelled" && <Button size="sm" variant="secondary" disabled={verifying === order.id} onClick={() => verifyWithSadad(order)} className="font-lusail flex items-center gap-1 text-xs px-2 h-8">
+          {canManage && order.payment_method === "sadad" && order.payment_status !== "confirmed" && order.payment_note !== "admin_cancelled" && <Button size="sm" variant="secondary" disabled={verifying === order.id} onClick={() => verifyWithSadad(order)} className="font-lusail flex items-center gap-1 text-xs px-2 h-8">
               {verifying === order.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <ShieldCheck className="w-3 h-3" />}
               تحقق من سداد
             </Button>}
-          {order.payment_status === "pending" && <Button size="sm" variant="outline" onClick={() => releaseOrder(order)} className="font-lusail flex items-center gap-1 text-xs px-2 h-8">
+          {canManage && order.payment_status === "pending" && <Button size="sm" variant="outline" onClick={() => releaseOrder(order)} className="font-lusail flex items-center gap-1 text-xs px-2 h-8">
               <Undo2 className="w-3 h-3" />
               إلغاء وإعادة للبيع
             </Button>}
-          {order.payment_status === "pending" && <Button size="sm" onClick={() => togglePaymentStatus(order.id, order.payment_status)} className="font-lusail flex items-center gap-1 text-xs px-2 h-8 bg-green-600 hover:bg-green-700 text-white">
+          {canManage && order.payment_status === "pending" && <Button size="sm" onClick={() => togglePaymentStatus(order.id, order.payment_status)} className="font-lusail flex items-center gap-1 text-xs px-2 h-8 bg-green-600 hover:bg-green-700 text-white">
               <CheckCircle className="w-3 h-3" />
               تأكيد الدفع
             </Button>}
-          {order.payment_status === "confirmed" && <Button size="sm" variant="destructive" onClick={() => togglePaymentStatus(order.id, order.payment_status)} className="font-lusail flex items-center gap-1 text-xs px-2 h-8">
+          {canManage && order.payment_status === "confirmed" && <Button size="sm" variant="destructive" onClick={() => togglePaymentStatus(order.id, order.payment_status)} className="font-lusail flex items-center gap-1 text-xs px-2 h-8">
               <XCircle className="w-3 h-3" />
               إلغاء التأكيد
             </Button>}
-          {order.payment_status === "cancelled" && <Button size="sm" onClick={() => togglePaymentStatus(order.id, order.payment_status)} className="font-lusail flex items-center gap-1 text-xs px-2 h-8 bg-green-600 hover:bg-green-700 text-white">
+          {canManage && order.payment_status === "cancelled" && <Button size="sm" onClick={() => togglePaymentStatus(order.id, order.payment_status)} className="font-lusail flex items-center gap-1 text-xs px-2 h-8 bg-green-600 hover:bg-green-700 text-white">
               <CheckCircle className="w-3 h-3" />
               تغيير إلى نجح
             </Button>}
-          {<Button size="icon" variant="destructive" onClick={e => {
+          {canManage && <Button size="icon" variant="destructive" onClick={e => {
             e.stopPropagation();
             setOrderToDelete(order.id);
           }} className="h-8 w-8" title="حذف الطلب">
@@ -777,15 +757,15 @@ export const OrdersTab = () => {
         </div>
 
         {/* Change event date */}
-        {order.events && <div className="flex items-center gap-2">
+        {canManage && order.events && <div className="flex items-center gap-2">
             <span className="text-[11px] text-muted-foreground shrink-0">تغيير التاريخ:</span>
             <Select value={order.event_id} onValueChange={newEventId => changeOrderEvent(order.id, newEventId)}>
               <SelectTrigger className="h-8 text-xs font-lusail flex-1">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {availableEvents.map(event => <SelectItem key={event.id} value={event.id} className="font-lusail text-xs">
-                    {format(new Date(event.event_date), 'dd/MM/yyyy')} - {event.title}
+                {availableEvents.filter(event => isOrderFestivalDate(event.event_date)).map(event => <SelectItem key={event.id} value={event.id} className="font-lusail text-xs">
+                    {formatQatarDate(event.event_date, { day: "2-digit", month: "2-digit", year: "numeric" })} - {event.title}
                   </SelectItem>)}
               </SelectContent>
             </Select>
@@ -796,6 +776,7 @@ export const OrdersTab = () => {
       <div className="pr-5 pl-4 py-2 border-t bg-muted/40 flex items-center justify-between gap-2">
         <Badge variant={order.sadad_manually_verified ? "default" : "secondary"} onClick={async e => {
           e.stopPropagation();
+          if (!canManage) return;
           try {
             const { error } = await supabase.from("orders").update({
               sadad_manually_verified: !order.sadad_manually_verified
@@ -807,7 +788,7 @@ export const OrdersTab = () => {
             console.error("Error updating verification status:", error);
             toast.error("فشل في تحديث حالة التأكد");
           }
-        }} className={`font-lusail text-[11px] px-2.5 py-1 cursor-pointer transition-opacity hover:opacity-80 ${order.sadad_manually_verified ? "bg-green-600 hover:bg-green-700 text-white border-green-600" : "bg-muted text-muted-foreground hover:bg-muted/80"}`} title={order.sadad_manually_verified ? "اضغط لإلغاء التأكد" : "اضغط للتأكد من الدفع"}>
+        }} className={`font-lusail text-[11px] px-2.5 py-1 cursor-pointer transition-opacity hover:opacity-80 ${order.sadad_manually_verified ? "bg-green-600 hover:bg-green-700 text-white border-green-600" : "bg-muted text-muted-foreground hover:bg-muted/80"}`} title={canManage ? (order.sadad_manually_verified ? "اضغط لإلغاء التأكد" : "اضغط للتأكد من الدفع") : "حالة تأكيد سداد"}>
           {order.sadad_manually_verified ? <><CheckCircle className="w-3 h-3 ms-1 inline" />تم تأكيد سداد</> : <><XCircle className="w-3 h-3 ms-1 inline" />تأكيد سداد</>}
         </Badge>
         <span className="text-[11px] text-muted-foreground flex items-center justify-end gap-1">
@@ -834,9 +815,10 @@ export const OrdersTab = () => {
   };
 
   return <div dir="rtl" className="space-y-6">
+      {ordersError && <div role="alert" className="flex items-center gap-3 text-destructive"><p>{ordersError}</p><Button variant="outline" onClick={() => onRefresh()}>إعادة المحاولة</Button></div>}
       <SadadTransactionDialog orderId={sadadTxOrder?.id ?? null} bookingReference={sadadTxOrder?.ref} onOpenChange={open => !open && setSadadTxOrder(null)} />
       {/* Generate QR Codes Button */}
-      {showGenerateQrButton && <div className="flex justify-start">
+      {canManage && showGenerateQrButton && <div className="flex justify-start">
           <Button onClick={generateMissingQrCodes} disabled={generatingQrCodes} className="font-lusail">
             {generatingQrCodes ? <>
                 <Loader2 className="w-4 h-4 ms-2 animate-spin" />
@@ -903,7 +885,7 @@ export const OrdersTab = () => {
             <SelectContent>
               <SelectItem value="all" className="font-lusail">جميع الفعاليات</SelectItem>
               {festivalDays.map(event => <SelectItem key={event.id} value={event.id} className="font-lusail">
-                  {format(new Date(event.event_date), 'dd/MM/yyyy')}
+                  {formatQatarDate(event.event_date, { day: "2-digit", month: "2-digit", year: "numeric" })}
                 </SelectItem>)}
             </SelectContent>
           </Select>
@@ -1072,7 +1054,7 @@ export const OrdersTab = () => {
       </Dialog>
 
       {/* Delete Confirmation Dialog */}
-      <AlertDialog open={!!orderToDelete} onOpenChange={() => setOrderToDelete(null)}>
+      <AlertDialog open={canManage && !!orderToDelete} onOpenChange={() => setOrderToDelete(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle className="font-lusail">تأكيد الحذف</AlertDialogTitle>

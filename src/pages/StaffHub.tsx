@@ -3,13 +3,14 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { CreditCard, ScanLine, Receipt, ExternalLink, LogOut, ArrowLeft, ClipboardCheck, Users } from "lucide-react";
+import { CreditCard, ScanLine, Receipt, ExternalLink, LogOut, ArrowLeft, ClipboardCheck, Users, ListOrdered } from "lucide-react";
 import { useStaffRole } from "@/hooks/useStaffRole";
 import { getStaffPasscode, grantStaffAccess, revokeStaffAccess } from "@/lib/staffAccess";
 import { openStaffPage } from "@/lib/openStaffPage";
 
 
 const LINKS = [
+  { label: "الطلبات", hint: "حجوزات أيام المهرجان", icon: ListOrdered, to: "/staff/orders" },
   {
     label: "نقاط البيع",
     hint: "بيع التذاكر مباشرة",

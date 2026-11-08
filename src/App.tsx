@@ -38,6 +38,7 @@ const AdminPOS = lazy(() => import("./pages/AdminPOS"));
 const POSReceiptPage = lazy(() => import("./pages/POSReceiptPage"));
 const TicketViewer = lazy(() => import("./pages/TicketViewer"));
 const StaffHub = lazy(() => import("./pages/StaffHub"));
+const StaffOrders = lazy(() => import("./pages/StaffOrders"));
 const StaffAttendance = lazy(() => import("./pages/StaffAttendance"));
 const StaffGateBoard = lazy(() => import("./pages/StaffGateBoard"));
 const OAuthConsent = lazy(() => import("./pages/OAuthConsent"));
@@ -105,6 +106,7 @@ const App = () => (
                     <Route path="/live-bookings" element={<LiveBookingsGate />} />
                     <Route path="/live-visitors" element={<RequireAdmin adminOnly><LiveVisitors /></RequireAdmin>} />
                     <Route path="/staff" element={<RequireAdmin><StaffHub /></RequireAdmin>} />
+                    <Route path="/staff/orders" element={<RequireAdmin><StaffOrders /></RequireAdmin>} />
                     <Route path="/staff/attendance" element={<RequireAdmin><StaffAttendance /></RequireAdmin>} />
                     <Route path="/staff/gate" element={<RequireAdmin><StaffGateBoard /></RequireAdmin>} />
                     <Route path="/admin/login" element={<AdminLogin />} />
