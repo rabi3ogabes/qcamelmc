@@ -1,5 +1,8 @@
 # Task Roadmap
 
+## Live bookings ten-second updates
+- [ ] Refresh both admin and password viewers every 10 seconds; detect bookings, check-ins and per-event stock increases without duplicate alerts; verify popup and sound.
+
 ## Staff orders
 - [x] Add /staff/orders and hub link with server-validated read-only reads; admin controls remain available, staff-page delete/cancel/date controls absent. Existing table mutation policies remain admin-only; read endpoint rejects mutations (403) and anonymous reads (401). Actual shared-password/moderator session remains unverified; staff authorization unit tests pass.
 - [x] Scope both order pages and date targets to 7–14 November 2026 in Qatar; authenticated list/details verified, 99 confirmed / 54 failed, old-season search empty, mobile has no horizontal overflow; 55 authorization/range tests passed. staff-orders and change-order-event deployed; build clean.
