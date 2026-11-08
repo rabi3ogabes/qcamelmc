@@ -407,6 +407,7 @@ const LiveBookings = ({ viewerPassword }: { viewerPassword?: string | null } = {
     newCapacity: number;
   } | null>(null);
   const [showCapacityNotification, setShowCapacityNotification] = useState(false);
+  const [capacityLeaving, setCapacityLeaving] = useState(false);
   const [invoiceDownloadedRefs, setInvoiceDownloadedRefs] = useState<Set<string>>(new Set());
 
   const dismissCapacityNotification = useCallback(() => {
