@@ -20,6 +20,7 @@ import { fetchLiveFeed } from "@/lib/liveBookingsAccess";
 import { isLiveNow, type LiveRefreshMode } from "@/lib/liveSchedule";
 import { pickActualEventIds } from "@/lib/actualEvent";
 import { buildPersonTicketTotals, personTotalFromMap } from "@/lib/personTicketTotals";
+import { CountryFlag } from "@/components/CountryFlag";
 
 const QATAR_TIMEZONE = "Asia/Qatar";
 
@@ -443,39 +444,7 @@ const LiveBookings = ({ viewerPassword }: { viewerPassword?: string | null } = {
   }, []);
 
   const getNationalityFlag = (nationality: string) => {
-    const flagMap: { [key: string]: string } = {
-      'قطر': '🇶🇦',
-      'السعودية': '🇸🇦',
-      'الإمارات': '🇦🇪',
-      'الكويت': '🇰🇼',
-      'البحرين': '🇧🇭',
-      'عمان': '🇴🇲',
-      'مصر': '🇪🇬',
-      'الأردن': '🇯🇴',
-      'لبنان': '🇱🇧',
-      'سوريا': '🇸🇾',
-      'العراق': '🇮🇶',
-      'اليمن': '🇾🇪',
-      'المغرب': '🇲🇦',
-      'الجزائر': '🇩🇿',
-      'تونس': '🇹🇳',
-      'ليبيا': '🇱🇾',
-      'السودان': '🇸🇩',
-      'فلسطين': '🇵🇸',
-      'باكستان': '🇵🇰',
-      'الهند': '🇮🇳',
-      'بنغلاديش': '🇧🇩',
-      'الفلبين': '🇵🇭',
-      'إندونيسيا': '🇮🇩',
-      'نيبال': '🇳🇵',
-      'أمريكا': '🇺🇸',
-      'بريطانيا': '🇬🇧',
-      'فرنسا': '🇫🇷',
-      'ألمانيا': '🇩🇪',
-      'إيطاليا': '🇮🇹',
-      'أسبانيا': '🇪🇸',
-    };
-    return flagMap[nationality] || '🌍';
+    return <CountryFlag nationality={nationality} />;
   };
 
   // Store selectedDate in ref for realtime callbacks
@@ -679,7 +648,10 @@ const LiveBookings = ({ viewerPassword }: { viewerPassword?: string | null } = {
         ? new Date(fullOrder.events.event_date).toLocaleDateString('ar-u-nu-latn', { day: 'numeric', month: 'long' })
         : '';
       toast.success(
-        `${flag} حجز جديد من ${nationality}\n🎫 ${quantity} تذكرة ليوم ${eventDate}`,
+        <div dir="rtl" className="text-right space-y-1">
+          <div className="flex items-center gap-2">{flag}<span>حجز جديد من {nationality}</span></div>
+          <div>🎫 {quantity} تذكرة ليوم {eventDate}</div>
+        </div>,
         {
           duration: 5000,
           style: { whiteSpace: 'pre-line', textAlign: 'right', direction: 'rtl' }
