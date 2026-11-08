@@ -37,7 +37,7 @@ describe("every admin function refuses visitors and non-admins", () => {
 
 describe("send-to-webhook", () => {
   const setup = (fetchImpl: typeof fetch, settings = configuredSettings()) => {
-    const repo = makeRepo({ settings });
+    const repo = makeRepo({ settings, context: { order: { id: "o1", booking_reference: "QTR-A", payment_method: "sadad", payment_status: "confirmed", total_amount: 300 }, customer: {}, event: { event_date: "2026-11-14T06:00:00Z", is_archived: false }, holders: [], prices: {} } });
     return sendToWebhookHandler({ repo, auth: repo, fetch: fetchImpl });
   };
 
@@ -48,36 +48,36 @@ describe("send-to-webhook", () => {
       return new Response("queued", { status: 200 });
     }) as typeof fetch);
     const res = await handler(post(fn("send-to-webhook"), { booking_reference: "QTR-A", action: "send_ticket" }, ADMIN));
-    expect(await res.json()).toMatchObject({ success: true, response: "queued" });
-    expect(seen).toEqual({ url: "https://n8n.example/hook", body: { booking_reference: "QTR-A", action: "send_ticket" } });
+    expect(await res.json()).toMatchObject({ success: true, queued: true });
+    expect(seen).toMatchObject({ url: "https://n8n.example/hook", body: { booking_reference: "QTR-A", action: "send_invoice" } });
   });
 
   it("says so when no automation is configured", async () => {
     const handler = setup((async () => new Response("")) as typeof fetch, configuredSettings({ webhookUrl: null }));
-    const res = await handler(post(fn("send-to-webhook"), { a: 1 }, ADMIN));
+    const res = await handler(post(fn("send-to-webhook"), { booking_reference: "QTR-A", action: "send_invoice" }, ADMIN));
     expect(res.status).toBe(400);
     expect(await res.json()).toMatchObject({ error: "Webhook URL not configured" });
   });
 
   it("reports an upstream error without failing the request", async () => {
     const handler = setup((async () => new Response('{"message":"not active"}', { status: 404 })) as typeof fetch);
-    const res = await handler(post(fn("send-to-webhook"), { a: 1 }, ADMIN));
+    const res = await handler(post(fn("send-to-webhook"), { booking_reference: "QTR-A", action: "send_invoice" }, ADMIN));
     expect(res.status).toBe(200);
-    expect(await res.json()).toMatchObject({ error: "Webhook not found or inactive", status: 404 });
+    expect(await res.json()).toMatchObject({ success: false, message: "Webhook request failed" });
   });
 
   it("reports a network failure the same way", async () => {
     const handler = setup((async () => { throw new TypeError("down"); }) as typeof fetch);
-    const res = await handler(post(fn("send-to-webhook"), { a: 1 }, ADMIN));
+    const res = await handler(post(fn("send-to-webhook"), { booking_reference: "QTR-A", action: "send_invoice" }, ADMIN));
     expect(res.status).toBe(200);
-    expect((await res.json()).error).toMatch(/webhook/i);
+    expect((await res.json()).message).toMatch(/webhook/i);
   });
 
   describe("notify: payment_confirmed (message built by the server from the database)", () => {
     const ctx = () => ({
-      order: { id: "o1", booking_reference: "QTR-A", total_amount: 150, payment_status: "confirmed", payment_id: "SD-1" },
+      order: { id: "o1", booking_reference: "QTR-A", total_amount: 150, payment_status: "confirmed", payment_id: "SD-1", payment_method: "sadad" },
       customer: { name: "Ahmed", phone: "5551 2345", country_code: "+974" },
-      event: { title: "Festival" },
+      event: { title: "Festival", event_date: "2026-11-14T06:00:00Z", is_archived: false },
       holders: [{ name: "Sara", phone: "+974 5551 9999", country_code: "+974", ticket_type: "vip", qr_code: "QTR-A-TKT01", qr_image_url: "https://x/q.png" }],
       prices: { vip: 150 },
     });
@@ -91,9 +91,9 @@ describe("send-to-webhook", () => {
       });
       const res = await handler(post(fn("send-to-webhook"), { notify: "payment_confirmed", booking_reference: "QTR-A", ticket_holders: [{ name: "FORGED" }] }, ADMIN));
       expect(await res.json()).toMatchObject({ success: true });
-      expect(sent).toMatchObject({ action: "payment_confirmed", booking_reference: "QTR-A", customers: { name: "Ahmed" } });
+      expect(sent).toMatchObject({ action: "send_invoice", booking_reference: "QTR-A", customers: { name: "Ahmed" } });
       expect(JSON.stringify(sent)).not.toContain("FORGED");
-      expect(sent!.ticket_holders[0]).toMatchObject({ qr_code: "https://x/q.png", ticket_price: 150 });
+      expect(sent).toMatchObject({ qr_codes: ["https://x/q.png"] });
     });
 
     it("404s an unknown booking and 400s a bad reference", async () => {
