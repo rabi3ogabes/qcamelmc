@@ -21,7 +21,7 @@ import { isLiveNow, type LiveRefreshMode } from "@/lib/liveSchedule";
 import { pickActualEventIds } from "@/lib/actualEvent";
 import { buildPersonTicketTotals, personTotalFromMap } from "@/lib/personTicketTotals";
 import { CountryFlag } from "@/components/CountryFlag";
-import { LIVE_BOOKINGS_REFRESH_MS, stockIncreases, bookingChanges, type LiveStock } from "@/lib/liveBookingChanges";
+import { LIVE_BOOKINGS_REFRESH_MS, stockIncreases, bookingChanges, bookingsForDay, type LiveStock } from "@/lib/liveBookingChanges";
 import { fullscreenActive, toggleBrowserFullscreen } from "@/lib/browserSupport";
 
 const QATAR_TIMEZONE = "Asia/Qatar";
@@ -861,8 +861,8 @@ const LiveBookings = ({ viewerPassword }: { viewerPassword?: string | null } = {
       let feed: { orders: any[]; logs: any[]; capacities: any[] } | null = null;
       if (viewerPassword) {
         feed = await fetchLiveFeed(viewerPassword, "bookings", {
-          dateStr,
-          nextDayStr: nextDayStrForFeed,
+          dateStr: null,
+          nextDayStr: null,
           eventIds: actualEventIdsRef.current,
         });
         allOrders.push(...(feed?.orders ?? []));
@@ -881,10 +881,7 @@ const LiveBookings = ({ viewerPassword }: { viewerPassword?: string | null } = {
           query = query.in("event_id", actualEventIdsRef.current);
         }
 
-        // Apply server-side date range filter (event_date is timestamp, not date)
-        if (dateStr) {
-          query = query.gte("events.event_date", dateStr).lt("events.event_date", nextDayStrForFeed ?? dateStr);
-        }
+        // Read every scoped festival day so alerts are independent of the display date.
 
         const { data, error } = await query;
         if (error) throw error;
@@ -900,9 +897,11 @@ const LiveBookings = ({ viewerPassword }: { viewerPassword?: string | null } = {
         allTicketHolders.push(...extractOrderTicketHolders(order));
       });
 
-      setBookings(allOrders);
-      setTicketHolders(allTicketHolders);
-      calculateStats(allOrders, allTicketHolders);
+      const displayedOrders = bookingsForDay(allOrders, dateStr);
+      const displayedHolders = displayedOrders.flatMap(extractOrderTicketHolders);
+      setBookings(displayedOrders);
+      setTicketHolders(displayedHolders);
+      calculateStats(displayedOrders, displayedHolders);
 
       // Fetch invoice download logs
       const allDownloadLogs = feed
@@ -923,7 +922,7 @@ const LiveBookings = ({ viewerPassword }: { viewerPassword?: string | null } = {
       setInvoiceDownloadedRefs(downloadedRefs);
       
       // Compare polling snapshots for every viewer, including password-only access.
-      const eventId = allOrders[0]?.event_id ?? actualEventIdsRef.current[0];
+      const eventId = displayedOrders[0]?.event_id ?? actualEventIdsRef.current[0];
       if (feed) {
         applyStockSnapshot(feed.capacities, eventId);
       } else if (actualEventIdsRef.current.length) {
@@ -933,7 +932,7 @@ const LiveBookings = ({ viewerPassword }: { viewerPassword?: string | null } = {
         applyStockSnapshot(stock ?? [], eventId);
       }
 
-      const scope = `${actualEventIdsRef.current.join(',')}:${dateStr ?? 'all'}`;
+      const scope = actualEventIdsRef.current.join(',');
       if (snapshotScopeRef.current === scope) {
         const changes = bookingChanges(previousOrdersRef.current, previousAttendanceRef.current, allOrders, allTicketHolders);
         changes.bookings.forEach(showNewBookingNotification);
