@@ -1,6 +1,7 @@
 import { X, Sparkles, Ticket } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { STOCK_NOTIFICATION_VISIBLE_MS } from "@/lib/stockNotificationTiming";
 
 interface CapacityNotificationBannerProps {
   ticketType: string;
@@ -85,12 +86,12 @@ export const CapacityNotificationBanner = ({
           </Button>
         </div>
         
-        {/* Progress bar for auto-dismiss (1 second) */}
+        {/* Progress bar shares the popup's auto-dismiss duration. */}
         <div className="absolute bottom-0 left-0 right-0 h-1 bg-white/20">
           <div 
             className="h-full bg-white/60"
             style={{
-              animation: 'shrink 1s linear forwards'
+              animation: `shrink ${STOCK_NOTIFICATION_VISIBLE_MS}ms linear forwards`
             }}
           />
         </div>

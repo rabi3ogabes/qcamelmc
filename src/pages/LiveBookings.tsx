@@ -23,6 +23,7 @@ import { buildPersonTicketTotals, personTotalFromMap } from "@/lib/personTicketT
 import { CountryFlag } from "@/components/CountryFlag";
 import { LIVE_BOOKINGS_REFRESH_MS, stockIncreases, bookingChanges, bookingsForDay, type LiveStock } from "@/lib/liveBookingChanges";
 import { fullscreenActive, toggleBrowserFullscreen } from "@/lib/browserSupport";
+import { STOCK_NOTIFICATION_VISIBLE_MS } from "@/lib/stockNotificationTiming";
 
 const QATAR_TIMEZONE = "Asia/Qatar";
 
@@ -440,13 +441,13 @@ const LiveBookings = ({ viewerPassword }: { viewerPassword?: string | null } = {
     }
   }, []);
 
-  // Show for 1 second, then play the exit animation before removing
+  // Show for 10 seconds, then play the exit animation before removing
   const scheduleCapacityDismiss = useCallback(() => {
     if (capacityDismissTimeoutRef.current) window.clearTimeout(capacityDismissTimeoutRef.current);
     capacityDismissTimeoutRef.current = window.setTimeout(() => {
       setCapacityLeaving(true);
       capacityDismissTimeoutRef.current = window.setTimeout(() => dismissCapacityNotification(), 350);
-    }, 1000);
+    }, STOCK_NOTIFICATION_VISIBLE_MS);
   }, [dismissCapacityNotification]);
 
   // Cleanup pending timeout on unmount

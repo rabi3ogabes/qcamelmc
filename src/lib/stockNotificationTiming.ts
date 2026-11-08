@@ -1,0 +1,1 @@
+export const STOCK_NOTIFICATION_VISIBLE_MS = 10_000;
