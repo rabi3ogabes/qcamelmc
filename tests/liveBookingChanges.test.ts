@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { LIVE_BOOKINGS_REFRESH_MS, stockIncreases, bookingChanges, bookingsForDay } from '../src/lib/liveBookingChanges';
+import { LIVE_BOOKINGS_REFRESH_MS, stockIncreases, bookingChanges, bookingsForDay, appendStockAdditions } from '../src/lib/liveBookingChanges';
 
 describe('live bookings updates', () => {
   it('refreshes every 10 seconds', () => expect(LIVE_BOOKINGS_REFRESH_MS).toBe(10_000));
