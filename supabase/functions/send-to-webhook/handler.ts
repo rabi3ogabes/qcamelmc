@@ -7,8 +7,7 @@
 
 import { requireAdmin, type AuthDeps } from "../_shared/auth.ts";
 import { HttpError, json, preflight, readJson, toErrorResponse } from "../_shared/http.ts";
-import { buildOrderPaidPayload } from "../_shared/notify.ts";
-import { whatsappInvoicePayload } from "../_shared/whatsapp-invoice.ts";
+import { sendWhatsAppInvoice } from "../_shared/send-whatsapp-invoice.ts";
 import type { Repo } from "../_shared/repo.ts";
 
 const SAFE_REF = /^[A-Za-z0-9][A-Za-z0-9_-]{0,59}$/;
@@ -34,43 +33,21 @@ export function sendToWebhookHandler(deps: RelayDeps) {
         throw new HttpError(400, "invalid_payload", "Payload must be a JSON object");
       }
 
-      // "notify" mode: the server builds the message from the database, so a client can
-      // only say WHICH booking to announce, never what the message contains.
-      let outgoing: unknown = payload;
-      let deliveryId: string | null = null;
-      const isInvoice = (payload as { action?: unknown }).action === "send_invoice";
-      if (isInvoice) {
+      // Legacy ticket/payment triggers must pass the same trusted invoice gate.
+      const isEmail = (payload as { action?: unknown }).action === "send_email";
+      if (!isEmail) {
         const ref = String((payload as { booking_reference?: unknown }).booking_reference ?? "").trim();
         if (!SAFE_REF.test(ref)) throw new HttpError(400, "invalid_reference", "Invalid booking reference");
-        const context = await deps.repo.getOrderContext(ref);
-        if (!context) throw new HttpError(404, "order_not_found", "Booking not found");
-        if (context.order.payment_status !== "confirmed") throw new HttpError(400, "not_confirmed", "Invoice requires confirmed payment");
-        if ((payload as { automatic?: unknown }).automatic === true && context.order.whatsapp_manually_confirmed_at) return json({ success: true, skipped: true, message: "مؤكد يدويًا — مستبعد من الإرسال التلقائي" });
-        const settings = await deps.repo.getPrivateSettings();
-        if (!settings.webhookUrl) throw new HttpError(400, "webhook_not_configured", "Webhook URL not configured");
-        deliveryId = crypto.randomUUID();
-        const invoice = whatsappInvoicePayload(context, settings.whatsappTemplates ?? [], deliveryId);
-        outgoing = invoice;
-        await deps.repo.createInvoiceDelivery({ order_id: context.order.id, booking_reference: ref, channel: "whatsapp", template: "whatsapp-invoice", status: "queued", attempt: 1, recipient: invoice.customer_phone_whatsapp, message_body: invoice.whatsapp_message, template_name: invoice.template_name, delivery_id: deliveryId });
-        await deps.repo.markAutomationPending({ orderId: context.order.id, bookingReference: ref, message: "جاري الإرسال إلى واتساب..." }).catch(error => console.error("could not mark invoice pending", error instanceof Error ? error.message : "unknown error"));
+        const automatic = (payload as { automatic?: unknown }).automatic !== false
+          && (payload as { action?: unknown }).action !== "send_invoice"
+          || (payload as { automatic?: unknown }).automatic === true;
+        return json(await sendWhatsAppInvoice({ repo: deps.repo, fetch: deps.fetch, reference: ref, automatic, timeoutMs: deps.timeoutMs }));
       }
-      if ((payload as { notify?: unknown }).notify === "payment_confirmed") {
-        const ref = String((payload as { booking_reference?: unknown }).booking_reference ?? "").trim();
-        if (!SAFE_REF.test(ref)) throw new HttpError(400, "invalid_reference", "Invalid booking reference");
-        const context = await deps.repo.getOrderContext(ref);
-        if (!context) throw new HttpError(404, "order_not_found", "Booking not found");
-        outgoing = buildOrderPaidPayload({
-          customer: context.customer,
-          event: context.event,
-          order: context.order,
-          holders: context.holders,
-          prices: context.prices,
-          transactionNumber: (context.order.payment_id as string | null | undefined) ?? null,
-        });
-      }
+      const outgoing = payload;
+      const deliveryId: string | null = null;
+      const isInvoice = false;
 
       // e-mails go to their own automation when one is configured
-      const isEmail = (payload as { action?: unknown }).action === "send_email";
       const settings = await deps.repo.getPrivateSettings();
       const webhookUrl = isEmail ? (settings.emailWebhookUrl ?? settings.webhookUrl) : settings.webhookUrl;
       if (!webhookUrl) {
