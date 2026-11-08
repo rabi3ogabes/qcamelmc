@@ -33,3 +33,20 @@ describe('live bookings updates', () => {
       .toEqual({ bookings: [], checkins: [] });
   });
 });
+describe("appendStockAdditions", () => {
+  it("prepends new additions with the detection time, newest first", () => {
+    const existing = [{ ticketType: "vip", increase: 2, at: 1000 }];
+    const result = appendStockAdditions(existing, [{ ticketType: "normal", increase: 5, newCapacity: 50 }], 2000);
+    expect(result[0]).toEqual({ ticketType: "normal", increase: 5, at: 2000 });
+    expect(result[1]).toEqual({ ticketType: "vip", increase: 2, at: 1000 });
+  });
+
+  it("caps the list at the limit", () => {
+    let list: ReturnType<typeof appendStockAdditions> = [];
+    for (let i = 0; i < 25; i++) {
+      list = appendStockAdditions(list, [{ ticketType: "normal", increase: 1, newCapacity: i }], i);
+    }
+    expect(list).toHaveLength(20);
+    expect(list[0].at).toBe(24);
+  });
+});
