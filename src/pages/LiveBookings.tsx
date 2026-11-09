@@ -27,22 +27,11 @@ import { STOCK_NOTIFICATION_VISIBLE_MS } from "@/lib/stockNotificationTiming";
 import { formatQatarDate } from "@/lib/qatarTime";
 import { NewBookingNotification } from "@/components/admin/NewBookingNotification";
 
-const QATAR_TIMEZONE = "Asia/Qatar";
+import { buildDailySales, dailySalesEvents, type DailySummary, type SalesEvent } from "@/lib/liveDailySales";
 
-interface DailySummary {
-  date: string;
-  event_title: string;
-  vip_count: number;
-  vip_amount: number;
-  vip_price?: number;
-  normal_count: number;
-  normal_amount: number;
-  normal_price?: number;
-  parking_count: number;
-  parking_amount: number;
-  parking_price?: number;
-  daily_total: number;
-}
+const liveTicketLabel = (type: string) => ({ normal: "تذاكر عادية", vip: "تذاكر vip", parking: "تذاكر مواقف السيارات" }[type.toLowerCase()] ?? type);
+
+const QATAR_TIMEZONE = "Asia/Qatar";
 
 // Reuse an audio context unlocked by the viewer's first interaction (Safari/Chrome).
 let notificationAudio: AudioContext | undefined;
@@ -421,6 +410,7 @@ const LiveBookings = ({ viewerPassword }: { viewerPassword?: string | null } = {
   const actualEventIdsRef = useRef<string[]>([]);
   useEffect(() => { actualEventIdsRef.current = actualEventIds; }, [actualEventIds]);
   const [dailySalesDialogOpen, setDailySalesDialogOpen] = useState(false);
+  const salesEventsRef = useRef<SalesEvent[]>([]);
   const [dailySummaries, setDailySummaries] = useState<DailySummary[]>([]);
   
   // Capacity increase notification state
@@ -503,7 +493,7 @@ const LiveBookings = ({ viewerPassword }: { viewerPassword?: string | null } = {
           currentEventSettingId = res?.current_event_id ?? null;
           setLiveMode(res.mode === "event_hours" ? "event_hours" : "always");
         } else {
-          const r = await supabase.from("events").select("id, event_date").eq("is_active", true)
+          const r = await supabase.from("events").select("id, title, event_date, is_archived").eq("is_active", true)
             .order("event_date", { ascending: true });
           data = r.data; error = r.error;
           const { data: st } = await supabase.from("settings").select("live_refresh_mode, current_event_id").limit(1).maybeSingle();
@@ -515,6 +505,7 @@ const LiveBookings = ({ viewerPassword }: { viewerPassword?: string | null } = {
           console.error("Error fetching upcoming event:", error);
           throw error;
         }
+        salesEventsRef.current = dailySalesEvents(data || []);
         setEventDates((data || []).map((e: any) => e.event_date));
 
         // The actual event: the admin's current event when it is active,
@@ -973,6 +964,8 @@ const LiveBookings = ({ viewerPassword }: { viewerPassword?: string | null } = {
 
   // Fetch daily sales statistics - calculate revenue by ticket holder type using ticket prices
   const fetchDailySales = async () => {
+    const salesEventIds = salesEventsRef.current.map(event => event.id);
+    if (!salesEventIds.length) { setDailySummaries([]); return; }
     try {
       // IMPORTANT: PostgREST defaults to 1000 rows per request.
       // We must paginate, otherwise older/high-volume dates (like 17/1) will show wrong totals.
@@ -1004,8 +997,8 @@ const LiveBookings = ({ viewerPassword }: { viewerPassword?: string | null } = {
           .range(from, from + PAGE_SIZE - 1);
 
         // Only the actual (current) event — never any older event's data
-        if (actualEventIdsRef.current.length) {
-          holdersQuery = holdersQuery.in("orders.event_id", actualEventIdsRef.current);
+        if (salesEventIds.length) {
+          holdersQuery = holdersQuery.in("orders.event_id", salesEventIds);
         }
 
         const { data, error } = await holdersQuery;
@@ -1019,7 +1012,7 @@ const LiveBookings = ({ viewerPassword }: { viewerPassword?: string | null } = {
       // Fetch all ticket prices
       let ticketPrices: any[] | null = null;
       if (viewerPassword) {
-        const res = await fetchLiveFeed(viewerPassword, "daily_sales", { eventIds: actualEventIdsRef.current });
+        const res = await fetchLiveFeed(viewerPassword, "daily_sales", { eventIds: salesEventIds });
         allTicketHolders.length = 0;
         allTicketHolders.push(...res.holders);
         ticketPrices = res.prices;
@@ -1027,77 +1020,15 @@ const LiveBookings = ({ viewerPassword }: { viewerPassword?: string | null } = {
         let pricesQuery = supabase
           .from("tickets")
           .select("event_id, type, price");
-        if (actualEventIdsRef.current.length) {
-          pricesQuery = pricesQuery.in("event_id", actualEventIdsRef.current);
+        if (salesEventIds.length) {
+          pricesQuery = pricesQuery.in("event_id", salesEventIds);
         }
         const { data, error: ticketError } = await pricesQuery;
         if (ticketError) throw ticketError;
         ticketPrices = data;
       }
 
-      // Safety net: drop anything outside the actual event (feed path included)
-      const scopedHolders = actualEventIdsRef.current.length
-        ? allTicketHolders.filter((h: any) => actualEventIdsRef.current.includes(h.orders?.event_id))
-        : allTicketHolders;
-
-      // Create a map of ticket prices by event_id and type
-      const priceMap = (ticketPrices || []).reduce((acc, ticket) => {
-        const key = `${ticket.event_id}-${ticket.type}`;
-        acc[key] = ticket.price;
-        return acc;
-      }, {} as Record<string, number>);
-
-      // Group by event date and calculate revenue by ticket holder's ticket_type
-      const grouped = (scopedHolders || []).reduce((acc: Record<string, DailySummary>, holder: any) => {
-        const eventDate = holder.orders.events.event_date;
-        // Extract just the date portion (YYYY-MM-DD) - handle both ISO format (T separator) and DB format (space separator)
-        const date = typeof eventDate === 'string' ? eventDate.substring(0, 10) : '';
-        const eventId = holder.orders.event_id;
-        const ticketType = holder.ticket_type;
-
-        if (!date) return acc;
-
-        if (!acc[date]) {
-          acc[date] = {
-            date,
-            event_title: holder.orders.events.title || 'Unknown Event',
-            vip_count: 0,
-            vip_amount: 0,
-            normal_count: 0,
-            normal_amount: 0,
-            parking_count: 0,
-            parking_amount: 0,
-            daily_total: 0
-          };
-        }
-
-        // Get price for this ticket holder's ticket type
-        const price = priceMap[`${eventId}-${ticketType}`] || 0;
-
-        if (ticketType === 'vip') {
-          acc[date].vip_count += 1;
-          acc[date].vip_amount += price;
-          acc[date].vip_price = price;
-        } else if (ticketType === 'normal') {
-          acc[date].normal_count += 1;
-          acc[date].normal_amount += price;
-          acc[date].normal_price = price;
-        } else if (ticketType === 'parking') {
-          acc[date].parking_count += 1;
-          acc[date].parking_amount += price;
-          acc[date].parking_price = price;
-        }
-
-        acc[date].daily_total += price;
-
-        return acc;
-      }, {} as Record<string, DailySummary>);
-
-      const summariesArray = (Object.values(grouped) as DailySummary[])
-        .filter(s => s.date >= '2026-01-12')
-        .sort((a, b) => a.date.localeCompare(b.date));
-
-      setDailySummaries(summariesArray);
+      setDailySummaries(buildDailySales(salesEventsRef.current, allTicketHolders, ticketPrices || []));
     } catch (error) {
       console.error("Error fetching daily sales:", error);
     }
@@ -1345,12 +1276,7 @@ const LiveBookings = ({ viewerPassword }: { viewerPassword?: string | null } = {
                           {dailySummaries.map((summary) => (
                             <tr key={summary.date} className="border-b hover:bg-muted/20">
                               <td className="p-2 sm:p-3 font-lusail text-xs sm:text-sm whitespace-nowrap">
-                                {(() => {
-                                  const date = new Date(summary.date);
-                                  const arabicWeekdays = ['الأحد', 'الإثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
-                                  const arabicMonths = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'];
-                                  return `${arabicWeekdays[date.getDay()]} ${date.getDate()} ${arabicMonths[date.getMonth()]}`;
-                                })()}
+                                {formatQatarDate(summary.date, { weekday: "long", day: "numeric", month: "numeric" })}
                               </td>
                               {/* VIP */}
                               <td className="text-center p-2 sm:p-3 font-lusail font-bold text-xs sm:text-sm whitespace-nowrap">{summary.vip_count || '-'}</td>
@@ -1596,7 +1522,7 @@ const LiveBookings = ({ viewerPassword }: { viewerPassword?: string | null } = {
                       .sort((a, b) => b[1].total - a[1].total)
                       .map(([type, stats]) => (
                         <div key={type} className="flex justify-between items-center text-xs sm:text-sm">
-                          <span className="font-medium">{type}</span>
+                          <span className="font-medium">{liveTicketLabel(type)}</span>
                           <div className="flex gap-2 sm:gap-3 items-center">
                             <span className="text-muted-foreground">
                               {stats.total} حجز
@@ -1631,7 +1557,7 @@ const LiveBookings = ({ viewerPassword }: { viewerPassword?: string | null } = {
                       .sort((a, b) => b[1].total - a[1].total)
                       .map(([type, stats]) => (
                         <div key={type} className="flex justify-between items-center text-xs sm:text-sm">
-                          <span className="font-medium">{type}</span>
+                          <span className="font-medium">{liveTicketLabel(type)}</span>
                           <div className="flex gap-2 sm:gap-3 items-center">
                             <span className="text-muted-foreground">
                               {stats.total} حجز
@@ -1662,7 +1588,7 @@ const LiveBookings = ({ viewerPassword }: { viewerPassword?: string | null } = {
                     <Card key={type} className="p-2 sm:p-4 bg-gradient-to-br from-primary/10 to-primary/5 border-primary/20">
                       <div className="text-center space-y-1 sm:space-y-2">
                         <Badge variant="outline" className="text-[10px] sm:text-xs font-bold">
-                          {type.toUpperCase()}
+                          {liveTicketLabel(type)}
                         </Badge>
                         <div>
                           <p className="text-xl sm:text-3xl font-bold text-primary">

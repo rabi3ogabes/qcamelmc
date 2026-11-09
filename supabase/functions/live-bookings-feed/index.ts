@@ -73,7 +73,7 @@ Deno.serve(async (req) => {
     }
 
     if (action === "active_events") {
-      const { data, error } = await admin.from("events").select("id, event_date").eq("is_active", true)
+      const { data, error } = await admin.from("events").select("id, title, event_date, is_archived").eq("is_active", true)
         .order("event_date", { ascending: true });
       if (error) throw error;
       const { data: st } = await admin.from("settings").select("live_refresh_mode, current_event_id").limit(1).maybeSingle();

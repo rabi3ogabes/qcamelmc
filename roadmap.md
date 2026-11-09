@@ -1,5 +1,9 @@
 # Task Roadmap
 
+## Live booking labels and completed festival days
+- [x] Replace remaining raw ticket-type labels across live-bookings summaries; authenticated page has all three Arabic labels and no standalone parking/vip/normal labels.
+- [x] Restore 7 and 8 November in daily sales while excluding previous seasons; authenticated popup shows all eight festival days (8 November: QAR 34,300), 14 regression tests passed, build clean, feed deployed. Frontend changes await publication.
+
 ## New booking notification presentation
 - [x] Show purchased normal/VIP/parking counts with nationality and Qatar event date; bottom-up animation and subtle fireworks. Eleven tests passed, build clean; isolated desktop/mobile toast verified upward entrance, five-second dismissal, close control and no overflow. Preview had no mounted toast host, so a temporary browser-only host verified presentation; a real new-booking poll was not exercised. POS and stock alerts unchanged.
 
