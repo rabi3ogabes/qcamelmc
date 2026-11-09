@@ -33,3 +33,5 @@
 - Live booking nationality flags use bundled SVG artwork via CountryFlag, not system emoji glyphs, so tables, cards and notifications render consistently across browsers.
 - Browser compatibility uses secureUuid and fullscreen helpers in browserSupport; crypto fallbacks retain secure randomness and unsupported fullscreen leaves the page usable.
 - Online booking alerts use NewBookingNotification with holder-derived type counts and scoped toast animation; keeps POS, attendance and stock notifications unchanged.
+
+- Live daily sales use liveDailySales with the shared orders festival bounds, independently of purchasability; completed festival days remain visible and earlier seasons stay excluded.
