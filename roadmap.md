@@ -1,5 +1,8 @@
 # Task Roadmap
 
+## New booking notification presentation
+- [ ] Show purchased normal/VIP/parking counts with nationality and Qatar event date; bottom-up animation and subtle fireworks; verify desktop/mobile without changing POS or stock alerts.
+
 ## Server WhatsApp POS exclusion
 - [x] Guard countdown, legacy n8n triggers, payment follow-ups and retries before attempts/HTTP using trusted confirmed Sadad/QTR orders and current festival eligibility. Six send/payment functions deployed; 528 tests passed. Authenticated live requests for a real 8 November POS booking rejected send_invoice, send_ticket and retry with pos_order. No messages sent or historical delivery states changed; fresh QTR provider delivery was not exercised.
 
