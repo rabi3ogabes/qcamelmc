@@ -711,7 +711,7 @@ const LiveBookings = ({ viewerPassword }: { viewerPassword?: string | null } = {
     const flag = getNationalityFlag(nationality);
     const ticketTypeLabel = holder.ticket_type === 'vip' ? 'تذاكر vip' :
                             holder.ticket_type === 'normal' ? 'تذاكر عادية' :
-                            holder.ticket_type === 'parking' ? 'تذاكر موقف السيارات' : holder.ticket_type;
+                            holder.ticket_type === 'parking' ? 'تذاكر مواقف السيارات' : holder.ticket_type;
     const getTicketStyle = () => {
       switch (holder.ticket_type) {
         case 'vip': return { background: 'linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%)', border: '2px solid #d97706', color: '#78350f', icon: '👑' };
@@ -1324,7 +1324,7 @@ const LiveBookings = ({ viewerPassword }: { viewerPassword?: string | null } = {
                             <th className="text-center p-2 sm:p-3 font-lusail font-bold whitespace-nowrap">التاريخ</th>
                             <th colSpan={3} className="text-center p-2 sm:p-3 font-lusail font-bold border-x whitespace-nowrap">تذاكر vip</th>
                             <th colSpan={3} className="text-center p-2 sm:p-3 font-lusail font-bold border-x whitespace-nowrap">تذاكر عادية</th>
-                            <th colSpan={3} className="text-center p-2 sm:p-3 font-lusail font-bold border-x whitespace-nowrap">تذاكر موقف السيارات</th>
+                            <th colSpan={3} className="text-center p-2 sm:p-3 font-lusail font-bold border-x whitespace-nowrap">تذاكر مواقف السيارات</th>
                             <th className="text-center p-2 sm:p-3 font-lusail font-bold whitespace-nowrap">الإجمالي</th>
                           </tr>
                           <tr className="border-b bg-muted/30">
@@ -1563,7 +1563,7 @@ const LiveBookings = ({ viewerPassword }: { viewerPassword?: string | null } = {
               {stockAdditions.map((addition, index) => (
                 <div key={`${addition.at}-${index}`} className="flex items-center justify-between text-xs sm:text-sm">
                   <span>
-                    تمت إضافة {addition.increase} {addition.ticketType === 'vip' ? 'تذاكر vip' : addition.ticketType === 'normal' ? 'تذاكر عادية' : addition.ticketType === 'parking' ? 'تذاكر موقف السيارات' : addition.ticketType}
+                    تمت إضافة {addition.increase} {addition.ticketType === 'vip' ? 'تذاكر vip' : addition.ticketType === 'normal' ? 'تذاكر عادية' : addition.ticketType === 'parking' ? 'تذاكر مواقف السيارات' : addition.ticketType}
                   </span>
                   <span className="text-muted-foreground whitespace-nowrap">
                     {formatQatarDate(new Date(addition.at), { hour: "2-digit", minute: "2-digit" })}
@@ -1846,7 +1846,7 @@ const LiveBookings = ({ viewerPassword }: { viewerPassword?: string | null } = {
                     <div className="flex items-center justify-between gap-1 sm:gap-2">
                       {/* Ticket Type */}
                       <Badge variant="outline" className="text-[10px] sm:text-xs">
-                        {holder.ticket_type === 'vip' ? 'تذاكر vip' : holder.ticket_type === 'normal' ? 'تذاكر عادية' : holder.ticket_type === 'parking' ? 'تذاكر موقف السيارات' : holder.ticket_type}
+                        {holder.ticket_type === 'vip' ? 'تذاكر vip' : holder.ticket_type === 'normal' ? 'تذاكر عادية' : holder.ticket_type === 'parking' ? 'تذاكر مواقف السيارات' : holder.ticket_type}
                       </Badge>
 
                       {/* Attendance */}
@@ -1980,7 +1980,7 @@ const LiveBookings = ({ viewerPassword }: { viewerPassword?: string | null } = {
                         </TableCell>
                         <TableCell className="py-2 sm:py-4">
                           <Badge variant="outline" className="text-[10px] sm:text-xs">
-                            {holder.ticket_type === 'vip' ? 'تذاكر vip' : holder.ticket_type === 'normal' ? 'تذاكر عادية' : holder.ticket_type === 'parking' ? 'تذاكر موقف السيارات' : holder.ticket_type}
+                            {holder.ticket_type === 'vip' ? 'تذاكر vip' : holder.ticket_type === 'normal' ? 'تذاكر عادية' : holder.ticket_type === 'parking' ? 'تذاكر مواقف السيارات' : holder.ticket_type}
                           </Badge>
                         </TableCell>
                         <TableCell className="py-2 sm:py-4">
