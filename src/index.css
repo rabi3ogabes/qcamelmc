@@ -481,7 +481,7 @@ All colors MUST be HSL.
   @keyframes booking-rise { from { opacity: 0; transform: translateY(48px); } to { opacity: 1; transform: translateY(0); } }
   @keyframes booking-exit { to { opacity: 0; transform: translateY(-24px); } }
   @keyframes booking-progress { to { transform: scaleX(0); } }
-  @keyframes booking-spark { 0% { opacity: 0; transform: translateY(0) scale(.6); } 12% { opacity: 1; } 100% { opacity: 0; transform: translateY(-64px) scale(.3); } }
+  @keyframes booking-spark { 0% { opacity: 0; transform: translateY(0) scale(.6); } 10% { opacity: 1; } 55% { opacity: 1; transform: translateY(-40px) scale(.9); } 100% { opacity: 0; transform: translateY(-64px) scale(.3); } }
   @media (prefers-reduced-motion: reduce) {
     .booking-celebration, [data-sonner-toast].booking-celebration-toast[data-removed="true"] .booking-celebration, .booking-toast-progress { animation: none; }
     .booking-fireworks { display: none; }
