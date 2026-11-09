@@ -1846,7 +1846,7 @@ const LiveBookings = ({ viewerPassword }: { viewerPassword?: string | null } = {
                     <div className="flex items-center justify-between gap-1 sm:gap-2">
                       {/* Ticket Type */}
                       <Badge variant="outline" className="text-[10px] sm:text-xs">
-                        {holder.ticket_type === 'vip' ? 'VIP' : holder.ticket_type === 'normal' ? 'عادي' : holder.ticket_type === 'parking' ? 'مواقف' : holder.ticket_type}
+                        {holder.ticket_type === 'vip' ? 'تذاكر vip' : holder.ticket_type === 'normal' ? 'تذاكر عادية' : holder.ticket_type === 'parking' ? 'تذاكر موقف السيارات' : holder.ticket_type}
                       </Badge>
 
                       {/* Attendance */}
@@ -1980,7 +1980,7 @@ const LiveBookings = ({ viewerPassword }: { viewerPassword?: string | null } = {
                         </TableCell>
                         <TableCell className="py-2 sm:py-4">
                           <Badge variant="outline" className="text-[10px] sm:text-xs">
-                            {holder.ticket_type === 'vip' ? 'VIP' : holder.ticket_type === 'normal' ? 'عادي' : holder.ticket_type === 'parking' ? 'مواقف' : holder.ticket_type}
+                            {holder.ticket_type === 'vip' ? 'تذاكر vip' : holder.ticket_type === 'normal' ? 'تذاكر عادية' : holder.ticket_type === 'parking' ? 'تذاكر موقف السيارات' : holder.ticket_type}
                           </Badge>
                         </TableCell>
                         <TableCell className="py-2 sm:py-4">
