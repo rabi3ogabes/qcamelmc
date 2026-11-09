@@ -463,10 +463,10 @@ All colors MUST be HSL.
   .booking-type-icon { color: hsl(var(--booking-highlight)); }
   .booking-toast-progress { position: absolute; inset-inline: 0; bottom: 0; height: 2px; background: hsl(var(--booking-highlight)); transform-origin: right; animation: booking-progress 5s linear forwards; }
   .booking-fireworks { position: absolute; inset: 0; pointer-events: none; }
-  .booking-burst { position: absolute; top: 24%; left: 14%; width: 2px; height: 2px; }
-  .booking-burst:nth-child(2) { top: 68%; left: 78%; }
-  .booking-burst:nth-child(3) { top: 14%; left: 62%; }
-  .booking-burst i { position: absolute; width: 2px; height: 2px; }
+  .booking-burst { position: absolute; top: 20%; left: 12%; width: 3px; height: 3px; }
+  .booking-burst:nth-child(2) { top: 66%; left: 80%; }
+  .booking-burst:nth-child(3) { top: 12%; left: 58%; }
+  .booking-burst i { position: absolute; width: 3px; height: 3px; }
   .booking-burst i:nth-child(2) { transform: rotate(45deg); }
   .booking-burst i:nth-child(3) { transform: rotate(90deg); }
   .booking-burst i:nth-child(4) { transform: rotate(135deg); }
@@ -474,13 +474,14 @@ All colors MUST be HSL.
   .booking-burst i:nth-child(6) { transform: rotate(225deg); }
   .booking-burst i:nth-child(7) { transform: rotate(270deg); }
   .booking-burst i:nth-child(8) { transform: rotate(315deg); }
-  .booking-burst i::after { content: ''; display: block; width: 2px; height: 5px; border-radius: 1px; background: hsl(var(--booking-spark)); opacity: 0; animation: booking-spark 1.3s ease-out .25s both; }
-  .booking-burst:nth-child(2) i::after { animation-delay: .65s; }
-  .booking-burst:nth-child(3) i::after { animation-delay: 1s; }
+  .booking-burst i::after { content: ''; display: block; width: 4px; height: 10px; border-radius: 2px; background: hsl(var(--booking-spark)); box-shadow: 0 0 6px 1px hsl(var(--booking-spark) / 0.8); opacity: 0; animation: booking-spark 1.6s ease-out .25s both; }
+  .booking-burst i:nth-child(odd)::after { background: hsl(var(--booking-highlight)); box-shadow: 0 0 6px 1px hsl(var(--booking-highlight) / 0.8); }
+  .booking-burst:nth-child(2) i::after { animation-delay: .55s; }
+  .booking-burst:nth-child(3) i::after { animation-delay: .85s; }
   @keyframes booking-rise { from { opacity: 0; transform: translateY(48px); } to { opacity: 1; transform: translateY(0); } }
   @keyframes booking-exit { to { opacity: 0; transform: translateY(-24px); } }
   @keyframes booking-progress { to { transform: scaleX(0); } }
-  @keyframes booking-spark { 0% { opacity: 0; transform: translateY(0) scale(.5); } 15% { opacity: .65; } 100% { opacity: 0; transform: translateY(-42px) scale(.2); } }
+  @keyframes booking-spark { 0% { opacity: 0; transform: translateY(0) scale(.6); } 12% { opacity: 1; } 100% { opacity: 0; transform: translateY(-64px) scale(.3); } }
   @media (prefers-reduced-motion: reduce) {
     .booking-celebration, [data-sonner-toast].booking-celebration-toast[data-removed="true"] .booking-celebration, .booking-toast-progress { animation: none; }
     .booking-fireworks { display: none; }
