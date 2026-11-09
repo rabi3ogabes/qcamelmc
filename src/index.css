@@ -459,6 +459,8 @@ All colors MUST be HSL.
   [data-sonner-toast].booking-celebration-toast[data-removed="true"] .booking-celebration {
     animation: booking-exit 0.3s ease-in both;
   }
+  .booking-celebration.is-pos { --booking-highlight: 38 72% 42%; --booking-spark: 24 80% 55%; }
+  .booking-kicker { color: hsl(var(--booking-highlight)); }
   .booking-flag { display: grid; place-items: center; flex-shrink: 0; width: 48px; height: 48px; background: hsl(var(--muted)); border-radius: 8px; }
   .booking-type-icon { color: hsl(var(--booking-highlight)); }
   .booking-toast-progress { position: absolute; inset-inline: 0; bottom: 0; height: 2px; background: hsl(var(--booking-highlight)); transform-origin: right; animation: booking-progress 5s linear forwards; }

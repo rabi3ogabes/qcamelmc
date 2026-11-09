@@ -25,6 +25,7 @@ import { LIVE_BOOKINGS_REFRESH_MS, stockIncreases, bookingChanges, bookingsForDa
 import { fullscreenActive, toggleBrowserFullscreen } from "@/lib/browserSupport";
 import { STOCK_NOTIFICATION_VISIBLE_MS } from "@/lib/stockNotificationTiming";
 import { formatQatarDate } from "@/lib/qatarTime";
+import mafareedLogo from "@/assets/mafareed-logo.png.asset.json";
 import { NewBookingNotification } from "@/components/admin/NewBookingNotification";
 
 import { buildDailySales, dailySalesEvents, type DailySummary, type SalesEvent } from "@/lib/liveDailySales";
@@ -652,32 +653,12 @@ const LiveBookings = ({ viewerPassword }: { viewerPassword?: string | null } = {
       const posUserName = fullOrder.pos_users?.name || 'موظف';
       const posUserIcon = fullOrder.pos_users?.icon || '👤';
       if (soundEnabledRef.current) playPOSNotificationSound();
-      toast.success(
-        <div className="flex flex-col gap-2 text-right" dir="rtl">
-          <div className="flex items-center gap-2 justify-end">
-            <Store className="w-4 h-4 text-orange-500" />
-            <span className="font-bold text-orange-600">تسجيل من نقطة البيع</span>
-          </div>
-          <div className="flex items-center gap-2 justify-end">
-            <span className="text-lg">{flag}</span>
-            <span className="font-semibold">{customerName}</span>
-            <span className="text-muted-foreground">({nationality})</span>
-          </div>
-          <div className="flex items-center gap-3 justify-end text-sm">
-            <span className="bg-primary/10 text-primary px-2 py-0.5 rounded-full font-bold">
-              🎫 {quantity} {quantity === 1 ? 'تذكرة' : quantity === 2 ? 'تذكرتين' : quantity <= 10 ? 'تذاكر' : 'تذكرة'}
-            </span>
-          </div>
-          <div className="flex items-center gap-2 justify-end text-xs text-muted-foreground border-t pt-2 mt-1">
-            <span>{posUserIcon}</span>
-            <span>بواسطة: {posUserName}</span>
-          </div>
-        </div>,
-        {
-          duration: 6000,
-          position: 'top-right',
-          className: 'bg-gradient-to-r from-orange-50 to-amber-50 dark:from-orange-950/50 dark:to-amber-950/50 border-orange-200 dark:border-orange-800',
-        }
+      const eventDate = fullOrder.events?.event_date
+        ? formatQatarDate(new Date(fullOrder.events.event_date), { day: 'numeric', month: 'long' })
+        : '';
+      toast.custom(
+        (id) => <NewBookingNotification variant="pos" customerName={customerName} staffName={`${posUserIcon} ${posUserName}`} nationality={nationality} eventDate={eventDate} order={fullOrder} onDismiss={() => toast.dismiss(id)} />,
+        { duration: 5000, position: 'bottom-right', className: 'booking-celebration-toast' }
       );
     } else {
       if (soundEnabledRef.current) playNotificationSound();
@@ -1199,11 +1180,7 @@ const LiveBookings = ({ viewerPassword }: { viewerPassword?: string | null } = {
       <header className="border-b backdrop-blur-sm sticky top-0 z-10" style={{ backgroundColor: headerBgColor }}>
         <div className="container mx-auto px-2 sm:px-4 py-2 sm:py-4 flex flex-wrap justify-between items-center gap-2">
           <div className="flex items-center gap-2 sm:gap-4">
-            {logoUrl ? (
-              <img src={logoUrl} alt="Logo" className="h-8 sm:h-12 object-contain" />
-            ) : (
-              <h1 className="text-lg sm:text-2xl font-bold">{t("liveBookings")}</h1>
-            )}
+            <img src={new URL(mafareedLogo.url, "https://www.qcamelmc.org").href} alt="مهرجان التحدي للمفاريد 2026" className="h-10 sm:h-16 w-auto object-contain" decoding="async" />
           </div>
           <div className="flex items-center gap-1 sm:gap-4 flex-wrap">
             <div className="flex gap-1 sm:gap-2">
