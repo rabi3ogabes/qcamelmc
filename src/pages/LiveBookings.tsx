@@ -709,9 +709,9 @@ const LiveBookings = ({ viewerPassword }: { viewerPassword?: string | null } = {
     if (!checkinNotificationsEnabledRef.current) return;
     const nationality = holder.nationality || 'غير محدد';
     const flag = getNationalityFlag(nationality);
-    const ticketTypeLabel = holder.ticket_type === 'vip' ? 'VIP' :
-                            holder.ticket_type === 'normal' ? 'عادي' :
-                            holder.ticket_type === 'parking' ? 'مواقف' : holder.ticket_type;
+    const ticketTypeLabel = holder.ticket_type === 'vip' ? 'تذاكر vip' :
+                            holder.ticket_type === 'normal' ? 'تذاكر عادية' :
+                            holder.ticket_type === 'parking' ? 'تذاكر موقف السيارات' : holder.ticket_type;
     const getTicketStyle = () => {
       switch (holder.ticket_type) {
         case 'vip': return { background: 'linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%)', border: '2px solid #d97706', color: '#78350f', icon: '👑' };
@@ -1322,9 +1322,9 @@ const LiveBookings = ({ viewerPassword }: { viewerPassword?: string | null } = {
                         <thead>
                           <tr className="border-b-2">
                             <th className="text-center p-2 sm:p-3 font-lusail font-bold whitespace-nowrap">التاريخ</th>
-                            <th colSpan={3} className="text-center p-2 sm:p-3 font-lusail font-bold border-x whitespace-nowrap">VIP</th>
-                            <th colSpan={3} className="text-center p-2 sm:p-3 font-lusail font-bold border-x whitespace-nowrap">عادي</th>
-                            <th colSpan={3} className="text-center p-2 sm:p-3 font-lusail font-bold border-x whitespace-nowrap">مواقف</th>
+                            <th colSpan={3} className="text-center p-2 sm:p-3 font-lusail font-bold border-x whitespace-nowrap">تذاكر vip</th>
+                            <th colSpan={3} className="text-center p-2 sm:p-3 font-lusail font-bold border-x whitespace-nowrap">تذاكر عادية</th>
+                            <th colSpan={3} className="text-center p-2 sm:p-3 font-lusail font-bold border-x whitespace-nowrap">تذاكر موقف السيارات</th>
                             <th className="text-center p-2 sm:p-3 font-lusail font-bold whitespace-nowrap">الإجمالي</th>
                           </tr>
                           <tr className="border-b bg-muted/30">
@@ -1563,7 +1563,7 @@ const LiveBookings = ({ viewerPassword }: { viewerPassword?: string | null } = {
               {stockAdditions.map((addition, index) => (
                 <div key={`${addition.at}-${index}`} className="flex items-center justify-between text-xs sm:text-sm">
                   <span>
-                    تمت إضافة {addition.increase} تذاكر {addition.ticketType === 'vip' ? 'VIP' : addition.ticketType === 'normal' ? 'عادي' : addition.ticketType === 'parking' ? 'مواقف' : addition.ticketType}
+                    تمت إضافة {addition.increase} {addition.ticketType === 'vip' ? 'تذاكر vip' : addition.ticketType === 'normal' ? 'تذاكر عادية' : addition.ticketType === 'parking' ? 'تذاكر موقف السيارات' : addition.ticketType}
                   </span>
                   <span className="text-muted-foreground whitespace-nowrap">
                     {formatQatarDate(new Date(addition.at), { hour: "2-digit", minute: "2-digit" })}
