@@ -474,10 +474,10 @@ All colors MUST be HSL.
   .booking-burst i:nth-child(6) { transform: rotate(225deg); }
   .booking-burst i:nth-child(7) { transform: rotate(270deg); }
   .booking-burst i:nth-child(8) { transform: rotate(315deg); }
-  .booking-burst i::after { content: ''; display: block; width: 4px; height: 10px; border-radius: 2px; background: hsl(var(--booking-spark)); box-shadow: 0 0 6px 1px hsl(var(--booking-spark) / 0.8); opacity: 0; animation: booking-spark 1.6s ease-out .25s both; }
+  .booking-burst i::after { content: ''; display: block; width: 4px; height: 10px; border-radius: 2px; background: hsl(var(--booking-spark)); box-shadow: 0 0 6px 1px hsl(var(--booking-spark) / 0.8); opacity: 0; animation: booking-spark 2.8s ease-out .3s both; }
   .booking-burst i:nth-child(odd)::after { background: hsl(var(--booking-highlight)); box-shadow: 0 0 6px 1px hsl(var(--booking-highlight) / 0.8); }
-  .booking-burst:nth-child(2) i::after { animation-delay: .55s; }
-  .booking-burst:nth-child(3) i::after { animation-delay: .85s; }
+  .booking-burst:nth-child(2) i::after { animation-delay: .8s; }
+  .booking-burst:nth-child(3) i::after { animation-delay: 1.3s; }
   @keyframes booking-rise { from { opacity: 0; transform: translateY(48px); } to { opacity: 1; transform: translateY(0); } }
   @keyframes booking-exit { to { opacity: 0; transform: translateY(-24px); } }
   @keyframes booking-progress { to { transform: scaleX(0); } }

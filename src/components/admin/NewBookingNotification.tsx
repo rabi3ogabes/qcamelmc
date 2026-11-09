@@ -29,7 +29,7 @@ export function NewBookingNotification({ nationality, eventDate, order, onDismis
       <div className="relative flex flex-wrap gap-x-4 gap-y-2 border-t border-border pt-3">
         {tickets.map(({ type, quantity: count }) => {
           const Icon = type === 'vip' ? Crown : type === 'parking' ? CarFront : Ticket;
-          const label = type === 'vip' ? 'VIP' : type === 'parking' ? 'مواقف' : type === 'normal' ? 'عادي' : type;
+          const label = type === 'vip' ? 'تذاكر vip' : type === 'parking' ? 'تذاكر موقف السيارات' : type === 'normal' ? 'تذاكر عادية' : type;
           return <span key={type} className="inline-flex items-center gap-2 text-sm font-semibold"><Icon className="booking-type-icon h-4 w-4" /><span>{label}</span><span className="text-muted-foreground">× {count}</span></span>;
         })}
       </div>
