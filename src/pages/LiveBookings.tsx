@@ -25,6 +25,7 @@ import { LIVE_BOOKINGS_REFRESH_MS, stockIncreases, bookingChanges, bookingsForDa
 import { fullscreenActive, toggleBrowserFullscreen } from "@/lib/browserSupport";
 import { STOCK_NOTIFICATION_VISIBLE_MS } from "@/lib/stockNotificationTiming";
 import { formatQatarDate } from "@/lib/qatarTime";
+import { NewBookingNotification } from "@/components/admin/NewBookingNotification";
 
 const QATAR_TIMEZONE = "Asia/Qatar";
 
@@ -690,16 +691,14 @@ const LiveBookings = ({ viewerPassword }: { viewerPassword?: string | null } = {
     } else {
       if (soundEnabledRef.current) playNotificationSound();
       const eventDate = fullOrder.events?.event_date
-        ? new Date(fullOrder.events.event_date).toLocaleDateString('ar-u-nu-latn', { day: 'numeric', month: 'long' })
+        ? formatQatarDate(new Date(fullOrder.events.event_date), { day: 'numeric', month: 'long' })
         : '';
-      toast.success(
-        <div dir="rtl" className="text-right space-y-1">
-          <div className="flex items-center gap-2">{flag}<span>حجز جديد من {nationality}</span></div>
-          <div>🎫 {quantity} تذكرة ليوم {eventDate}</div>
-        </div>,
+      toast.custom(
+        (id) => <NewBookingNotification nationality={nationality} eventDate={eventDate} order={fullOrder} onDismiss={() => toast.dismiss(id)} />,
         {
           duration: 5000,
-          style: { whiteSpace: 'pre-line', textAlign: 'right', direction: 'rtl' }
+          position: 'bottom-right',
+          className: 'booking-celebration-toast',
         }
       );
     }

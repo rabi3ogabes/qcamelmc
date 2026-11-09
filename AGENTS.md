@@ -32,3 +32,4 @@
 - Admin and staff orders read through staff-orders with a server-owned festival range and verified staff identity; staff views remain read-only and existing admin-only mutation authorization is preserved so passcode access never widens table permissions.
 - Live booking nationality flags use bundled SVG artwork via CountryFlag, not system emoji glyphs, so tables, cards and notifications render consistently across browsers.
 - Browser compatibility uses secureUuid and fullscreen helpers in browserSupport; crypto fallbacks retain secure randomness and unsupported fullscreen leaves the page usable.
+- Online booking alerts use NewBookingNotification with holder-derived type counts and scoped toast animation; keeps POS, attendance and stock notifications unchanged.

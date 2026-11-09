@@ -72,6 +72,9 @@ All colors MUST be HSL.
     --gradient-gold: linear-gradient(135deg, hsl(40 95% 55%), hsl(45 100% 65%));
     --shadow-elegant: 0 10px 40px -10px hsl(345 75% 35% / 0.3);
     --shadow-card: 0 4px 20px hsl(0 0% 0% / 0.08);
+    --booking-highlight: 17.36 53.78% 55.88%;
+    --booking-spark: 34 76% 64%;
+    --booking-shadow: 0 16px 48px -16px hsl(var(--foreground) / 0.22);
 
     --sidebar-background: 0 0% 98%;
     --sidebar-foreground: 345 100% 15%;
@@ -430,5 +433,56 @@ All colors MUST be HSL.
 
   [data-sonner-toast][data-removed="true"] {
     animation: slideOutRight 0.3s ease-in forwards !important;
+  }
+
+  [data-sonner-toast].booking-celebration-toast {
+    animation: none !important;
+    background: transparent !important;
+    border: none !important;
+    padding: 0 !important;
+    box-shadow: none !important;
+    width: min(390px, calc(100vw - 32px));
+  }
+  .booking-celebration {
+    position: relative;
+    overflow: hidden;
+    width: 100%;
+    padding: 18px 20px 22px;
+    border: 1px solid hsl(var(--booking-highlight) / 0.4);
+    border-inline-start: 3px solid hsl(var(--booking-highlight));
+    border-radius: 8px;
+    background: hsl(var(--card));
+    color: hsl(var(--card-foreground));
+    box-shadow: var(--booking-shadow);
+    animation: booking-rise 0.55s cubic-bezier(.16, 1, .3, 1) both;
+  }
+  [data-sonner-toast].booking-celebration-toast[data-removed="true"] .booking-celebration {
+    animation: booking-exit 0.3s ease-in both;
+  }
+  .booking-flag { display: grid; place-items: center; flex-shrink: 0; width: 48px; height: 48px; background: hsl(var(--muted)); border-radius: 8px; }
+  .booking-type-icon { color: hsl(var(--booking-highlight)); }
+  .booking-toast-progress { position: absolute; inset-inline: 0; bottom: 0; height: 2px; background: hsl(var(--booking-highlight)); transform-origin: right; animation: booking-progress 5s linear forwards; }
+  .booking-fireworks { position: absolute; inset: 0; pointer-events: none; }
+  .booking-burst { position: absolute; top: 24%; left: 14%; width: 2px; height: 2px; }
+  .booking-burst:nth-child(2) { top: 68%; left: 78%; }
+  .booking-burst:nth-child(3) { top: 14%; left: 62%; }
+  .booking-burst i { position: absolute; width: 2px; height: 2px; }
+  .booking-burst i:nth-child(2) { transform: rotate(45deg); }
+  .booking-burst i:nth-child(3) { transform: rotate(90deg); }
+  .booking-burst i:nth-child(4) { transform: rotate(135deg); }
+  .booking-burst i:nth-child(5) { transform: rotate(180deg); }
+  .booking-burst i:nth-child(6) { transform: rotate(225deg); }
+  .booking-burst i:nth-child(7) { transform: rotate(270deg); }
+  .booking-burst i:nth-child(8) { transform: rotate(315deg); }
+  .booking-burst i::after { content: ''; display: block; width: 2px; height: 5px; border-radius: 1px; background: hsl(var(--booking-spark)); opacity: 0; animation: booking-spark 1.3s ease-out .25s both; }
+  .booking-burst:nth-child(2) i::after { animation-delay: .65s; }
+  .booking-burst:nth-child(3) i::after { animation-delay: 1s; }
+  @keyframes booking-rise { from { opacity: 0; transform: translateY(48px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes booking-exit { to { opacity: 0; transform: translateY(-24px); } }
+  @keyframes booking-progress { to { transform: scaleX(0); } }
+  @keyframes booking-spark { 0% { opacity: 0; transform: translateY(0) scale(.5); } 15% { opacity: .65; } 100% { opacity: 0; transform: translateY(-42px) scale(.2); } }
+  @media (prefers-reduced-motion: reduce) {
+    .booking-celebration, [data-sonner-toast].booking-celebration-toast[data-removed="true"] .booking-celebration, .booking-toast-progress { animation: none; }
+    .booking-fireworks { display: none; }
   }
 }
