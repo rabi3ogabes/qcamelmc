@@ -1000,6 +1000,30 @@ export const InvoiceTab = () => {
         </Tabs>
       </Card>
 
+      <Dialog open={!!emailOrder} onOpenChange={open => !open && !savingEmail && setEmailOrder(null)}>
+        <DialogContent dir="rtl" className="max-w-md">
+          <DialogHeader className="text-right">
+            <DialogTitle>بريد العميل لإرسال الفاتورة</DialogTitle>
+            <DialogDescription>
+              {emailOrder ? `الحجز ${emailOrder.booking_reference} — يُحفظ البريد في بيانات العميل ثم تُرسل الفاتورة إليه.` : ""}
+            </DialogDescription>
+          </DialogHeader>
+          <form className="space-y-4" onSubmit={event => { event.preventDefault(); void saveEmailAndSend(); }}>
+            <div className="space-y-2">
+              <label htmlFor="invoice-customer-email" className="text-sm font-medium">البريد الإلكتروني</label>
+              <Input id="invoice-customer-email" type="email" dir="ltr" autoComplete="email" value={emailDraft} onChange={event => setEmailDraft(event.target.value)} placeholder="name@example.com" maxLength={254} autoFocus disabled={savingEmail} />
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Button type="submit" disabled={savingEmail} className="gap-2">
+                {savingEmail ? <Loader2 className="h-4 w-4 animate-spin" /> : <Mail className="h-4 w-4" />}
+                {savingEmail ? "جارٍ الحفظ والإرسال…" : "حفظ وإرسال الفاتورة"}
+              </Button>
+              <Button type="button" variant="outline" disabled={savingEmail} onClick={() => setEmailOrder(null)}>إلغاء</Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
+
       <Dialog open={!!manualOrder} onOpenChange={open => !open && !confirmingManual && setManualOrder(null)}>
         <DialogContent dir="rtl" className="max-w-md">
           <DialogHeader className="text-right"><DialogTitle>تأكيد إرسال واتساب يدويًا</DialogTitle><DialogDescription>هل تؤكد أن الفاتورة {manualOrder?.booking_reference} وصلت عبر واتساب؟ ستُستبعد من الإرسال التلقائي، ولن يُسجّل ذلك كتأكيد من المزود. هذا لا يلغي طلبًا سبق إرساله إلى n8n.</DialogDescription></DialogHeader>
