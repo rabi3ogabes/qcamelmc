@@ -1008,7 +1008,7 @@ export const InvoiceTab = () => {
               {emailOrder ? `الحجز ${emailOrder.booking_reference} — يُحفظ البريد في بيانات العميل ثم تُرسل الفاتورة إليه.` : ""}
             </DialogDescription>
           </DialogHeader>
-          <form className="space-y-4" onSubmit={event => { event.preventDefault(); void saveEmailAndSend(); }}>
+          <form className="space-y-4" noValidate onSubmit={event => { event.preventDefault(); void saveEmailAndSend(); }}>
             <div className="space-y-2">
               <label htmlFor="invoice-customer-email" className="text-sm font-medium">البريد الإلكتروني</label>
               <Input id="invoice-customer-email" type="email" dir="ltr" autoComplete="email" value={emailDraft} onChange={event => setEmailDraft(event.target.value)} placeholder="name@example.com" maxLength={254} autoFocus disabled={savingEmail} />
