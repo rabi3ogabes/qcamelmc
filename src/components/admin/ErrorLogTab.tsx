@@ -9,6 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { CAUSE_LABELS, CAUSE_ORDER, classifyError, type ErrorCause } from "@/lib/errorCauses";
 import { QATAR_TZ } from "@/lib/qatarTime";
+import { Link } from "react-router-dom";
 
 interface LogItem {
   key: string;
