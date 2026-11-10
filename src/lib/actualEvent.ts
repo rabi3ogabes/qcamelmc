@@ -1,20 +1,21 @@
+import { ORDER_FESTIVAL } from "../../supabase/functions/_shared/orders-policy";
+import { qatarDayKey } from "./qatarTime";
+
+export interface ActualEvent {
+  id: string;
+  event_date: string;
+  is_archived?: boolean | null;
+}
+
 /**
- * Picks the "actual" events for the live bookings screen.
- *
- * Rule: every ticket, list and statistic on /live-bookings must come from the
- * actual festival only — never from an older event. A festival spans several
- * day-events, so the scope is a list.
- *
- * 1. The admin's current event (settings.current_event_id) while it is active → only that one.
- * 2. Otherwise every active event that is still viewable (upcoming or today).
- * 3. Empty when nothing qualifies — the page then shows no event data at all.
+ * Every active, non-archived day of the current festival belongs on
+ * /live-bookings, including completed days. Older seasons never qualify.
  */
-export function pickActualEventIds(
-  activeEvents: { id: string; event_date: string }[],
-  currentEventId: string | null | undefined,
-  isEventStillViewable: (eventDate: string) => boolean
-): string[] {
-  const events = activeEvents ?? [];
-  if (currentEventId && events.some((e) => e.id === currentEventId)) return [currentEventId];
-  return events.filter((e) => isEventStillViewable(e.event_date)).map((e) => e.id);
+export function pickActualEventIds(activeEvents: ActualEvent[]): string[] {
+  return (activeEvents ?? [])
+    .filter((event) => {
+      const day = qatarDayKey(event.event_date);
+      return !event.is_archived && day >= ORDER_FESTIVAL.from && day < ORDER_FESTIVAL.toExclusive;
+    })
+    .map((event) => event.id);
 }
