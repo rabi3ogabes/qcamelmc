@@ -205,6 +205,14 @@ export const ErrorLogTab = () => {
                           <p className="text-xs text-muted-foreground">
                             {i.detail}{i.page ? ` · الصفحة ${i.page}` : ""} · أول مرة {fmt(i.firstSeen)} · آخر مرة {fmt(i.lastSeen)}
                           </p>
+                          {i.origin === "email" && i.title === "لا يوجد بريد إلكتروني صالح للعميل" && (
+                            <div className="mt-2 rounded-lg border bg-muted/40 p-3 text-xs">
+                              <p>الدفع والتذاكر سليمة؛ العميل لم يضف بريدًا صالحًا. أضفه من صفحة الفواتير ثم أعد الإرسال.</p>
+                              <Button asChild variant="outline" size="sm" className="mt-2">
+                                <Link to="/admin/dashboard/invoices">فتح إرسال الفواتير</Link>
+                              </Button>
+                            </div>
+                          )}
                           {i.stack && (
                             <details className="text-xs">
                               <summary className="cursor-pointer text-muted-foreground">التفاصيل التقنية</summary>

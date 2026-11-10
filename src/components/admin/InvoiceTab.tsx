@@ -14,6 +14,7 @@ import { format } from "date-fns";
 import { isEventExpired } from "@/lib/eventUtils";
 import { availableInvoiceEventIds } from "@/lib/invoiceScope";
 import { hasProviderProof, type DeliveryRecord } from "../../../supabase/functions/_shared/invoice-delivery";
+import { normalizeCustomerEmail } from "../../../supabase/functions/_shared/customer-email";
 
 const COUNTRY_FLAGS: Record<string, string> = {
   "السعودية": "🇸🇦",
