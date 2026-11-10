@@ -57,6 +57,7 @@ interface Order {
   whatsapp_manually_confirmed_at?: string | null;
   email_delivery_events?: DeliveryRecord[];
   customers: {
+    id: string;
     name: string;
     email: string;
     phone: string;
@@ -110,6 +111,9 @@ export const InvoiceTab = () => {
   const [manualOrder, setManualOrder] = useState<Order | null>(null);
   const [confirmingManual, setConfirmingManual] = useState(false);
   const [timelineOrder, setTimelineOrder] = useState<Order | null>(null);
+  const [emailOrder, setEmailOrder] = useState<Order | null>(null);
+  const [emailDraft, setEmailDraft] = useState("");
+  const [savingEmail, setSavingEmail] = useState(false);
   const [visibleCount, setVisibleCount] = useState<number>(100);
 
   useEffect(() => {
