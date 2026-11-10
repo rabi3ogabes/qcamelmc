@@ -679,6 +679,36 @@ export const InvoiceTab = () => {
     }
   };
 
+  const saveEmailAndSend = async () => {
+    if (!emailOrder || savingEmail) return;
+    const email = normalizeCustomerEmail(emailDraft);
+    if (!email) {
+      toast.error("أدخل بريدًا إلكترونيًا صالحًا، مثل name@example.com");
+      return;
+    }
+
+    setSavingEmail(true);
+    try {
+      // The invoice function still reads the recipient from the trusted customer
+      // record; the browser never supplies an arbitrary email recipient.
+      const { error } = await supabase.from("customers").update({ email }).eq("id", emailOrder.customers.id);
+      if (error) throw error;
+
+      const updatedOrder: Order = { ...emailOrder, customers: { ...emailOrder.customers, email } };
+      setOrders(rows => rows.map(order => order.id === updatedOrder.id ? updatedOrder : order));
+      setSearchedOrder(order => order?.id === updatedOrder.id ? updatedOrder : order);
+      setTimelineOrder(order => order?.id === updatedOrder.id ? updatedOrder : order);
+      setEmailOrder(null);
+      toast.success("تم حفظ بريد العميل");
+      await sendEmailInvoice(updatedOrder);
+    } catch (error) {
+      console.error("Error updating customer email:", error);
+      toast.error("تعذّر حفظ بريد العميل");
+    } finally {
+      setSavingEmail(false);
+    }
+  };
+
   // Email invoices always go through the built-in branded email (notify@qcamelmc.org),
   // never through the n8n email workflow.
   const sendEmailInvoice = async (order: Order) => {
