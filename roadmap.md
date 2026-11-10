@@ -1,7 +1,7 @@
 # Task Roadmap
 
 ## Complete live-bookings festival calendar
-- [ ] Show every active, non-archived festival day from 7–14 November 2026, including completed days, in the calendar and booking results; exclude older seasons.
+- [x] Show every active, non-archived festival day from 7–14 November 2026, including completed days, in the calendar and booking results; exclude older seasons. Authenticated browser verified all eight dates enabled, 7 November selectable, and 8 November loading 73 bookings / 113 tickets; 14 focused tests passed and build is clean.
 
 ## Live booking labels and completed festival days
 - [x] Replace remaining raw ticket-type labels across live-bookings summaries; authenticated page has all three Arabic labels and no standalone parking/vip/normal labels.

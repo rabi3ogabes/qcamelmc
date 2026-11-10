@@ -24,7 +24,7 @@ import { CountryFlag } from "@/components/CountryFlag";
 import { LIVE_BOOKINGS_REFRESH_MS, stockIncreases, bookingChanges, bookingsForDay, liveBookingAttendance, appendStockAdditions, type LiveStock, type StockAddition } from "@/lib/liveBookingChanges";
 import { fullscreenActive, toggleBrowserFullscreen } from "@/lib/browserSupport";
 import { STOCK_NOTIFICATION_VISIBLE_MS } from "@/lib/stockNotificationTiming";
-import { formatQatarDate } from "@/lib/qatarTime";
+import { formatQatarDate, qatarDayKey } from "@/lib/qatarTime";
 import mafareedLogo from "@/assets/mafareed-logo.png.asset.json";
 import { NewBookingNotification } from "@/components/admin/NewBookingNotification";
 
@@ -405,6 +405,7 @@ const LiveBookings = ({ viewerPassword }: { viewerPassword?: string | null } = {
   const [isDateInitialized, setIsDateInitialized] = useState(false);
   const [liveMode, setLiveMode] = useState<LiveRefreshMode>("always");
   const [eventDates, setEventDates] = useState<string[]>([]);
+  const festivalDays = useMemo(() => new Set(eventDates.map(qatarDayKey)), [eventDates]);
   const [isLive, setIsLive] = useState(false);
   // The actual (current) event — every list and statistic on this page is scoped to it
   const [actualEventIds, setActualEventIds] = useState<string[]>([]);
@@ -481,68 +482,54 @@ const LiveBookings = ({ viewerPassword }: { viewerPassword?: string | null } = {
     selectedDateRef.current = selectedDate;
   }, [selectedDate]);
 
-  // Auto-select upcoming event on page load
+  // Load the complete festival and initially select its upcoming day, when one remains.
   useEffect(() => {
-    const fetchUpcomingEvent = async () => {
+    const fetchFestivalEvents = async () => {
       try {
         let data: any[] | null = null;
         let error: any = null;
-        let currentEventSettingId: string | null = null;
         if (viewerPassword) {
           const res = await fetchLiveFeed(viewerPassword, "active_events");
           data = res.data;
-          currentEventSettingId = res?.current_event_id ?? null;
           setLiveMode(res.mode === "event_hours" ? "event_hours" : "always");
         } else {
           const r = await supabase.from("events").select("id, title, event_date, is_archived").eq("is_active", true)
             .order("event_date", { ascending: true });
           data = r.data; error = r.error;
-          const { data: st } = await supabase.from("settings").select("live_refresh_mode, current_event_id").limit(1).maybeSingle();
+          const { data: st } = await supabase.from("settings").select("live_refresh_mode").limit(1).maybeSingle();
           if ((st as any)?.live_refresh_mode) setLiveMode((st as any).live_refresh_mode);
-          currentEventSettingId = (st as any)?.current_event_id ?? null;
         }
 
         if (error) {
-          console.error("Error fetching upcoming event:", error);
+          console.error("Error fetching festival events:", error);
           throw error;
         }
-        salesEventsRef.current = dailySalesEvents(data || []);
-        setEventDates((data || []).map((e: any) => e.event_date));
+        const festivalEvents = dailySalesEvents(data || []);
+        salesEventsRef.current = festivalEvents;
+        setEventDates(festivalEvents.map((event) => event.event_date));
 
-        // The actual event: the admin's current event when it is active,
-        // otherwise the first active event that has not finished yet
-        const chosenEventIds = pickActualEventIds(data || [], currentEventSettingId, canPurchaseTickets);
+        // Include completed festival days too; never fall back to older seasons.
+        const chosenEventIds = pickActualEventIds(festivalEvents);
         setActualEventIds(chosenEventIds);
         actualEventIdsRef.current = chosenEventIds;
 
-        // Find the first event that still allows viewing (upcoming or today)
-        const availableEvent = data?.find(event => canPurchaseTickets(event.event_date));
-        
-        if (availableEvent) {
-          const eventDate = toZonedTime(new Date(availableEvent.event_date), QATAR_TIMEZONE);
-          setSelectedDate(eventDate);
-          selectedDateRef.current = eventDate;
-          console.log("Auto-selected upcoming event date:", eventDate);
-        } else {
-          // Fallback to today if no upcoming events
-          const now = new Date();
-          const todayDate = toZonedTime(now, QATAR_TIMEZONE);
-          setSelectedDate(todayDate);
-          selectedDateRef.current = todayDate;
-        }
+        const initialEvent = festivalEvents.find((event) => canPurchaseTickets(event.event_date))
+          ?? festivalEvents[festivalEvents.length - 1];
+        const initialDate = initialEvent
+          ? toZonedTime(new Date(initialEvent.event_date), QATAR_TIMEZONE)
+          : undefined;
+        setSelectedDate(initialDate);
+        selectedDateRef.current = initialDate;
         setIsDateInitialized(true);
       } catch (error) {
-        console.error("Failed to fetch upcoming event:", error);
-        // Fallback to today on error
-        const now = new Date();
-        const todayDate = toZonedTime(now, QATAR_TIMEZONE);
-        setSelectedDate(todayDate);
-        selectedDateRef.current = todayDate;
+        console.error("Failed to fetch festival events:", error);
+        setSelectedDate(undefined);
+        selectedDateRef.current = undefined;
         setIsDateInitialized(true);
       }
     };
 
-    fetchUpcomingEvent();
+    fetchFestivalEvents();
     fetchSettings();
   }, []);
 
@@ -1386,6 +1373,7 @@ const LiveBookings = ({ viewerPassword }: { viewerPassword?: string | null } = {
                     mode="single"
                     selected={selectedDate}
                     onSelect={setSelectedDate}
+                    disabled={(date) => !festivalDays.has(qatarDayKey(date))}
                     initialFocus
                     className={cn("p-3 pointer-events-auto")}
                   />
