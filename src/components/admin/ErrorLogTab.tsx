@@ -45,7 +45,8 @@ export const ErrorLogTab = () => {
   const [search, setSearch] = useState("");
 
   const load = useCallback(async (silent = false) => {
-    silent ? setRefreshing(true) : setLoading(true);
+    if (silent) setRefreshing(true);
+    else setLoading(true);
     const since = new Date(Date.now() - RANGES[range] * 86400000).toISOString();
     try {
       const [app, pay, mail] = await Promise.all([
