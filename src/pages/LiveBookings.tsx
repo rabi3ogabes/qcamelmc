@@ -488,23 +488,20 @@ const LiveBookings = ({ viewerPassword }: { viewerPassword?: string | null } = {
       try {
         let data: any[] | null = null;
         let error: any = null;
-        let currentEventSettingId: string | null = null;
         if (viewerPassword) {
           const res = await fetchLiveFeed(viewerPassword, "active_events");
           data = res.data;
-          currentEventSettingId = res?.current_event_id ?? null;
           setLiveMode(res.mode === "event_hours" ? "event_hours" : "always");
         } else {
           const r = await supabase.from("events").select("id, title, event_date, is_archived").eq("is_active", true)
             .order("event_date", { ascending: true });
           data = r.data; error = r.error;
-          const { data: st } = await supabase.from("settings").select("live_refresh_mode, current_event_id").limit(1).maybeSingle();
+          const { data: st } = await supabase.from("settings").select("live_refresh_mode").limit(1).maybeSingle();
           if ((st as any)?.live_refresh_mode) setLiveMode((st as any).live_refresh_mode);
-          currentEventSettingId = (st as any)?.current_event_id ?? null;
         }
 
         if (error) {
-          console.error("Error fetching upcoming event:", error);
+          console.error("Error fetching festival events:", error);
           throw error;
         }
         const festivalEvents = dailySalesEvents(data || []);
