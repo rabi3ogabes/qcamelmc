@@ -1,22 +1,27 @@
 import { describe, expect, it } from "vitest";
 import { pickActualEventIds } from "./actualEvent";
 
-const viewable = (d: string) => d >= "2026-11-05";
 const events = [
   { id: "old", event_date: "2026-10-24T18:00:00Z" },
-  { id: "next", event_date: "2026-11-07T09:00:00Z" },
-  { id: "later", event_date: "2026-11-14T09:00:00Z" },
+  { id: "seven", event_date: "2026-11-07T06:00:00Z" },
+  { id: "eight", event_date: "2026-11-08T06:00:00Z" },
+  { id: "archived", event_date: "2026-11-09T06:00:00Z", is_archived: true },
+  { id: "fourteen", event_date: "2026-11-14T06:00:00Z" },
+  { id: "after", event_date: "2026-11-15T06:00:00Z" },
 ];
 
 describe("pickActualEventIds", () => {
-  it("uses only the admin's current event while it is active", () => {
-    expect(pickActualEventIds(events, "later", viewable)).toEqual(["later"]);
+  it("includes completed 7 and 8 November days and every other active festival day", () => {
+    expect(pickActualEventIds(events)).toEqual(["seven", "eight", "fourteen"]);
   });
-  it("otherwise includes every upcoming festival day (7–14 Nov), skipping past ones", () => {
-    expect(pickActualEventIds(events, null, viewable)).toEqual(["next", "later"]);
-    expect(pickActualEventIds(events, "not-active", viewable)).toEqual(["next", "later"]);
+
+  it("excludes older seasons, archived duplicates and dates after 14 November", () => {
+    expect(pickActualEventIds(events)).not.toContain("old");
+    expect(pickActualEventIds(events)).not.toContain("archived");
+    expect(pickActualEventIds(events)).not.toContain("after");
   });
-  it("returns empty when no active event qualifies — no old data is shown", () => {
-    expect(pickActualEventIds([events[0]], null, viewable)).toEqual([]);
+
+  it("returns empty when no active event belongs to the festival", () => {
+    expect(pickActualEventIds([events[0], events[5]])).toEqual([]);
   });
 });
