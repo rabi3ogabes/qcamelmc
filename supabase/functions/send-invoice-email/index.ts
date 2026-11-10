@@ -2,6 +2,7 @@ import "../_shared/track-install.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.58.0'
 import { sendTemplateEmail } from '../_shared/transactional-email-templates/send-email.ts'
 import { isAdminAuthorized, isServiceRoleCall } from '../_shared/staffAuth.ts'
+import { normalizeCustomerEmail } from '../_shared/customer-email.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -81,11 +82,10 @@ Deno.serve(async (req) => {
     }
 
     const customer = order.customers as { name?: string; email?: string; phone?: string; country_code?: string } | null
-    const email = (customer?.email || '').trim()
-    if (!email || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
-      await logEvent('failed', 'لا يوجد بريد إلكتروني صالح للعميل')
-      return json({ sent: false, reason: 'no_email' })
-    }
+    const email = normalizeCustomerEmail(customer?.email)
+    // Email is optional at checkout. Missing customer data is an expected skip,
+    // not a system failure; WhatsApp delivery and the paid booking are unaffected.
+    if (!email) return json({ sent: false, reason: 'no_email' })
     recipient = email
 
     if (order.invoice_email_sent_at && !force) {

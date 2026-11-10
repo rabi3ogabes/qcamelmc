@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Send, Loader2, CheckCircle, Clock, RotateCcw, CalendarX, PauseCircle, FileDown, Mail, MailCheck, History, ChevronDown } from "lucide-react";
+import { Send, Loader2, CheckCircle, Clock, RotateCcw, CalendarX, PauseCircle, FileDown, Mail, MailCheck, History, ChevronDown, Pencil } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { InvoiceDeliveryStatus } from "@/components/admin/InvoiceDeliveryStatus";
 import { Input } from "@/components/ui/input";
@@ -14,6 +14,7 @@ import { format } from "date-fns";
 import { isEventExpired } from "@/lib/eventUtils";
 import { availableInvoiceEventIds } from "@/lib/invoiceScope";
 import { hasProviderProof, type DeliveryRecord } from "../../../supabase/functions/_shared/invoice-delivery";
+import { normalizeCustomerEmail } from "../../../supabase/functions/_shared/customer-email";
 
 const COUNTRY_FLAGS: Record<string, string> = {
   "السعودية": "🇸🇦",
@@ -56,6 +57,7 @@ interface Order {
   whatsapp_manually_confirmed_at?: string | null;
   email_delivery_events?: DeliveryRecord[];
   customers: {
+    id: string;
     name: string;
     email: string;
     phone: string;
@@ -109,6 +111,9 @@ export const InvoiceTab = () => {
   const [manualOrder, setManualOrder] = useState<Order | null>(null);
   const [confirmingManual, setConfirmingManual] = useState(false);
   const [timelineOrder, setTimelineOrder] = useState<Order | null>(null);
+  const [emailOrder, setEmailOrder] = useState<Order | null>(null);
+  const [emailDraft, setEmailDraft] = useState("");
+  const [savingEmail, setSavingEmail] = useState(false);
   const [visibleCount, setVisibleCount] = useState<number>(100);
 
   useEffect(() => {
@@ -318,7 +323,7 @@ export const InvoiceTab = () => {
       for (;;) {
         const { data, error } = await supabase
           .from("orders")
-          .select("*, customers(name, email, phone, country_code, nationality), events(title, event_date, location, is_archived), ticket_holders(qr_code, ticket_type), email_delivery_events(id, channel, status, attempt, provider_message_id, provider_confirmed_at)")
+          .select("*, customers(id, name, email, phone, country_code, nationality), events(title, event_date, location, is_archived), ticket_holders(qr_code, ticket_type), email_delivery_events(id, channel, status, attempt, provider_message_id, provider_confirmed_at)")
           .gte("created_at", "2026-01-12T00:00:00+03:00")
           .eq("payment_status", "confirmed")
           // Online sales only — POS (cash_pos) customers never receive invoices.
@@ -674,12 +679,42 @@ export const InvoiceTab = () => {
     }
   };
 
+  const saveEmailAndSend = async () => {
+    if (!emailOrder || savingEmail) return;
+    const email = normalizeCustomerEmail(emailDraft);
+    if (!email) {
+      toast.error("أدخل بريدًا إلكترونيًا صالحًا، مثل name@example.com");
+      return;
+    }
+
+    setSavingEmail(true);
+    try {
+      // The invoice function still reads the recipient from the trusted customer
+      // record; the browser never supplies an arbitrary email recipient.
+      const { error } = await supabase.from("customers").update({ email }).eq("id", emailOrder.customers.id);
+      if (error) throw error;
+
+      const updatedOrder: Order = { ...emailOrder, customers: { ...emailOrder.customers, email } };
+      setOrders(rows => rows.map(order => order.id === updatedOrder.id ? updatedOrder : order));
+      setSearchedOrder(order => order?.id === updatedOrder.id ? updatedOrder : order);
+      setTimelineOrder(order => order?.id === updatedOrder.id ? updatedOrder : order);
+      setEmailOrder(null);
+      toast.success("تم حفظ بريد العميل");
+      await sendEmailInvoice(updatedOrder);
+    } catch (error) {
+      console.error("Error updating customer email:", error);
+      toast.error("تعذّر حفظ بريد العميل");
+    } finally {
+      setSavingEmail(false);
+    }
+  };
+
   // Email invoices always go through the built-in branded email (notify@qcamelmc.org),
   // never through the n8n email workflow.
   const sendEmailInvoice = async (order: Order) => {
-    const email = order.customers.email?.trim();
+    const email = normalizeCustomerEmail(order.customers.email);
     if (!email) {
-      toast.error("لا يوجد بريد إلكتروني لهذا العميل");
+      toast.error("أضف بريدًا إلكترونيًا صالحًا للعميل أولًا");
       return;
     }
     if (order.payment_status !== "confirmed") {
@@ -845,7 +880,7 @@ export const InvoiceTab = () => {
           const ref = referenceSearch.trim();
           if (!/^[A-Za-z0-9][A-Za-z0-9_-]{0,59}$/.test(ref)) { toast.error("أدخل رقم الحجز كاملاً"); return; }
           setSearching(true);
-          const { data, error } = await supabase.from("orders").select("*, customers(name, email, phone, country_code, nationality), events(title, event_date, location, is_archived), ticket_holders(qr_code, ticket_type), email_delivery_events(id, channel, status, attempt, provider_message_id, provider_confirmed_at)").eq("booking_reference", ref).eq("payment_status", "confirmed").eq("payment_method", "sadad").gte("created_at", "2026-01-12T00:00:00+03:00").maybeSingle();
+          const { data, error } = await supabase.from("orders").select("*, customers(id, name, email, phone, country_code, nationality), events(title, event_date, location, is_archived), ticket_holders(qr_code, ticket_type), email_delivery_events(id, channel, status, attempt, provider_message_id, provider_confirmed_at)").eq("booking_reference", ref).eq("payment_status", "confirmed").eq("payment_method", "sadad").gte("created_at", "2026-01-12T00:00:00+03:00").maybeSingle();
           setSearching(false);
           if (error || !data) { toast.error("لم يُعثر على فاتورة مؤكدة بهذا الرقم"); return; }
           setSearchedOrder(data as unknown as Order);
@@ -915,6 +950,9 @@ export const InvoiceTab = () => {
                     <p className="break-words text-sm font-semibold">{order.customers.name}</p>
                     <div className="flex min-w-0 items-start gap-1">
                       <p className="min-w-0 flex-1 break-all text-xs" dir="ltr">{order.customers.email || "بدون بريد"}</p>
+                      <Button variant="ghost" size="sm" onClick={() => { setEmailOrder(order); setEmailDraft(order.customers.email || ""); }} disabled={savingEmail || sendingEmail === order.id} className="h-7 w-7 shrink-0 p-0" title="تعديل البريد الإلكتروني" aria-label={`تعديل البريد الإلكتروني للحجز ${order.booking_reference}`}>
+                        <Pencil className="h-3.5 w-3.5" />
+                      </Button>
                       {order.customers.email && <Button variant="ghost" size="sm" onClick={() => sendEmailInvoice(order)} disabled={sendingEmail === order.id || sending || order.payment_status !== "confirmed"} className="h-7 w-7 shrink-0 p-0" title={order.invoice_email_sent_at ? "إعادة إرسال البريد" : "إرسال البريد"} aria-label={order.invoice_email_sent_at ? "إعادة إرسال البريد" : "إرسال البريد"}>
                         {sendingEmail === order.id ? <Loader2 className="h-4 w-4 animate-spin" /> : order.invoice_email_sent_at ? <MailCheck className="h-4 w-4 text-primary" /> : <Mail className="h-4 w-4" />}
                       </Button>}
@@ -961,6 +999,30 @@ export const InvoiceTab = () => {
           </TabsContent>
         </Tabs>
       </Card>
+
+      <Dialog open={!!emailOrder} onOpenChange={open => !open && !savingEmail && setEmailOrder(null)}>
+        <DialogContent dir="rtl" className="max-w-md">
+          <DialogHeader className="text-right">
+            <DialogTitle>بريد العميل لإرسال الفاتورة</DialogTitle>
+            <DialogDescription>
+              {emailOrder ? `الحجز ${emailOrder.booking_reference} — يُحفظ البريد في بيانات العميل ثم تُرسل الفاتورة إليه.` : ""}
+            </DialogDescription>
+          </DialogHeader>
+          <form className="space-y-4" noValidate onSubmit={event => { event.preventDefault(); void saveEmailAndSend(); }}>
+            <div className="space-y-2">
+              <label htmlFor="invoice-customer-email" className="text-sm font-medium">البريد الإلكتروني</label>
+              <Input id="invoice-customer-email" type="email" dir="ltr" autoComplete="email" value={emailDraft} onChange={event => setEmailDraft(event.target.value)} placeholder="name@example.com" maxLength={254} autoFocus disabled={savingEmail} />
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Button type="submit" disabled={savingEmail} className="gap-2">
+                {savingEmail ? <Loader2 className="h-4 w-4 animate-spin" /> : <Mail className="h-4 w-4" />}
+                {savingEmail ? "جارٍ الحفظ والإرسال…" : "حفظ وإرسال الفاتورة"}
+              </Button>
+              <Button type="button" variant="outline" disabled={savingEmail} onClick={() => setEmailOrder(null)}>إلغاء</Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={!!manualOrder} onOpenChange={open => !open && !confirmingManual && setManualOrder(null)}>
         <DialogContent dir="rtl" className="max-w-md">

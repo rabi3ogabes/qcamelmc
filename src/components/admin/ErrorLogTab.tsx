@@ -9,6 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { CAUSE_LABELS, CAUSE_ORDER, classifyError, type ErrorCause } from "@/lib/errorCauses";
 import { QATAR_TZ } from "@/lib/qatarTime";
+import { Link } from "react-router-dom";
 
 interface LogItem {
   key: string;
@@ -44,7 +45,8 @@ export const ErrorLogTab = () => {
   const [search, setSearch] = useState("");
 
   const load = useCallback(async (silent = false) => {
-    silent ? setRefreshing(true) : setLoading(true);
+    if (silent) setRefreshing(true);
+    else setLoading(true);
     const since = new Date(Date.now() - RANGES[range] * 86400000).toISOString();
     try {
       const [app, pay, mail] = await Promise.all([
@@ -204,6 +206,14 @@ export const ErrorLogTab = () => {
                           <p className="text-xs text-muted-foreground">
                             {i.detail}{i.page ? ` · الصفحة ${i.page}` : ""} · أول مرة {fmt(i.firstSeen)} · آخر مرة {fmt(i.lastSeen)}
                           </p>
+                          {i.origin === "email" && i.title === "لا يوجد بريد إلكتروني صالح للعميل" && (
+                            <div className="mt-2 rounded-lg border bg-muted/40 p-3 text-xs">
+                              <p>الدفع والتذاكر سليمة؛ العميل لم يضف بريدًا صالحًا. أضفه من صفحة الفواتير ثم أعد الإرسال.</p>
+                              <Button asChild variant="outline" size="sm" className="mt-2">
+                                <Link to="/admin/dashboard/invoices">فتح إرسال الفواتير</Link>
+                              </Button>
+                            </div>
+                          )}
                           {i.stack && (
                             <details className="text-xs">
                               <summary className="cursor-pointer text-muted-foreground">التفاصيل التقنية</summary>
