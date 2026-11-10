@@ -87,7 +87,7 @@ Deno.serve(async (req) => {
     if (slotError) throw new Error("Usage verification unavailable");
     if (!slot?.allowed) {
       const retry = String(slot?.retry_after || 60);
-      return new Response(JSON.stringify({ error: slot?.reason === "busy" ? "توجد قراءة قيد التنفيذ، حاول بعد قليل" : "وصلت إلى حد 10 قراءات خلال 10 دقائق، حاول لاحقًا", retry_after: Number(retry) }), {
+      return new Response(JSON.stringify({ error: slot?.reason === "busy" ? "توجد قراءة قيد التنفيذ، حاول بعد قليل" : "وصلت إلى حد 30 قراءة خلال 10 دقائق، حاول لاحقًا", retry_after: Number(retry) }), {
         status: 429, headers: { ...corsHeaders, "Content-Type": "application/json", "Retry-After": retry },
       });
     }

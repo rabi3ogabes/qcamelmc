@@ -2,14 +2,14 @@ BEGIN;
 DO $$
 DECLARE i integer; lease uuid; result jsonb;
 BEGIN
-  FOR i IN 1..10 LOOP
+  FOR i IN 1..30 LOOP
     lease := gen_random_uuid();
     result := public.acquire_receipt_ai_slot('test:quota', lease);
-    PERFORM t.ok((result->>'allowed')::boolean, 'reading within ten-request quota is allowed');
+    PERFORM t.ok((result->>'allowed')::boolean, 'reading within thirty-request quota is allowed');
     PERFORM public.release_receipt_ai_slot('test:quota', lease);
   END LOOP;
   result := public.acquire_receipt_ai_slot('test:quota', gen_random_uuid());
-  PERFORM t.eq(result->>'reason', 'quota', 'eleventh reading blocked');
+  PERFORM t.eq(result->>'reason', 'quota', 'thirty-first reading blocked');
   UPDATE public.receipt_ai_usage SET window_started_at = now() - interval '10 minutes 1 second' WHERE subject = 'test:quota';
   result := public.acquire_receipt_ai_slot('test:quota', gen_random_uuid());
   PERFORM t.ok((result->>'allowed')::boolean, 'quota resets after ten minutes');

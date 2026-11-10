@@ -134,6 +134,13 @@
       "when": 1793774112180,
       "tag": "0018_allow_manual_whatsapp_audit",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1794298458831,
+      "tag": "0019_receipt_ai_quota_30",
+      "breakpoints": true
     }
   ]
 }
