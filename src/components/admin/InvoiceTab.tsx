@@ -323,7 +323,7 @@ export const InvoiceTab = () => {
       for (;;) {
         const { data, error } = await supabase
           .from("orders")
-          .select("*, customers(name, email, phone, country_code, nationality), events(title, event_date, location, is_archived), ticket_holders(qr_code, ticket_type), email_delivery_events(id, channel, status, attempt, provider_message_id, provider_confirmed_at)")
+          .select("*, customers(id, name, email, phone, country_code, nationality), events(title, event_date, location, is_archived), ticket_holders(qr_code, ticket_type), email_delivery_events(id, channel, status, attempt, provider_message_id, provider_confirmed_at)")
           .gte("created_at", "2026-01-12T00:00:00+03:00")
           .eq("payment_status", "confirmed")
           // Online sales only — POS (cash_pos) customers never receive invoices.
@@ -850,7 +850,7 @@ export const InvoiceTab = () => {
           const ref = referenceSearch.trim();
           if (!/^[A-Za-z0-9][A-Za-z0-9_-]{0,59}$/.test(ref)) { toast.error("أدخل رقم الحجز كاملاً"); return; }
           setSearching(true);
-          const { data, error } = await supabase.from("orders").select("*, customers(name, email, phone, country_code, nationality), events(title, event_date, location, is_archived), ticket_holders(qr_code, ticket_type), email_delivery_events(id, channel, status, attempt, provider_message_id, provider_confirmed_at)").eq("booking_reference", ref).eq("payment_status", "confirmed").eq("payment_method", "sadad").gte("created_at", "2026-01-12T00:00:00+03:00").maybeSingle();
+          const { data, error } = await supabase.from("orders").select("*, customers(id, name, email, phone, country_code, nationality), events(title, event_date, location, is_archived), ticket_holders(qr_code, ticket_type), email_delivery_events(id, channel, status, attempt, provider_message_id, provider_confirmed_at)").eq("booking_reference", ref).eq("payment_status", "confirmed").eq("payment_method", "sadad").gte("created_at", "2026-01-12T00:00:00+03:00").maybeSingle();
           setSearching(false);
           if (error || !data) { toast.error("لم يُعثر على فاتورة مؤكدة بهذا الرقم"); return; }
           setSearchedOrder(data as unknown as Order);
