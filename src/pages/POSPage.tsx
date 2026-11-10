@@ -47,6 +47,7 @@ interface SuccessData {
 }
 import { api, apiErrorMessage, type ApiError } from "@/lib/api";
 import { getStaffPasscode } from "@/lib/staffAccess";
+import { posCustomerEmail } from "@/lib/posCustomerEmail";
 
 interface Ticket {
   id: string;
