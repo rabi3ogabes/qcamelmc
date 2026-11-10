@@ -712,9 +712,9 @@ export const InvoiceTab = () => {
   // Email invoices always go through the built-in branded email (notify@qcamelmc.org),
   // never through the n8n email workflow.
   const sendEmailInvoice = async (order: Order) => {
-    const email = order.customers.email?.trim();
+    const email = normalizeCustomerEmail(order.customers.email);
     if (!email) {
-      toast.error("لا يوجد بريد إلكتروني لهذا العميل");
+      toast.error("أضف بريدًا إلكترونيًا صالحًا للعميل أولًا");
       return;
     }
     if (order.payment_status !== "confirmed") {
@@ -950,6 +950,9 @@ export const InvoiceTab = () => {
                     <p className="break-words text-sm font-semibold">{order.customers.name}</p>
                     <div className="flex min-w-0 items-start gap-1">
                       <p className="min-w-0 flex-1 break-all text-xs" dir="ltr">{order.customers.email || "بدون بريد"}</p>
+                      <Button variant="ghost" size="sm" onClick={() => { setEmailOrder(order); setEmailDraft(order.customers.email || ""); }} disabled={savingEmail || sendingEmail === order.id} className="h-7 w-7 shrink-0 p-0" title="تعديل البريد الإلكتروني" aria-label={`تعديل البريد الإلكتروني للحجز ${order.booking_reference}`}>
+                        <Pencil className="h-3.5 w-3.5" />
+                      </Button>
                       {order.customers.email && <Button variant="ghost" size="sm" onClick={() => sendEmailInvoice(order)} disabled={sendingEmail === order.id || sending || order.payment_status !== "confirmed"} className="h-7 w-7 shrink-0 p-0" title={order.invoice_email_sent_at ? "إعادة إرسال البريد" : "إرسال البريد"} aria-label={order.invoice_email_sent_at ? "إعادة إرسال البريد" : "إرسال البريد"}>
                         {sendingEmail === order.id ? <Loader2 className="h-4 w-4 animate-spin" /> : order.invoice_email_sent_at ? <MailCheck className="h-4 w-4 text-primary" /> : <Mail className="h-4 w-4" />}
                       </Button>}
