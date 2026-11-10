@@ -412,7 +412,7 @@ const AdminPOS = () => {
     suppressPhoneSearchRef.current = customerPhone !== (c.phone || "");
     setPhoneSearching(false);
     setCustomerName(c.name || "");
-    setCustomerEmail(c.email || "");
+    setCustomerEmail(posCustomerEmail(c.email));
     setCustomerPhone(c.phone || "");
     setCustomerCountryCode(c.country_code || "+974");
     setCustomerNationality(c.nationality || "قطر");
@@ -1041,7 +1041,7 @@ const AdminPOS = () => {
         payment_method: "cash_pos",
         customer: {
           name: customerName.trim(),
-          email: customerEmail.trim(),
+          email: posCustomerEmail(customerEmail),
           phone: customerPhone.trim(),
           country_code: customerCountryCode,
           nationality: customerNationality,
@@ -1382,16 +1382,6 @@ const AdminPOS = () => {
                       value={customerName}
                       onChange={(e) => setCustomerName(e.target.value)}
                       required
-                    />
-                  </div>
-
-                  <div className="hidden">
-                    <Label htmlFor="email">البريد الإلكتروني</Label>
-                    <Input
-                      id="email"
-                      type="email"
-                      value={customerEmail}
-                      onChange={(e) => setCustomerEmail(e.target.value)}
                     />
                   </div>
 
