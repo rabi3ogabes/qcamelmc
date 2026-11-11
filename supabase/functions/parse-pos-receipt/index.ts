@@ -173,6 +173,7 @@ Extraction rules:
     const { data: saved, error: saveError } = await admin.from('pos_receipts').insert({ ...extractedData, image_url: publicUrl, created_by: identity.userId }).select('*').single();
     if (saveError) {
       await admin.storage.from('pos-receipts').remove([path]);
+      if (isDuplicateReceiptError(saveError)) return duplicateReceiptResponse();
       throw new Error('Receipt could not be saved. Please retry.');
     }
     return new Response(
