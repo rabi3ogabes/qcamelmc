@@ -186,7 +186,7 @@ const POSReceiptPage = () => {
       );
     } catch (error) {
       console.error("Error updating tickets:", error);
-      toast.error("Failed to update tickets");
+      toast.error(error instanceof Error ? error.message : "Failed to update tickets");
     }
   };
 
