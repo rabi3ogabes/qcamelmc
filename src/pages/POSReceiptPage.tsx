@@ -87,9 +87,9 @@ const POSReceiptPage = () => {
     if (error) {
       const response = (error as { context?: Response }).context;
       const details = await response?.json().catch(() => null);
-      throw new Error(details?.message || details?.error || 'Receipt operation failed. Please try again.');
+      throw new ReceiptOperationError(details?.message || details?.error || 'Receipt operation failed. Please try again.', details?.code);
     }
-    if (!data?.success) throw new Error(data?.error || 'Receipt operation failed. Please try again.');
+    if (!data?.success) throw new ReceiptOperationError(data?.message || data?.error || 'Receipt operation failed. Please try again.', data?.code);
     return data;
   };
 

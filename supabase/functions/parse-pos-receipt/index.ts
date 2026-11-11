@@ -13,6 +13,11 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+const duplicateReceiptResponse = () => new Response(
+  JSON.stringify({ success: false, code: 'duplicate_receipt', error: DUPLICATE_RECEIPT_MESSAGE, message: DUPLICATE_RECEIPT_MESSAGE }),
+  { status: 409, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+);
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
