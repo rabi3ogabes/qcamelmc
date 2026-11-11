@@ -27,6 +27,12 @@ interface POSReceipt {
   image_url: string | null;
 }
 
+class ReceiptOperationError extends Error {
+  constructor(message: string, readonly code?: string) {
+    super(message);
+  }
+}
+
 const POSReceiptPage = () => {
   const navigate = useNavigate();
   const [receipts, setReceipts] = useState<POSReceipt[]>([]);

@@ -5,6 +5,7 @@ import { staffIdentity, unauthorizedResponse } from "../_shared/staffAuth.ts";
 import { generateChatCompletion, GatewayError } from "npm:@lovable.dev/ai-gateway@0.1.11";
 import { RECEIPT_OUTPUT, parseReceiptOutput } from "./output.ts";
 import { receiptTicketPatch, receiptImage } from "./operations.ts";
+import { DUPLICATE_RECEIPT_MESSAGE, isDuplicateReceiptError, receiptFullRowValues } from "./duplicates.ts";
 import { ORDER_FESTIVAL } from "../_shared/orders-policy.ts";
 
 const corsHeaders = {
