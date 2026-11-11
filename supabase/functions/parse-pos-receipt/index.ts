@@ -165,7 +165,7 @@ Extraction rules:
     const { error: uploadError } = await admin.storage.from('pos-receipts').upload(path, image.bytes, { contentType: image.mime, upsert: false });
     if (uploadError) throw new Error('Photo could not be saved. Please retry.');
     const { data: { publicUrl } } = admin.storage.from('pos-receipts').getPublicUrl(path);
-    const { data: saved, error: saveError } = await admin.from('pos_receipts').insert({ ...extractedData, image_url: publicUrl, created_by: identity.userId }).select('*').single();
+    const { data: saved, error: saveError } = await admin.from('pos_receipts').insert({ ...receiptFullRowValues(extractedData), image_url: publicUrl, created_by: identity.userId }).select('*').single();
     if (saveError) {
       await admin.storage.from('pos-receipts').remove([path]);
       if (isDuplicateReceiptError(saveError)) return duplicateReceiptResponse();
