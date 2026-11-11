@@ -2,6 +2,24 @@ import { describe, expect, it } from 'vitest';
 import { LIVE_BOOKINGS_REFRESH_MS, stockIncreases, bookingChanges, bookingsForDay, liveBookingAttendance, appendStockAdditions } from '../src/lib/liveBookingChanges';
 
 describe('live bookings updates', () => {
+  it('uses the POS sale time when the holder has no confirmation timestamp', () => {
+    const order = { payment_method: 'cash_pos', confirmed_at: null, created_at: '2026-11-11T08:19:00Z',
+      ticket_holders: [{ is_present: false, confirmed_at: null }] };
+    expect(liveBookingAttendance(order).ticket_holders[0].confirmed_at).toBe('2026-11-11T08:19:00Z');
+    expect(order.ticket_holders[0].confirmed_at).toBeNull();
+  });
+  it('preserves recorded POS confirmation times and prefers order confirmation over creation', () => {
+    const result = liveBookingAttendance({ payment_method: 'cash_pos', confirmed_at: '2026-11-11T08:20:00Z',
+      created_at: '2026-11-11T08:19:00Z', ticket_holders: [
+        { confirmed_at: '2026-11-11T08:21:00Z' }, { confirmed_at: null },
+      ] });
+    expect(result.ticket_holders.map(h => h.confirmed_at)).toEqual(['2026-11-11T08:21:00Z', '2026-11-11T08:20:00Z']);
+  });
+  it('never substitutes sale time for an unscanned online ticket', () => {
+    const result = liveBookingAttendance({ payment_method: 'sadad', confirmed_at: '2026-11-11T08:20:00Z',
+      created_at: '2026-11-11T08:19:00Z', ticket_holders: [{ confirmed_at: null, is_present: false }] });
+    expect(result.ticket_holders[0].confirmed_at).toBeNull();
+  });
   it('always displays POS customers as present, including existing absent or null records', () => {
     const order = { payment_method: 'cash_pos', ticket_holders: [
       { id: 'one', is_present: false }, { id: 'two', is_present: null },
