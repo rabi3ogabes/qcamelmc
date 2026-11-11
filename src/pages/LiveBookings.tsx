@@ -1763,7 +1763,7 @@ const LiveBookings = ({ viewerPassword }: { viewerPassword?: string | null } = {
                     {/* Confirmed At */}
                     {holder.confirmed_at && (
                       <div className="text-[10px] sm:text-xs text-muted-foreground text-center">
-                        تم التأكيد: {format(new Date(holder.confirmed_at), 'dd/MM/yyyy - HH:mm')}
+                        تم التأكيد: {formatQatarDate(holder.confirmed_at, { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false })}
                       </div>
                     )}
 
@@ -1889,7 +1889,7 @@ const LiveBookings = ({ viewerPassword }: { viewerPassword?: string | null } = {
                         </TableCell>
                         <TableCell className="text-xs sm:text-sm py-2 sm:py-4 hidden xl:table-cell">
                           {holder.confirmed_at 
-                            ? format(new Date(holder.confirmed_at), 'dd/MM/yyyy - HH:mm')
+                            ? formatQatarDate(holder.confirmed_at, { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false })
                             : '-'
                           }
                         </TableCell>

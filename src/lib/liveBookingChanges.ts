@@ -5,13 +5,19 @@ export const LIVE_BOOKINGS_REFRESH_MS = 10_000;
 /** Live-board attendance: POS sales are present; scanned tickets use holder attendance. */
 export function liveBookingAttendance<T extends {
   payment_method: string;
-  ticket_holders?: Array<{ is_present?: boolean | null }> | null;
+  confirmed_at?: string | null;
+  created_at?: string | null;
+  ticket_holders?: Array<{ is_present?: boolean | null; confirmed_at?: string | null; created_at?: string | null }> | null;
 }>(order: T): T {
   return {
     ...order,
     ticket_holders: order.ticket_holders?.map(holder => ({
       ...holder,
       is_present: order.payment_method === 'cash_pos' || holder.is_present === true,
+      // POS attendance starts at sale time; do not invent scanner history for online tickets.
+      confirmed_at: order.payment_method === 'cash_pos'
+        ? holder.confirmed_at || order.confirmed_at || order.created_at || holder.created_at || null
+        : holder.confirmed_at,
     })) ?? [],
   };
 }
