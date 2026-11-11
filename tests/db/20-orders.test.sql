@@ -137,8 +137,8 @@ SELECT t.ok(
       AND (SELECT sum(sold_quantity) FROM public.tickets) = b.sold FROM before b),
   'rejected orders created no customers, orders, holders or stock changes');
 
--- ---------- 5 tickets per person (normal + VIP) per event --------------------
--- (the rule that already existed; it must also hold for orders made by create_order)
+-- ---------- POS: 5 normal + VIP tickets per person per order ---------------
+-- Earlier orders do not reduce the allowance; online keeps the per-event cap.
 UPDATE public.tickets SET available_quantity = 100 WHERE id = 'b2000000-0000-4000-8000-000000000001';
 CREATE TEMP TABLE p1 AS
 SELECT public.create_order(t.customer(),
@@ -147,24 +147,40 @@ SELECT public.create_order(t.customer(),
                     t.holder('b2000000-0000-4000-8000-000000000001', '30011112222'),
                     t.holder('b2000000-0000-4000-8000-000000000001', '30011112222')), 'cash_pos') AS j;
 SELECT t.eq(public.get_person_ticket_count('30011112222', NULL, 'b0000000-0000-4000-8000-000000000001'), 3,
-            'the person already holds 3 tickets for the event');
-SELECT t.throws(
-  $$SELECT public.create_order(t.customer(), t.items('{"b2000000-0000-4000-8000-000000000001":3}'),
+            'the returning POS customer already holds 3 tickets for the event');
+SELECT t.ok(
+  (public.create_order(t.customer(), t.items('{"b2000000-0000-4000-8000-000000000001":3}'),
       jsonb_build_array(t.holder('b2000000-0000-4000-8000-000000000001', '30011112222'),
                         t.holder('b2000000-0000-4000-8000-000000000001', '30011112222'),
-                        t.holder('b2000000-0000-4000-8000-000000000001', '30011112222')), 'cash_pos')$$,
-  'TICKET_LIMIT_EXCEEDED', 'a 6th ticket for the same person is refused, even in a second order');
-SELECT t.ok(
-  (public.create_order(t.customer(), t.items('{"b2000000-0000-4000-8000-000000000001":2}'),
-      jsonb_build_array(t.holder('b2000000-0000-4000-8000-000000000001', '30011112222'),
                         t.holder('b2000000-0000-4000-8000-000000000001', '30011112222')), 'cash_pos') ->> 'order_id') IS NOT NULL,
-  'exactly 5 for one person is allowed');
-SELECT t.eq((SELECT sold_quantity FROM public.tickets WHERE id = 'b2000000-0000-4000-8000-000000000001'), 7,
-            'the refused order held no seats (2 earlier + 5 for this person)');
+  'a new POS order ignores the 3 tickets from the previous order');
+SELECT t.throws(
+  $$SELECT public.create_order(t.customer(), t.items('{"b2000000-0000-4000-8000-000000000001":6}'),
+      jsonb_build_array(t.holder('b2000000-0000-4000-8000-000000000001', '30011112222'),
+                        t.holder('b2000000-0000-4000-8000-000000000001', '30011112222'),
+                        t.holder('b2000000-0000-4000-8000-000000000001', '30011112222'),
+                        t.holder('b2000000-0000-4000-8000-000000000001', '30011112222'),
+                        t.holder('b2000000-0000-4000-8000-000000000001', '30011112222'),
+                        t.holder('b2000000-0000-4000-8000-000000000001', '30011112222')), 'cash_pos', 'pos')$$,
+  'TICKET_LIMIT_EXCEEDED', 'a 6th ticket for the same person in one POS order is refused');
+SELECT t.ok(
+  (public.create_order(t.customer(), t.items('{"b2000000-0000-4000-8000-000000000001":5}'),
+      jsonb_build_array(t.holder('b2000000-0000-4000-8000-000000000001', '30011112222'),
+                        t.holder('b2000000-0000-4000-8000-000000000001', '30011112222'),
+                        t.holder('b2000000-0000-4000-8000-000000000001', '30011112222'),
+                        t.holder('b2000000-0000-4000-8000-000000000001', '30011112222'),
+                        t.holder('b2000000-0000-4000-8000-000000000001', '30011112222')), 'cash_pos') ->> 'order_id') IS NOT NULL,
+  'exactly 5 in a POS order is allowed even after 6 tickets in earlier orders');
+SELECT t.eq((SELECT sold_quantity FROM public.tickets WHERE id = 'b2000000-0000-4000-8000-000000000001'), 13,
+            'the refused 6-ticket POS order held no seats (2 earlier + 3 + 3 + 5 accepted)');
 SELECT t.ok(
   (public.create_order(t.customer(), t.items('{"b2000000-0000-4000-8000-000000000001":1}'),
       jsonb_build_array(t.holder('b2000000-0000-4000-8000-000000000001', '30099998888')), 'cash_pos') ->> 'order_id') IS NOT NULL,
   'another person is unaffected');
+SELECT t.throws(
+  $$SELECT public.create_order(t.customer(), t.items('{"b2000000-0000-4000-8000-000000000001":1}'),
+      jsonb_build_array(t.holder('b2000000-0000-4000-8000-000000000001', '30011112222')), 'sadad')$$,
+  'TICKET_LIMIT_EXCEEDED', 'online orders still count all previous tickets for the event');
 
 -- ---------- minimum online amount (3 QAR) ----------------------------------
 UPDATE public.tickets SET price = 2 WHERE id = 'a3000000-0000-4000-8000-000000000001';

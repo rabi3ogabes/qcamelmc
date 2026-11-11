@@ -18,6 +18,35 @@ export interface LimitViolation {
   checkFailed?: true;
 }
 
+/**
+ * POS allowance is deliberately scoped to the current order. Looking up a
+ * returning customer fills their details without counting earlier purchases.
+ */
+export const checkPosOrderTicketLimits = (holders: LimitCheckHolder[]): LimitViolation[] => {
+  const groups = new Map<string, { name: string; requested: number }>();
+
+  for (const holder of holders) {
+    if (holder.ticketType !== "normal" && holder.ticketType !== "vip") continue;
+    const key = personKey(holder.idNumber, holder.phone);
+    if (!key) continue;
+    const group = groups.get(key);
+    if (group) group.requested += 1;
+    else groups.set(key, { name: holder.name, requested: 1 });
+  }
+
+  return Array.from(groups.values())
+    .filter((group) => group.requested > MAX_TICKETS_PER_PERSON)
+    .map((group) => ({
+      name: group.name,
+      existing: 0,
+      requested: group.requested,
+      remaining: MAX_TICKETS_PER_PERSON,
+    }));
+};
+
+export const formatPosOrderLimitViolation = (v: LimitViolation) =>
+  `${v.name}: الحد الأقصى ${MAX_TICKETS_PER_PERSON} تذاكر (عادي + VIP) في هذا الطلب، وقد طلبت ${v.requested}`;
+
 const personKey = (idNumber?: string | null, phone?: string | null) => {
   const id = (idNumber || "").replace(/\D/g, "");
   if (id.length >= 6) return `id:${id}`;

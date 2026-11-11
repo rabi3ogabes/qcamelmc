@@ -1,9 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { type LookupCustomer } from "@/components/admin/CustomerLookup";
 import { searchCustomers, dedupeCustomers, STAFF_UNAUTHORIZED } from "@/lib/customerLookup";
-import { getPersonEventHistory, formatHistoryDate, PersonEventHistoryItem } from "@/lib/personEventHistory";
-
-
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -25,7 +22,7 @@ import { canPurchaseTickets } from "@/lib/eventUtils";
 import { useActivityLog } from "@/hooks/useActivityLog";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { FireworksBurst } from "@/components/FireworksBurst";
-import { bookingGuardMessage, checkTicketLimits, formatLimitViolation, isTicketLimitError, ticketLimitErrorMessage } from "@/lib/ticketLimit";
+import { bookingGuardMessage, checkPosOrderTicketLimits, formatPosOrderLimitViolation, isTicketLimitError, ticketLimitErrorMessage } from "@/lib/ticketLimit";
 import { useReserveTickets } from "@/hooks/useReserveTickets";
 import { CapacityAlert } from "@/components/admin/CapacityAlert";
 import { CapacityNotificationBanner } from "@/components/admin/CapacityNotificationBanner";
@@ -98,7 +95,6 @@ const AdminPOS = () => {
   const [customerIdNumber, setCustomerIdNumber] = useState("");
   const [showAllNationalities, setShowAllNationalities] = useState(false);
   const [phoneMatches, setPhoneMatches] = useState<LookupCustomer[]>([]);
-  const [phoneHistories, setPhoneHistories] = useState<Record<string, PersonEventHistoryItem[]>>({});
   const [phoneSearching, setPhoneSearching] = useState(false);
 
   const suppressPhoneSearchRef = useRef(false);
@@ -359,11 +355,9 @@ const AdminPOS = () => {
       return;
     }
     setPhoneMatches([]);
-    setPhoneHistories({});
     if (term.length < 4) {
       setPhoneSearching(false);
       setPhoneMatches([]);
-      setPhoneHistories({});
       return;
     }
     let cancelled = false;
@@ -373,22 +367,10 @@ const AdminPOS = () => {
         const found = dedupeCustomers(await searchCustomers(term)) as LookupCustomer[];
         if (cancelled) return;
         setPhoneMatches(found);
-        if (found.length > 0) {
-          const entries = await Promise.all(
-            found.map(async (c) => [
-              c.id,
-              await getPersonEventHistory(c.id_number, `${c.country_code || ""}${c.phone}`),
-            ] as const)
-          );
-          if (!cancelled) setPhoneHistories(Object.fromEntries(entries));
-        } else {
-          setPhoneHistories({});
-        }
       } catch (err) {
         console.error("Phone lookup failed:", err);
         if (!cancelled) {
           setPhoneMatches([]);
-          setPhoneHistories({});
           if ((err as Error)?.message === STAFF_UNAUTHORIZED) {
             toast({
               title: "انتهت جلسة الفريق",
@@ -418,7 +400,6 @@ const AdminPOS = () => {
     setCustomerNationality(c.nationality || "قطر");
     setCustomerIdNumber(c.id_number || "");
     setPhoneMatches([]);
-    setPhoneHistories({});
 
     toast({ title: "تم", description: `تم تعبئة بيانات ${c.name}` });
   };
@@ -955,8 +936,9 @@ const AdminPOS = () => {
         return;
       }
 
-      // Friendly pre-checks (the server enforces the same rules again when it saves the sale)
-      // 1) the 5-ticket-per-person rule
+      // POS checks only this order. Earlier purchases never reduce a returning
+      // customer's allowance; the database applies the same per-order rule.
+      // 1) five normal + VIP tickets per person in this order
       const limitHolders = [
         {
           name: customerName,
@@ -971,11 +953,11 @@ const AdminPOS = () => {
           ticketType: h.ticketType,
         })),
       ];
-      const limitViolations = await checkTicketLimits(limitHolders, currentEventId);
+      const limitViolations = checkPosOrderTicketLimits(limitHolders);
       if (limitViolations.length > 0) {
         toast({
           title: "تجاوز الحد الأقصى للتذاكر",
-          description: limitViolations.map(formatLimitViolation).join(" — "),
+          description: limitViolations.map(formatPosOrderLimitViolation).join(" — "),
           variant: "destructive",
         });
         setProcessing(false);
@@ -1351,20 +1333,6 @@ const AdminPOS = () => {
                                 {c.id_number ? ` · ${c.id_number}` : ""}
                                 {c.nationality ? ` · ${c.nationality}` : ""}
                               </span>
-                              {phoneHistories[c.id]?.length > 0 && (
-                                <span className="mt-1.5 flex flex-wrap gap-1">
-                                  {phoneHistories[c.id].map((h) => (
-                                    <span
-                                      key={h.eventId}
-                                      title={h.title}
-                                      className="inline-flex items-center gap-1 rounded-full border border-primary/20 bg-primary/5 px-2 py-0.5 text-[11px] text-foreground/80"
-                                    >
-                                      <span className="opacity-70">{formatHistoryDate(h.date) || h.title}</span>
-                                      <span className="font-bold text-primary">{h.count} تذكرة</span>
-                                    </span>
-                                  ))}
-                                </span>
-                              )}
                             </span>
 
                             <User className="w-4 h-4 text-primary shrink-0" />
