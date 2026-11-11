@@ -71,6 +71,7 @@ Deno.serve(async (req) => {
           return new Response(JSON.stringify({ error: 'Invalid receipt amount or ticket quantity' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
         }
         const { data, error } = await admin.from('pos_receipts').update(patch).eq('id', receipt_id).select('*').single();
+        if (isDuplicateReceiptError(error)) return duplicateReceiptResponse();
         if (error) throw error;
         return new Response(JSON.stringify({ success: true, receipt: data }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
       }

@@ -150,6 +150,7 @@ const POSReceiptPage = () => {
     } catch (error) {
       console.error("Error processing receipt:", error);
       const message = error instanceof Error ? error.message : "Failed to process receipt";
+      if (error instanceof ReceiptOperationError && error.code === 'duplicate_receipt') setRetryFile(null);
       setProcessingError(message);
       toast.error(message);
     } finally {
