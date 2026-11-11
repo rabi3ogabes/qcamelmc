@@ -171,8 +171,8 @@ SELECT t.ok(
                         t.holder('b2000000-0000-4000-8000-000000000001', '30011112222'),
                         t.holder('b2000000-0000-4000-8000-000000000001', '30011112222')), 'cash_pos') ->> 'order_id') IS NOT NULL,
   'exactly 5 in a POS order is allowed even after 6 tickets in earlier orders');
-SELECT t.eq((SELECT sold_quantity FROM public.tickets WHERE id = 'b2000000-0000-4000-8000-000000000001'), 11,
-            'the refused 6-ticket POS order held no seats (3 + 3 + 5 accepted)');
+SELECT t.eq((SELECT sold_quantity FROM public.tickets WHERE id = 'b2000000-0000-4000-8000-000000000001'), 13,
+            'the refused 6-ticket POS order held no seats (2 earlier + 3 + 3 + 5 accepted)');
 SELECT t.ok(
   (public.create_order(t.customer(), t.items('{"b2000000-0000-4000-8000-000000000001":1}'),
       jsonb_build_array(t.holder('b2000000-0000-4000-8000-000000000001', '30099998888')), 'cash_pos') ->> 'order_id') IS NOT NULL,
