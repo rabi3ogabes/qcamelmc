@@ -27,6 +27,12 @@ interface POSReceipt {
   image_url: string | null;
 }
 
+class ReceiptOperationError extends Error {
+  constructor(message: string, readonly code?: string) {
+    super(message);
+  }
+}
+
 const POSReceiptPage = () => {
   const navigate = useNavigate();
   const [receipts, setReceipts] = useState<POSReceipt[]>([]);
@@ -81,9 +87,9 @@ const POSReceiptPage = () => {
     if (error) {
       const response = (error as { context?: Response }).context;
       const details = await response?.json().catch(() => null);
-      throw new Error(details?.message || details?.error || 'Receipt operation failed. Please try again.');
+      throw new ReceiptOperationError(details?.message || details?.error || 'Receipt operation failed. Please try again.', details?.code);
     }
-    if (!data?.success) throw new Error(data?.error || 'Receipt operation failed. Please try again.');
+    if (!data?.success) throw new ReceiptOperationError(data?.message || data?.error || 'Receipt operation failed. Please try again.', data?.code);
     return data;
   };
 
@@ -144,6 +150,7 @@ const POSReceiptPage = () => {
     } catch (error) {
       console.error("Error processing receipt:", error);
       const message = error instanceof Error ? error.message : "Failed to process receipt";
+      if (error instanceof ReceiptOperationError && error.code === 'duplicate_receipt') setRetryFile(null);
       setProcessingError(message);
       toast.error(message);
     } finally {
@@ -179,7 +186,7 @@ const POSReceiptPage = () => {
       );
     } catch (error) {
       console.error("Error updating tickets:", error);
-      toast.error("Failed to update tickets");
+      toast.error(error instanceof Error ? error.message : "Failed to update tickets");
     }
   };
 

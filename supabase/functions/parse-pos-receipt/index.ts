@@ -5,12 +5,18 @@ import { staffIdentity, unauthorizedResponse } from "../_shared/staffAuth.ts";
 import { generateChatCompletion, GatewayError } from "npm:@lovable.dev/ai-gateway@0.1.11";
 import { RECEIPT_OUTPUT, parseReceiptOutput } from "./output.ts";
 import { receiptTicketPatch, receiptImage } from "./operations.ts";
+import { DUPLICATE_RECEIPT_MESSAGE, isDuplicateReceiptError, receiptFullRowValues } from "./duplicates.ts";
 import { ORDER_FESTIVAL } from "../_shared/orders-policy.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
+
+const duplicateReceiptResponse = () => new Response(
+  JSON.stringify({ success: false, code: 'duplicate_receipt', error: DUPLICATE_RECEIPT_MESSAGE, message: DUPLICATE_RECEIPT_MESSAGE }),
+  { status: 409, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+);
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -65,6 +71,7 @@ Deno.serve(async (req) => {
           return new Response(JSON.stringify({ error: 'Invalid receipt amount or ticket quantity' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
         }
         const { data, error } = await admin.from('pos_receipts').update(patch).eq('id', receipt_id).select('*').single();
+        if (isDuplicateReceiptError(error)) return duplicateReceiptResponse();
         if (error) throw error;
         return new Response(JSON.stringify({ success: true, receipt: data }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
       }
@@ -158,9 +165,10 @@ Extraction rules:
     const { error: uploadError } = await admin.storage.from('pos-receipts').upload(path, image.bytes, { contentType: image.mime, upsert: false });
     if (uploadError) throw new Error('Photo could not be saved. Please retry.');
     const { data: { publicUrl } } = admin.storage.from('pos-receipts').getPublicUrl(path);
-    const { data: saved, error: saveError } = await admin.from('pos_receipts').insert({ ...extractedData, image_url: publicUrl, created_by: identity.userId }).select('*').single();
+    const { data: saved, error: saveError } = await admin.from('pos_receipts').insert({ ...receiptFullRowValues(extractedData), image_url: publicUrl, created_by: identity.userId }).select('*').single();
     if (saveError) {
       await admin.storage.from('pos-receipts').remove([path]);
+      if (isDuplicateReceiptError(saveError)) return duplicateReceiptResponse();
       throw new Error('Receipt could not be saved. Please retry.');
     }
     return new Response(

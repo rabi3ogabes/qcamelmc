@@ -141,6 +141,13 @@
       "when": 1794298458831,
       "tag": "0019_receipt_ai_quota_30",
       "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1794380549457,
+      "tag": "0020_prevent_duplicate_pos_receipt_rows",
+      "breakpoints": true
     }
   ]
 }
