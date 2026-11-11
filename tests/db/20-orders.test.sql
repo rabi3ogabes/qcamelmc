@@ -161,7 +161,7 @@ SELECT t.throws(
                         t.holder('b2000000-0000-4000-8000-000000000001', '30011112222'),
                         t.holder('b2000000-0000-4000-8000-000000000001', '30011112222'),
                         t.holder('b2000000-0000-4000-8000-000000000001', '30011112222'),
-                        t.holder('b2000000-0000-4000-8000-000000000001', '30011112222')), 'cash_pos')$$,
+                        t.holder('b2000000-0000-4000-8000-000000000001', '30011112222')), 'cash_pos', 'pos')$$,
   'TICKET_LIMIT_EXCEEDED', 'a 6th ticket for the same person in one POS order is refused');
 SELECT t.ok(
   (public.create_order(t.customer(), t.items('{"b2000000-0000-4000-8000-000000000001":5}'),
