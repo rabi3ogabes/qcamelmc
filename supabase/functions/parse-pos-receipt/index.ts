@@ -161,11 +161,6 @@ Extraction rules:
       );
     }
 
-    const { data: duplicate, error: duplicateError } = await admin.from('pos_receipts')
-      .select('id').match(receiptFullRowValues(extractedData)).limit(1).maybeSingle();
-    if (duplicateError) throw duplicateError;
-    if (duplicate) return duplicateReceiptResponse();
-
     const path = `receipts/${crypto.randomUUID()}.${image.ext}`;
     const { error: uploadError } = await admin.storage.from('pos-receipts').upload(path, image.bytes, { contentType: image.mime, upsert: false });
     if (uploadError) throw new Error('Photo could not be saved. Please retry.');
