@@ -1,5 +1,9 @@
 # Task Roadmap
 
+## POS customer lookup and per-order ticket limit
+- [ ] Phone lookup fills customer contact details only, without purchase-history queries or badges.
+- [ ] POS normal + VIP tickets are capped at five per person in the current order, ignoring earlier orders; online per-event limits remain unchanged. Add client/database regression tests, deploy the database rule and verify the POS flow.
+
 ## Complete live-bookings festival calendar
 - [x] Show every active, non-archived festival day from 7–14 November 2026, including completed days, in the calendar and booking results; exclude older seasons. Authenticated browser verified all eight dates enabled, 7 November selectable, and 8 November loading 73 bookings / 113 tickets; 14 focused tests passed and build is clean.
 
