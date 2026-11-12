@@ -7,7 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { CheckCircle, MapPin, Calendar, Eye, QrCode, Loader2, XCircle, Printer, Trash2, Grid3x3, List, Search, Banknote, CreditCard, AlertCircle, Ticket, Crown, Car, Copy, ReceiptText, ShieldCheck, Undo2 } from "lucide-react";
+import { ScanLine, ExternalLink, CheckCircle, MapPin, Calendar, Eye, QrCode, Loader2, XCircle, Printer, Trash2, Grid3x3, List, Search, Banknote, CreditCard, AlertCircle, Ticket, Crown, Car, Copy, ReceiptText, ShieldCheck, Undo2 } from "lucide-react";
 import { EventShiftBadge } from "./EventShiftBadge";
 import { SadadTransactionDialog } from "./SadadTransactionDialog";
 import { SadadTxStrip, useSadadTransactions } from "./SadadTxStrip";
@@ -27,6 +27,8 @@ import { toZonedTime } from "date-fns-tz";
 import { useOrdersQuery } from "@/hooks/useOrdersQuery";
 import { ORDER_FESTIVAL, isOrderFestivalDate } from "../../../supabase/functions/_shared/orders-policy";
 import { qatarDayKey, formatQatarDate } from "@/lib/qatarTime";
+import { invoiceTicketScan, invoiceScanDetail } from "@/lib/invoiceTicketScan";
+import { invoicePageUrl } from "@/lib/invoiceLink";
 
 interface TicketHolder {
   id: string;
@@ -713,6 +715,28 @@ export const OrdersTab = ({ readOnly = false }: { readOnly?: boolean }) => {
           </div>
           <p className="text-xs font-semibold capitalize truncate text-end">{getOrderTicketSummary(order)}</p>
         </div>
+
+        {activeTab === "failed" && (() => {
+          const scan = invoiceTicketScan(order.ticket_holders);
+          return (
+            <div className="flex flex-wrap items-center gap-1.5">
+              {scan.scanned > 0 ? (
+                <Badge title={invoiceScanDetail(scan)} className="gap-1 bg-success/15 text-success border-success/30 font-lusail">
+                  <ScanLine className="w-3 h-3" /> تم مسح {scan.scanned} من {scan.total}
+                </Badge>
+              ) : (
+                <Badge variant="outline" className="gap-1 text-muted-foreground font-lusail">
+                  <ScanLine className="w-3 h-3" /> لم يتم المسح ({scan.total})
+                </Badge>
+              )}
+              <Button size="sm" variant="outline" asChild className="font-lusail h-7 text-xs px-2 gap-1">
+                <a href={invoicePageUrl(order.booking_reference)} target="_blank" rel="noopener noreferrer">
+                  <ExternalLink className="w-3 h-3" /> فتح الفاتورة
+                </a>
+              </Button>
+            </div>
+          );
+        })()}
 
         {/* Actions */}
         <div className="flex flex-wrap gap-1.5">
