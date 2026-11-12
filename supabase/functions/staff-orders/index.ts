@@ -4,7 +4,7 @@ import { staffIdentity } from "../_shared/staffAuth.ts";
 import { HttpError, json, preflight, toErrorResponse } from "../_shared/http.ts";
 import { ORDER_FESTIVAL, canManageOrders, ordersReadMode } from "../_shared/orders-policy.ts";
 
-const FIELDS = "id, booking_reference, payment_status, payment_method, ticket_type, quantity, total_amount, created_at, event_id, payment_id, sadad_manually_verified, payment_error_reason, payment_note, customers(name, email, phone, nationality), events!inner(title, event_date, location), pos_users(name, icon), ticket_holders(ticket_type)";
+const FIELDS = "id, booking_reference, payment_status, payment_method, ticket_type, quantity, total_amount, created_at, event_id, payment_id, sadad_manually_verified, payment_error_reason, payment_note, customers(name, email, phone, nationality), events!inner(title, event_date, location), pos_users(name, icon), ticket_holders(ticket_type, is_present, confirmed_at, confirmed_by_name)";
 
 Deno.serve(async (req) => {
   const options = preflight(req);

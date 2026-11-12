@@ -110,7 +110,7 @@ interface Order {
     name: string;
     icon: string | null;
   } | null;
-  ticket_holders?: { ticket_type: string }[];
+  ticket_holders?: { ticket_type: string; is_present?: boolean | null; confirmed_at?: string | null; confirmed_by_name?: string | null }[];
 }
 const PAGE_SIZE = 30;
 
