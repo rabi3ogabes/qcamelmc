@@ -971,6 +971,12 @@ export const InvoiceTab = () => {
                     <p className="text-xs text-muted-foreground xl:hidden">التذكرة / العدد</p>
                     <p className="font-medium break-words">{order.ticket_type}</p>
                     <p>العدد: <span className="font-semibold">{order.quantity}</span></p>
+                    {scanLabel && (
+                      <p title={invoiceScanDetail(ticketScan)} className="inline-flex max-w-full items-center gap-1 rounded-full border border-success/50 bg-success/10 px-2 py-0.5 text-xs font-semibold text-success">
+                        <ScanLine className="h-3.5 w-3.5 shrink-0" />
+                        <span className="truncate">{scanLabel}</span>
+                      </p>
+                    )}
                     <p className="font-semibold text-primary">{order.total_amount} QAR</p>
                   </div>
                   <div className="min-w-0">
@@ -988,7 +994,8 @@ export const InvoiceTab = () => {
                     {(order.n8n_response_message || sentOrders.has(order.id)) && <Button variant="outline" size="sm" onClick={() => resetOrderStatus(order.id)} disabled={sending || currentlySending === order.id || sendingIndividual === order.id} className="gap-1 text-xs"><RotateCcw className="h-3 w-3" />إعادة</Button>}
                   </div>
                 </article>
-              ))}
+                );
+              })}
             </div>
           {filteredOrders.length > visibleCount && (
             <div className="flex justify-center py-3">
