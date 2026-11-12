@@ -35,3 +35,4 @@
 - Online booking alerts use NewBookingNotification with holder-derived type counts and scoped toast animation; keeps POS, attendance and stock notifications unchanged.
 
 - Live daily sales use liveDailySales with the shared orders festival bounds, independently of purchasability; completed festival days remain visible and earlier seasons stay excluded.
+- InvoiceCard shares PDF/PNG visibility via SettingsContext/public_settings; each admin toggle saves only its flag to preserve other settings.

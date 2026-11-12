@@ -24,6 +24,8 @@ interface Settings {
   invoice_send_delay_min: number;
   invoice_send_delay_max: number;
   current_event_id: string | null;
+  invoice_pdf_download_enabled: boolean;
+  invoice_png_download_enabled: boolean;
 }
 
 const DEFAULT_SETTINGS: Settings = {
@@ -45,6 +47,8 @@ const DEFAULT_SETTINGS: Settings = {
   invoice_send_delay_min: 300,
   invoice_send_delay_max: 600,
   current_event_id: null,
+  invoice_pdf_download_enabled: true,
+  invoice_png_download_enabled: true,
 };
 
 interface SettingsContextType {
@@ -87,13 +91,20 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     fetchSettings();
+    const refresh = () => { if (document.visibilityState === "visible") void fetchSettings(); };
+    window.addEventListener("focus", refresh);
+    window.addEventListener("invoice-download-settings-changed", refresh);
+    return () => {
+      window.removeEventListener("focus", refresh);
+      window.removeEventListener("invoice-download-settings-changed", refresh);
+    };
   }, []);
 
   const fetchSettings = async () => {
     try {
       const { data, error } = await supabase
         .from("public_settings")
-        .select("logo_url, hero_image_url, hero_image_position, hero_image_height, before_footer_image_url, before_footer_image_repeat, before_footer_image_opacity, header_bg_color, header_bg_image_url, hero_text, copyright_text, admin_phone, current_event_id")
+        .select("logo_url, hero_image_url, hero_image_position, hero_image_height, before_footer_image_url, before_footer_image_repeat, before_footer_image_opacity, header_bg_color, header_bg_image_url, hero_text, copyright_text, admin_phone, current_event_id, invoice_pdf_download_enabled, invoice_png_download_enabled")
         .maybeSingle();
       if (error) throw error;
 
@@ -117,6 +128,8 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
         invoice_send_delay_max: 600,
 
         current_event_id: data?.current_event_id || null,
+        invoice_pdf_download_enabled: data?.invoice_pdf_download_enabled ?? true,
+        invoice_png_download_enabled: data?.invoice_png_download_enabled ?? true,
       };
 
       setSettings(resolved);
