@@ -934,6 +934,8 @@ export type Database = {
           id: string
           invoice_batch_max: number | null
           invoice_batch_min: number | null
+          invoice_pdf_download_enabled: boolean
+          invoice_png_download_enabled: boolean
           invoice_send_delay_max: number | null
           invoice_send_delay_min: number | null
           last_invoice_sent_at: string | null
@@ -978,6 +980,8 @@ export type Database = {
           id?: string
           invoice_batch_max?: number | null
           invoice_batch_min?: number | null
+          invoice_pdf_download_enabled?: boolean
+          invoice_png_download_enabled?: boolean
           invoice_send_delay_max?: number | null
           invoice_send_delay_min?: number | null
           last_invoice_sent_at?: string | null
@@ -1022,6 +1026,8 @@ export type Database = {
           id?: string
           invoice_batch_max?: number | null
           invoice_batch_min?: number | null
+          invoice_pdf_download_enabled?: boolean
+          invoice_png_download_enabled?: boolean
           invoice_send_delay_max?: number | null
           invoice_send_delay_min?: number | null
           last_invoice_sent_at?: string | null
@@ -1258,6 +1264,8 @@ export type Database = {
           hero_image_url: string | null
           hero_text: string | null
           id: string | null
+          invoice_pdf_download_enabled: boolean | null
+          invoice_png_download_enabled: boolean | null
           logo_url: string | null
           show_delete_customer_button: boolean | null
           show_delete_event_button: boolean | null
@@ -1279,6 +1287,8 @@ export type Database = {
           hero_image_url?: string | null
           hero_text?: string | null
           id?: string | null
+          invoice_pdf_download_enabled?: boolean | null
+          invoice_png_download_enabled?: boolean | null
           logo_url?: string | null
           show_delete_customer_button?: boolean | null
           show_delete_event_button?: boolean | null
@@ -1300,6 +1310,8 @@ export type Database = {
           hero_image_url?: string | null
           hero_text?: string | null
           id?: string | null
+          invoice_pdf_download_enabled?: boolean | null
+          invoice_png_download_enabled?: boolean | null
           logo_url?: string | null
           show_delete_customer_button?: boolean | null
           show_delete_event_button?: boolean | null
