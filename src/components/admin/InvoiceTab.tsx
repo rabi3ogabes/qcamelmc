@@ -941,7 +941,10 @@ export const InvoiceTab = () => {
               </div>
               {filteredOrders.length === 0 ? (
                 <p className="py-8 text-center text-muted-foreground">لا توجد فواتير في هذه القائمة</p>
-              ) : filteredOrders.slice(0, visibleCount).map(order => (
+              ) : filteredOrders.slice(0, visibleCount).map(order => {
+                const ticketScan = invoiceTicketScan(order.ticket_holders);
+                const scanLabel = invoiceScanLabel(ticketScan);
+                return (
                 <article key={order.id} aria-label={`فاتورة ${order.booking_reference}`} className="grid min-w-0 grid-cols-1 gap-5 border-b px-1 py-5 sm:grid-cols-2 sm:px-3 xl:grid-cols-[minmax(0,1.2fr)_minmax(0,1.4fr)_minmax(0,0.8fr)_minmax(0,1.2fr)_minmax(0,1fr)] xl:gap-4">
                   <div className="min-w-0 space-y-2">
                     <p className="text-xs text-muted-foreground xl:hidden">الحجز والفعالية</p>
