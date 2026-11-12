@@ -1,7 +1,7 @@
 # Task Roadmap
 
 ## Invoice download visibility
-- [ ] Add independent admin Settings switches for PDF and PNG buttons, persist them without changing other settings, and verify save/reload on the customer invoice.
+- [x] Add independent admin Settings switches for PDF and PNG buttons; selected-flag-only saves preserve other settings, both default visible. Migration applied, 12 tests passed, build clean. Named real invoice loaded; simulated public-settings responses verified independent/both-hidden states, home button preserved and mobile no overflow. Admin save/reload could not be exercised because account session minting found no matching requesting-user account.
 
 ## Invoice already-scanned icon
 - [x] Show a green «تم المسح» / «تم مسح X من Y» icon on every invoice row whose tickets are marked present, with the latest Qatar-time scan and staff name in the tooltip; unscanned invoices show nothing. Five helper tests passed, 562 application tests passed, build clean; authenticated browser showed 31 badges over 100 loaded rows and «تم مسح 3 من 3» for the exact-reference search.
