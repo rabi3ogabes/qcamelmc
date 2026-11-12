@@ -22,7 +22,7 @@ jobs:
       - name: Type-check (app and tests)
         run: npm run typecheck
 
-      - name: Edge functions: type-check with Deno
+      - name: "Edge functions: type-check with Deno"
         run: npm run check:deno
 
       - name: Unit and component tests
