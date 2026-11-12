@@ -128,6 +128,14 @@ export const InvoiceTab = () => {
     fetchDelaySettings();
 
     // Subscribe to realtime updates for n8n responses
+    let holderTimer: ReturnType<typeof setTimeout> | null = null;
+    const refreshSoon = () => {
+      if (holderTimer) return;
+      holderTimer = setTimeout(() => {
+        holderTimer = null;
+        fetchOrders();
+      }, 3000);
+    };
     const channel = supabase
       .channel('orders-n8n-updates')
       .on(
@@ -144,9 +152,22 @@ export const InvoiceTab = () => {
           fetchOrders();
         }
       )
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'ticket_holders'
+        },
+        () => {
+          // Gate check-ins change the "already scanned" badge; reload it live.
+          refreshSoon();
+        }
+      )
       .subscribe();
 
     return () => {
+      if (holderTimer) clearTimeout(holderTimer);
       supabase.removeChannel(channel);
     };
   }, []);
