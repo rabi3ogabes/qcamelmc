@@ -2,7 +2,8 @@ import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Send, Loader2, CheckCircle, Clock, RotateCcw, CalendarX, PauseCircle, FileDown, Mail, MailCheck, History, ChevronDown, Pencil } from "lucide-react";
+import { Send, Loader2, CheckCircle, Clock, RotateCcw, CalendarX, PauseCircle, FileDown, Mail, MailCheck, History, ChevronDown, Pencil, ScanLine } from "lucide-react";
+import { invoiceScanDetail, invoiceScanLabel, invoiceTicketScan } from "@/lib/invoiceTicketScan";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { InvoiceDeliveryStatus } from "@/components/admin/InvoiceDeliveryStatus";
 import { Input } from "@/components/ui/input";
@@ -73,6 +74,9 @@ interface Order {
   ticket_holders?: Array<{
     qr_code: string | null;
     ticket_type: string;
+    is_present?: boolean | null;
+    confirmed_at?: string | null;
+    confirmed_by_name?: string | null;
   }>;
 }
 
@@ -124,6 +128,14 @@ export const InvoiceTab = () => {
     fetchDelaySettings();
 
     // Subscribe to realtime updates for n8n responses
+    let holderTimer: ReturnType<typeof setTimeout> | null = null;
+    const refreshSoon = () => {
+      if (holderTimer) return;
+      holderTimer = setTimeout(() => {
+        holderTimer = null;
+        fetchOrders();
+      }, 3000);
+    };
     const channel = supabase
       .channel('orders-n8n-updates')
       .on(
@@ -140,9 +152,22 @@ export const InvoiceTab = () => {
           fetchOrders();
         }
       )
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'ticket_holders'
+        },
+        () => {
+          // Gate check-ins change the "already scanned" badge; reload it live.
+          refreshSoon();
+        }
+      )
       .subscribe();
 
     return () => {
+      if (holderTimer) clearTimeout(holderTimer);
       supabase.removeChannel(channel);
     };
   }, []);
@@ -323,7 +348,7 @@ export const InvoiceTab = () => {
       for (;;) {
         const { data, error } = await supabase
           .from("orders")
-          .select("*, customers(id, name, email, phone, country_code, nationality), events(title, event_date, location, is_archived), ticket_holders(qr_code, ticket_type), email_delivery_events(id, channel, status, attempt, provider_message_id, provider_confirmed_at)")
+          .select("*, customers(id, name, email, phone, country_code, nationality), events(title, event_date, location, is_archived), ticket_holders(qr_code, ticket_type, is_present, confirmed_at, confirmed_by_name), email_delivery_events(id, channel, status, attempt, provider_message_id, provider_confirmed_at)")
           .gte("created_at", "2026-01-12T00:00:00+03:00")
           .eq("payment_status", "confirmed")
           // Online sales only — POS (cash_pos) customers never receive invoices.
@@ -880,7 +905,7 @@ export const InvoiceTab = () => {
           const ref = referenceSearch.trim();
           if (!/^[A-Za-z0-9][A-Za-z0-9_-]{0,59}$/.test(ref)) { toast.error("أدخل رقم الحجز كاملاً"); return; }
           setSearching(true);
-          const { data, error } = await supabase.from("orders").select("*, customers(id, name, email, phone, country_code, nationality), events(title, event_date, location, is_archived), ticket_holders(qr_code, ticket_type), email_delivery_events(id, channel, status, attempt, provider_message_id, provider_confirmed_at)").eq("booking_reference", ref).eq("payment_status", "confirmed").eq("payment_method", "sadad").gte("created_at", "2026-01-12T00:00:00+03:00").maybeSingle();
+          const { data, error } = await supabase.from("orders").select("*, customers(id, name, email, phone, country_code, nationality), events(title, event_date, location, is_archived), ticket_holders(qr_code, ticket_type, is_present, confirmed_at, confirmed_by_name), email_delivery_events(id, channel, status, attempt, provider_message_id, provider_confirmed_at)").eq("booking_reference", ref).eq("payment_status", "confirmed").eq("payment_method", "sadad").gte("created_at", "2026-01-12T00:00:00+03:00").maybeSingle();
           setSearching(false);
           if (error || !data) { toast.error("لم يُعثر على فاتورة مؤكدة بهذا الرقم"); return; }
           setSearchedOrder(data as unknown as Order);
@@ -937,7 +962,10 @@ export const InvoiceTab = () => {
               </div>
               {filteredOrders.length === 0 ? (
                 <p className="py-8 text-center text-muted-foreground">لا توجد فواتير في هذه القائمة</p>
-              ) : filteredOrders.slice(0, visibleCount).map(order => (
+              ) : filteredOrders.slice(0, visibleCount).map(order => {
+                const ticketScan = invoiceTicketScan(order.ticket_holders);
+                const scanLabel = invoiceScanLabel(ticketScan);
+                return (
                 <article key={order.id} aria-label={`فاتورة ${order.booking_reference}`} className="grid min-w-0 grid-cols-1 gap-5 border-b px-1 py-5 sm:grid-cols-2 sm:px-3 xl:grid-cols-[minmax(0,1.2fr)_minmax(0,1.4fr)_minmax(0,0.8fr)_minmax(0,1.2fr)_minmax(0,1fr)] xl:gap-4">
                   <div className="min-w-0 space-y-2">
                     <p className="text-xs text-muted-foreground xl:hidden">الحجز والفعالية</p>
@@ -964,6 +992,12 @@ export const InvoiceTab = () => {
                     <p className="text-xs text-muted-foreground xl:hidden">التذكرة / العدد</p>
                     <p className="font-medium break-words">{order.ticket_type}</p>
                     <p>العدد: <span className="font-semibold">{order.quantity}</span></p>
+                    {scanLabel && (
+                      <p title={invoiceScanDetail(ticketScan)} className="inline-flex max-w-full items-center gap-1 rounded-full border border-success/50 bg-success/10 px-2 py-0.5 text-xs font-semibold text-success">
+                        <ScanLine className="h-3.5 w-3.5 shrink-0" />
+                        <span className="truncate">{scanLabel}</span>
+                      </p>
+                    )}
                     <p className="font-semibold text-primary">{order.total_amount} QAR</p>
                   </div>
                   <div className="min-w-0">
@@ -981,7 +1015,8 @@ export const InvoiceTab = () => {
                     {(order.n8n_response_message || sentOrders.has(order.id)) && <Button variant="outline" size="sm" onClick={() => resetOrderStatus(order.id)} disabled={sending || currentlySending === order.id || sendingIndividual === order.id} className="gap-1 text-xs"><RotateCcw className="h-3 w-3" />إعادة</Button>}
                   </div>
                 </article>
-              ))}
+                );
+              })}
             </div>
           {filteredOrders.length > visibleCount && (
             <div className="flex justify-center py-3">

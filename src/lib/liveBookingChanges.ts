@@ -54,7 +54,7 @@ export const STOCK_ADDITIONS_LIMIT = 20;
 /** Newest first; capped so the record list stays small. */
 export function appendStockAdditions(
   list: StockAddition[],
-  increases: Array<{ ticketType: string; increase: number }>,
+  increases: Array<{ ticketType: string; increase: number; newCapacity?: number }>,
   at: number,
 ): StockAddition[] {
   const entries = increases.map(item => ({ ticketType: item.ticketType, increase: item.increase, at }));
