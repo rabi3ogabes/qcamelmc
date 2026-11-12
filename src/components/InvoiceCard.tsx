@@ -9,6 +9,8 @@ import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/compone
 import { generateInvoicePdf, type InvoiceData } from "@/lib/generateInvoicePdf";
 import { isTicketUsed } from "@/lib/tickets";
 import { formatQatarDate, QATAR_TZ } from "@/lib/qatarTime";
+import { useSettings } from "@/contexts/SettingsContext";
+import { invoiceDownloadVisibility } from "@/lib/invoiceDownloadVisibility";
 
 interface InvoiceCardProps {
   data: InvoiceData;
@@ -50,6 +52,8 @@ const Row = ({ label, value }: { label: string; value: React.ReactNode }) => (
 );
 
 export const InvoiceCard = ({ data }: InvoiceCardProps) => {
+  const { settings, loading: settingsLoading } = useSettings();
+  const downloads = invoiceDownloadVisibility(settings);
   const captureRef = useRef<HTMLDivElement>(null);
   const [savingImage, setSavingImage] = useState(false);
   const navigate = useNavigate();
@@ -214,10 +218,13 @@ export const InvoiceCard = ({ data }: InvoiceCardProps) => {
         </p>
       </Card>
 
-      <div className="flex flex-col gap-3 sm:flex-row">
+      {!settingsLoading && (downloads.pdf || downloads.png) && <div className="flex flex-col gap-3 sm:flex-row">
+        {downloads.pdf && (
         <Button size="lg" className="flex-1" onClick={() => generateInvoicePdf(data)}>
           <FileDown className="ml-2 h-5 w-5" /> تحميل الفاتورة (PDF)
         </Button>
+        )}
+        {downloads.png && (
         <Button size="lg" variant="outline" className="flex-1" onClick={handleImage} disabled={savingImage}>
           {savingImage ? (
             <Loader2 className="ml-2 h-5 w-5 animate-spin" />
@@ -226,7 +233,8 @@ export const InvoiceCard = ({ data }: InvoiceCardProps) => {
           )}
           حفظ كصورة (PNG)
         </Button>
-      </div>
+        )}
+      </div>}
 
       <Button
         size="lg"

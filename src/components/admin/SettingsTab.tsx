@@ -79,6 +79,9 @@ export const SettingsTab = () => {
   const [savingDeleteButton, setSavingDeleteButton] = useState(false);
   const [showGenerateQrButton, setShowGenerateQrButton] = useState(false);
   const [savingGenerateQrButton, setSavingGenerateQrButton] = useState(false);
+  const [invoicePdfEnabled, setInvoicePdfEnabled] = useState(true);
+  const [invoicePngEnabled, setInvoicePngEnabled] = useState(true);
+  const [savingInvoiceDownloads, setSavingInvoiceDownloads] = useState(false);
   const [showDeleteEventButton, setShowDeleteEventButton] = useState(false);
   const [savingDeleteEventButton, setSavingDeleteEventButton] = useState(false);
   const [showDeleteTicketButton, setShowDeleteTicketButton] = useState(true);
@@ -265,7 +268,7 @@ export const SettingsTab = () => {
   const fetchSettings = async () => {
     const { data, error } = await supabase
       .from("settings")
-      .select("logo_url, hero_image_url, hero_image_position, hero_image_height, before_footer_image_url, before_footer_image_repeat, before_footer_image_opacity, header_bg_color, header_bg_image_url, hero_text, copyright_text, webhook_url, email_webhook_url, webhook_enabled, email_webhook_enabled, admin_phone, admin_email, payment_failed_email_enabled, clarity_project_id, clarity_enabled, sadad_merchant_id, sadad_api_key, sadad_secret, sadad_website_domain, sadad_environment, site_url, show_delete_customer_button, show_generate_qr_button, show_delete_event_button, show_delete_ticket_button, auto_invoice_interval_seconds, invoice_batch_min, invoice_batch_max, invoice_send_delay_min, invoice_send_delay_max, live_refresh_mode")
+      .select("logo_url, hero_image_url, hero_image_position, hero_image_height, before_footer_image_url, before_footer_image_repeat, before_footer_image_opacity, header_bg_color, header_bg_image_url, hero_text, copyright_text, webhook_url, email_webhook_url, webhook_enabled, email_webhook_enabled, admin_phone, admin_email, payment_failed_email_enabled, clarity_project_id, clarity_enabled, sadad_merchant_id, sadad_api_key, sadad_secret, sadad_website_domain, sadad_environment, site_url, show_delete_customer_button, show_generate_qr_button, show_delete_event_button, show_delete_ticket_button, auto_invoice_interval_seconds, invoice_batch_min, invoice_batch_max, invoice_send_delay_min, invoice_send_delay_max, live_refresh_mode, invoice_pdf_download_enabled, invoice_png_download_enabled")
       .maybeSingle();
 
     if (error) {
@@ -277,6 +280,8 @@ export const SettingsTab = () => {
       setLogoUrl(data.logo_url);
       setNewLogoUrl(data.logo_url);
     }
+    setInvoicePdfEnabled(data?.invoice_pdf_download_enabled ?? true);
+    setInvoicePngEnabled(data?.invoice_png_download_enabled ?? true);
 
     if (data?.hero_image_url) {
       setHeroImageUrl(data.hero_image_url);
@@ -357,6 +362,26 @@ export const SettingsTab = () => {
     if (data?.invoice_batch_max !== undefined) setInvoiceBatchMax(data.invoice_batch_max);
     if (data?.invoice_send_delay_min !== undefined) setInvoiceSendDelayMin(data.invoice_send_delay_min);
     if (data?.invoice_send_delay_max !== undefined) setInvoiceSendDelayMax(data.invoice_send_delay_max);
+  };
+
+  const saveInvoiceDownload = async (format: "pdf" | "png", enabled: boolean) => {
+    setSavingInvoiceDownloads(true);
+    try {
+      const update = format === "pdf"
+        ? { invoice_pdf_download_enabled: enabled }
+        : { invoice_png_download_enabled: enabled };
+      const { data, error } = await supabase.from("settings").update(update)
+        .not("id", "is", null).select("id");
+      if (error || !data?.length) throw error || new Error("Settings unavailable");
+      if (format === "pdf") setInvoicePdfEnabled(enabled);
+      else setInvoicePngEnabled(enabled);
+      window.dispatchEvent(new Event("invoice-download-settings-changed"));
+      toast.success("تم حفظ إعدادات أزرار الفاتورة");
+    } catch {
+      toast.error("تعذّر حفظ إعدادات أزرار الفاتورة");
+    } finally {
+      setSavingInvoiceDownloads(false);
+    }
   };
 
   const handleSaveLogo = async () => {
@@ -1739,6 +1764,16 @@ export const SettingsTab = () => {
       <Card className="p-6">
         <h3 className="text-lg font-semibold mb-4 font-lusail">إعدادات الأزرار</h3>
         <div className="space-y-4">
+          <div className="flex items-center justify-between gap-4">
+            <Label htmlFor="invoice-pdf-download" className="font-lusail">إظهار تحميل الفاتورة (PDF)</Label>
+            <Switch id="invoice-pdf-download" className="shrink-0" checked={invoicePdfEnabled}
+              onCheckedChange={(enabled) => void saveInvoiceDownload("pdf", enabled)} disabled={savingInvoiceDownloads} />
+          </div>
+          <div className="flex items-center justify-between gap-4 pt-4 border-t">
+            <Label htmlFor="invoice-png-download" className="font-lusail">إظهار حفظ كصورة (PNG)</Label>
+            <Switch id="invoice-png-download" className="shrink-0" checked={invoicePngEnabled}
+              onCheckedChange={(enabled) => void saveInvoiceDownload("png", enabled)} disabled={savingInvoiceDownloads} />
+          </div>
           <div className="flex items-center justify-between">
             <div className="space-y-1">
               <Label className="font-lusail">إظهار زر حذف العميل</Label>
