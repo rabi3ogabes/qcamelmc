@@ -2,7 +2,8 @@ import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Send, Loader2, CheckCircle, Clock, RotateCcw, CalendarX, PauseCircle, FileDown, Mail, MailCheck, History, ChevronDown, Pencil, ScanLine } from "lucide-react";
+import { Send, Loader2, CheckCircle, Clock, RotateCcw, CalendarX, PauseCircle, FileDown, Mail, MailCheck, History, ChevronDown, Pencil, ScanLine, ExternalLink } from "lucide-react";
+import { invoicePageUrl } from "@/lib/invoiceLink";
 import { invoiceScanDetail, invoiceScanLabel, invoiceTicketScan } from "@/lib/invoiceTicketScan";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { InvoiceDeliveryStatus } from "@/components/admin/InvoiceDeliveryStatus";
@@ -1005,6 +1006,12 @@ export const InvoiceTab = () => {
                     <InvoiceDeliveryStatus orderId={order.id} emailSentAt={order.invoice_email_sent_at} legacyMessage={order.whatsapp_manually_confirmed_at ? null : order.n8n_response_message} legacyAt={order.n8n_responded_at} manualConfirmedAt={order.whatsapp_manually_confirmed_at} />
                   </div>
                   <div className="flex min-w-0 flex-wrap content-start items-start gap-2 sm:col-span-2 xl:col-span-1 xl:flex-col">
+                    <Button asChild variant="outline" size="sm" className="h-auto min-h-9 max-w-full gap-1 whitespace-normal text-xs">
+                      <a href={invoicePageUrl(order.booking_reference)} target="_blank" rel="noopener noreferrer" title="فتح الفاتورة في صفحة جديدة">
+                        <ExternalLink className="h-3 w-3 shrink-0" />
+                        فتح الفاتورة
+                      </a>
+                    </Button>
                     <Button variant="default" size="sm" onClick={() => sendSingleInvoice(order)} disabled={sending || currentlySending === order.id || sendingIndividual === order.id || !webhookUrl} className="h-auto min-h-9 max-w-full gap-1 whitespace-normal text-xs">
                       {sendingIndividual === order.id ? <Loader2 className="h-3 w-3 shrink-0 animate-spin" /> : <Send className="h-3 w-3 shrink-0" />}
                       {sendingIndividual === order.id ? "جاري..." : order.n8n_response_message ? "إعادة إرسال واتساب" : "إرسال واتساب"}
